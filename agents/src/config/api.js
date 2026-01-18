@@ -9,7 +9,11 @@ const API_CONFIG = {
 
 // Helper para obtener el token de autenticación
 export const getAuthToken = () => {
-  return localStorage.getItem('authToken');
+  const raw = localStorage.getItem('authToken');
+  if (!raw) return null;
+
+  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^\'|\'$/g, '');
+  return token.replace(/^Bearer\s+/i, '');
 };
 
 // Helper para configurar headers con autenticación
@@ -32,12 +36,37 @@ export const apiRequest = async (endpoint, options = {}) => {
     },
   };
 
+  const isFormData = (typeof FormData !== 'undefined') && (options && options.body instanceof FormData);
+  if (isFormData) {
+    const headers = { ...(config.headers || {}) };
+    delete headers['Content-Type'];
+    delete headers['content-type'];
+    config.headers = headers;
+  }
+
   try {
     const response = await fetch(url, config);
     
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Error en la petición' }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      const error = await response.json().catch(() => ({}));
+      const msg = error.error || error.message || `HTTP error! status: ${response.status}`;
+
+      if (response.status === 401) {
+        const ep = String(endpoint || '');
+        const isAuthFlow = ep.startsWith('/auth/login') || ep.startsWith('/auth/register');
+        if (!isAuthFlow) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          try {
+            if (typeof window !== 'undefined' && window.location) {
+              setTimeout(() => window.location.reload(), 0);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+      throw new Error(msg);
     }
     
     return await response.json();
@@ -60,20 +89,34 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+
+  patch: (endpoint, data) => apiRequest(endpoint, {
+    method: 'PATCH',
+    body: data ? JSON.stringify(data) : undefined,
+  }),
   
   delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
   
   // Para upload de archivos
-  uploadFiles: async (endpoint, files) => {
+  uploadFiles: async (endpoint, files, options = {}) => {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append('files', file);
     });
 
+    const fields = options && options.fields ? options.fields : null;
+    if (fields && typeof fields === 'object') {
+      Object.keys(fields).forEach((k) => {
+        const v = fields[k];
+        if (v === undefined || v === null) return;
+        formData.append(k, String(v));
+      });
+    }
+
     return apiRequest(endpoint, {
       method: 'POST',
       body: formData,
-      headers: {}, // FormData maneja sus propios headers
+      headers: options && options.headers ? options.headers : {},
     });
   },
 };

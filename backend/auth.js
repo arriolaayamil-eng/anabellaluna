@@ -3,12 +3,59 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./db');
 const User = require('./models/User');
+const Agente = require('./models/Agente');
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'please-change-this-secret';
 
-router.post('/register', async (req, res) => {
+function signToken(user) {
+  return jwt.sign(
+    { sub: user._id, username: user.username, role: user.role, agenteId: user.agenteId },
+    JWT_SECRET,
+    { expiresIn: '8h' }
+  );
+}
+
+async function protectRegister(req, res, next) {
+  try {
+    const count = await User.countDocuments({}).exec();
+    if (count === 0) return next();
+
+    return authenticateToken(req, res, () => {
+      const role = (req.user && req.user.role) || 'agent';
+      if (role !== 'admin') return res.status(403).json({ error: 'forbidden - admin required' });
+      return next();
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+router.post('/public-register', async (req, res) => {
+  const { username, password, nombre } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'username and password required' });
+  if (typeof password === 'string' && password.length < 6) return res.status(400).json({ error: 'password too short (min 6 chars)' });
+  try {
+    const existing = await User.findOne({ username }).exec();
+    if (existing) return res.status(409).json({ error: 'username already exists' });
+    const hash = await bcrypt.hash(password, 10);
+    const user = new User({ 
+      username, 
+      password_hash: hash, 
+      role: 'user',
+      nombre: nombre || '',
+      email: username, // Use username (email) as default email
+    });
+    await user.save();
+    const token = signToken(user);
+    return res.json({ token });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/register', protectRegister, async (req, res) => {
   const { username, password, role } = req.body || {};
   if (!username || !password) return res.status(400).json({ error: 'username and password required' });
   if (typeof password === 'string' && password.length < 6) return res.status(400).json({ error: 'password too short (min 6 chars)' });
@@ -32,24 +79,102 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    const token = jwt.sign({ sub: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
+    const token = signToken(user);
     res.json({ token });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Quick endpoint to inspect token payload
-router.get('/me', (req, res) => {
+// Get current user with full profile data
+router.get('/me', async (req, res) => {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'missing token' });
   const parts = auth.split(' ');
   if (parts.length !== 2 || parts[0] !== 'Bearer') return res.status(401).json({ error: 'invalid token format' });
   const token = parts[1];
-  jwt.verify(token, JWT_SECRET, (err, payload) => {
-    if (err) return res.status(401).json({ error: 'invalid token' });
-    return res.json({ user: payload });
-  });
+  
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    
+    // Build user object with JWT payload
+    const user = {
+      sub: payload.sub,
+      username: payload.username,
+      role: payload.role,
+      agenteId: payload.agenteId,
+    };
+    
+    // If user is an agent, fetch full Agente data
+    if (payload.agenteId) {
+      const agente = await Agente.findById(payload.agenteId).lean();
+      if (agente) {
+        user.nombre = agente.nombre || '';
+        user.email = agente.email || '';
+        user.telefono = agente.telefono || '';
+        user.cargo = agente.cargo || 'Agente Inmobiliario';
+        user.bio = agente.bio || '';
+        user.direccion = agente.direccion || '';
+        user.especialidad = agente.especialidad || '';
+        user.avatar = agente.avatar || '';
+        user.redesSociales = agente.redesSociales || {};
+      }
+    } else {
+      // For public users (role: 'user') and admins, fetch User document directly
+      const userDoc = await User.findById(payload.sub).lean();
+      if (userDoc) {
+        user.nombre = userDoc.nombre || '';
+        user.email = userDoc.email || userDoc.username || '';
+        user.telefono = userDoc.telefono || '';
+        user.avatar = userDoc.avatar || '';
+        user.direccion = userDoc.direccion || '';
+        user.bio = userDoc.bio || '';
+        user.cargo = userDoc.cargo || '';
+        user.empresa = userDoc.empresa || '';
+      }
+    }
+    
+    return res.json({ user });
+  } catch (err) {
+    return res.status(401).json({ error: 'invalid token' });
+  }
+});
+
+// Update current user profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { nombre, email, telefono, avatar, direccion, bio, cargo, empresa } = req.body || {};
+    
+    const updateData = {};
+    if (nombre !== undefined) updateData.nombre = nombre;
+    if (email !== undefined) updateData.email = email;
+    if (telefono !== undefined) updateData.telefono = telefono;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (direccion !== undefined) updateData.direccion = direccion;
+    if (bio !== undefined) updateData.bio = bio;
+    if (cargo !== undefined) updateData.cargo = cargo;
+    if (empresa !== undefined) updateData.empresa = empresa;
+    
+    const updated = await User.findByIdAndUpdate(userId, updateData, { new: true }).lean();
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+    
+    return res.json({
+      sub: updated._id,
+      username: updated.username,
+      role: updated.role,
+      nombre: updated.nombre || '',
+      email: updated.email || updated.username || '',
+      telefono: updated.telefono || '',
+      avatar: updated.avatar || '',
+      direccion: updated.direccion || '',
+      bio: updated.bio || '',
+      cargo: updated.cargo || '',
+      empresa: updated.empresa || '',
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Middleware

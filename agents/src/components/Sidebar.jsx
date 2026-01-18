@@ -1,44 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { MdSpaceDashboard, MdOutlineCancel } from 'react-icons/md';
-import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaCheckSquare, FaChartBar, FaPlug } from 'react-icons/fa';
-import { FiSettings } from 'react-icons/fi';
+import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaCheckSquare, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaHome, FaBuilding, FaRobot } from 'react-icons/fa';
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import { useStateContext } from '../contexts/ContextProvider';
 
-// Configuración de los ítems del menú del CRM según funcionalidades completas
 const menuItems = [
-  { name: 'Dashboard', path: '/', icon: <MdSpaceDashboard /> },
-  { name: 'PROPIEDADES', path: '/propiedades', icon: <FaUsers /> },
-  { name: 'CLIENTES', path: '/clientes', icon: <FaUsers /> },
-  { name: 'OPERACIONES', path: '/operaciones', icon: <FaDollarSign /> },
-  { name: 'AGENDA', path: '/citas', icon: <FaRegCalendarAlt /> },
-  { name: 'DOCUMENTOS', path: '/documentos', icon: <FaCheckSquare /> },
-  { name: 'REPORTES', path: '/reportes', icon: <FaChartBar /> },
+  { name: 'Dashboard', path: '/crm', icon: <MdSpaceDashboard />, end: true },
+  { name: 'Propiedades', path: '/crm/propiedades', icon: <FaBuilding /> },
+  { name: 'Clientes', path: '/crm/clientes', icon: <FaUsers /> },
+  { name: 'Operaciones', path: '/crm/operaciones', icon: <FaDollarSign /> },
+  { name: 'Agenda', path: '/crm/citas', icon: <FaRegCalendarAlt /> },
+  { name: 'Consultas', path: '/crm/consultas', icon: <FaEnvelope /> },
+  { name: 'Automatización', path: '/crm/automatizacion', icon: <FaRobot /> },
+  { name: 'Recompensas', path: '/crm/recompensas', icon: <FaTrophy /> },
+  { name: 'Integraciones', path: '/crm/integraciones', icon: <FaPlug /> },
+  { name: 'Documentos', path: '/crm/documentos', icon: <FaCheckSquare /> },
+  { name: 'Reportes', path: '/crm/reportes', icon: <FaChartBar /> },
 ];
 
 const Sidebar = () => {
   const { currentColor, currentMode, activeMenu, setActiveMenu, screenSize } = useStateContext();
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleCloseSideBar = () => {
-    if (activeMenu !== undefined && screenSize <= 900) {
+    if (screenSize <= 900) {
       setActiveMenu(false);
     }
   };
 
-  // Estilos para el link activo
-  const activeLink = 'flex items-center gap-4 pl-4 pt-3 pb-3 rounded-lg text-white text-md m-2 transition-colors duration-200';
-  
-  // Estilos para el link normal (ajustados para fondo oscuro en ambos modos)
-  const normalLink = currentMode === 'Dark'
-    ? 'flex items-center gap-4 pl-4 pt-3 pb-3 rounded-lg text-gray-300 text-md m-2 hover:bg-gray-700 transition-colors duration-200'
-    : 'flex items-center gap-4 pl-4 pt-3 pb-3 rounded-lg text-gray-200 text-md m-2 hover:bg-gray-800 transition-colors duration-200';
+  const isExpanded = isHovered || (screenSize <= 900 && activeMenu);
+  const isMobile = screenSize <= 900;
 
   return (
     <>
       {/* Overlay para móviles */}
-      {activeMenu && screenSize <= 900 && (
+      {activeMenu && isMobile && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setActiveMenu(false)}
@@ -46,62 +44,104 @@ const Sidebar = () => {
       )}
       
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-screen w-64 flex flex-col overflow-auto pb-10 z-50 bg-gray-900 shadow-lg transition-transform duration-300 ${
-        activeMenu ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        {/* Header del Sidebar con logo y botón de cerrar */}
-        {activeMenu && (
-          <>
-          <div className="flex justify-between items-center p-4 border-b border-gray-700">
-            <Link 
-              to="/" 
-              onClick={handleCloseSideBar} 
-              className="flex items-center gap-3 text-xl font-extrabold tracking-tight text-white"
+      <div 
+        className={`
+          fixed left-0 top-0 h-screen flex flex-col z-50 bg-gray-900 shadow-xl
+          transition-all duration-300 ease-in-out overflow-hidden
+          ${isMobile 
+            ? (activeMenu ? 'w-64 translate-x-0' : 'w-0 -translate-x-full') 
+            : (isExpanded ? 'w-64' : 'w-16')
+          }
+        `}
+        onMouseEnter={() => !isMobile && setIsHovered(true)}
+        onMouseLeave={() => !isMobile && setIsHovered(false)}
+      >
+        {/* Header */}
+        <div className={`flex items-center p-4 border-b border-gray-700 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
+          <Link 
+            to="/crm" 
+            onClick={handleCloseSideBar} 
+            className="flex items-center gap-3 text-white overflow-hidden"
+          >
+            <MdSpaceDashboard className="text-2xl flex-shrink-0" style={{ color: currentColor }} />
+            <span className={`font-bold text-lg whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+              CRM Panel
+            </span>
+          </Link>
+          
+          {isMobile && isExpanded && (
+            <button
+              type="button"
+              onClick={() => setActiveMenu(false)}
+              className="text-xl rounded-full p-2 hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
             >
-              <MdSpaceDashboard className="text-2xl" />
-              <span>CRM Panel</span>
-            </Link>
-            
-            {/* Botón de cerrar - solo visible en móviles */}
-            <TooltipComponent content="Cerrar menú" position="BottomCenter">
-              <button
-                type="button"
-                onClick={() => setActiveMenu(!activeMenu)}
-                style={{ color: currentColor }}
-                className="text-xl rounded-full p-2 hover:bg-gray-700 transition-colors duration-200 block md:hidden"
-              >
-                <MdOutlineCancel />
-              </button>
-            </TooltipComponent>
-          </div>
+              <MdOutlineCancel />
+            </button>
+          )}
+        </div>
 
-          {/* Navegación */}
-          <nav className="mt-6 px-2 flex-1">
-            {menuItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                onClick={handleCloseSideBar}
-                style={({ isActive }) => ({
-                  backgroundColor: isActive ? currentColor : '',
-                })}
-                className={({ isActive }) => (isActive ? activeLink : normalLink)}
-              >
-                <span className="text-xl">{item.icon}</span>
-                <span className="font-medium">{item.name}</span>
-              </NavLink>
-            ))}
-          </nav>
+        {/* Navegación */}
+        <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              end={item.end || false}
+              onClick={handleCloseSideBar}
+              className={({ isActive }) => `
+                flex items-center gap-4 mx-2 my-1 p-3 rounded-lg
+                transition-all duration-200 group relative
+                ${isActive 
+                  ? 'text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }
+                ${!isExpanded ? 'justify-center' : ''}
+              `}
+              style={({ isActive }) => ({
+                backgroundColor: isActive ? currentColor : '',
+                boxShadow: isActive ? `0 0 0 2px ${currentColor}, 0 0 12px ${currentColor}40` : '',
+              })}
+            >
+              {({ isActive }) => (
+                <>
+                  <span 
+                    className="text-xl flex-shrink-0 transition-transform duration-200"
+                    style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)' }}
+                  >
+                    {item.icon}
+                  </span>
+                  <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'}`}>
+                    {item.name}
+                  </span>
+                  
+                  {/* Tooltip cuando está colapsado */}
+                  {!isExpanded && !isMobile && (
+                    <div className="
+                      absolute left-full ml-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg
+                      opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                      transition-all duration-200 whitespace-nowrap z-50 shadow-lg
+                      pointer-events-none
+                    ">
+                      {item.name}
+                      <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 border-4 border-transparent border-r-gray-800" />
+                    </div>
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
 
-          {/* Footer opcional del sidebar */}
-          <div className={`p-4 border-t ${
-            currentMode === 'Dark' ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-600'
-          } text-xs text-center`}>
-            <p>CRM Dashboard v1.0</p>
-          </div>
-        </>
-      )}
+        {/* Footer */}
+        <div className={`p-4 border-t border-gray-700 transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
+          <p className="text-xs text-gray-500 text-center whitespace-nowrap">CRM v1.0</p>
+        </div>
       </div>
+
+      {/* Spacer para el contenido principal en desktop */}
+      {!isMobile && (
+        <div className={`transition-all duration-300 ${isExpanded ? 'w-64' : 'w-16'} flex-shrink-0`} />
+      )}
     </>
   );
 };

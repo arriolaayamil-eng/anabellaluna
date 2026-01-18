@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#050B2A"/>
+      <stop offset="0.55" stop-color="#071233"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+
+    <radialGradient id="glowCyan" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(520 340) rotate(90) scale(520 720)">
+      <stop stop-color="#22D3EE" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#22D3EE" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="glowPink" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1420 260) rotate(90) scale(520 720)">
+      <stop stop-color="#EC4899" stop-opacity="0.50"/>
+      <stop offset="0.6" stop-color="#EC4899" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#EC4899" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="glowBlue" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1060 880) rotate(90) scale(520 900)">
+      <stop stop-color="#3B82F6" stop-opacity="0.45"/>
+      <stop offset="0.62" stop-color="#3B82F6" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="ribbon1" x1="460" y1="120" x2="1520" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22D3EE" stop-opacity="0.95"/>
+      <stop offset="0.42" stop-color="#3B82F6" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#EC4899" stop-opacity="0.82"/>
+    </linearGradient>
+
+    <linearGradient id="ribbon2" x1="320" y1="980" x2="1620" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34D399" stop-opacity="0.78"/>
+      <stop offset="0.5" stop-color="#22D3EE" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0.78"/>
+    </linearGradient>
+
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.06"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+
+    <filter id="edgeShadow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+
+    <filter id="grain" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.10 0"/>
+    </filter>
+
+    <clipPath id="clipR">
+      <rect x="0" y="0" width="1920" height="1080" rx="0"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#clipR)">
+    <rect width="1920" height="1080" fill="url(#bg)"/>
+
+    <rect width="1920" height="1080" fill="url(#glowCyan)"/>
+    <rect width="1920" height="1080" fill="url(#glowPink)"/>
+    <rect width="1920" height="1080" fill="url(#glowBlue)"/>
+
+    <g filter="url(#softShadow)">
+      <path
+        d="M-80 560C80 420 180 450 320 420C520 368 760 170 980 170C1180 170 1320 250 1440 340C1596 458 1780 520 2000 460L2000 900C1740 950 1560 920 1400 880C1210 835 980 900 760 960C520 1030 270 1040 0 980C-120 952 -220 910 -320 850L-320 640C-220 620 -150 600 -80 560Z"
+        fill="url(#ribbon2)" opacity="0.88"
+      />
+    </g>
+
+    <g filter="url(#edgeShadow)">
+      <path
+        d="M-120 260C140 120 330 180 520 140C710 100 900 -10 1160 10C1420 30 1540 160 1680 270C1820 400 2060 450 2120 420L2120 620C1900 700 1740 660 1560 610C1405 565 1210 610 1020 690C810 780 560 820 340 790C120 760 -70 700 -260 610L-260 400C-210 340 -170 300 -120 260Z"
+        fill="url(#ribbon1)" opacity="0.86"
+      />
+    </g>
+
+    <g filter="url(#softShadow)" opacity="0.85">
+      <path
+        d="M1420 980C1320 820 1390 690 1500 620C1640 532 1700 410 1620 320C1560 250 1460 210 1370 190C1240 160 1180 90 1200 10L1400 -40C1480 120 1640 210 1760 320C1920 470 1940 680 1860 820C1790 930 1640 1030 1520 1060C1480 1072 1450 1050 1420 980Z"
+        fill="#60A5FA"/>
+      />
+    </g>
+
+    <g opacity="0.9" filter="url(#edgeShadow)">
+      <rect x="210" y="150" width="520" height="310" rx="44" fill="url(#glass)"/>
+      <rect x="260" y="200" width="420" height="210" rx="36" fill="#FFFFFF" opacity="0.06"/>
+    </g>
+
+    <g opacity="0.85" filter="url(#edgeShadow)">
+      <rect x="1180" y="620" width="560" height="320" rx="48" fill="url(#glass)"/>
+      <rect x="1240" y="680" width="440" height="200" rx="36" fill="#FFFFFF" opacity="0.06"/>
+    </g>
+
+    <g opacity="0.75" filter="url(#edgeShadow)">
+      <rect x="860" y="240" width="460" height="260" rx="42" fill="url(#glass)"/>
+    </g>
+
+    <g filter="url(#grain)" opacity="0.55">
+      <rect width="1920" height="1080" fill="#000"/>
+    </g>
+  </g>
+</svg>

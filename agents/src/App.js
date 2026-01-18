@@ -1,16 +1,58 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { FiSettings } from 'react-icons/fi';
-import { TooltipComponent } from '@syncfusion/ej2-react-popups';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useLocation,
+} from 'react-router-dom';
 
-import { Navbar, Footer, Sidebar, ThemeSettings } from './components';
-import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas } from './pages';
+import { Navbar, Footer, Sidebar, ThemeSettings, Celebration } from './components';
+import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes } from './pages';
+import LoginAgente from './pages/LoginAgente';
 import './App.css';
 
 import { useStateContext } from './contexts/ContextProvider';
+import { authService } from './services/authService';
+
+const RequireAuth = ({ children }) => {
+  const location = useLocation();
+
+  if (!authService.isAuthenticated()) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+const CrmLayout = () => {
+  const { currentMode, themeSettings } = useStateContext();
+
+  return (
+    <div className={currentMode === 'Dark' ? 'dark' : ''}>
+      <div className="flex relative dark:bg-main-dark-bg">
+        <Sidebar />
+        <div
+          className="bg-main-bg dark:bg-main-dark-bg min-h-screen w-full transition-all duration-300 ease-in-out"
+        >
+          <div className="fixed md:static bg-main-bg dark:bg-main-dark-bg navbar w-full z-40">
+            <Navbar />
+          </div>
+          <div>
+            {themeSettings && (<ThemeSettings />)}
+            <Outlet />
+          </div>
+          <Footer />
+        </div>
+      </div>
+      <Celebration />
+    </div>
+  );
+};
 
 const App = () => {
-  const { setCurrentColor, setCurrentMode, currentMode, activeMenu, currentColor, themeSettings, setThemeSettings } = useStateContext();
+  const { setCurrentColor, setCurrentMode } = useStateContext();
 
   useEffect(() => {
     const currentThemeColor = localStorage.getItem('colorMode');
@@ -21,41 +63,94 @@ const App = () => {
     }
   }, [setCurrentColor, setCurrentMode]);
 
+  // Handle online/offline status
+  useEffect(() => {
+    const updateOnlineStatus = async (online) => {
+      const user = authService.getCurrentUser();
+      if (user && user.role === 'agent' && authService.isAuthenticated()) {
+        try {
+          const { api } = await import('./config/api');
+          await api.put('/crm/messages/status/online', { online });
+        } catch (err) {
+          console.error('Error updating online status:', err);
+        }
+      }
+    };
+
+    // Set online when page loads/becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updateOnlineStatus(true);
+      }
+    };
+
+    // Set online when component mounts
+    if (authService.isAuthenticated()) {
+      updateOnlineStatus(true);
+    }
+
+    // Periodic heartbeat to maintain online status
+    const heartbeatInterval = setInterval(() => {
+      if (!document.hidden && authService.isAuthenticated()) {
+        updateOnlineStatus(true);
+      }
+    }, 60000); // Update every minute
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(heartbeatInterval);
+    };
+  }, []);
+
   return (
-    <div className={currentMode === 'Dark' ? 'dark' : ''}>
-      <BrowserRouter>
-        <div className="flex relative dark:bg-main-dark-bg">
-          <Sidebar />
-          <div
-            className={
-              activeMenu
-                ? 'dark:bg-main-dark-bg bg-main-bg min-h-screen md:ml-64 w-full transition-all duration-300'
-                : 'bg-main-bg dark:bg-main-dark-bg w-full min-h-screen flex-2 transition-all duration-300'
-            }
-          >
-            <div className="fixed md:static bg-main-bg dark:bg-main-dark-bg navbar w-full ">
-              <Navbar />
-            </div>
-            <div>
-              {themeSettings && (<ThemeSettings />)}
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Routes>
+        <Route path="/" element={<LoginAgente />} />
 
-              <Routes>
-                {/* Home del agente */}
-                <Route path="/" element={<AgentDashboard />} />
+        <Route path="/propiedades" element={<Navigate to="/crm/propiedades" replace />} />
+        <Route path="/clientes" element={<Navigate to="/crm/clientes" replace />} />
+        <Route path="/citas" element={<Navigate to="/crm/citas" replace />} />
+        <Route path="/tareas" element={<Navigate to="/crm/tareas" replace />} />
+        <Route path="/operaciones" element={<Navigate to="/crm/operaciones" replace />} />
+        <Route path="/documentos" element={<Navigate to="/crm/documentos" replace />} />
+        <Route path="/reportes" element={<Navigate to="/crm/reportes" replace />} />
+        <Route path="/consultas" element={<Navigate to="/crm/consultas" replace />} />
+        <Route path="/integraciones" element={<Navigate to="/crm/integraciones" replace />} />
 
-                {/* Módulos principales que usa el agente */}
-                <Route path="/propiedades" element={<Propiedades />} />
-                <Route path="/clientes" element={<ClientesCRM />} />
-                <Route path="/citas" element={<Citas />} />
-                <Route path="/tareas" element={<Tareas />} />
+        <Route
+          path="/crm"
+          element={(
+            <RequireAuth>
+              <CrmLayout />
+            </RequireAuth>
+          )}
+        >
+          {/* Home del agente */}
+          <Route index element={<AgentDashboard />} />
 
-              </Routes>
-            </div>
-            <Footer />
-          </div>
-        </div>
-      </BrowserRouter>
-    </div>
+          {/* Módulos principales que usa el agente */}
+          <Route path="propiedades" element={<Propiedades />} />
+          <Route path="clientes" element={<ClientesCRM />} />
+          <Route path="citas" element={<Citas />} />
+          <Route path="tareas" element={<Tareas />} />
+          <Route path="operaciones" element={<Ventas />} />
+          <Route path="documentos" element={<Documentos />} />
+          <Route path="reportes" element={<Reportes />} />
+          <Route path="consultas" element={<Consultas />} />
+          <Route path="integraciones" element={<Integraciones />} />
+          <Route path="perfil" element={<MiPerfil />} />
+          <Route path="recompensas" element={<Recompensas />} />
+          <Route path="automatizacion" element={<Automatizacion />} />
+          <Route path="fechas-importantes" element={<FechasImportantes />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 

@@ -1,9 +1,10 @@
-export const all_routes = {
+export const all_routes: any = {
   //Auth routes
   signup:'/signup',
   signin:'/signin',
   forgotPassword:'/forgot-password',
   resetPassword:'/reset-password',
+  profile:'/profile',
  
  
 
@@ -13,36 +14,31 @@ export const all_routes = {
   //Listing routes
   buyPropertyGrid:'/buy-property-grid',
   buyPropertyList:'/buy-property-list',
-  buyPropertyMap:'/buy-property-map',
-  buyPropertyGridSidebar:'/buy-property-grid-sidebar',
-  buyPropertyListSidebar:'/buy-property-list-sidebar',
   buyGridMap:'/buy-grid-map',
   buyListMap:'/buy-list-map',
-  buyDetails:'/buy-details',
+  buyPropertyGridSidebar:'/buy-property-grid-sidebar',
+  buyPropertyListSidebar:'/buy-property-list-sidebar',
+  buyDetails:'/buy/:slug',
+  buyDetailsPath:(slug: string) => `/buy/${slug}`,
   rentPropertyGrid:'/rent-property-grid',
   rentPropertyList:'/rent-property-list',
   rentGridMap:'/rent-grid-map',
   rentListMap:'/rent-list-map',
   rentPropertyGridSidebar:'/rent-property-grid-sidebar',
   rentPropertyListSidebar:'/rent-property-list-sidebar',
-  rentDetails:'/rent-details',
+  rentDetails:'/rent/:slug',
+  rentDetailsPath:(slug: string) => `/rent/${slug}`,
   rentBooking:'/rent-booking',
   rentalOrderDetails:'/rental-order-details',
   rentalOrderConfirmation:'/rental-order-confirmation',
-  rentalPayment:'/rental-payment',
 
   //Agent routes
   agentGrid:'/agent-grid',
-  agentList:'/agent-list',
-  agentGridSidebar:'/agent-grid-sidebar',
-  agentListSidebar:'/agent-list-sidebar',
+  agentes:'/agent-grid',
   agentDetails:'/agent-details',
   
   //Agency routes
   agencyGrid:'/agency-grid',
-  agencyList:'/agency-list',
-  agencyGridSidebar:'/agency-grid-sidebar',
-  agencyListSidebar:'/agency-list-sidebar',
   agencyDetails:'/agency-details',
 
   //Pages routes
@@ -70,6 +66,7 @@ export const all_routes = {
   //Blogs routes
   blogList:'/blog-list',
   blogGrid:'/blog-grid',
-  blogDetails:'/blog-details',
+  blogDetails:'/blog/:slug',
+  blogDetailsPath:(slug: string) => `/blog/${slug}`,
 
 };

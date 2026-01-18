@@ -27,11 +27,15 @@ export { default as Documentos } from './Documentos';
 export { default as Reportes } from './Reportes';
 export { default as Tareas } from './Tareas';
 export { default as Integraciones } from './Integraciones';
+export { default as Consultas } from './Consultas';
+export { default as MiPerfil } from './MiPerfil';
+export { default as Recompensas } from './Recompensas';
 export { default as Configuracion } from './Configuracion';
 
 // Módulos Avanzados
 export { default as Workflows } from './Workflows';
 export { default as Automatizacion } from './Automatizacion';
+export { default as FechasImportantes } from './FechasImportantes';
 export { default as RolesPermisos } from './RolesPermisos';
 export { default as Campanas } from './Campanas';
 export { default as EmailMarketing } from './EmailMarketing';

@@ -22,7 +22,7 @@ const Scheduler = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white rounded-3xl">
+    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
       <Header category="App" title="Calendar" />
       <ScheduleComponent
         height="650px"
@@ -38,7 +38,7 @@ const Scheduler = () => {
       </ScheduleComponent>
       <PropertyPane>
         <table
-          style={{ width: '100%', background: 'white' }}
+          className="w-full bg-white dark:bg-secondary-dark-bg"
         >
           <tbody>
             <tr style={{ height: '50px' }}>

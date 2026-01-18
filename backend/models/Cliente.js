@@ -5,6 +5,7 @@ const ClienteSchema = new mongoose.Schema({
   email: { type: String, default: '' },
   telefono: { type: String, default: '' },
   direccion: { type: String, default: '' },
+  agenteId: { type: String, default: '', index: true },
   notas: { type: String, default: '' },
   metadata: { type: Object, default: {} }
 }, { timestamps: true });

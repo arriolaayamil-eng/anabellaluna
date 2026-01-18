@@ -1,28 +1,33 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { AiOutlineMenu } from 'react-icons/ai';
-import { MdDarkMode, MdLightMode } from 'react-icons/md';
+import { MdDarkMode, MdLightMode, MdKeyboardArrowDown } from 'react-icons/md';
 import { FiSettings } from 'react-icons/fi';
-import { FaHome, FaTasks, FaBell, FaComments } from 'react-icons/fa';
-import { MdKeyboardArrowDown } from 'react-icons/md';
+import { FaBuilding, FaTasks, FaBell, FaComments } from 'react-icons/fa';
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import avatar from '../data/avatar.png';
 import { Propiedades, Tareas, Alertas, ChatInterno, UserProfile } from '.';
 import { themeColors } from '../data/dummy';
 import { useStateContext } from '../contexts/ContextProvider';
+import { authService } from '../services/authService';
 
-const NavButton = ({ title, customFunc, icon, color, dotColor }) => (
+const NavButton = ({ title, customFunc, icon, color, dotColor, isActive }) => (
   <TooltipComponent content={title} position="BottomCenter">
     <button
       type="button"
       onClick={() => customFunc()}
+      className={`
+        relative text-xl p-3 rounded-xl transition-all duration-200
+        hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105
+        ${isActive ? 'bg-gray-100 dark:bg-gray-700 shadow-sm' : ''}
+      `}
       style={{ color }}
-      className="relative text-xl rounded-full p-3 hover:bg-light-gray"
     >
-      <span
-        style={{ background: dotColor }}
-        className="absolute inline-flex rounded-full h-2 w-2 right-2 top-2"
-      />
+      {dotColor && dotColor !== 'transparent' && (
+        <span
+          style={{ background: dotColor }}
+          className="absolute inline-flex rounded-full h-2.5 w-2.5 right-2 top-2 animate-pulse"
+        />
+      )}
       {icon}
     </button>
   </TooltipComponent>
@@ -45,6 +50,10 @@ const Navbar = () => {
 
   const [showColorMenu, setShowColorMenu] = useState(false);
 
+  const currentUser = authService.getCurrentUser();
+  const userName = currentUser?.nombre || currentUser?.username || 'Administrador';
+  const userAvatar = currentUser?.avatar || avatar;
+
   const handleResize = useCallback(() => {
     setScreenSize(window.innerWidth);
   }, [setScreenSize]);
@@ -65,17 +74,14 @@ const Navbar = () => {
     }
   }, [screenSize, setActiveMenu]);
 
-  const handleActiveMenu = () => setActiveMenu(!activeMenu);
-
   return (
-    <div className="flex justify-between p-2 md:ml-6 md:mr-6 relative">
-
-      <NavButton title="Menu" customFunc={handleActiveMenu} color={currentColor} icon={<AiOutlineMenu />} />
-      <div className="flex items-center gap-1">
-        <NavButton title="Propiedades" customFunc={() => handleClick('propiedades')} color={currentColor} icon={<FaHome />} dotColor="#10B981" />
-        <NavButton title="Tareas" dotColor="#F59E0B" customFunc={() => handleClick('tareas')} color={currentColor} icon={<FaTasks />} />
-        <NavButton title="Chat Interno" dotColor="#3B82F6" customFunc={() => handleClick('chatInterno')} color={currentColor} icon={<FaComments />} />
-        <NavButton title="Alertas" dotColor="#EF4444" customFunc={() => handleClick('alertas')} color={currentColor} icon={<FaBell />} />
+    <div className="flex justify-end items-center p-3 md:px-6 relative gap-2">
+      <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-2xl px-2 py-1 shadow-sm">
+        <NavButton title="Propiedades" customFunc={() => handleClick('propiedades')} color={currentColor} icon={<FaBuilding />} isActive={isClicked.propiedades} />
+        <NavButton title="Tareas" customFunc={() => handleClick('tareas')} color={currentColor} icon={<FaTasks />} dotColor="#F59E0B" isActive={isClicked.tareas} />
+        <NavButton title="Chat Interno" customFunc={() => handleClick('chatInterno')} color={currentColor} icon={<FaComments />} isActive={isClicked.chatInterno} />
+        <NavButton title="Alertas" customFunc={() => handleClick('alertas')} color={currentColor} icon={<FaBell />} isActive={isClicked.alertas} />
+        <div className="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1" />
         {/* Toggle modo claro/oscuro */}
         <NavButton
           title={currentMode === 'Dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
@@ -118,32 +124,35 @@ const Navbar = () => {
             </div>
           )}
         </div>
-        <TooltipComponent content="Profile" position="BottomCenter">
+        <TooltipComponent content="Mi Perfil" position="BottomCenter">
           <div
-            className="flex items-center gap-2 cursor-pointer p-1 hover:bg-light-gray rounded-lg"
+            className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
             onClick={() => handleClick('userProfile')}
           >
             <img
-              className="rounded-full w-8 h-8"
-              src={avatar}
+              className="rounded-full w-10 h-10 object-cover ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
+              style={{ ringColor: currentColor }}
+              src={userAvatar}
               alt="user-profile"
             />
-            <p>
-              <span className="text-gray-400 text-14">Hola</span>{' '}
-              <span className="text-gray-400 font-bold ml-1 text-14">
-                Anabella!
-              </span>
-            </p>
-            <MdKeyboardArrowDown className="text-gray-400 text-14" />
+            <div className="hidden md:block">
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                {userName}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Administrador
+              </p>
+            </div>
+            <MdKeyboardArrowDown className="text-gray-500 dark:text-gray-400 text-lg" />
           </div>
         </TooltipComponent>
-
-        {isClicked.propiedades && (<Propiedades />)}
-        {isClicked.tareas && (<Tareas />)}
-        {isClicked.chatInterno && (<ChatInterno />)}
-        {isClicked.alertas && (<Alertas />)}
-        {isClicked.userProfile && (<UserProfile />)}
       </div>
+
+      {isClicked.propiedades && (<Propiedades />)}
+      {isClicked.tareas && (<Tareas />)}
+      {isClicked.chatInterno && (<ChatInterno />)}
+      {isClicked.alertas && (<Alertas />)}
+      {isClicked.userProfile && (<UserProfile />)}
     </div>
   );
 };

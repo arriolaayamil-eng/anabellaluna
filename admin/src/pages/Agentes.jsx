@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaExclamationTriangle } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { api } from '../config/api';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, DataLabel, ColumnSeries } from '@syncfusion/ej2-react-charts';
+// ApexCharts for modern visualizations
+import Chart from 'react-apexcharts';
+// Syncfusion Grid only
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Agentes = () => {
@@ -12,6 +14,9 @@ const Agentes = () => {
   
   // Estado para el modal
   const [showModal, setShowModal] = useState(false);
+  const [creatingAgente, setCreatingAgente] = useState(false);
+  const [createMessage, setCreateMessage] = useState('');
+  const [createdCredentials, setCreatedCredentials] = useState(null);
   
   // Estados para modales de estadísticas
   const [showModalTotalAgentes, setShowModalTotalAgentes] = useState(false);
@@ -23,12 +28,32 @@ const Agentes = () => {
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
   const [agenteSeleccionado, setAgenteSeleccionado] = useState(null);
   
+  // Estados para datos reales
+  const [agentes, setAgentes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
+  
+  // Estados para editar agente
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAgente, setEditingAgente] = useState(null);
+  const [savingAgente, setSavingAgente] = useState(false);
+  const [editMessage, setEditMessage] = useState('');
+  
+  // Estados para eliminar agente
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAgente, setDeletingAgente] = useState(false);
+  
+  // Estado para confirmación de cierre del formulario
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  
   // Estado para el formulario de nuevo agente
   const [nuevoAgente, setNuevoAgente] = useState({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
+    username: '',
+    password: '',
     telefonoAlternativo: '',
     rol: 'Agente',
     especialidad: 'Ventas',
@@ -44,168 +69,216 @@ const Agentes = () => {
     notas: '',
   });
 
-  const agentes = [
-    { 
-      id: 1, 
-      nombre: 'Ana López', 
-      rol: 'Agente Senior', 
-      especialidad: 'Ventas',
-      propiedades: 12, 
-      clientes: 28, 
-      ventas: 8, 
-      comisiones: 15400, 
-      rating: 4.8, 
-      zona: 'Palermo, Belgrano', 
-      color: '#FF6B6B',
-      email: 'ana.lopez@inmobiliaria.com',
-      telefono: '+54 11 1234-5678',
-      telefonoAlternativo: '+54 11 1234-5679',
-      direccion: 'Av. Santa Fe 1234',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      fechaIngreso: '2022-01-15',
-      licencia: 'CPI-12345',
-      experiencia: '8 años',
-      idiomas: ['Español', 'Inglés', 'Portugués'],
-      notas: 'Especialista en propiedades de lujo en Palermo y Belgrano. Excelente relación con clientes VIP.',
-      metaMensual: 10,
-      citas: 45,
-      propiedadesVendidas: 8,
-      satisfaccionCliente: 95
-    },
-    { 
-      id: 2, 
-      nombre: 'Carlos Ruiz', 
-      rol: 'Agente', 
-      especialidad: 'Alquileres',
-      propiedades: 8, 
-      clientes: 15, 
-      ventas: 5, 
-      comisiones: 9200, 
-      rating: 4.5, 
-      zona: 'Recoleta', 
-      color: '#4ECDC4',
-      email: 'carlos.ruiz@inmobiliaria.com',
-      telefono: '+54 11 8765-4321',
-      telefonoAlternativo: '',
-      direccion: 'Av. Callao 567',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      fechaIngreso: '2023-03-20',
-      licencia: 'CPI-67890',
-      experiencia: '4 años',
-      idiomas: ['Español', 'Inglés'],
-      notas: 'Enfocado en alquileres temporarios y tradicionales en Recoleta.',
-      metaMensual: 6,
-      citas: 32,
-      propiedadesVendidas: 5,
-      satisfaccionCliente: 88
-    },
-    { 
-      id: 3, 
-      nombre: 'Laura Fernández', 
-      rol: 'Supervisor', 
-      especialidad: 'Comercial',
-      propiedades: 15, 
-      clientes: 42, 
-      ventas: 12, 
-      comisiones: 22100, 
-      rating: 4.9, 
-      zona: 'Microcentro, Puerto Madero', 
-      color: '#45B7D1',
-      email: 'laura.fernandez@inmobiliaria.com',
-      telefono: '+54 11 5555-1234',
-      telefonoAlternativo: '+54 11 5555-1235',
-      direccion: 'Av. Corrientes 890',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      fechaIngreso: '2020-06-10',
-      licencia: 'CPI-11111',
-      experiencia: '12 años',
-      idiomas: ['Español', 'Inglés', 'Francés', 'Italiano'],
-      notas: 'Supervisora de equipo. Especialista en propiedades comerciales y oficinas premium.',
-      metaMensual: 15,
-      citas: 68,
-      propiedadesVendidas: 12,
-      satisfaccionCliente: 98
-    },
-    { 
-      id: 4, 
-      nombre: 'Marcos Silva', 
-      rol: 'Agente', 
-      especialidad: 'Ventas',
-      propiedades: 6, 
-      clientes: 18, 
-      ventas: 4, 
-      comisiones: 7800, 
-      rating: 4.2, 
-      zona: 'Colegiales', 
-      color: '#96CEB4',
-      email: 'marcos.silva@inmobiliaria.com',
-      telefono: '+54 11 7777-6666',
-      telefonoAlternativo: '',
-      direccion: 'Av. Cabildo 2345',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      fechaIngreso: '2023-08-01',
-      licencia: 'CPI-22222',
-      experiencia: '2 años',
-      idiomas: ['Español'],
-      notas: 'Agente junior en desarrollo. Buen potencial en zona norte.',
-      metaMensual: 5,
-      citas: 28,
-      propiedadesVendidas: 4,
-      satisfaccionCliente: 82
-    },
-    { 
-      id: 5, 
-      nombre: 'Sofía Torres', 
-      rol: 'Agente Senior', 
-      especialidad: 'Ventas',
-      propiedades: 10, 
-      clientes: 25, 
-      ventas: 7, 
-      comisiones: 13200, 
-      rating: 4.7, 
-      zona: 'Villa Crespo', 
-      color: '#FFEAA7',
-      email: 'sofia.torres@inmobiliaria.com',
-      telefono: '+54 11 9999-8888',
-      telefonoAlternativo: '+54 11 9999-8889',
-      direccion: 'Av. Corrientes 4567',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      fechaIngreso: '2021-11-05',
-      licencia: 'CPI-33333',
-      experiencia: '6 años',
-      idiomas: ['Español', 'Inglés'],
-      notas: 'Especialista en propiedades familiares y departamentos de 2-3 ambientes.',
-      metaMensual: 8,
-      citas: 38,
-      propiedadesVendidas: 7,
-      satisfaccionCliente: 92
-    },
-  ];
+  // Función para cargar agentes con métricas
+  const loadAgentes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.get('/crm/agentes/metrics/all');
+      // Normalizar datos para compatibilidad con la UI existente
+      const agentesNormalizados = (Array.isArray(data) ? data : []).map(a => ({
+        id: a._id,
+        _id: a._id,
+        nombre: a.nombre || 'Sin nombre',
+        email: a.email || '',
+        telefono: a.telefono || '',
+        cargo: a.cargo || 'Agente',
+        rol: a.metadata?.rol || a.cargo || 'Agente',
+        especialidad: a.especialidad || a.metadata?.especialidad || 'General',
+        avatar: a.avatar || '',
+        bio: a.bio || '',
+        direccion: a.direccion || a.metadata?.direccion || '',
+        ciudad: a.metadata?.ciudad || 'Buenos Aires',
+        provincia: a.metadata?.provincia || 'Buenos Aires',
+        zona: a.metadata?.zonas?.join(', ') || a.metadata?.zona || '',
+        fechaIngreso: a.metadata?.fechaIngreso || a.createdAt?.split('T')[0] || '',
+        licencia: a.metadata?.licencia || '',
+        experiencia: a.metadata?.experiencia || '',
+        idiomas: a.metadata?.idiomas || [],
+        notas: a.metadata?.notas || a.bio || '',
+        telefonoAlternativo: a.metadata?.telefonoAlternativo || '',
+        // Métricas reales
+        propiedades: a.metricas?.propiedades || 0,
+        clientes: a.metricas?.clientes || 0,
+        actividades: a.metricas?.actividades || 0,
+        actividadesMes: a.metricas?.actividadesMes || 0,
+        visitas: a.metricas?.visitas || 0,
+        llamadas: a.metricas?.llamadas || 0,
+        emails: a.metricas?.emails || 0,
+        rating: parseFloat(a.metricas?.rating) || 4.5,
+        satisfaccionCliente: a.metricas?.satisfaccion || 85,
+        // Campos calculados/simulados que se pueden mejorar con datos reales
+        ventas: a.metricas?.ventas || Math.floor(a.metricas?.actividades / 10) || 0,
+        comisiones: a.metricas?.comisiones || (a.metricas?.propiedades * 2500) || 0,
+        metaMensual: a.metadata?.metaMensual || 5,
+        citas: a.metricas?.actividades || 0,
+        propiedadesVendidas: a.metricas?.propiedadesVendidas || 0,
+        color: a.color || '#4ECDC4',
+        online: a.metadata?.online || false,
+        redesSociales: a.redesSociales || {},
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      }));
+      setAgentes(agentesNormalizados);
+    } catch (err) {
+      console.error('Error loading agents:', err);
+      setAgentes([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Datos para gráfico de rendimiento (últimos 6 meses)
-  const rendimientoData = [
-    { mes: 'May', Ana: 6, Carlos: 3, Laura: 9, Marcos: 2, Sofia: 5 },
-    { mes: 'Jun', Ana: 7, Carlos: 4, Laura: 10, Marcos: 3, Sofia: 6 },
-    { mes: 'Jul', Ana: 5, Carlos: 6, Laura: 8, Marcos: 4, Sofia: 7 },
-    { mes: 'Ago', Ana: 9, Carlos: 5, Laura: 12, Marcos: 3, Sofia: 8 },
-    { mes: 'Sep', Ana: 8, Carlos: 7, Laura: 11, Marcos: 5, Sofia: 6 },
-    { mes: 'Oct', Ana: 8, Carlos: 5, Laura: 12, Marcos: 4, Sofia: 7 },
-  ];
+  // Función para cargar detalle de un agente
+  const loadAgenteDetalle = useCallback(async (agenteId) => {
+    setLoadingDetalle(true);
+    try {
+      const data = await api.get(`/crm/agentes/metrics/${agenteId}`);
+      // Normalizar para la UI
+      const agenteDetalle = {
+        id: data._id,
+        _id: data._id,
+        nombre: data.nombre || 'Sin nombre',
+        email: data.email || '',
+        telefono: data.telefono || '',
+        cargo: data.cargo || 'Agente',
+        rol: data.metadata?.rol || data.cargo || 'Agente',
+        especialidad: data.especialidad || data.metadata?.especialidad || 'General',
+        avatar: data.avatar || '',
+        bio: data.bio || '',
+        direccion: data.direccion || data.metadata?.direccion || '',
+        ciudad: data.metadata?.ciudad || 'Buenos Aires',
+        provincia: data.metadata?.provincia || 'Buenos Aires',
+        zona: data.metadata?.zonas?.join(', ') || data.metadata?.zona || '',
+        fechaIngreso: data.metadata?.fechaIngreso || data.createdAt?.split('T')[0] || '',
+        licencia: data.metadata?.licencia || '',
+        experiencia: data.metadata?.experiencia || '',
+        idiomas: data.metadata?.idiomas || [],
+        notas: data.metadata?.notas || data.bio || '',
+        telefonoAlternativo: data.metadata?.telefonoAlternativo || '',
+        propiedades: data.metricas?.propiedades || 0,
+        clientes: data.metricas?.clientes || 0,
+        actividades: data.metricas?.actividades || 0,
+        rating: parseFloat(data.metricas?.rating) || 4.5,
+        satisfaccionCliente: data.metricas?.satisfaccion || 85,
+        ventas: data.metricas?.ventas || Math.floor(data.metricas?.actividades / 10) || 0,
+        comisiones: data.metricas?.comisiones || (data.metricas?.propiedades * 2500) || 0,
+        metaMensual: data.metadata?.metaMensual || 5,
+        citas: data.metricas?.actividades || 0,
+        propiedadesVendidas: data.metricas?.propiedadesVendidas || 0,
+        color: data.color || '#4ECDC4',
+        redesSociales: data.redesSociales || {},
+        // Detalle adicional
+        detalle: data.detalle || {},
+      };
+      setAgenteSeleccionado(agenteDetalle);
+    } catch (err) {
+      console.error('Error loading agent details:', err);
+    } finally {
+      setLoadingDetalle(false);
+    }
+  }, []);
+
+  // Cargar agentes al montar
+  useEffect(() => {
+    loadAgentes();
+  }, [loadAgentes]);
 
   // KPIs del equipo
+  const totalComisiones = agentes.reduce((sum, a) => sum + a.comisiones, 0);
+  const totalPropiedades = agentes.reduce((sum, a) => sum + a.propiedades, 0);
+  const avgRating = agentes.length > 0 ? (agentes.reduce((sum, a) => sum + a.rating, 0) / agentes.length).toFixed(1) : 0;
+  const totalVentas = agentes.reduce((sum, a) => sum + a.ventas, 0);
+
   const kpisEquipo = [
-    { title: 'Total Agentes', value: agentes.length, desc: '2 nuevos este mes', icon: <FaUsers />, color: 'from-blue-500 to-blue-600' },
-    { title: 'Propiedades Gestionadas', value: agentes.reduce((sum, a) => sum + a.propiedades, 0), desc: 'Todas las zonas', icon: <FaHome />, color: 'from-green-500 to-green-600' },
-    { title: 'Comisiones Totales', value: `$${(agentes.reduce((sum, a) => sum + a.comisiones, 0) / 1000).toFixed(0)}K`, desc: 'Este mes', icon: <FaDollarSign />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Rating Promedio', value: (agentes.reduce((sum, a) => sum + a.rating, 0) / agentes.length).toFixed(1), desc: 'Excelente equipo', icon: <FaStar />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Total Agentes', value: agentes.length, desc: `${agentes.filter(a => a.rol === 'Agente Senior').length} seniors`, icon: <FaUsers />, color: 'from-blue-500 to-blue-600', trend: '+2' },
+    { title: 'Propiedades', value: totalPropiedades, desc: 'En gestión activa', icon: <FaHome />, color: 'from-emerald-500 to-emerald-600', trend: '+12%' },
+    { title: 'Comisiones', value: `$${(totalComisiones / 1000).toFixed(0)}K`, desc: 'Este mes', icon: <FaDollarSign />, color: 'from-violet-500 to-violet-600', trend: '+18%' },
+    { title: 'Rating Promedio', value: avgRating, desc: 'Excelente equipo', icon: <FaStar />, color: 'from-amber-500 to-amber-600', trend: '+0.2' },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  // ApexCharts configurations
+  const rendimientoAreaOptions = {
+    chart: { type: 'area', height: 300, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: {
+      categories: ['May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
+      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const rendimientoAreaSeries = [
+    { name: 'Ana', data: [6, 7, 5, 9, 8, 8] },
+    { name: 'Carlos', data: [3, 4, 6, 5, 7, 5] },
+    { name: 'Laura', data: [9, 10, 8, 12, 11, 12] },
+    { name: 'Marcos', data: [2, 3, 4, 3, 5, 4] },
+    { name: 'Sofía', data: [5, 6, 7, 8, 6, 7] },
+  ];
+
+  const comisionesBarOptions = {
+    chart: { type: 'bar', height: 260, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 8, horizontal: true, distributed: true, barHeight: '70%' } },
+    colors: agentes.map(a => a.color),
+    dataLabels: { enabled: true, style: { colors: ['#fff'], fontSize: '11px', fontWeight: 600 }, formatter: (val) => `$${(val/1000).toFixed(0)}K` },
+    xaxis: { categories: agentes.map(a => a.nombre.split(' ')[0]), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val.toLocaleString()}` } },
+  };
+  const comisionesBarSeries = [{ name: 'Comisiones', data: agentes.map(a => a.comisiones) }];
+
+  const metaRadialOptions = {
+    chart: { type: 'radialBar', height: 220, background: 'transparent' },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '65%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '28px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Meta Equipo'],
+  };
+  const metaTotalVentas = agentes.reduce((s, a) => s + a.metaMensual, 0);
+  const metaPct = metaTotalVentas > 0 ? Math.round((totalVentas / metaTotalVentas) * 100) : 0;
+  const metaRadialSeries = [metaPct];
+
+  const satisfaccionDonutOptions = {
+    chart: { type: 'donut', height: 260, background: 'transparent' },
+    labels: agentes.map(a => a.nombre.split(' ')[0]),
+    colors: agentes.map(a => a.color),
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+            value: { show: true, fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', formatter: (val) => `${val}%` },
+            total: { show: true, label: 'Promedio', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => `${Math.round(agentes.reduce((s, a) => s + a.satisfaccionCliente, 0) / agentes.length)}%` },
+          },
+        },
+      },
+    },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const satisfaccionDonutSeries = agentes.map(a => a.satisfaccionCliente);
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:shadow-lg hover:scale-[1.01]';
 
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
@@ -217,17 +290,209 @@ const Agentes = () => {
   };
 
   // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nuevo agente:', nuevoAgente);
-    alert('Agente guardado exitosamente!');
+    setCreatingAgente(true);
+    setCreateMessage('');
+    setCreatedCredentials(null);
+    try {
+      const resp = await api.post('/crm/agentes/create-with-user', {
+        nombre: `${nuevoAgente.nombre} ${nuevoAgente.apellido}`.trim(),
+        email: nuevoAgente.email,
+        telefono: nuevoAgente.telefono,
+        username: nuevoAgente.username || undefined,
+        password: nuevoAgente.password || undefined,
+        metadata: {
+          telefonoAlternativo: nuevoAgente.telefonoAlternativo,
+          rol: nuevoAgente.rol,
+          especialidad: nuevoAgente.especialidad,
+          zonas: nuevoAgente.zonas,
+          comision: nuevoAgente.comision,
+          direccion: nuevoAgente.direccion,
+          ciudad: nuevoAgente.ciudad,
+          provincia: nuevoAgente.provincia,
+          fechaIngreso: nuevoAgente.fechaIngreso,
+          licencia: nuevoAgente.licencia,
+          experiencia: nuevoAgente.experiencia,
+          idiomas: nuevoAgente.idiomas,
+          notas: nuevoAgente.notas,
+        },
+      });
+
+      setCreatedCredentials({ username: resp?.user?.username, password: resp?.password });
+      setCreateMessage('Agente creado. Guardá estas credenciales (se muestran una sola vez).');
+      // Recargar lista de agentes
+      loadAgentes();
+      setNuevoAgente({
+        nombre: '',
+        apellido: '',
+        email: '',
+        telefono: '',
+        username: '',
+        password: '',
+        telefonoAlternativo: '',
+        rol: 'Agente',
+        especialidad: 'Ventas',
+        zonas: [],
+        comision: '3',
+        direccion: '',
+        ciudad: 'Buenos Aires',
+        provincia: 'Buenos Aires',
+        fechaIngreso: '',
+        licencia: '',
+        experiencia: '',
+        idiomas: [],
+        notas: '',
+      });
+    } catch (err) {
+      setCreateMessage(err?.message || 'Error al crear el agente');
+    } finally {
+      setCreatingAgente(false);
+    }
+  };
+
+  // Función para ver detalle de agente
+  const verDetalle = (agente) => {
+    setVistaActual('detalle');
+    loadAgenteDetalle(agente._id || agente.id);
+  };
+
+  // Función para volver al dashboard
+  const volverAlDashboard = () => {
+    setVistaActual('dashboard');
+    setAgenteSeleccionado(null);
+  };
+
+  // Función para abrir modal de edición
+  const handleEditAgente = () => {
+    if (!agenteSeleccionado) return;
+    setEditingAgente({
+      _id: agenteSeleccionado._id || agenteSeleccionado.id,
+      nombre: agenteSeleccionado.nombre || '',
+      email: agenteSeleccionado.email || '',
+      telefono: agenteSeleccionado.telefono || '',
+      cargo: agenteSeleccionado.cargo || 'Agente',
+      especialidad: agenteSeleccionado.especialidad || '',
+      bio: agenteSeleccionado.bio || agenteSeleccionado.notas || '',
+      direccion: agenteSeleccionado.direccion || '',
+      avatar: agenteSeleccionado.avatar || '',
+      rol: agenteSeleccionado.rol || 'Agente',
+      zonas: agenteSeleccionado.zona ? agenteSeleccionado.zona.split(', ') : [],
+      ciudad: agenteSeleccionado.ciudad || 'Buenos Aires',
+      provincia: agenteSeleccionado.provincia || 'Buenos Aires',
+      licencia: agenteSeleccionado.licencia || '',
+      experiencia: agenteSeleccionado.experiencia || '',
+      idiomas: agenteSeleccionado.idiomas || [],
+      telefonoAlternativo: agenteSeleccionado.telefonoAlternativo || '',
+    });
+    setEditMessage('');
+    setShowEditModal(true);
+  };
+
+  // Función para guardar cambios del agente
+  const handleSaveAgente = async (e) => {
+    e.preventDefault();
+    if (!editingAgente?._id) return;
+    
+    setSavingAgente(true);
+    setEditMessage('');
+    try {
+      await api.put(`/crm/agentes/${editingAgente._id}`, {
+        nombre: editingAgente.nombre,
+        email: editingAgente.email,
+        telefono: editingAgente.telefono,
+        cargo: editingAgente.cargo,
+        especialidad: editingAgente.especialidad,
+        bio: editingAgente.bio,
+        direccion: editingAgente.direccion,
+        avatar: editingAgente.avatar,
+        metadata: {
+          rol: editingAgente.rol,
+          zonas: editingAgente.zonas,
+          ciudad: editingAgente.ciudad,
+          provincia: editingAgente.provincia,
+          licencia: editingAgente.licencia,
+          experiencia: editingAgente.experiencia,
+          idiomas: editingAgente.idiomas,
+          telefonoAlternativo: editingAgente.telefonoAlternativo,
+          notas: editingAgente.bio,
+        },
+      });
+      
+      setEditMessage('Agente actualizado correctamente');
+      // Recargar datos
+      loadAgentes();
+      loadAgenteDetalle(editingAgente._id);
+      
+      setTimeout(() => {
+        setShowEditModal(false);
+        setEditMessage('');
+      }, 1500);
+    } catch (err) {
+      setEditMessage(err?.message || 'Error al actualizar el agente');
+    } finally {
+      setSavingAgente(false);
+    }
+  };
+
+  // Función para eliminar agente
+  const handleDeleteAgente = async () => {
+    if (!agenteSeleccionado?._id && !agenteSeleccionado?.id) return;
+    
+    setDeletingAgente(true);
+    try {
+      await api.delete(`/crm/agentes/${agenteSeleccionado._id || agenteSeleccionado.id}`);
+      
+      setShowDeleteConfirm(false);
+      setAgenteSeleccionado(null);
+      setVistaActual('lista');
+      loadAgentes();
+    } catch (err) {
+      console.error('Error deleting agent:', err);
+      alert(err?.message || 'Error al eliminar el agente');
+    } finally {
+      setDeletingAgente(false);
+    }
+  };
+
+  // Handler para cambios en el formulario de edición
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditingAgente(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Verificar si el formulario tiene datos
+  const formHasData = () => {
+    return nuevoAgente.nombre.trim() !== '' || 
+           nuevoAgente.apellido.trim() !== '' || 
+           nuevoAgente.email.trim() !== '' || 
+           nuevoAgente.telefono.trim() !== '' ||
+           nuevoAgente.username.trim() !== '' ||
+           nuevoAgente.password.trim() !== '' ||
+           nuevoAgente.direccion.trim() !== '' ||
+           nuevoAgente.notas.trim() !== '';
+  };
+
+  // Manejar cierre del modal con confirmación
+  const handleCloseModal = () => {
+    if (formHasData()) {
+      setShowCloseConfirm(true);
+    } else {
+      setShowModal(false);
+    }
+  };
+
+  // Confirmar cierre y limpiar formulario
+  const confirmCloseModal = () => {
+    setShowCloseConfirm(false);
     setShowModal(false);
-    // Resetear formulario
     setNuevoAgente({
       nombre: '',
       apellido: '',
       email: '',
       telefono: '',
+      username: '',
+      password: '',
       telefonoAlternativo: '',
       rol: 'Agente',
       especialidad: 'Ventas',
@@ -242,18 +507,6 @@ const Agentes = () => {
       idiomas: [],
       notas: '',
     });
-  };
-
-  // Función para ver detalle de agente
-  const verDetalle = (agente) => {
-    setAgenteSeleccionado(agente);
-    setVistaActual('detalle');
-  };
-
-  // Función para volver al dashboard
-  const volverAlDashboard = () => {
-    setVistaActual('dashboard');
-    setAgenteSeleccionado(null);
   };
 
   // Zonas disponibles
@@ -280,10 +533,14 @@ const Agentes = () => {
           </button>
         )}
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setShowModal(true);
+            setCreateMessage('');
+            setCreatedCredentials(null);
+          }}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
-          <FaUserPlus /> Nuevo Agente
+          <FaUserPlus /> Crear Cuenta
         </button>
         {vistaActual === 'dashboard' && (
           <button 
@@ -298,8 +555,8 @@ const Agentes = () => {
       {/* Vista Dashboard */}
       {vistaActual === 'dashboard' && (
         <>
-      {/* KPIs del Equipo - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+      {/* KPIs del Equipo - Estilo moderno con tendencias */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         {kpisEquipo.map((kpi, i) => (
           <div 
             key={i} 
@@ -309,94 +566,109 @@ const Agentes = () => {
               else if (i === 2) setShowModalComisionesTotales(true);
               else if (i === 3) setShowModalRatingPromedio(true);
             }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
+            className={`${cardBase} overflow-hidden relative cursor-pointer`}
           >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
+                    {kpi.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{kpi.title}</p>
+                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">{kpi.value}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
+                    {kpi.trend}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Gráfico de Rendimiento y Listado de Agentes */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Gráfico de Rendimiento por Agente */}
+      {/* Gráficos Principales - ApexCharts */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        {/* Meta del Equipo */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📈 Rendimiento por Agente (Últimos 6 meses)</h3>
-          <ChartComponent
-            id="rendimiento-chart"
-            primaryXAxis={{ valueType: 'Category', title: 'Meses' }}
-            primaryYAxis={{ title: 'Ventas' }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="350px"
-          >
-            <Inject services={[LineSeries, Category, Tooltip, Legend, DataLabel]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Ana"
-                name="Ana"
-                marker={{ visible: true }}
-                fill="#FF6B6B"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Carlos"
-                name="Carlos"
-                marker={{ visible: true }}
-                fill="#4ECDC4"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Laura"
-                name="Laura"
-                marker={{ visible: true }}
-                fill="#45B7D1"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Marcos"
-                name="Marcos"
-                marker={{ visible: true }}
-                fill="#96CEB4"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Sofia"
-                name="Sofía"
-                marker={{ visible: true }}
-                fill="#FFEAA7"
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaTrophy className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100">Meta Equipo</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Progreso mensual</p>
+          <Chart options={metaRadialOptions} series={metaRadialSeries} type="radialBar" height={200} />
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{totalVentas}</p>
+              <p className="text-xs text-gray-500">Actual</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-500">{metaTotalVentas}</p>
+              <p className="text-xs text-gray-500">Meta</p>
+            </div>
+          </div>
         </div>
 
-        {/* Listado de Agentes */}
+        {/* Satisfacción Cliente - Donut */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaStar className="text-amber-500" />
+            <h3 className="font-semibold dark:text-gray-100">Satisfacción</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Por agente</p>
+          <Chart options={satisfaccionDonutOptions} series={satisfaccionDonutSeries} type="donut" height={240} />
+        </div>
+
+        {/* Comisiones por Agente - Bar */}
+        <div className={`xl:col-span-2 ${cardBase}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaDollarSign className="text-violet-500" />
+            <h3 className="font-semibold dark:text-gray-100">Comisiones por Agente</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Ranking este mes</p>
+          <Chart options={comisionesBarOptions} series={comisionesBarSeries} type="bar" height={240} />
+        </div>
+      </div>
+
+      {/* Gráfico de Rendimiento - Full Width */}
+      <div className="mb-8">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaChartLine className="text-blue-500" />
+                <h3 className="font-semibold dark:text-gray-100">Rendimiento del Equipo</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Ventas por agente (últimos 6 meses)</p>
+            </div>
+          </div>
+          <Chart options={rendimientoAreaOptions} series={rendimientoAreaSeries} type="area" height={280} />
+          <div className="grid grid-cols-5 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            {agentes.map((agente) => (
+              <div key={agente.id} className="text-center p-2 rounded-lg" style={{ backgroundColor: `${agente.color}15` }}>
+                <p className="text-lg font-bold" style={{ color: agente.color }}>{agente.ventas}</p>
+                <p className="text-xs text-gray-500">{agente.nombre.split(' ')[0]}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Listado de Agentes */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <div className={cardBase}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">👥 Equipo de Agentes</h3>
           <div className="space-y-4">
             {agentes.map((agente) => (
-              <div key={agente.id} className="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div key={agente.id} className="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer" onClick={() => verDetalle(agente)}>
                 <div className="flex items-center gap-4">
                   <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold"
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg"
                     style={{ backgroundColor: agente.color }}
                   >
                     {agente.nombre.charAt(0)}
@@ -536,17 +808,46 @@ const Agentes = () => {
 
       {/* Vista Lista de Agentes */}
       {vistaActual === 'lista' && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Cargando agentes...</p>
+              </div>
+            </div>
+          ) : agentes.length === 0 ? (
+            <div className="text-center py-20">
+              <FaUsers className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No hay agentes registrados</h3>
+              <p className="text-gray-400 dark:text-gray-500 mb-4">Creá un nuevo agente para comenzar</p>
+              <button 
+                onClick={() => setShowModal(true)}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <FaUserPlus className="inline mr-2" /> Crear Agente
+              </button>
+            </div>
+          ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {agentes.map((agente) => (
-            <div key={agente.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(agente)}>
+            <div key={agente.id || agente._id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(agente)}>
               {/* Header con avatar y rating */}
               <div className="flex items-center gap-4 mb-4 pb-4 border-b dark:border-gray-700">
+                {agente.avatar ? (
+                  <img 
+                    src={agente.avatar} 
+                    alt={agente.nombre}
+                    className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
+                  />
+                ) : (
                 <div 
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg"
                   style={{ backgroundColor: agente.color }}
                 >
                   {agente.nombre.charAt(0)}{agente.nombre.split(' ')[1]?.charAt(0) || ''}
                 </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold dark:text-gray-100 truncate">{agente.nombre}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{agente.rol}</p>
@@ -600,10 +901,19 @@ const Agentes = () => {
             </div>
           ))}
         </div>
+          )}
+        </>
       )}
 
       {/* Vista Detalle de Agente */}
-      {vistaActual === 'detalle' && agenteSeleccionado && (
+      {vistaActual === 'detalle' && (loadingDetalle ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Cargando información del agente...</p>
+          </div>
+        </div>
+      ) : agenteSeleccionado && (
         <div className="space-y-6">
           {/* Header con información principal */}
           <div className="relative rounded-2xl p-8 text-white" style={{ background: `linear-gradient(135deg, ${agenteSeleccionado.color} 0%, ${agenteSeleccionado.color}dd 100%)` }}>
@@ -631,10 +941,16 @@ const Agentes = () => {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button className="px-4 py-2 bg-white text-gray-800 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
+                <button 
+                  onClick={handleEditAgente}
+                  className="px-4 py-2 bg-white text-gray-800 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold"
+                >
                   <FaEdit /> Editar
                 </button>
-                <button className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold"
+                >
                   <FaTrash /> Eliminar
                 </button>
               </div>
@@ -826,9 +1142,9 @@ const Agentes = () => {
             </div>
           </div>
         </div>
-      )}
+      ))}
 
-      {/* Modal de Nuevo Agente */}
+      {/* Modal de Crear Cuenta */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
@@ -836,12 +1152,12 @@ const Agentes = () => {
             <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaUserPlus /> Nuevo Agente
+                  <FaUserPlus /> Crear Cuenta
                 </h2>
-                <p className="text-blue-100 text-sm mt-1">Complete los datos del agente</p>
+                <p className="text-blue-100 text-sm mt-1">Complete los datos del nuevo agente</p>
               </div>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={handleCloseModal}
                 className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
               >
                 <FaTimes className="text-2xl" />
@@ -894,6 +1210,17 @@ const Agentes = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Usuario</label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={nuevoAgente.username}
+                      onChange={handleInputChange}
+                      placeholder="(opcional)"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
                     <input
                       type="tel"
@@ -902,6 +1229,17 @@ const Agentes = () => {
                       onChange={handleInputChange}
                       required
                       placeholder="+54 11 1234-5678"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Password</label>
+                    <input
+                      type="text"
+                      name="password"
+                      value={nuevoAgente.password}
+                      onChange={handleInputChange}
+                      placeholder="(opcional: si lo dejás vacío se genera automáticamente)"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     />
                   </div>
@@ -1028,6 +1366,20 @@ const Agentes = () => {
                 />
               </div>
 
+              {createMessage && (
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm dark:text-gray-200">
+                  {createMessage}
+                </div>
+              )}
+
+              {createdCredentials?.username && createdCredentials?.password && (
+                <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm">
+                  <div className="font-semibold">Credenciales</div>
+                  <div><strong>Usuario:</strong> {createdCredentials.username}</div>
+                  <div><strong>Password:</strong> {createdCredentials.password}</div>
+                </div>
+              )}
+
               {/* Botones */}
               <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
                 <button
@@ -1039,9 +1391,10 @@ const Agentes = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2"
+                  disabled={creatingAgente}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2 disabled:opacity-60"
                 >
-                  <FaSave /> Guardar Agente
+                  <FaSave /> {creatingAgente ? 'Guardando...' : 'Guardar Agente'}
                 </button>
               </div>              </form>
             </div>
@@ -1393,6 +1746,256 @@ const Agentes = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Editar Agente */}
+      {showEditModal && editingAgente && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-green-500 to-teal-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  <FaEdit /> Editar Agente
+                </h2>
+                <p className="text-green-100 text-sm mt-1">{editingAgente.nombre}</p>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+              >
+                <FaTimes className="text-2xl" />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <form onSubmit={handleSaveAgente} className="space-y-4">
+                {editMessage && (
+                  <div className={`p-3 rounded-lg text-center ${editMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    {editMessage}
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre Completo *</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={editingAgente.nombre}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={editingAgente.email}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono</label>
+                    <input
+                      type="tel"
+                      name="telefono"
+                      value={editingAgente.telefono}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cargo</label>
+                    <select
+                      name="cargo"
+                      value={editingAgente.cargo}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="Agente">Agente</option>
+                      <option value="Agente Senior">Agente Senior</option>
+                      <option value="Supervisor">Supervisor</option>
+                      <option value="Gerente">Gerente</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Especialidad</label>
+                    <select
+                      name="especialidad"
+                      value={editingAgente.especialidad}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="Ventas">Ventas</option>
+                      <option value="Alquileres">Alquileres</option>
+                      <option value="Comercial">Comercial</option>
+                      <option value="Residencial">Residencial</option>
+                      <option value="General">General</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Experiencia</label>
+                    <input
+                      type="text"
+                      name="experiencia"
+                      value={editingAgente.experiencia}
+                      onChange={handleEditInputChange}
+                      placeholder="Ej: 5 años"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Licencia</label>
+                    <input
+                      type="text"
+                      name="licencia"
+                      value={editingAgente.licencia}
+                      onChange={handleEditInputChange}
+                      placeholder="Ej: CPI-12345"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ciudad</label>
+                    <input
+                      type="text"
+                      name="ciudad"
+                      value={editingAgente.ciudad}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
+                  <input
+                    type="text"
+                    name="direccion"
+                    value={editingAgente.direccion}
+                    onChange={handleEditInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">Bio / Notas</label>
+                  <textarea
+                    name="bio"
+                    value={editingAgente.bio}
+                    onChange={handleEditInputChange}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingAgente}
+                    className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {savingAgente ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <FaSave /> Guardar Cambios
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Eliminación */}
+      {showDeleteConfirm && agenteSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-md w-full p-6`}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaTrash className="text-3xl text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold dark:text-gray-100 mb-2">¿Eliminar Agente?</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                ¿Estás seguro de que deseas eliminar a <strong>{agenteSeleccionado.nombre}</strong>? 
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteAgente}
+                  disabled={deletingAgente}
+                  className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {deletingAgente ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash /> Eliminar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Cierre */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-md w-full p-6`}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaExclamationTriangle className="text-3xl text-yellow-500" />
+              </div>
+              <h3 className="text-xl font-bold dark:text-gray-100 mb-2">¿Cerrar formulario?</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Si cierra el formulario perderá los cambios ingresados.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setShowCloseConfirm(false)}
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                >
+                  Continuar editando
+                </button>
+                <button
+                  onClick={confirmCloseModal}
+                  className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Cerrar y descartar
+                </button>
               </div>
             </div>
           </div>

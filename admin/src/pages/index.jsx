@@ -35,4 +35,7 @@ export { default as RolesPermisos } from './RolesPermisos';
 export { default as Campanas } from './Campanas';
 export { default as EmailMarketing } from './EmailMarketing';
 export { default as AnalyticsMarketing } from './AnalyticsMarketing';
+export { default as MiPerfil } from './MiPerfil';
+export { default as Recompensas } from './Recompensas';
+export { default as Mensajeria } from './Mensajeria';
 

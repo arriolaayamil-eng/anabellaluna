@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase, FaPercentage, FaFunnelDollar, FaArrowUp, FaHeart, FaEye, FaUserClock, FaHandshake, FaThermometerHalf, FaGlobe, FaDesktop, FaMobileAlt, FaLink, FaMousePointer } from 'react-icons/fa';
+import Chart from 'react-apexcharts';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
 
 // Syncfusion Components
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
@@ -9,6 +11,26 @@ import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, I
 
 const ClientesCRM = () => {
   const { currentMode, currentColor } = useStateContext();
+
+  const formatUltimaInteraccion = (value) => {
+    if (!value) return { short: '-/-', full: '-' };
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) {
+      const parts = String(value).split('-');
+      if (parts.length === 3) return { short: `${parts[2]}/${parts[1]}`, full: value };
+      return { short: '-/-', full: String(value) };
+    }
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return { short: `${dd}/${mm}`, full: `${dd}/${mm}/${yyyy}` };
+  };
+  
+  // Estado para tabs internas
+  const [activeTab, setActiveTab] = useState('metricas'); // 'metricas', 'clientes'
+  
+  // Estado para filtro de tipo de cliente
+  const [filtroTipo, setFiltroTipo] = useState('todos'); // 'comprador', 'propietario', 'inversor', 'todos'
   
   // Estado para el modal
   const [showModal, setShowModal] = useState(false);
@@ -20,11 +42,10 @@ const ClientesCRM = () => {
   const [showModalConversion, setShowModalConversion] = useState(false);
   
   // Estados para las vistas
-  const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
+  const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'detalle'
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   
-  // Estado para el formulario de nuevo cliente
-  const [nuevoCliente, setNuevoCliente] = useState({
+  const createEmptyClienteForm = () => ({
     nombre: '',
     apellido: '',
     email: '',
@@ -49,160 +70,205 @@ const ClientesCRM = () => {
     provincia: 'Buenos Aires',
     ocupacion: '',
     empresa: '',
+    genero: '',
+    estadoParental: '',
+    profesion: '',
+    tieneHijos: '',
+    fechaNacimiento: '',
+    preferenciaComunicacion: 'whatsapp',
   });
 
-  const clientesEjemplo = [
-    { 
-      id: 1, 
-      nombre: 'Juan Pérez', 
-      tipo: 'Comprador', 
-      email: 'juan@email.com', 
-      telefono: '+54 11 1234-5678',
-      telefonoAlternativo: '+54 11 1234-5679',
-      estado: 'Lead', 
-      presupuesto: 150000,
-      moneda: 'USD',
-      zona: 'Palermo', 
-      scoring: 85, 
-      ultimaInteraccion: '2025-10-08',
-      fechaRegistro: '2025-09-15',
-      origen: 'Web',
-      agente: 'Ana López',
-      ocupacion: 'Ingeniero de Software',
-      empresa: 'Tech Solutions SA',
-      direccion: 'Av. Córdoba 1234',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Departamento',
-      ambientes: 2,
-      dormitorios: 1,
-      baños: 1,
-      caracteristicas: ['Balcón', 'Gimnasio', 'Seguridad 24hs'],
-      notas: 'Cliente interesado en zona Palermo. Busca mudarse en 3 meses.',
-      interacciones: 5,
-      propiedadesVistas: 8
-    },
-    { 
-      id: 2, 
-      nombre: 'María González', 
-      tipo: 'Propietario', 
-      email: 'maria@email.com', 
-      telefono: '+54 11 8765-4321',
-      telefonoAlternativo: '',
-      estado: 'Contacto', 
-      presupuesto: 0,
-      moneda: 'USD',
-      zona: 'Recoleta', 
-      scoring: 60, 
-      ultimaInteraccion: '2025-10-07',
-      fechaRegistro: '2025-08-20',
-      origen: 'Referido',
-      agente: 'Carlos Ruiz',
-      ocupacion: 'Arquitecta',
-      empresa: 'Estudio González',
-      direccion: 'Av. Callao 567',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Casa',
-      ambientes: 0,
-      dormitorios: 0,
-      baños: 0,
-      caracteristicas: [],
-      notas: 'Propietaria con 2 departamentos en Recoleta para vender.',
-      interacciones: 3,
-      propiedadesVistas: 0
-    },
-    { 
-      id: 3, 
-      nombre: 'Carlos Rodríguez', 
-      tipo: 'Comprador', 
-      email: 'carlos@email.com', 
-      telefono: '+54 11 5555-1234',
-      telefonoAlternativo: '+54 11 5555-1235',
-      estado: 'Prospecto', 
-      presupuesto: 200000,
-      moneda: 'USD',
-      zona: 'Belgrano', 
-      scoring: 92, 
-      ultimaInteraccion: '2025-10-09',
-      fechaRegistro: '2025-09-01',
-      origen: 'Redes Sociales',
-      agente: 'Laura Fernández',
-      ocupacion: 'Médico',
-      empresa: 'Hospital Italiano',
-      direccion: 'Cabildo 2890',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Casa',
-      ambientes: 3,
-      dormitorios: 2,
-      baños: 2,
-      caracteristicas: ['Jardín', 'Parrilla', 'Cochera'],
-      notas: 'Busca casa con jardín para familia. Tiene pre-aprobación bancaria.',
-      interacciones: 12,
-      propiedadesVistas: 15
-    },
-    { 
-      id: 4, 
-      nombre: 'Ana Martínez', 
-      tipo: 'Inversor', 
-      email: 'ana@email.com', 
-      telefono: '+54 11 9999-8888',
-      telefonoAlternativo: '',
-      estado: 'Negociación', 
-      presupuesto: 350000,
-      moneda: 'USD',
-      zona: 'Puerto Madero', 
-      scoring: 95, 
-      ultimaInteraccion: '2025-10-10',
-      fechaRegistro: '2025-09-25',
-      origen: 'Evento',
-      agente: 'Sofía Torres',
-      ocupacion: 'Empresaria',
-      empresa: 'Inversiones AM',
-      direccion: 'Av. Madero 1000',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Departamento',
-      ambientes: 4,
-      dormitorios: 3,
-      baños: 3,
-      caracteristicas: ['Pileta', 'Gimnasio', 'Seguridad 24hs', 'Cochera'],
-      notas: 'Inversora con cartera de propiedades. Busca oportunidades en Puerto Madero.',
-      interacciones: 18,
-      propiedadesVistas: 22
-    },
-    { 
-      id: 5, 
-      nombre: 'Luis Fernández', 
-      tipo: 'Comprador', 
-      email: 'luis@email.com', 
-      telefono: '+54 11 7777-6666',
-      telefonoAlternativo: '+54 11 7777-6667',
-      estado: 'Cerrado', 
-      presupuesto: 180000,
-      moneda: 'USD',
-      zona: 'Villa Crespo', 
-      scoring: 88, 
-      ultimaInteraccion: '2025-10-05',
-      fechaRegistro: '2025-08-10',
-      origen: 'Web',
-      agente: 'Marcos Silva',
-      ocupacion: 'Contador',
-      empresa: 'Estudio Fernández',
-      direccion: 'Av. Corrientes 4567',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Departamento',
-      ambientes: 2,
-      dormitorios: 1,
-      baños: 1,
-      caracteristicas: ['Balcón', 'Aire Acondicionado'],
-      notas: 'Operación cerrada exitosamente. Cliente satisfecho.',
-      interacciones: 10,
-      propiedadesVistas: 12
-    },
-  ];
+  // Estado para el formulario de nuevo cliente
+  const [nuevoCliente, setNuevoCliente] = useState(createEmptyClienteForm);
+  const [editingClienteId, setEditingClienteId] = useState(null);
+
+  const [clientesEjemplo, setClientesEjemplo] = useState([]);
+  const [clientesLoading, setClientesLoading] = useState(false);
+  const [clientesError, setClientesError] = useState('');
+
+  const normalizeCliente = useCallback((item) => {
+    const md = (item && item.metadata) ? item.metadata : {};
+    const id = item?._id || item?.id;
+    const tipoCliente = md.tipoCliente || md.tipo || 'Comprador';
+    const zonaInteres = md.zonaInteres || md.zona || '';
+    const presupuestoRaw = (md.presupuesto === 0 || md.presupuesto) ? md.presupuesto : '';
+    const scoringRaw = (md.scoring === 0 || md.scoring) ? md.scoring : 50;
+    const bañosVal = (md['baños'] === 0 || md['baños']) ? md['baños'] : (md.baños === 0 || md.baños) ? md.baños : '';
+
+    return {
+      id,
+      _id: id,
+      nombre: item?.nombre || '',
+      apellido: md.apellido || '',
+      tipo: tipoCliente,
+      tipoCliente,
+      email: item?.email || '',
+      telefono: item?.telefono || '',
+      telefonoAlternativo: md.telefonoAlternativo || '',
+      estado: md.estado || 'Lead',
+      presupuesto: typeof presupuestoRaw === 'number' ? presupuestoRaw : Number(presupuestoRaw || 0),
+      moneda: md.moneda || 'USD',
+      zona: zonaInteres,
+      zonaInteres,
+      scoring: typeof scoringRaw === 'number' ? scoringRaw : Number(scoringRaw || 50),
+      ultimaInteraccion: md.ultimaActividad || md.ultimaInteraccion || '',
+      fechaRegistro: md.fechaRegistro || '',
+      origen: md.origen || 'Web',
+      agente: md.agente || '',
+      ocupacion: md.ocupacion || '',
+      empresa: md.empresa || '',
+      direccion: item?.direccion || md.direccion || '',
+      ciudad: md.ciudad || 'Buenos Aires',
+      provincia: md.provincia || 'Buenos Aires',
+      tipoPropiedad: md.tipoPropiedad || 'Departamento',
+      ambientes: md.ambientes || '',
+      dormitorios: md.dormitorios || '',
+      baños: bañosVal,
+      caracteristicas: Array.isArray(md.caracteristicas) ? md.caracteristicas : [],
+      notas: item?.notas || md.notas || '',
+      interacciones: typeof md.interacciones === 'number' ? md.interacciones : Number(md.interacciones || 0),
+      propiedadesVistas: typeof md.propiedadesVistas === 'number' ? md.propiedadesVistas : Number(md.propiedadesVistas || 0),
+      agenteId: item?.agenteId || '',
+      genero: md.genero || '',
+      estadoParental: md.estadoParental || '',
+      profesion: md.profesion || '',
+      tieneHijos: md.tieneHijos || '',
+      fechaNacimiento: md.fechaNacimiento || '',
+      preferenciaComunicacion: md.preferenciaComunicacion || 'whatsapp',
+      metadata: md,
+    };
+  }, []);
+
+  const formFromCliente = (cliente) => {
+    const base = createEmptyClienteForm();
+    const fullName = String(cliente?.nombre || '').trim();
+    const tokens = fullName.split(' ').filter(Boolean);
+    const nombre = tokens[0] || '';
+    const apellido = cliente?.apellido || tokens.slice(1).join(' ');
+
+    return {
+      ...base,
+      nombre,
+      apellido,
+      email: cliente?.email || '',
+      telefono: cliente?.telefono || '',
+      telefonoAlternativo: cliente?.telefonoAlternativo || '',
+      tipoCliente: cliente?.tipoCliente || cliente?.tipo || base.tipoCliente,
+      estado: cliente?.estado || base.estado,
+      presupuesto: cliente?.presupuesto || '',
+      moneda: cliente?.moneda || base.moneda,
+      zonaInteres: cliente?.zonaInteres || cliente?.zona || '',
+      tipoPropiedad: cliente?.tipoPropiedad || base.tipoPropiedad,
+      ambientes: cliente?.ambientes || '',
+      dormitorios: cliente?.dormitorios || '',
+      baños: cliente?.baños || '',
+      caracteristicas: Array.isArray(cliente?.caracteristicas) ? cliente.caracteristicas : [],
+      origen: cliente?.origen || base.origen,
+      agente: cliente?.agente || '',
+      scoring: typeof cliente?.scoring === 'number' ? cliente.scoring : Number(cliente?.scoring || base.scoring),
+      notas: cliente?.notas || '',
+      direccion: cliente?.direccion || '',
+      ciudad: cliente?.ciudad || base.ciudad,
+      provincia: cliente?.provincia || base.provincia,
+      ocupacion: cliente?.ocupacion || '',
+      empresa: cliente?.empresa || '',
+      genero: cliente?.genero || '',
+      estadoParental: cliente?.estadoParental || '',
+      profesion: cliente?.profesion || '',
+      tieneHijos: cliente?.tieneHijos || '',
+      fechaNacimiento: cliente?.fechaNacimiento || '',
+      preferenciaComunicacion: cliente?.preferenciaComunicacion || base.preferenciaComunicacion,
+    };
+  };
+
+  const buildClientePayload = (form) => {
+    const fullName = [form?.nombre, form?.apellido].filter(Boolean).join(' ').trim();
+
+    return {
+      nombre: fullName || String(form?.nombre || '').trim(),
+      email: form?.email || '',
+      telefono: form?.telefono || '',
+      direccion: form?.direccion || '',
+      notas: form?.notas || '',
+      metadata: {
+        apellido: form?.apellido || '',
+        telefonoAlternativo: form?.telefonoAlternativo || '',
+        tipoCliente: form?.tipoCliente || 'Comprador',
+        estado: form?.estado || 'Lead',
+        presupuesto: form?.presupuesto === '' ? 0 : Number(form?.presupuesto || 0),
+        moneda: form?.moneda || 'USD',
+        zonaInteres: form?.zonaInteres || '',
+        tipoPropiedad: form?.tipoPropiedad || 'Departamento',
+        ambientes: form?.ambientes || '',
+        dormitorios: form?.dormitorios || '',
+        'baños': form?.baños || '',
+        caracteristicas: Array.isArray(form?.caracteristicas) ? form.caracteristicas : [],
+        origen: form?.origen || 'Web',
+        agente: form?.agente || '',
+        scoring: Number(form?.scoring || 50),
+        ciudad: form?.ciudad || 'Buenos Aires',
+        provincia: form?.provincia || 'Buenos Aires',
+        ocupacion: form?.ocupacion || '',
+        empresa: form?.empresa || '',
+        genero: form?.genero || '',
+        estadoParental: form?.estadoParental || '',
+        profesion: form?.profesion || '',
+        tieneHijos: form?.tieneHijos || '',
+        fechaNacimiento: form?.fechaNacimiento || '',
+        preferenciaComunicacion: form?.preferenciaComunicacion || 'whatsapp',
+      },
+    };
+  };
+
+  const reloadClientes = useCallback(async () => {
+    setClientesLoading(true);
+    setClientesError('');
+    try {
+      const items = await crmService.clientes.getAll();
+      const normalized = Array.isArray(items) ? items.map(normalizeCliente) : [];
+      setClientesEjemplo(normalized);
+    } catch (err) {
+      setClientesError(err?.message || 'Error al cargar clientes');
+      setClientesEjemplo([]);
+    } finally {
+      setClientesLoading(false);
+    }
+  }, [normalizeCliente]);
+
+  useEffect(() => {
+    reloadClientes();
+  }, [reloadClientes]);
+
+  const openCreateModal = () => {
+    setEditingClienteId(null);
+    setNuevoCliente(createEmptyClienteForm());
+    setShowModal(true);
+  };
+
+  const handleEditCliente = (cliente) => {
+    const id = cliente?._id || cliente?.id;
+    setEditingClienteId(id || null);
+    setNuevoCliente(formFromCliente(cliente));
+    setShowModal(true);
+  };
+
+  const handleDeleteCliente = async (cliente) => {
+    const id = cliente?._id || cliente?.id;
+    if (!id) return;
+    if (!window.confirm('¿Eliminar este cliente?')) return;
+
+    setClientesError('');
+    try {
+      await crmService.clientes.delete(id);
+      setClientesEjemplo(prev => prev.filter(c => String(c.id) !== String(id)));
+      if (clienteSeleccionado && String(clienteSeleccionado.id) === String(id)) {
+        setClienteSeleccionado(null);
+        setVistaActual('dashboard');
+      }
+    } catch (err) {
+      setClientesError(err?.message || 'Error al eliminar cliente');
+    }
+  };
 
   // KPIs de Clientes
   const kpisClientes = [
@@ -227,7 +293,221 @@ const ClientesCRM = () => {
     { tipo: 'Inversor', cantidad: clientesEjemplo.filter(c => c.tipo === 'Inversor').length },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  // ApexCharts - Ciclo de Vida del Lead (Pie Chart)
+  const cicloVidaPieOptions = {
+    chart: { type: 'pie', height: 280, background: 'transparent' },
+    labels: ['Lead', 'Contacto', 'Prospecto', 'Negociación', 'Cerrado'],
+    colors: ['#F59E0B', '#3B82F6', '#8B5CF6', '#F97316', '#10B981'],
+    plotOptions: { pie: { expandOnClick: true, donut: { size: '0%' } } },
+    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 600, colors: ['#fff'] }, dropShadow: { enabled: false } },
+    legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, markers: { width: 10, height: 10, radius: 2 } },
+    stroke: { show: true, width: 2, colors: [currentMode === 'Dark' ? '#1F2937' : '#fff'] },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `${val} clientes` } },
+    responsive: [{ breakpoint: 480, options: { chart: { height: 260 }, legend: { position: 'bottom' } } }],
+  };
+  const cicloVidaPieSeries = cicloVidaData.map(c => c.cantidad || 1);
+
+  // ApexCharts - Scoring de Leads (Gauge semicircular)
+  const scoringAvg = clientesEjemplo.length > 0 ? Math.round(clientesEjemplo.reduce((sum, c) => sum + c.scoring, 0) / clientesEjemplo.length) : 0;
+  const scoringGaugeOptions = {
+    chart: { type: 'radialBar', height: 200, background: 'transparent', sparkline: { enabled: false } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '60%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '11px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '24px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: () => `${scoringAvg}` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: scoringAvg >= 70 ? '#10B981' : scoringAvg >= 40 ? '#F59E0B' : '#EF4444', opacity: 1 }, { offset: 100, color: scoringAvg >= 70 ? '#059669' : scoringAvg >= 40 ? '#D97706' : '#DC2626', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Scoring Promedio'],
+  };
+  const scoringGaugeSeries = [scoringAvg];
+
+  // ApexCharts - Funnel de Conversión (Bar horizontal)
+  const funnelOptions = {
+    chart: { type: 'bar', height: 180, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true, barHeight: '70%' } },
+    colors: ['#F59E0B', '#3B82F6', '#8B5CF6', '#F97316', '#10B981'],
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 }, formatter: (val) => val, offsetX: 5 },
+    xaxis: { categories: ['Lead', 'Contactado', 'Prospecto', 'Negociación', 'Cerrado'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const funnelSeries = [{ name: 'Clientes', data: cicloVidaData.map(c => c.cantidad) }];
+
+  // ApexCharts - Intereses de Propiedad (Donut)
+  const interesesDonutOptions = {
+    chart: { type: 'donut', height: 220, background: 'transparent' },
+    labels: ['Departamento', 'Casa', 'PH', 'Local', 'Oficina', 'Terreno'],
+    colors: ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#6B7280'],
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Intereses', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => clientesEjemplo.length } } } } },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const interesesDonutSeries = [
+    clientesEjemplo.filter(c => c.tipoPropiedad === 'Departamento').length || 1,
+    clientesEjemplo.filter(c => c.tipoPropiedad === 'Casa').length || 1,
+    clientesEjemplo.filter(c => c.tipoPropiedad === 'PH').length || 1,
+    clientesEjemplo.filter(c => c.tipoPropiedad === 'Local').length || 1,
+    clientesEjemplo.filter(c => c.tipoPropiedad === 'Oficina').length || 1,
+    clientesEjemplo.filter(c => c.tipoPropiedad === 'Terreno').length || 1,
+  ];
+
+  // ApexCharts - Segmentación por Tipo (Donut)
+  const segmentacionDonutOptions = {
+    chart: { type: 'donut', height: 200, background: 'transparent' },
+    labels: ['Compradores', 'Propietarios', 'Inversores'],
+    colors: ['#3B82F6', '#10B981', '#8B5CF6'],
+    plotOptions: { pie: { donut: { size: '60%', labels: { show: true, name: { fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '16px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '9px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => clientesEjemplo.length } } } } },
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const segmentacionDonutSeries = segmentacionData.map(s => s.cantidad || 1);
+
+  // ApexCharts - Origen de Leads (Bar)
+  const origenesData = [
+    { origen: 'Web', cantidad: clientesEjemplo.filter(c => c.origen === 'Web').length },
+    { origen: 'Referido', cantidad: clientesEjemplo.filter(c => c.origen === 'Referido').length },
+    { origen: 'Redes', cantidad: clientesEjemplo.filter(c => c.origen === 'Redes Sociales' || c.origen === 'Redes').length },
+    { origen: 'Portal', cantidad: clientesEjemplo.filter(c => c.origen === 'Portal').length },
+    { origen: 'Directo', cantidad: clientesEjemplo.filter(c => c.origen === 'Directo' || c.origen === 'Teléfono').length },
+  ];
+  const origenBarOptions = {
+    chart: { type: 'bar', height: 180, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', distributed: true } },
+    colors: ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'],
+    dataLabels: { enabled: false },
+    xaxis: { categories: origenesData.map(o => o.origen), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const origenBarSeries = [{ name: 'Leads', data: origenesData.map(o => o.cantidad) }];
+
+  // ApexCharts - Presupuesto por Rango (Bar horizontal)
+  const presupuestoRangos = [
+    { rango: '< $50K', cantidad: clientesEjemplo.filter(c => c.presupuesto < 50000).length },
+    { rango: '$50K-100K', cantidad: clientesEjemplo.filter(c => c.presupuesto >= 50000 && c.presupuesto < 100000).length },
+    { rango: '$100K-200K', cantidad: clientesEjemplo.filter(c => c.presupuesto >= 100000 && c.presupuesto < 200000).length },
+    { rango: '$200K-500K', cantidad: clientesEjemplo.filter(c => c.presupuesto >= 200000 && c.presupuesto < 500000).length },
+    { rango: '> $500K', cantidad: clientesEjemplo.filter(c => c.presupuesto >= 500000).length },
+  ];
+  const presupuestoBarOptions = {
+    chart: { type: 'bar', height: 160, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true, barHeight: '65%' } },
+    colors: ['#6B7280', '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B'],
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 }, formatter: (val) => val, offsetX: 5 },
+    xaxis: { categories: presupuestoRangos.map(p => p.rango), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '9px' } } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const presupuestoBarSeries = [{ name: 'Clientes', data: presupuestoRangos.map(p => p.cantidad) }];
+
+  // ApexCharts - Tendencia de Captación (Area)
+  const captacionAreaOptions = {
+    chart: { type: 'area', height: 200, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false }, sparkline: { enabled: false } },
+    colors: ['#3B82F6', '#10B981'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: { categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const captacionAreaSeries = [
+    { name: 'Nuevos Leads', data: [12, 18, 15, 22, 28, 24] },
+    { name: 'Convertidos', data: [3, 5, 4, 7, 9, 8] },
+  ];
+
+  // ApexCharts - Tasa de Conversión (Radial Gauge)
+  const conversionRate = clientesEjemplo.length > 0 
+    ? Math.round((clientesEjemplo.filter(c => c.estado === 'Cerrado').length / clientesEjemplo.length) * 100) 
+    : 0;
+  const conversionGaugeOptions = {
+    chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90, endAngle: 90,
+        hollow: { size: '55%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 16 },
+          value: { show: true, fontSize: '22px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -10, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Conversión'],
+  };
+  const conversionGaugeSeries = [conversionRate || 32];
+
+  // ApexCharts - Engagement Score (actividad)
+  const engagementAvg = clientesEjemplo.length > 0 
+    ? Math.min(100, Math.round((clientesEjemplo.reduce((sum, c) => sum + (c.interacciones || 0), 0) / clientesEjemplo.length) * 10))
+    : 0;
+  const engagementOptions = {
+    chart: { type: 'radialBar', height: 160, background: 'transparent' },
+    plotOptions: {
+      radialBar: {
+        hollow: { size: '50%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB' },
+        dataLabels: {
+          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 14 },
+          value: { show: true, fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -8, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { colors: ['#8B5CF6'] },
+    stroke: { lineCap: 'round' },
+    labels: ['Engagement'],
+  };
+  const engagementSeries = [engagementAvg || 68];
+
+  // ApexCharts - Zonas de Interés (Treemap simulado con Bar)
+  const zonasData = [...new Set(clientesEjemplo.map(c => c.zonaInteres).filter(Boolean))].slice(0, 5).map(zona => ({
+    zona,
+    cantidad: clientesEjemplo.filter(c => c.zonaInteres === zona).length
+  })).sort((a, b) => b.cantidad - a.cantidad);
+  const zonasBarOptions = {
+    chart: { type: 'bar', height: 140, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true, barHeight: '70%' } },
+    colors: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'],
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '9px', fontWeight: 600 }, formatter: (val) => val, offsetX: 5 },
+    xaxis: { categories: zonasData.length > 0 ? zonasData.map(z => z.zona) : ['Palermo', 'Belgrano', 'Recoleta'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '9px' } } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const zonasBarSeries = [{ name: 'Clientes', data: zonasData.length > 0 ? zonasData.map(z => z.cantidad) : [8, 6, 5] }];
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-[1.02]';
+
+  // Clientes filtrados por tipo
+  const clientesFiltrados = clientesEjemplo.filter((c) => {
+    if (filtroTipo === 'todos') return true;
+    if (filtroTipo === 'comprador') return c.tipo === 'Comprador';
+    if (filtroTipo === 'propietario') return c.tipo === 'Propietario';
+    if (filtroTipo === 'inversor') return c.tipo === 'Inversor';
+    return true;
+  });
 
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
@@ -239,38 +519,34 @@ const ClientesCRM = () => {
   };
 
   // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nuevo cliente:', nuevoCliente);
-    alert('Cliente guardado exitosamente!');
-    setShowModal(false);
-    // Resetear formulario
-    setNuevoCliente({
-      nombre: '',
-      apellido: '',
-      email: '',
-      telefono: '',
-      telefonoAlternativo: '',
-      tipoCliente: 'Comprador',
-      estado: 'Lead',
-      presupuesto: '',
-      moneda: 'USD',
-      zonaInteres: '',
-      tipoPropiedad: 'Departamento',
-      ambientes: '',
-      dormitorios: '',
-      baños: '',
-      caracteristicas: [],
-      origen: 'Web',
-      agente: '',
-      scoring: 50,
-      notas: '',
-      direccion: '',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      ocupacion: '',
-      empresa: '',
-    });
+    setClientesError('');
+    try {
+      const payload = buildClientePayload(nuevoCliente);
+      const saved = editingClienteId
+        ? await crmService.clientes.update(editingClienteId, payload)
+        : await crmService.clientes.create(payload);
+
+      const normalized = normalizeCliente(saved);
+      setClientesEjemplo(prev => {
+        const idx = prev.findIndex(c => String(c.id) === String(normalized.id));
+        if (idx === -1) return [normalized, ...prev];
+        const next = [...prev];
+        next[idx] = normalized;
+        return next;
+      });
+
+      if (clienteSeleccionado && String(clienteSeleccionado.id) === String(normalized.id)) {
+        setClienteSeleccionado(normalized);
+      }
+
+      setShowModal(false);
+      setEditingClienteId(null);
+      setNuevoCliente(createEmptyClienteForm());
+    } catch (err) {
+      setClientesError(err?.message || 'Error al guardar cliente');
+    }
   };
 
   // Características disponibles
@@ -294,10 +570,23 @@ const ClientesCRM = () => {
   return (
     <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
       <Header category="CRM" title="👥 CRM de Clientes Avanzado" />
+
+      {(clientesError || clientesLoading) && (
+        <div className="mb-4">
+          {clientesError && (
+            <div className="text-sm rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+              {clientesError}
+            </div>
+          )}
+          {clientesLoading && !clientesError && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">Cargando clientes...</div>
+          )}
+        </div>
+      )}
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {vistaActual !== 'dashboard' && (
+        {vistaActual === 'detalle' && (
           <button 
             onClick={volverAlDashboard}
             className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
@@ -306,26 +595,52 @@ const ClientesCRM = () => {
           </button>
         )}
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaPlus /> Nuevo Cliente
         </button>
-        {vistaActual === 'dashboard' && (
-          <button 
-            onClick={() => setVistaActual('lista')}
-            className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
-          >
-            <FaThLarge /> Ver Todos los Clientes
-          </button>
-        )}
         <button className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors">
           <FaSearch /> Búsqueda Avanzada
         </button>
       </div>
 
-      {/* Vista Dashboard */}
-      {vistaActual === 'dashboard' && (
+      {/* Tabs Internas - Solo visibles cuando no estamos en detalle */}
+      {vistaActual !== 'detalle' && (
+        <div className="mb-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setActiveTab('metricas')}
+              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'metricas'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              📊 Métricas de Clientes
+              {activeTab === 'metricas' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('clientes')}
+              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'clientes'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              👥 Clientes
+              {activeTab === 'clientes' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Métricas de Clientes */}
+      {vistaActual !== 'detalle' && activeTab === 'metricas' && (
         <>
       {/* KPIs de Clientes - Clickeables */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
@@ -351,6 +666,231 @@ const ClientesCRM = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Gráfico Principal - Ciclo de Vida del Lead */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 mb-6">
+        {/* Ciclo de Vida - Ocupa 2 columnas */}
+        <div className={`${cardBase} xl:col-span-2`}>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaFunnelDollar className="text-indigo-500" />
+                <h3 className="font-semibold dark:text-gray-100">Ciclo de Vida del Lead</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Distribución de clientes por etapa</p>
+            </div>
+          </div>
+          <Chart options={cicloVidaPieOptions} series={cicloVidaPieSeries} type="pie" height={260} />
+          <div className="grid grid-cols-5 gap-2 mt-3 pt-3 border-t dark:border-gray-700">
+            {cicloVidaData.map((etapa, i) => (
+              <div key={etapa.etapa} className="text-center">
+                <p className="text-sm font-bold" style={{ color: ['#F59E0B', '#3B82F6', '#8B5CF6', '#F97316', '#10B981'][i] }}>{etapa.cantidad}</p>
+                <p className="text-xs text-gray-500 truncate">{etapa.etapa}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scoring Promedio */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaThermometerHalf className="text-orange-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Scoring de Leads</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Calidad promedio</p>
+          <Chart options={scoringGaugeOptions} series={scoringGaugeSeries} type="radialBar" height={160} />
+          <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-sm font-bold text-red-500">{clientesEjemplo.filter(c => c.scoring < 40).length}</p>
+              <p className="text-xs text-gray-500">Fríos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-yellow-500">{clientesEjemplo.filter(c => c.scoring >= 40 && c.scoring < 70).length}</p>
+              <p className="text-xs text-gray-500">Tibios</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-emerald-500">{clientesEjemplo.filter(c => c.scoring >= 70).length}</p>
+              <p className="text-xs text-gray-500">Calientes</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tasa de Conversión */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaPercentage className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tasa Conversión</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Lead → Cerrado</p>
+          <Chart options={conversionGaugeOptions} series={conversionGaugeSeries} type="radialBar" height={140} />
+          <div className="space-y-2 mt-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Sector</span>
+              <span className="font-bold text-gray-500">25%</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Actual</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> +7%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Engagement */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaUserClock className="text-purple-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Engagement</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Nivel de interacción</p>
+          <Chart options={engagementOptions} series={engagementSeries} type="radialBar" height={130} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-purple-600 dark:text-purple-400">{clientesEjemplo.reduce((sum, c) => sum + (c.interacciones || 0), 0)}</p>
+              <p className="text-xs text-gray-500">Interacc.</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{clientesEjemplo.reduce((sum, c) => sum + (c.propiedadesVistas || 0), 0)}</p>
+              <p className="text-xs text-gray-500">Vistas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Segunda fila - Intereses y Análisis */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        {/* Intereses de Propiedad */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaHeart className="text-pink-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Intereses</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Tipo de propiedad buscada</p>
+          <Chart options={interesesDonutOptions} series={interesesDonutSeries} type="donut" height={200} />
+        </div>
+
+        {/* Funnel de Conversión */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaFunnelDollar className="text-indigo-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Funnel de Conversión</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Etapas del ciclo de vida</p>
+          <Chart options={funnelOptions} series={funnelSeries} type="bar" height={160} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{cicloVidaData[4]?.cantidad || 0}</p>
+              <p className="text-xs text-gray-500">Cerrados</p>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{cicloVidaData[3]?.cantidad || 0}</p>
+              <p className="text-xs text-gray-500">Negociando</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Origen de Leads */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaChartLine className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Origen de Leads</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Canales de captación</p>
+          <Chart options={origenBarOptions} series={origenBarSeries} type="bar" height={160} />
+          <div className="text-center mt-2 pt-2 border-t dark:border-gray-700">
+            <p className="text-xs text-gray-500">Canal más efectivo: <span className="font-bold text-blue-600 dark:text-blue-400">Web</span></p>
+          </div>
+        </div>
+
+        {/* Presupuesto por Rango */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaDollarSign className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Rangos de Presupuesto</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Capacidad de inversión</p>
+          <Chart options={presupuestoBarOptions} series={presupuestoBarSeries} type="bar" height={140} />
+          <div className="text-center mt-2 pt-2 border-t dark:border-gray-700">
+            <p className="text-xs text-gray-500">Presupuesto promedio: <span className="font-bold text-emerald-600 dark:text-emerald-400">${clientesEjemplo.length > 0 ? Math.round(clientesEjemplo.reduce((sum, c) => sum + c.presupuesto, 0) / clientesEjemplo.length / 1000) : 0}K</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tercera fila - Tendencias y Zonas */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        {/* Tendencia de Captación */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaUsers className="text-blue-500" />
+                <h3 className="font-semibold dark:text-gray-100">Tendencia de Captación</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Nuevos leads vs convertidos - últimos 6 meses</p>
+            </div>
+          </div>
+          <Chart options={captacionAreaOptions} series={captacionAreaSeries} type="area" height={200} />
+          <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">119</p>
+              <p className="text-xs text-gray-500">Total Leads</p>
+            </div>
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">36</p>
+              <p className="text-xs text-gray-500">Convertidos</p>
+            </div>
+            <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">30%</p>
+              <p className="text-xs text-gray-500">Conversión</p>
+            </div>
+            <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">+18%</p>
+              <p className="text-xs text-gray-500">vs Ant.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel de Segmentación y Zonas */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Segmentación */}
+          <div className={cardBase}>
+            <div className="flex items-center gap-2 mb-1">
+              <FaTags className="text-indigo-500" />
+              <h3 className="font-semibold dark:text-gray-100 text-sm">Segmentación</h3>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Tipo de cliente</p>
+            <Chart options={segmentacionDonutOptions} series={segmentacionDonutSeries} type="donut" height={160} />
+            <div className="grid grid-cols-3 gap-1 mt-2 pt-2 border-t dark:border-gray-700">
+              <div className="text-center">
+                <p className="text-xs font-bold text-blue-600">Comp.</p>
+                <p className="text-xs text-gray-500">{segmentacionData[0]?.cantidad || 0}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-bold text-emerald-600">Prop.</p>
+                <p className="text-xs text-gray-500">{segmentacionData[1]?.cantidad || 0}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-bold text-purple-600">Inv.</p>
+                <p className="text-xs text-gray-500">{segmentacionData[2]?.cantidad || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Zonas de Interés */}
+          <div className={cardBase}>
+            <div className="flex items-center gap-2 mb-1">
+              <FaMapMarkerAlt className="text-red-500" />
+              <h3 className="font-semibold dark:text-gray-100 text-sm">Zonas de Interés</h3>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Ubicaciones más buscadas</p>
+            <Chart options={zonasBarOptions} series={zonasBarSeries} type="bar" height={120} />
+            <div className="text-center mt-2 pt-2 border-t dark:border-gray-700">
+              <p className="text-xs text-gray-500">Zona más demandada: <span className="font-bold text-blue-600 dark:text-blue-400">{zonasData[0]?.zona || 'Palermo'}</span></p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gráficos de Ciclo de Vida y Segmentación */}
@@ -516,10 +1056,77 @@ const ClientesCRM = () => {
         </>
       )}
 
-      {/* Vista Lista de Clientes */}
-      {vistaActual === 'lista' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clientesEjemplo.map((cliente) => (
+      {/* Tab: Clientes con filtros */}
+      {vistaActual !== 'detalle' && activeTab === 'clientes' && (
+        <>
+          {/* Checkboxes de filtro */}
+          <div className={`${cardBase} mb-6`}>
+            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🔍 Filtrar por tipo de cliente</h3>
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="filtroTipo"
+                  checked={filtroTipo === 'comprador'}
+                  onChange={() => setFiltroTipo('comprador')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Compradores</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  {clientesEjemplo.filter(c => c.tipo === 'Comprador').length}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="filtroTipo"
+                  checked={filtroTipo === 'propietario'}
+                  onChange={() => setFiltroTipo('propietario')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Propietarios</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  {clientesEjemplo.filter(c => c.tipo === 'Propietario').length}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="filtroTipo"
+                  checked={filtroTipo === 'inversor'}
+                  onChange={() => setFiltroTipo('inversor')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Inversores</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                  {clientesEjemplo.filter(c => c.tipo === 'Inversor').length}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="filtroTipo"
+                  checked={filtroTipo === 'todos'}
+                  onChange={() => setFiltroTipo('todos')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Todos</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                  {clientesEjemplo.length}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Lista de clientes filtrados */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {clientesFiltrados.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <FaUsers className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No hay clientes que coincidan con el filtro seleccionado</p>
+              </div>
+            ) : (
+              clientesFiltrados.map((cliente) => (
             <div key={cliente.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(cliente)}>
               {/* Header con avatar */}
               <div className="flex items-center gap-4 mb-4 pb-4 border-b dark:border-gray-700">
@@ -603,13 +1210,15 @@ const ClientesCRM = () => {
                 </div>
                 <div className="text-center">
                   <FaCalendar className="text-gray-400 mx-auto mb-1 text-sm" />
-                  <p className="text-xs font-semibold dark:text-gray-200">{cliente.ultimaInteraccion.split('-')[2]}/{cliente.ultimaInteraccion.split('-')[1]}</p>
+                  <p className="text-xs font-semibold dark:text-gray-200">{formatUltimaInteraccion(cliente.ultimaInteraccion).short}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Última</p>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))
+            )}
+          </div>
+        </>
       )}
 
       {/* Vista Detalle de Cliente */}
@@ -644,10 +1253,10 @@ const ClientesCRM = () => {
                 }`}>
                   {clienteSeleccionado.estado}
                 </span>
-                <button className="px-4 py-2 bg-white text-blue-600 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
+                <button onClick={() => handleEditCliente(clienteSeleccionado)} className="px-4 py-2 bg-white text-blue-600 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
                   <FaEdit /> Editar
                 </button>
-                <button className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
+                <button onClick={() => handleDeleteCliente(clienteSeleccionado)} className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
                   <FaTrash /> Eliminar
                 </button>
               </div>
@@ -818,7 +1427,7 @@ const ClientesCRM = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Última Interacción</p>
-                    <p className="font-semibold dark:text-gray-200">{clienteSeleccionado.ultimaInteraccion}</p>
+                    <p className="font-semibold dark:text-gray-200">{formatUltimaInteraccion(clienteSeleccionado.ultimaInteraccion).full}</p>
                   </div>
                 </div>
               </div>
@@ -856,6 +1465,308 @@ const ClientesCRM = () => {
               </div>
             </div>
           </div>
+
+          {/* Sección de Gráficos - Datos por Canales */}
+          <div className="mt-6">
+            <h2 className="text-xl font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+              <FaChartLine className="text-blue-500" /> Análisis de Comportamiento e Interacciones
+            </h2>
+            
+            {/* Primera fila de gráficos */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+              {/* Actividad por Canal */}
+              <div className={`${cardBase} xl:col-span-2`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaUsers className="text-indigo-500" />
+                  <h3 className="font-semibold dark:text-gray-100">Interacciones por Canal</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Origen de cada contacto con el cliente</p>
+                <Chart 
+                  options={{
+                    chart: { type: 'bar', height: 220, background: 'transparent', toolbar: { show: false } },
+                    plotOptions: { bar: { borderRadius: 6, horizontal: false, columnWidth: '55%', distributed: true } },
+                    colors: ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#6B7280'],
+                    dataLabels: { enabled: false },
+                    xaxis: { 
+                      categories: ['Sitio Web', 'WhatsApp', 'Teléfono', 'Email', 'Presencial', 'Redes'], 
+                      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
+                      axisBorder: { show: false }, axisTicks: { show: false }
+                    },
+                    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+                    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+                    legend: { show: false },
+                    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+                  }} 
+                  series={[{ name: 'Interacciones', data: [
+                    Math.floor((clienteSeleccionado.interacciones || 5) * 0.35),
+                    Math.floor((clienteSeleccionado.interacciones || 5) * 0.25),
+                    Math.floor((clienteSeleccionado.interacciones || 5) * 0.15),
+                    Math.floor((clienteSeleccionado.interacciones || 5) * 0.12),
+                    Math.floor((clienteSeleccionado.interacciones || 5) * 0.08),
+                    Math.floor((clienteSeleccionado.interacciones || 5) * 0.05)
+                  ] }]} 
+                  type="bar" 
+                  height={200} 
+                />
+                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t dark:border-gray-700">
+                  <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      {Math.floor((clienteSeleccionado.interacciones || 5) * 0.35)}
+                    </p>
+                    <p className="text-xs text-gray-500">Sitio Web</p>
+                  </div>
+                  <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded">
+                    <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      {Math.floor((clienteSeleccionado.interacciones || 5) * 0.25)}
+                    </p>
+                    <p className="text-xs text-gray-500">WhatsApp</p>
+                  </div>
+                  <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                    <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                      {Math.floor((clienteSeleccionado.interacciones || 5) * 0.15)}
+                    </p>
+                    <p className="text-xs text-gray-500">Teléfono</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actividad Web del Usuario */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaGlobe className="text-blue-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Actividad Web</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Comportamiento en el sitio</p>
+                <Chart 
+                  options={{
+                    chart: { type: 'donut', height: 180, background: 'transparent' },
+                    labels: ['Búsquedas', 'Visitas', 'Favoritos', 'Consultas'],
+                    colors: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'],
+                    plotOptions: { pie: { donut: { size: '60%', labels: { show: true, name: { fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '14px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '9px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } } } } },
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    stroke: { show: false },
+                    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+                  }} 
+                  series={[
+                    Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 2.5),
+                    clienteSeleccionado.propiedadesVistas || 5,
+                    Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 0.4),
+                    Math.floor((clienteSeleccionado.interacciones || 3) * 0.3)
+                  ]} 
+                  type="donut" 
+                  height={160} 
+                />
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-blue-600">{Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 2.5)}</p>
+                    <p className="text-xs text-gray-500">Búsquedas</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-emerald-600">{clienteSeleccionado.propiedadesVistas || 5}</p>
+                    <p className="text-xs text-gray-500">Visitas</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Engagement Score */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaUserClock className="text-purple-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Engagement</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Nivel de compromiso</p>
+                <Chart 
+                  options={{
+                    chart: { type: 'radialBar', height: 160, background: 'transparent' },
+                    plotOptions: {
+                      radialBar: {
+                        hollow: { size: '55%' },
+                        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB' },
+                        dataLabels: {
+                          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 14 },
+                          value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -8, formatter: (val) => `${val}%` },
+                        },
+                      },
+                    },
+                    fill: { colors: [clienteSeleccionado.scoring >= 70 ? '#10B981' : clienteSeleccionado.scoring >= 40 ? '#F59E0B' : '#EF4444'] },
+                    stroke: { lineCap: 'round' },
+                    labels: ['Engagement'],
+                  }} 
+                  series={[Math.min(100, Math.round(((clienteSeleccionado.interacciones || 0) + (clienteSeleccionado.propiedadesVistas || 0)) * 5))]} 
+                  type="radialBar" 
+                  height={150} 
+                />
+                <div className="text-center mt-2 pt-2 border-t dark:border-gray-700">
+                  <p className="text-xs text-gray-500">Última actividad: <span className="font-bold text-blue-600 dark:text-blue-400">{formatUltimaInteraccion(clienteSeleccionado.ultimaInteraccion).full}</span></p>
+                </div>
+              </div>
+            </div>
+
+            {/* Segunda fila de gráficos */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+              {/* Timeline de Actividad */}
+              <div className={`${cardBase} xl:col-span-2`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaHistory className="text-indigo-500" />
+                  <h3 className="font-semibold dark:text-gray-100">Historial de Actividad</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Actividad del cliente en los últimos 6 meses</p>
+                <Chart 
+                  options={{
+                    chart: { type: 'area', height: 200, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+                    colors: ['#3B82F6', '#10B981', '#8B5CF6'],
+                    dataLabels: { enabled: false },
+                    stroke: { curve: 'smooth', width: 2.5 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+                    xaxis: { categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+                    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+                    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+                    legend: { show: true, position: 'top', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+                    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+                  }} 
+                  series={[
+                    { name: 'Visitas Web', data: [2, 4, 3, 5, 8, clienteSeleccionado.propiedadesVistas || 6] },
+                    { name: 'Interacciones', data: [1, 2, 1, 3, 4, Math.floor((clienteSeleccionado.interacciones || 3) * 0.4)] },
+                    { name: 'Consultas', data: [0, 1, 0, 1, 2, Math.floor((clienteSeleccionado.interacciones || 2) * 0.2)] },
+                  ]} 
+                  type="area" 
+                  height={180} 
+                />
+              </div>
+
+              {/* Propiedades de Interés */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaHome className="text-green-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Propiedades Vistas</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Por tipo de propiedad</p>
+                <Chart 
+                  options={{
+                    chart: { type: 'polarArea', height: 200, background: 'transparent' },
+                    labels: [clienteSeleccionado.tipoPropiedad || 'Depto', 'Casa', 'PH', 'Otros'],
+                    colors: ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'],
+                    stroke: { colors: [currentMode === 'Dark' ? '#1F2937' : '#fff'] },
+                    fill: { opacity: 0.8 },
+                    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+                    plotOptions: { polarArea: { rings: { strokeWidth: 0 }, spokes: { strokeWidth: 0 } } },
+                    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+                  }} 
+                  series={[
+                    Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 0.5),
+                    Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 0.25),
+                    Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 0.15),
+                    Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 0.1)
+                  ]} 
+                  type="polarArea" 
+                  height={180} 
+                />
+              </div>
+            </div>
+
+            {/* Tercera fila - Datos de Usuario Web */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* Sesiones Web */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaDesktop className="text-blue-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Sesiones Web</h3>
+                </div>
+                <div className="text-center py-3">
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{Math.floor((clienteSeleccionado.propiedadesVistas || 5) * 1.5)}</p>
+                  <p className="text-xs text-gray-500 mt-1">Total de visitas</p>
+                </div>
+                <div className="space-y-2 pt-2 border-t dark:border-gray-700">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">Tiempo promedio</span>
+                    <span className="font-bold dark:text-gray-200">4:32 min</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">Páginas/sesión</span>
+                    <span className="font-bold dark:text-gray-200">3.2</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dispositivos */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaMobileAlt className="text-purple-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Dispositivos</h3>
+                </div>
+                <Chart 
+                  options={{
+                    chart: { type: 'donut', height: 140, background: 'transparent', sparkline: { enabled: true } },
+                    labels: ['Móvil', 'Desktop', 'Tablet'],
+                    colors: ['#8B5CF6', '#3B82F6', '#10B981'],
+                    plotOptions: { pie: { donut: { size: '70%' } } },
+                    legend: { show: false },
+                    stroke: { show: false },
+                    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+                  }} 
+                  series={[55, 35, 10]} 
+                  type="donut" 
+                  height={110} 
+                />
+                <div className="grid grid-cols-3 gap-1 mt-2 text-center">
+                  <div><p className="text-xs font-bold text-purple-600">55%</p><p className="text-xs text-gray-500">Móvil</p></div>
+                  <div><p className="text-xs font-bold text-blue-600">35%</p><p className="text-xs text-gray-500">Desktop</p></div>
+                  <div><p className="text-xs font-bold text-emerald-600">10%</p><p className="text-xs text-gray-500">Tablet</p></div>
+                </div>
+              </div>
+
+              {/* Fuente de Tráfico */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaLink className="text-indigo-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Fuente Tráfico</h3>
+                </div>
+                <Chart 
+                  options={{
+                    chart: { type: 'bar', height: 130, background: 'transparent', toolbar: { show: false }, sparkline: { enabled: false } },
+                    plotOptions: { bar: { borderRadius: 3, horizontal: true, distributed: true, barHeight: '60%' } },
+                    colors: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'],
+                    dataLabels: { enabled: false },
+                    xaxis: { categories: ['Google', 'Directo', 'Redes', 'Otros'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+                    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '9px' } } },
+                    grid: { show: false },
+                    legend: { show: false },
+                    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+                  }} 
+                  series={[{ name: 'Visitas', data: [45, 30, 15, 10] }]} 
+                  type="bar" 
+                  height={120} 
+                />
+              </div>
+
+              {/* Acciones en Web */}
+              <div className={cardBase}>
+                <div className="flex items-center gap-2 mb-2">
+                  <FaMousePointer className="text-orange-500" />
+                  <h3 className="font-semibold dark:text-gray-100 text-sm">Acciones Web</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <span className="text-xs dark:text-gray-300">Favoritos guardados</span>
+                    <span className="font-bold text-blue-600">{Math.floor((clienteSeleccionado.propiedadesVistas || 3) * 0.4)}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <span className="text-xs dark:text-gray-300">Consultas enviadas</span>
+                    <span className="font-bold text-green-600">{Math.floor((clienteSeleccionado.interacciones || 2) * 0.3)}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                    <span className="text-xs dark:text-gray-300">Comparaciones</span>
+                    <span className="font-bold text-purple-600">{Math.floor((clienteSeleccionado.propiedadesVistas || 2) * 0.2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                    <span className="text-xs dark:text-gray-300">Descargas PDF</span>
+                    <span className="font-bold text-orange-600">{Math.floor((clienteSeleccionado.propiedadesVistas || 1) * 0.15)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -867,7 +1778,7 @@ const ClientesCRM = () => {
             <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaUsers /> Nuevo Cliente
+                  <FaUsers /> {editingClienteId ? 'Editar Cliente' : 'Nuevo Cliente'}
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">Complete los datos del cliente</p>
               </div>
@@ -1028,6 +1939,133 @@ const ClientesCRM = () => {
                       onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Datos Demográficos */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaUsers className="text-green-500" /> Datos Demográficos
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Género
+                    </label>
+                    <select
+                      name="genero"
+                      value={nuevoCliente.genero}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="masculino">Masculino</option>
+                      <option value="femenino">Femenino</option>
+                      <option value="otro">Otro</option>
+                      <option value="prefiero_no_decir">Prefiero no decir</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Fecha de Nacimiento
+                    </label>
+                    <input
+                      type="date"
+                      name="fechaNacimiento"
+                      value={nuevoCliente.fechaNacimiento}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Profesión
+                    </label>
+                    <select
+                      name="profesion"
+                      value={nuevoCliente.profesion}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="abogado">Abogado/a</option>
+                      <option value="arquitecto">Arquitecto/a</option>
+                      <option value="comerciante">Comerciante</option>
+                      <option value="contador">Contador/a</option>
+                      <option value="diseñador">Diseñador/a</option>
+                      <option value="docente">Docente</option>
+                      <option value="empresario">Empresario/a</option>
+                      <option value="enfermero">Enfermero/a</option>
+                      <option value="ingeniero">Ingeniero/a</option>
+                      <option value="medico">Médico/a</option>
+                      <option value="periodista">Periodista</option>
+                      <option value="programador">Programador/a</option>
+                      <option value="psicologo">Psicólogo/a</option>
+                      <option value="publicista">Publicista</option>
+                      <option value="vendedor">Vendedor/a</option>
+                      <option value="autonomo">Trabajador/a Autónomo/a</option>
+                      <option value="empleado">Empleado/a</option>
+                      <option value="jubilado">Jubilado/a</option>
+                      <option value="estudiante">Estudiante</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Estado Parental
+                    </label>
+                    <select
+                      name="estadoParental"
+                      value={nuevoCliente.estadoParental}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="padre">Padre</option>
+                      <option value="madre">Madre</option>
+                      <option value="sin_hijos">Sin hijos</option>
+                      <option value="esperando">Esperando hijo/a</option>
+                      <option value="prefiero_no_decir">Prefiero no decir</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      ¿Tiene Hijos?
+                    </label>
+                    <select
+                      name="tieneHijos"
+                      value={nuevoCliente.tieneHijos}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="si">Sí</option>
+                      <option value="no">No</option>
+                      <option value="prefiero_no_decir">Prefiero no decir</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Preferencia de Comunicación
+                    </label>
+                    <select
+                      name="preferenciaComunicacion"
+                      value={nuevoCliente.preferenciaComunicacion}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="email">Email</option>
+                      <option value="telefono">Teléfono</option>
+                      <option value="sms">SMS</option>
+                      <option value="todos">Todos los canales</option>
+                    </select>
                   </div>
                 </div>
               </div>

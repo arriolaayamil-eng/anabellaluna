@@ -1,5 +1,6 @@
 
 import { img_path } from '../../environment';
+import { API_BASE_URL } from '../../config/api';
 
 
 interface Image {
@@ -13,7 +14,22 @@ interface Image {
 
 const ImageWithBasePath = (props: Image) => {
   // Combine the base path and the provided src to create the full image source URL
-  const fullSrc = `${img_path}${props.src}`;
+  const src = String(props.src || "");
+  const isBackendPublicPath = src.startsWith("/public/");
+  const isAbsolute =
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("data:") ||
+    src.startsWith("blob:") ||
+    src.startsWith("//");
+
+  const fullSrc = isAbsolute
+    ? src
+    : isBackendPublicPath
+    ? `${API_BASE_URL}${src}`
+    : src.startsWith("/")
+    ? src
+    : `${img_path}${src}`;
   return (
     <img
       className={props.className}

@@ -3,7 +3,19 @@ import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import StickyBox from "react-sticky-box";
 import { all_routes } from "../../../../routes/all_routes";
 
-const RentRightForm = () => {
+type AgentInfo = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  email?: string;
+  phone?: string;
+};
+
+type RentRightFormProps = {
+  agent?: AgentInfo;
+};
+
+const RentRightForm = ({ agent }: RentRightFormProps) => {
   return (
     <StickyBox offsetTop={80} offsetBottom={20}>
       {/* Items-1 */}
@@ -17,7 +29,7 @@ const RentRightForm = () => {
               <div className="d-flex align-items-center gap-2">
                 <div className="avatar avatar-lg">
                   <ImageWithBasePath
-                    src="assets/img/users/user-06.jpg"
+                    src={agent?.avatarUrl || "assets/img/users/user-06.jpg"}
                     alt="image"
                     className="rounded-circle"
                   />
@@ -25,7 +37,7 @@ const RentRightForm = () => {
                 <div>
                   <h6 className="mb-1 fs-16 fw-semibold">
                     <Link className="d-block w-100" to="#">
-                      Adrian Hendriques
+                      {agent?.name || ""}
                     </Link>
                   </h6>
                   <p className="mb-0 fs-14 text-body">Company Agent</p>
@@ -34,37 +46,29 @@ const RentRightForm = () => {
             </div>
           </div>
           {/* end card */}
-          <div className="border p-2 rounded mb-4">
-            <Link
-              to=""
-              className="d-block mb-3 pb-3 border-bottom text-body d-flex align-items-center"
-            >
-              <i className="material-icons-outlined text-body me-2 fs-16 p-1 bg-light rounded text-dark">
-                phone
-              </i>
-              Call Us : +1 12545 45548
-            </Link>
-            <Link to="" className="d-block text-body d-flex align-items-center">
-              <i className="material-icons-outlined text-body me-2 fs-16 p-1 bg-light rounded text-dark">
-                email
-              </i>
-              Email : info@example.com
-            </Link>
-          </div>
-          <div className="d-flex align-items-center justify-content-between gap-2 custom-btn flex-wrap mb-0">
-            <Link
-              to=""
-              className="btn btn-primary btn-lg d-flex align-center justify-content-center"
-            >
-              Whatsapp
-            </Link>
-            <Link
-              to=""
-              className="btn btn-dark btn-lg d-flex align-center text-center justify-content-center"
-            >
-              Chat Now
-            </Link>
-          </div>
+          {(agent?.phone || agent?.email) && (
+            <div className="border p-2 rounded mb-0">
+              {agent?.phone ? (
+                <Link
+                  to="#"
+                  className="d-block mb-3 pb-3 border-bottom text-body d-flex align-items-center"
+                >
+                  <i className="material-icons-outlined text-body me-2 fs-16 p-1 bg-light rounded text-dark">
+                    phone
+                  </i>
+                  {agent.phone}
+                </Link>
+              ) : null}
+              {agent?.email ? (
+                <Link to="#" className="d-block text-body d-flex align-items-center">
+                  <i className="material-icons-outlined text-body me-2 fs-16 p-1 bg-light rounded text-dark">
+                    email
+                  </i>
+                  {agent.email}
+                </Link>
+              ) : null}
+            </div>
+          )}
         </div>
         {/* end card body*/}
       </div>
@@ -113,6 +117,7 @@ const RentRightForm = () => {
       </div>
       {/* end card */}
       {/* Items-3 */}
+      {false && (
       <div className="card">
         <div className="card-header">
           <h5 className="mb-0">Why Book With Us</h5>
@@ -149,8 +154,10 @@ const RentRightForm = () => {
         </div>
         {/* end card body*/}
       </div>
+      )}
       {/* end card */}
       {/* Items-4 */}
+      {false && (
       <div className="card mb-0">
         <div className="custom-map position-relative">
           <Link to={all_routes.buyGridMap} className="btn btn-dark fw-medium">
@@ -183,6 +190,7 @@ const RentRightForm = () => {
         </div>
         {/* end card body*/}
       </div>
+      )}
       {/* end card */}
     </StickyBox>
   );

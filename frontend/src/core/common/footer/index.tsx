@@ -124,11 +124,6 @@ const Footer = () => {
                           <Link to="#">Programa de Afiliados</Link>
                         </li>
                         <li>
-                          <Link to={all_routes.addpropertybuy}>
-                            Agregá tu Publicación
-                          </Link>
-                        </li>
-                        <li>
                           <Link to="#">Nuestros Socios</Link>
                         </li>
                       </ul>
@@ -224,12 +219,6 @@ const Footer = () => {
                     success.
                   </p>
                 </div>
-                <Link
-                  to={all_routes.addpropertybuy}
-                  className="btn btn-primary btn-lg"
-                >
-                  Start Post Your Property
-                </Link>
               </div>
               {/* Footer Top */}
               <div className="footer-top">
@@ -249,11 +238,6 @@ const Footer = () => {
                         </li>
                         <li>
                           <Link to="#">Programa de Afiliados</Link>
-                        </li>
-                        <li>
-                          <Link to={all_routes.addpropertybuy}>
-                            Agregá tu Publicación
-                          </Link>
                         </li>
                       </ul>
                     </div>
@@ -436,11 +420,6 @@ const Footer = () => {
                         </li>
                         <li>
                           <Link to="#">Programa de Afiliados</Link>
-                        </li>
-                        <li>
-                          <Link to={all_routes.addpropertybuy}>
-                            Agregá tu Publicación
-                          </Link>
                         </li>
                         <li>
                           <Link to="#">Nuestros Socios</Link>

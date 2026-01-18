@@ -351,9 +351,14 @@ const Citas = () => {
         <div className={`xl:col-span-2 ${cardBase}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📅 Calendario Completo</h3>
           <ScheduleComponent
-            height="500px"
+            height="650px"
             eventSettings={{ dataSource: citasData }}
             selectedDate={new Date(2025, 9, 10)}
+            startHour="09:00"
+            endHour="21:00"
+            firstDayOfWeek={1}
+            workDays={[0, 1, 2, 3, 4, 5, 6]}
+            cssClass={currentMode === 'Dark' ? 'e-schedule-dark' : 'e-schedule-light'}
           >
             <Inject services={[Day, Week, WorkWeek, Month, Agenda]} />
           </ScheduleComponent>

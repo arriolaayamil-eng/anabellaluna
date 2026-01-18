@@ -31,16 +31,10 @@ const AboutUsSection = () => {
                 </p>
                 <div className="d-flex align-items-center">
                   <Link
-                    to={all_routes.addpropertybuy}
-                    className="btn btn-dark btn-lg me-3"
-                  >
-                    Start Post Your Property
-                  </Link>
-                  <Link
                     to={all_routes.contactUs}
                     className="btn btn-primary btn-lg"
                   >
-                    Contact Us
+                    Contactanos
                   </Link>
                 </div>
               </div>

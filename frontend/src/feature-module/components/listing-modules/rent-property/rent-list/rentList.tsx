@@ -4,16 +4,48 @@ import { Price_Range, Sort_By } from "../../../../../core/common/selectOption";
 import CommonSelect from "../../../../../core/common/common-select/commonSelect";
 import { all_routes } from "../../../../routes/all_routes";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import publicService, { type PropertyCard } from "../../../../../services/publicService";
 
 const RentList = () => {
-  const [selectedItems, setSelectedItems] = useState(Array(10).fill(false));
+  const [selectedItems, setSelectedItems] = useState(Array(200).fill(false));
+  const [properties, setProperties] = useState<PropertyCard[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const handleItemClick = (index: number) => {
     setSelectedItems((prevSelectedItems) => {
       const updatedSelectedItems = [...prevSelectedItems];
       updatedSelectedItems[index] = !updatedSelectedItems[index];
       return updatedSelectedItems;
     });
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        const res = await publicService.getProperties("rent");
+        if (!isMounted) return;
+        setProperties(Array.isArray(res.items) ? res.items : []);
+      } catch {
+        if (!isMounted) return;
+        setProperties([]);
+      } finally {
+        if (!isMounted) return;
+        setIsLoading(false);
+      }
+    };
+    run();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const priceLabel = (p: PropertyCard) => {
+    if (p.price?.amount == null) return "";
+    const currency = p.price.currency ? `${p.price.currency} ` : "";
+    const unit = p.price.unit ? ` / ${p.price.unit}` : "";
+    return `${currency}${p.price.amount}${unit}`;
   };
   return (
     <>
@@ -37,9 +69,9 @@ const RentList = () => {
                 <div className="row align-items-center">
                   <div className="col-lg-3">
                     <p className="mb-4 mb-lg-0 mb-md-3 text-lg-start text-md-start  text-center">
-                      Showing result <span className="result-value"> 06</span>{" "}
+                      Showing result <span className="result-value"> {properties.length}</span>{" "}
                       of
-                      <span className="result-value"> 125</span>
+                      <span className="result-value"> {properties.length}</span>
                     </p>
                   </div>{" "}
                   {/* end col */}
@@ -103,6 +135,124 @@ const RentList = () => {
             {/* end card */}
             {/* start row */}
             <div className="row mb-4">
+              {properties.slice(0, 10).map((p, idx) => (
+                <div key={p.id || idx} className="col-lg-12 col-md-6">
+                  <div className="property-card">
+                    <div className="property-listing-item p-0 mb-0 shadow-none d-flex flex-lg-nowrap flex-wrap">
+                      <div className="buy-grid-img buy-list-img rent-list-img mb-0 rounded-0">
+                        <Link to={p.slug ? all_routes.rentDetailsPath(p.slug) : "#"}>
+                          <ImageWithBasePath
+                            className="img-fluid"
+                            src={p.media?.coverUrl || ""}
+                            alt={p.title}
+                          />
+                        </Link>
+                        <div className="d-flex align-items-center justify-content-between position-absolute top-0 start-0 end-0 p-3 z-1">
+                          <div className="d-flex align-items-center gap-2">
+                            <div className="badge badge-sm bg-danger d-flex align-items-center">
+                              <i className="material-icons-outlined">offline_bolt</i>
+                              New
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
+                          <h6 className="text-white mb-0">{priceLabel(p)}</h6>
+                          <Link
+                            to="#"
+                            className={`favourite ${selectedItems[idx] ? "selected" : ""}`}
+                            key={idx}
+                            onClick={() => handleItemClick(idx)}
+                          >
+                            <i
+                              className={`material-icons-outlined ${
+                                selectedItems[idx] ? "filled" : ""
+                              }`}
+                            >
+                              {selectedItems[idx] ? "favorite" : "favorite_border"}
+                            </i>
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="buy-grid-content w-100">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <div className="d-flex align-items-center justify-content-center">
+                            <i className="material-icons-outlined text-warning">star</i>
+                            <i className="material-icons-outlined text-warning">star</i>
+                            <i className="material-icons-outlined text-warning">star</i>
+                            <i className="material-icons-outlined text-warning">star</i>
+                            <i className="material-icons-outlined text-warning">star</i>
+                          </div>
+                          <span className="badge bg-secondary"> Rental</span>
+                        </div>
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <div>
+                            <h6 className="title mb-1">
+                              <Link to={p.slug ? all_routes.rentDetailsPath(p.slug) : "#"}>
+                                {p.title}
+                              </Link>
+                            </h6>
+                            <p className="d-flex align-items-center fs-14 mb-0">
+                              <i className="material-icons-outlined me-1 ms-0">
+                                location_on
+                              </i>
+                              {p.location?.addressLine || ""}
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
+                          <li className="d-flex align-items-center gap-1">
+                            <i className="material-icons-outlined bg-white text-secondary">bed</i>
+                            {p.features?.beds != null ? `${p.features.beds} Bedroom` : ""}
+                          </li>
+                          <li className="d-flex align-items-center gap-1">
+                            <i className="material-icons-outlined bg-white text-secondary">bathtub</i>
+                            {p.features?.baths != null ? `${p.features.baths} Bath` : ""}
+                          </li>
+                          <li className="d-flex align-items-center gap-1">
+                            <i className="material-icons-outlined bg-white text-secondary">straighten</i>
+                            {p.features?.areaSqFt != null ? `${p.features.areaSqFt} Sq Ft` : ""}
+                          </li>
+                        </ul>
+                        <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3">
+                          <div className="d-flex align-items-center gap-2">
+                            <div className="avatar avatar-lg user-avatar">
+                              <ImageWithBasePath
+                                src={p.agent?.avatarUrl || ""}
+                                alt={p.agent?.name || ""}
+                                className="rounded-circle"
+                              />
+                            </div>
+                            <h6 className="mb-0 fs-16 fw-medium text-dark">
+                              {p.agent?.name || ""}
+                              <span className="d-block fs-14 text-body pt-1">
+                                {p.location?.country || ""}
+                              </span>{" "}
+                            </h6>
+                          </div>
+                          <Link
+                            to={p.slug ? all_routes.rentDetailsPath(p.slug) : "#"}
+                            className="btn btn-dark"
+                          >
+                            Book Now
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* end card */}
+                </div>
+              ))}
+
+              {isLoading && (
+                <div className="col-12">
+                  <div className="text-center">Loading...</div>
+                </div>
+              )}
+
+            </div>
+
+            {false && (
+              <div className="row mb-4">
               {/* Items-1 */}
               <div className="col-lg-12 col-md-6">
                 <div className="property-card">
@@ -949,7 +1099,8 @@ const RentList = () => {
                 {/* end card */}
               </div>{" "}
               {/* end col */}
-            </div>
+              </div>
+            )}
             {/* end row */}
             <div className="text-center">
               <Link

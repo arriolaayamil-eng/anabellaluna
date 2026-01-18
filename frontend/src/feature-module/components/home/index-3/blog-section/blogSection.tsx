@@ -1,8 +1,45 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { all_routes } from "../../../../routes/all_routes";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
+import publicService from "../../../../../services/publicService";
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 const BlogSection = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const run = async () => {
+      try {
+        const res = await publicService.getBlogPosts();
+        if (!isMounted) return;
+        setPosts((res.items || []).slice(0, 3));
+      } catch {
+        if (!isMounted) return;
+        setPosts([]);
+      }
+    };
+
+    run();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const featured = posts[0];
+  const others = posts.slice(1, 3);
+
   return (
     <>
       {/* Blog Section Start */}
@@ -22,6 +59,83 @@ const BlogSection = () => {
           </div>
           {/* Section Title End */}
           {/* start row */}
+          <div className="row">
+            {featured ? (
+              <div className="col-xl-6 d-flex">
+                <div className="blog-item mb-4 flex-fill">
+                  <div className="blog-img">
+                    <Link
+                      to={featured.slug ? all_routes.blogDetailsPath(featured.slug) : "#"}
+                    >
+                      {featured.coverUrl ? (
+                        <ImageWithBasePath src={featured.coverUrl} alt="image" />
+                      ) : null}
+                    </Link>
+                    <span className="badge bg-secondary badge-top">
+                      {featured.category?.name || ""}
+                    </span>
+                  </div>
+                  <div className="blog-content">
+                    <h5 className="mb-2">
+                      <Link
+                        to={featured.slug ? all_routes.blogDetailsPath(featured.slug) : "#"}
+                      >
+                        {featured.title || ""}
+                      </Link>
+                    </h5>
+                    <p className="mb-2">{featured.excerpt || ""}</p>
+                    <span className="d-inline-flex align-items-center">
+                      <i className="material-icons-outlined me-2">event</i>
+                      {formatDate(featured.publishedAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="col-xl-6 d-flex">
+              <div className="flex-fill">
+                {others.map((post, idx) => (
+                  <div key={post.id || post.slug || idx} className="blog-item blog-item-2 mb-4">
+                    <div className="row">
+                      <div className="col-md-6 d-flex">
+                        <div className="blog-img flex-fill">
+                          <Link
+                            to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}
+                          >
+                            {post.coverUrl ? (
+                              <ImageWithBasePath src={post.coverUrl} alt="image" />
+                            ) : null}
+                          </Link>
+                          <span className="badge bg-secondary badge-top">
+                            {post.category?.name || ""}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="col-md-6 d-flex">
+                        <div className="blog-content flex-fill">
+                          <h5 className="mb-2">
+                            <Link
+                              to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}
+                            >
+                              {post.title || ""}
+                            </Link>
+                          </h5>
+                          <p className="mb-2">{post.excerpt || ""}</p>
+                          <span className="d-inline-flex align-items-center">
+                            <i className="material-icons-outlined me-2">event</i>
+                            {formatDate(post.publishedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {false && (
           <div className="row">
             <div className="col-xl-6 d-flex">
               <div className="blog-item mb-4 flex-fill">
@@ -136,6 +250,7 @@ const BlogSection = () => {
             </div>
             {/* end col */}
           </div>
+          )}
           {/* end row */}
           <div className="text-center mt-3">
             <Link

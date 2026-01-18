@@ -11,6 +11,7 @@ const initialState = {
   tareas: false,
   alertas: false,
   chatInterno: false,
+  rewards: false,
 };
 
 export const ContextProvider = ({ children }) => {

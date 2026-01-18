@@ -115,10 +115,10 @@ const RentalOrderConfirmation = () => {
                     Back to Order Details
                   </Link>
                   <Link
-                    to={all_routes.rentalPayment}
+                    to={all_routes.index}
                     className="btn btn-primary me-2"
                   >
-                    Go to Payment
+                    Back to Home
                   </Link>
                 </div>
               </div>

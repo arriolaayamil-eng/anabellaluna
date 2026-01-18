@@ -12,7 +12,8 @@
     "@syncfusion/ej2-react-maps": "^31.1.17",
     "@syncfusion/ej2-react-popups": "^31.1.20",
     "@syncfusion/ej2-react-richtexteditor": "^31.1.23",
-    "@syncfusion/ej2-react-schedule": "^31.1.21"
+    "@syncfusion/ej2-react-schedule": "^31.1.21",
+    "minio": "^8.0.6"
   },
   "scripts": {
     "start": "craco start",

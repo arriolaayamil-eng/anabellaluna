@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   FaUserFriends,
   FaRegCalendarAlt,
@@ -9,21 +9,19 @@ import {
   FaUsers,
   FaClock,
   FaPhoneAlt,
-  FaStar,
-  FaRegStar,
+  FaDollarSign,
+  FaChartLine,
+  FaPercentage,
+  FaFunnelDollar,
+  FaArrowUp,
+  FaArrowDown,
 } from 'react-icons/fa';
 import { Header } from '../components';
+import { useStateContext } from '../contexts/ContextProvider';
+import Chart from 'react-apexcharts';
 
 const AgentDashboard = () => {
-  const [showNewRecord, setShowNewRecord] = useState(false);
-
-  useEffect(() => {
-    if (!showNewRecord) return;
-    const timer = setTimeout(() => {
-      setShowNewRecord(false);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, [showNewRecord]);
+  const { currentColor, currentMode } = useStateContext();
 
   // Vista inicial del agente: resumen simple de su actividad
   const kpis = [
@@ -82,151 +80,112 @@ const AgentDashboard = () => {
     'Enviar resumen de visitas al cliente López',
   ];
 
+  // ApexCharts - Progreso Meta Mensual (Radial)
+  const metaOptions = {
+    chart: { type: 'radialBar', height: 220, background: 'transparent', sparkline: { enabled: false } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '65%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '28px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Meta Mensual'],
+  };
+  const metaSeries = [60];
+
+  // ApexCharts - Estado de Leads (Donut)
+  const leadsDonutOptions = {
+    chart: { type: 'donut', height: 260, background: 'transparent' },
+    labels: ['Cerrados', 'En Negociación', 'Perdidos', 'Nuevos'],
+    colors: ['#10B981', '#F59E0B', '#EF4444', '#3B82F6'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+            value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' },
+            total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => '48' },
+          },
+        },
+      },
+    },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const leadsDonutSeries = [12, 8, 4, 24];
+
+  // ApexCharts - Ingresos por Comisiones (Area)
+  const ingresosOptions = {
+    chart: { type: 'area', height: 280, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#8B5CF6', '#10B981'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: {
+      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' }, formatter: (val) => `$${val}K` } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val}K` } },
+  };
+  const ingresosSeries = [
+    { name: 'Comisiones', data: [8, 6, 12, 15, 11, 18, 14, 20, 22, 25, 28, 32] },
+    { name: 'Objetivo', data: [10, 10, 15, 15, 15, 20, 20, 20, 25, 25, 30, 30] },
+  ];
+
+  // ApexCharts - Funnel Conversión
+  const funnelOptions = {
+    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, horizontal: true, distributed: true, barHeight: '65%' } },
+    colors: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981'],
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '11px', fontWeight: 600 }, formatter: (val, opt) => `${opt.w.globals.labels[opt.dataPointIndex]}: ${val}`, offsetX: 5 },
+    xaxis: { categories: ['Captados', 'Contactados', 'Negociación', 'Cerrados'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { show: false } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `${val} leads` } },
+  };
+  const funnelSeries = [{ name: 'Leads', data: [48, 36, 18, 12] }];
+
+  // ApexCharts - Tasa de Conversión (Gauge)
+  const conversionOptions = {
+    chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90, endAngle: 90,
+        hollow: { size: '60%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 18 },
+          value: { show: true, fontSize: '24px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -12, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', colorStops: [{ offset: 0, color: '#8B5CF6', opacity: 1 }, { offset: 100, color: '#6366F1', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Conversión'],
+  };
+  const conversionSeries = [25];
+
   const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg';
 
   return (
     <div className="p-6 bg-main-bg dark:bg-main-dark-bg min-h-screen">
       <Header category="Agente" title="Panel del Agente" />
-
-      <div className="flex justify-end mb-4">
-        <button
-          type="button"
-          onClick={() => setShowNewRecord(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-200"
-        >
-          <FaTrophy className="text-sm" />
-          <span>Celebrar nuevo récord</span>
-        </button>
-      </div>
-
-      {/* Trofeos (badges) centrados en la parte superior */}
-      <div className="flex justify-center mb-8 gap-6">
-        <img
-          src="/assets/firstSaleBadge.svg"
-          alt="First Sale Badge"
-          className="h-12 md:h-16 w-auto drop-shadow-xl"
-        />
-        <img
-          src="/assets/goldenStarBadge.svg"
-          alt="Golden Star Badge"
-          className="h-12 md:h-16 w-auto drop-shadow-xl"
-        />
-        <img
-          src="/assets/HighQuaityBadge.svg"
-          alt="High Quality Badge"
-          className="h-12 md:h-16 w-auto drop-shadow-xl"
-        />
-      </div>
-      {/* KPIs de logros e insignias del agente (al tope del dashboard) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {/* Nivel de experiencia (a la izquierda) */}
-        <div className={`${cardBase} bg-gradient-to-br from-amber-100 via-amber-50 to-white dark:from-amber-900/40 dark:via-amber-800/40 dark:to-secondary-dark-bg border border-amber-300/60 dark:border-amber-700/60`}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100 uppercase tracking-wide">
-              Nivel de experiencia
-            </p>
-            <div className="flex items-center gap-1 bg-amber-500 text-white text-[11px] px-2 py-1 rounded-full shadow-sm">
-              <FaTrophy className="text-xs" />
-              <span>Ranking SENIOR</span>
-            </div>
-          </div>
-          <p className="mt-1 text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
-            Senior
-          </p>
-          <div className="mt-2 flex items-center gap-1 text-yellow-400">
-            <FaStar />
-            <FaStar />
-            <FaStar />
-            <FaStar />
-            <FaRegStar />
-            <span className="ml-2 text-xs font-medium text-gray-700 dark:text-gray-200">
-              4/5 estrellas
-            </span>
-          </div>
-          <p className="mt-3 text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-            Basado en operaciones cerradas, reseñas de clientes y cumplimiento de objetivos mensuales.
-          </p>
-        </div>
-
-        {/* Racha de actividad (estilo desafíos de videojuego) */}
-        <div className={`${cardBase} bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-white relative overflow-hidden`}>
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top,_white,_transparent_60%)]" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold uppercase tracking-wide">
-                Racha de actividad
-              </p>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-900/60 border border-emerald-300/40">
-                Desafío diario
-              </span>
-            </div>
-            <p className="mt-1 text-3xl font-extrabold tracking-tight">
-              14 días
-            </p>
-            <p className="mt-1 text-[11px] text-emerald-100">
-              Días consecutivos registrando citas o tareas en el CRM.
-            </p>
-
-            {/* Barra de progreso tipo videojuego */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="font-semibold">Racha actual</span>
-                <span>Objetivo: 21 días</span>
-              </div>
-              <div className="w-full bg-emerald-900/50 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-gradient-to-r from-lime-300 via-yellow-300 to-orange-300 h-2.5 rounded-full" style={{ width: '66%' }} />
-              </div>
-            </div>
-
-            {/* Logros de racha tipo insignias pequeñas */}
-            <div className="mt-4 flex flex-wrap gap-2 text-[10px]">
-              <span className="px-2 py-1 rounded-full bg-emerald-900/60 border border-emerald-300/40">
-                +XP diario
-              </span>
-              <span className="px-2 py-1 rounded-full bg-emerald-900/60 border border-emerald-300/40">
-                Bonus 7 días
-              </span>
-              <span className="px-2 py-1 rounded-full bg-emerald-900/60 border border-emerald-300/40">
-                Cerca del logro 21
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Insignias obtenidas (más atractiva) */}
-        <div className={`${cardBase} bg-gradient-to-br from-sky-500 via-sky-600 to-indigo-700 text-white relative overflow-hidden`}>
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_white,_transparent_55%)]" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold uppercase tracking-wide">
-                Insignias obtenidas
-              </p>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-indigo-900/60 border border-indigo-300/40">
-                Colección
-              </span>
-            </div>
-            <p className="mt-1 text-3xl font-extrabold tracking-tight">
-              3
-            </p>
-            <p className="mt-1 text-[11px] text-sky-100">
-              Trofeos destacados por desempeño comercial.
-            </p>
-
-            {/* Mini etiquetas de las insignias */}
-            <div className="mt-4 flex flex-wrap gap-2 text-[10px]">
-              <span className="px-2 py-1 rounded-full bg-indigo-900/70 border border-sky-300/50">
-                First Sale
-              </span>
-              <span className="px-2 py-1 rounded-full bg-indigo-900/70 border border-sky-300/50">
-                Golden Star
-              </span>
-              <span className="px-2 py-1 rounded-full bg-indigo-900/70 border border-sky-300/50">
-                High Quality
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* KPIs principales del agente (misma estructura que DashboardEjecutivo) */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -270,53 +229,163 @@ const AgentDashboard = () => {
         ))}
       </div>
 
-      {/* Seguimiento post-cita (widget resumido debajo de KPIs) */}
+      {/* Gráficos Financieros y Conversión - ApexCharts */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        {/* Meta Mensual */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaDollarSign className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100">Meta Mensual</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Progreso de operaciones</p>
+          <Chart options={metaOptions} series={metaSeries} type="radialBar" height={200} />
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">12</p>
+              <p className="text-xs text-gray-500">Actual</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-500">20</p>
+              <p className="text-xs text-gray-500">Meta</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Estado de Leads - Donut */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaUserFriends className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100">Estado de Leads</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual</p>
+          <Chart options={leadsDonutOptions} series={leadsDonutSeries} type="donut" height={240} />
+        </div>
+
+        {/* Funnel de Conversión */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaFunnelDollar className="text-purple-500" />
+            <h3 className="font-semibold dark:text-gray-100">Funnel de Leads</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Proceso de conversión</p>
+          <Chart options={funnelOptions} series={funnelSeries} type="bar" height={180} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">25%</p>
+              <p className="text-xs text-gray-500">Cierre</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">75%</p>
+              <p className="text-xs text-gray-500">Contacto</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tasa de Conversión */}
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaPercentage className="text-indigo-500" />
+            <h3 className="font-semibold dark:text-gray-100">Coef. de Cierre</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Ratio de conversión</p>
+          <Chart options={conversionOptions} series={conversionSeries} type="radialBar" height={160} />
+          <div className="space-y-2 mt-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Promedio industria</span>
+              <span className="font-bold text-gray-500">18%</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Tu rendimiento</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> +7%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: '82%' }}></div>
+            </div>
+            <p className="text-xs text-center text-gray-500">Top 18% de agentes</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráfico de Comisiones - Full Width */}
       <div className="mb-8">
         <div className={cardBase}>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="p-6 border-2 border-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                <FaCheckCircle className="text-4xl text-green-500 mx-auto mb-3" />
-                <h4 className="font-bold dark:text-gray-200">Completadas</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Citas finalizadas</p>
-                <p className="text-2xl font-bold text-green-600 mt-2">18</p>
-                <p className="text-xs text-gray-500">Esta semana</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaChartLine className="text-purple-500" />
+                <h3 className="font-semibold dark:text-gray-100">Comisiones Anuales</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Comparativa vs objetivo mensual</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Comisiones</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Objetivo</span>
               </div>
             </div>
-
-            <div className="text-center">
-              <div className="p-6 border-2 border-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                <FaUsers className="text-4xl text-blue-500 mx-auto mb-3" />
-                <h4 className="font-bold dark:text-gray-200">Interesados</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Clientes con interés</p>
-                <p className="text-2xl font-bold text-blue-600 mt-2">12</p>
-                <p className="text-xs text-gray-500">Requieren seguimiento</p>
-              </div>
+          </div>
+          <Chart options={ingresosOptions} series={ingresosSeries} type="area" height={260} />
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">$211K</p>
+              <p className="text-xs text-gray-500">Total Ganado</p>
             </div>
-
-            <div className="text-center">
-              <div className="p-6 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                <FaClock className="text-4xl text-yellow-500 mx-auto mb-3" />
-                <h4 className="font-bold dark:text-gray-200">Reagendar</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Citas a reprogramar</p>
-                <p className="text-2xl font-bold text-yellow-600 mt-2">3</p>
-                <p className="text-xs text-gray-500">Pendientes</p>
-              </div>
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">$32K</p>
+              <p className="text-xs text-gray-500">Este Mes</p>
             </div>
-
-            <div className="text-center">
-              <div className="p-6 border-2 border-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                <FaPhoneAlt className="text-4xl text-red-500 mx-auto mb-3" />
-                <h4 className="font-bold dark:text-gray-200">No Contactados</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Sin respuesta</p>
-                <p className="text-2xl font-bold text-red-600 mt-2">2</p>
-                <p className="text-xs text-gray-500">Requieren atención</p>
-              </div>
+            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">$17.6K</p>
+              <p className="text-xs text-gray-500">Promedio</p>
+            </div>
+            <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">+28%</p>
+              <p className="text-xs text-gray-500">vs Año Ant.</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Seguimiento post-cita */}
+      <div className="mb-8">
+        <div className={cardBase}>
+          <h3 className="font-semibold dark:text-gray-100 mb-4 flex items-center gap-2">
+            <FaCheckCircle className="text-green-500" /> Seguimiento de Citas
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 border-2 border-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+              <FaCheckCircle className="text-3xl text-green-500 mx-auto mb-2" />
+              <h4 className="font-bold dark:text-gray-200 text-sm">Completadas</h4>
+              <p className="text-2xl font-bold text-green-600 mt-1">18</p>
+              <p className="text-xs text-gray-500">Esta semana</p>
+            </div>
+            <div className="text-center p-4 border-2 border-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+              <FaUsers className="text-3xl text-blue-500 mx-auto mb-2" />
+              <h4 className="font-bold dark:text-gray-200 text-sm">Interesados</h4>
+              <p className="text-2xl font-bold text-blue-600 mt-1">12</p>
+              <p className="text-xs text-gray-500">Seguimiento</p>
+            </div>
+            <div className="text-center p-4 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+              <FaClock className="text-3xl text-yellow-500 mx-auto mb-2" />
+              <h4 className="font-bold dark:text-gray-200 text-sm">Reagendar</h4>
+              <p className="text-2xl font-bold text-yellow-600 mt-1">3</p>
+              <p className="text-xs text-gray-500">Pendientes</p>
+            </div>
+            <div className="text-center p-4 border-2 border-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+              <FaPhoneAlt className="text-3xl text-red-500 mx-auto mb-2" />
+              <h4 className="font-bold dark:text-gray-200 text-sm">No Contactados</h4>
+              <p className="text-2xl font-bold text-red-600 mt-1">2</p>
+              <p className="text-xs text-gray-500">Atención</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Próximas citas */}
@@ -411,55 +480,6 @@ const AgentDashboard = () => {
           </div>
         </div>
       </div>
-
-      {showNewRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative mx-4 max-w-md rounded-3xl bg-white/95 p-8 shadow-2xl dark:bg-secondary-dark-bg/95">
-            <div className="pointer-events-none absolute -top-6 -left-4 text-4xl select-none">
-              🎉
-            </div>
-            <div className="pointer-events-none absolute -top-4 -right-4 text-4xl select-none">
-              🎊
-            </div>
-            <div className="pointer-events-none absolute bottom-0 left-3 text-3xl opacity-80 select-none">
-              🎉
-            </div>
-            <div className="pointer-events-none absolute bottom-2 right-6 text-3xl opacity-80 select-none">
-              🎊
-            </div>
-
-            <div className="relative flex flex-col items-center text-center">
-              <div className="mb-3 inline-flex items-center justify-center rounded-full bg-amber-100 px-4 py-1 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
-                <FaTrophy className="mr-2 text-lg" />
-                <span className="text-xs font-semibold tracking-wide uppercase">
-                  Nuevo récord alcanzado
-                </span>
-              </div>
-
-              <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50">
-                ¡Nuevo récord!
-              </h2>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 max-w-xs">
-                Has superado tu mejor marca de rendimiento. Comparte este logro con tu equipo y sigue sumando resultados.
-              </p>
-
-              <div className="mt-5 flex flex-col items-center gap-3">
-                <div className="rounded-2xl bg-gradient-to-r from-emerald-500 via-sky-500 to-purple-500 px-5 py-3 text-sm font-semibold text-white shadow-md">
-                  <span>Récord de citas y oportunidades este mes</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowNewRecord(false)}
-                  className="mt-1 rounded-full border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

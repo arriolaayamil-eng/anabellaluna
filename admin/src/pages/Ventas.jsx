@@ -3,8 +3,9 @@ import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHand
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
+// ApexCharts for modern visualizations
+import Chart from 'react-apexcharts';
+// Syncfusion Grid only
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Ventas = () => {
@@ -66,36 +67,104 @@ const Ventas = () => {
     { id: 5, tipo: 'Alquiler', propiedad: 'Local Recoleta', cliente: 'Comercio ABC', monto: 2500, estado: 'En Curso', fecha: '2025-10-08', agente: 'Marcos Silva', comision: 2500 },
   ];
 
-  // KPIs de Ventas
+  // Cálculos para KPIs
+  const ventasCerradas = operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada');
+  const totalVentasMes = ventasCerradas.reduce((sum, o) => sum + o.monto, 0);
+  const operacionesActivas = operaciones.filter(o => o.estado !== 'Cerrada').length;
+  const enReserva = operaciones.filter(o => o.estado === 'Reservada').length;
+  const totalComisiones = operaciones.reduce((sum, o) => sum + o.comision, 0);
+  const tasaCierre = operaciones.length > 0 ? Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length) * 100) : 0;
+
   const kpisVentas = [
-    { title: 'Ventas del Mes', value: `$${(operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0) / 1000).toFixed(0)}K`, desc: '+15% vs anterior', icon: <FaDollarSign />, color: 'from-green-500 to-green-600' },
-    { title: 'Operaciones Activas', value: operaciones.filter(o => o.estado !== 'Cerrada').length, desc: `${operaciones.filter(o => o.estado === 'Reservada').length} en cierre`, icon: <FaFileContract />, color: 'from-blue-500 to-blue-600' },
-    { title: 'Comisiones', value: `$${(operaciones.reduce((sum, o) => sum + o.comision, 0) / 1000).toFixed(0)}K`, desc: 'Este mes', icon: <FaChartLine />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Tasa de Cierre', value: `${Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length) * 100)}%`, desc: 'Últimos 30 días', icon: <FaPercentage />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Ventas del Mes', value: `$${(totalVentasMes / 1000).toFixed(0)}K`, desc: `${ventasCerradas.length} operaciones`, icon: <FaDollarSign />, color: 'from-emerald-500 to-emerald-600', trend: '+15%' },
+    { title: 'Operaciones Activas', value: operacionesActivas, desc: `${enReserva} en cierre`, icon: <FaFileContract />, color: 'from-blue-500 to-blue-600', trend: '+8%' },
+    { title: 'Comisiones', value: `$${(totalComisiones / 1000).toFixed(0)}K`, desc: 'Este mes', icon: <FaChartLine />, color: 'from-violet-500 to-violet-600', trend: '+22%' },
+    { title: 'Tasa de Cierre', value: `${tasaCierre}%`, desc: 'Últimos 30 días', icon: <FaPercentage />, color: 'from-amber-500 to-amber-600', trend: '+5%' },
   ];
 
-  // Datos para gráficos
-  const ventasPorMes = [
-    { mes: 'May', ventas: 6, alquileres: 12 },
-    { mes: 'Jun', ventas: 8, alquileres: 15 },
-    { mes: 'Jul', ventas: 5, alquileres: 10 },
-    { mes: 'Ago', ventas: 12, alquileres: 18 },
-    { mes: 'Sep', ventas: 9, alquileres: 14 },
-    { mes: 'Oct', ventas: 11, alquileres: 16 },
+  // ApexCharts configurations
+  const tendenciasAreaOptions = {
+    chart: { type: 'area', height: 280, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#10B981', '#3B82F6'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: {
+      categories: ['May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
+      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const tendenciasAreaSeries = [
+    { name: 'Ventas', data: [6, 8, 5, 12, 9, 11] },
+    { name: 'Alquileres', data: [12, 15, 10, 18, 14, 16] },
   ];
 
-  const estadosData = [
-    { estado: 'Cerrada', cantidad: operaciones.filter(o => o.estado === 'Cerrada').length, fill: '#10B981' },
-    { estado: 'En Curso', cantidad: operaciones.filter(o => o.estado === 'En Curso').length, fill: '#3B82F6' },
-    { estado: 'Reservada', cantidad: operaciones.filter(o => o.estado === 'Reservada').length, fill: '#F59E0B' },
+  const estadosDonutOptions = {
+    chart: { type: 'donut', height: 260, background: 'transparent' },
+    labels: ['Cerrada', 'En Curso', 'Reservada'],
+    colors: ['#10B981', '#3B82F6', '#F59E0B'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+            value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' },
+            total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => operaciones.length },
+          },
+        },
+      },
+    },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const estadosDonutSeries = [
+    operaciones.filter(o => o.estado === 'Cerrada').length,
+    operaciones.filter(o => o.estado === 'En Curso').length,
+    operaciones.filter(o => o.estado === 'Reservada').length,
   ];
 
-  const tiposData = [
-    { tipo: 'Venta', cantidad: operaciones.filter(o => o.tipo === 'Venta').length },
-    { tipo: 'Alquiler', cantidad: operaciones.filter(o => o.tipo === 'Alquiler').length },
-  ];
+  const cierreRadialOptions = {
+    chart: { type: 'radialBar', height: 200, background: 'transparent' },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '65%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '28px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Cierre'],
+  };
+  const cierreRadialSeries = [tasaCierre];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  const comisionesBarOptions = {
+    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, horizontal: true, distributed: true, barHeight: '70%' } },
+    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'],
+    dataLabels: { enabled: true, style: { colors: ['#fff'], fontSize: '11px', fontWeight: 600 }, formatter: (val) => `$${(val/1000).toFixed(0)}K` },
+    xaxis: { categories: ['Ana López', 'Carlos Ruiz', 'Laura Fernández', 'Sofía Torres', 'Marcos Silva'].map(n => n.split(' ')[0]), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val.toLocaleString()}` } },
+  };
+  const comisionesBarSeries = [{ name: 'Comisiones', data: [5250, 1200, 9800, 11200, 2500] }];
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:shadow-lg hover:scale-[1.01]';
 
   // Funciones de manejo para Venta
   const handleVentaChange = (e) => {
@@ -193,8 +262,8 @@ const Ventas = () => {
         </button>
       </div>
 
-      {/* KPIs de Operaciones - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+      {/* KPIs de Operaciones - Estilo moderno con tendencias */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         {kpisVentas.map((kpi, i) => (
           <div 
             key={i} 
@@ -204,80 +273,116 @@ const Ventas = () => {
               else if (i === 2) setShowModalComisiones(true);
               else if (i === 3) setShowModalTasaCierre(true);
             }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
+            className={`${cardBase} overflow-hidden relative cursor-pointer`}
           >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
+                    {kpi.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{kpi.title}</p>
+                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">{kpi.value}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
+                    {kpi.trend}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Gráficos de Tendencias y Estados */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Gráfico de Tendencias */}
+      {/* Gráficos Principales - ApexCharts */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        {/* Tasa de Cierre */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📈 Tendencias de Ventas vs Alquileres</h3>
-          <ChartComponent
-            id="tendencias-chart"
-            primaryXAxis={{ valueType: 'Category', title: 'Meses' }}
-            primaryYAxis={{ title: 'Cantidad' }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="300px"
-          >
-            <Inject services={[LineSeries, Category, Tooltip, Legend]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Line"
-                dataSource={ventasPorMes}
-                xName="mes"
-                yName="ventas"
-                name="Ventas"
-                marker={{ visible: true }}
-                fill="#10B981"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={ventasPorMes}
-                xName="mes"
-                yName="alquileres"
-                name="Alquileres"
-                marker={{ visible: true }}
-                fill="#3B82F6"
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaPercentage className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100">Tasa Cierre</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Operaciones cerradas</p>
+          <Chart options={cierreRadialOptions} series={cierreRadialSeries} type="radialBar" height={180} />
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{operaciones.filter(o => o.estado === 'Cerrada').length}</p>
+              <p className="text-xs text-gray-500">Cerradas</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-500">{operaciones.length}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </div>
+          </div>
         </div>
 
-        {/* Gráfico de Estados */}
+        {/* Estados de Operaciones - Donut */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Estados de Operaciones</h3>
-          <AccumulationChartComponent
-            id="estados-chart"
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="300px"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={estadosData}
-                xName="estado"
-                yName="cantidad"
-                name="Operaciones"
-                innerRadius="40%"
-                dataLabel={{ visible: true, name: 'estado', position: 'Outside' }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaFileContract className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100">Estados</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual</p>
+          <Chart options={estadosDonutOptions} series={estadosDonutSeries} type="donut" height={240} />
+        </div>
+
+        {/* Comisiones por Agente - Bar */}
+        <div className={`xl:col-span-2 ${cardBase}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaDollarSign className="text-violet-500" />
+            <h3 className="font-semibold dark:text-gray-100">Comisiones por Agente</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución este mes</p>
+          <Chart options={comisionesBarOptions} series={comisionesBarSeries} type="bar" height={200} />
+        </div>
+      </div>
+
+      {/* Gráfico de Tendencias - Full Width */}
+      <div className="mb-8">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaChartLine className="text-emerald-500" />
+                <h3 className="font-semibold dark:text-gray-100">Tendencias de Operaciones</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Ventas vs Alquileres (últimos 6 meses)</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Ventas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Alquileres</span>
+              </div>
+            </div>
+          </div>
+          <Chart options={tendenciasAreaOptions} series={tendenciasAreaSeries} type="area" height={260} />
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${(totalVentasMes / 1000).toFixed(0)}K</p>
+              <p className="text-xs text-gray-500">Ventas Mes</p>
+            </div>
+            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{operaciones.filter(o => o.tipo === 'Alquiler').length}</p>
+              <p className="text-xs text-gray-500">Alquileres</p>
+            </div>
+            <div className="text-center p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+              <p className="text-xl font-bold text-violet-600 dark:text-violet-400">${(totalComisiones / 1000).toFixed(0)}K</p>
+              <p className="text-xs text-gray-500">Comisiones</p>
+            </div>
+            <div className="text-center p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">+22%</p>
+              <p className="text-xs text-gray-500">vs Mes Ant.</p>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -1,8 +1,42 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { all_routes } from "../../../../routes/all_routes";
+import publicService from "../../../../../services/publicService";
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 const BlogSection = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const run = async () => {
+      try {
+        const res = await publicService.getBlogPosts();
+        if (!isMounted) return;
+        setPosts((res.items || []).slice(0, 3));
+      } catch {
+        if (!isMounted) return;
+        setPosts([]);
+      }
+    };
+
+    run();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <>
       {/* start blog section */}
@@ -25,6 +59,81 @@ const BlogSection = () => {
           </div>
           {/* end title */}
           {/* start row */}
+          <div className="row row-gap-4 justify-content-center">
+            {posts.map((post, idx) => (
+              <div
+                key={post.id || post.slug || idx}
+                className="col-md-6 col-lg-4 d-flex aos"
+                data-aos="fade-down"
+                data-aos-duration={1500}
+              >
+                <div className="blog-item-01 flex-fill">
+                  <div className="blog-img">
+                    <Link to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}>
+                      {post.coverUrl ? (
+                        <ImageWithBasePath
+                          src={post.coverUrl}
+                          alt="img"
+                          className="img-fluid"
+                        />
+                      ) : null}
+                    </Link>
+                  </div>
+                  <div className="blog-content">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+                      <span className="badge badge-sm bg-secondary fw-semibold">
+                        {post.category?.name || ""}
+                      </span>
+                      <div className="d-flex align-items-center author-details">
+                        <div className="d-flex align-items-center me-3">
+                          <Link to={all_routes.agentDetails}>
+                            {post.authorAgent?.avatarUrl ? (
+                              <ImageWithBasePath
+                                src={post.authorAgent.avatarUrl}
+                                alt="image"
+                                className="avatar avatar-sm rounded-circle me-2"
+                              />
+                            ) : null}
+                          </Link>
+                          <Link to={all_routes.agentDetails}>
+                            {post.authorAgent?.name || ""}
+                          </Link>
+                        </div>
+                        <div className="d-flex align-items-center">
+                          <i className="feather-calendar" />
+                          <span>{formatDate(post.publishedAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h5 className="mb-1">
+                        <Link to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}>
+                          {post.title || ""}
+                        </Link>
+                      </h5>
+                      <p className="mb-0">{post.excerpt || ""}</p>
+                    </div>
+                    <div className="blog-footer d-flex align-items-center justify-content-between">
+                      <Link
+                        to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}
+                        className="btn btn-outline-dark"
+                      >
+                        Ver todo
+                      </Link>
+                      <Link
+                        to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}
+                        className="btn btn-light"
+                      >
+                        <i className="feather-arrow-up-right" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {false && (
           <div className="row row-gap-4 justify-content-center">
             <div
               className="col-md-6 col-lg-4 d-flex aos"
@@ -189,6 +298,7 @@ const BlogSection = () => {
             </div>
             {/* end col */}
           </div>
+          )}
           <div className="text-center d-flex align-items-center justify-content-center m-auto">
             <Link
               to={all_routes.blogGrid}

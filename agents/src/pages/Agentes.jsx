@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase } from 'react-icons/fa';
+import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaArrowUp, FaArrowDown, FaPercentage } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import Chart from 'react-apexcharts';
 
 // Syncfusion Components
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, DataLabel, ColumnSeries } from '@syncfusion/ej2-react-charts';
@@ -197,6 +198,78 @@ const Agentes = () => {
     { mes: 'Oct', Ana: 8, Carlos: 5, Laura: 12, Marcos: 4, Sofia: 7 },
   ];
 
+  // ApexCharts - Rendimiento del Equipo (Area)
+  const rendimientoEquipoOptions = {
+    chart: { type: 'area', height: 260, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: { categories: rendimientoData.map(r => r.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const rendimientoEquipoSeries = [
+    { name: 'Ana', data: rendimientoData.map(r => r.Ana) },
+    { name: 'Carlos', data: rendimientoData.map(r => r.Carlos) },
+    { name: 'Laura', data: rendimientoData.map(r => r.Laura) },
+    { name: 'Marcos', data: rendimientoData.map(r => r.Marcos) },
+    { name: 'Sofía', data: rendimientoData.map(r => r.Sofia) },
+  ];
+
+  // ApexCharts - Distribución por Especialidad (Donut)
+  const especialidadDonutOptions = {
+    chart: { type: 'donut', height: 220, background: 'transparent' },
+    labels: ['Ventas', 'Alquileres', 'Comercial'],
+    colors: ['#8B5CF6', '#10B981', '#F59E0B'],
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Agentes', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => agentes.length } } } } },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const especialidadDonutSeries = [
+    agentes.filter(a => a.especialidad === 'Ventas').length,
+    agentes.filter(a => a.especialidad === 'Alquileres').length,
+    agentes.filter(a => a.especialidad === 'Comercial').length,
+  ];
+
+  // ApexCharts - Comisiones por Agente (Bar)
+  const comisionesBarOptions = {
+    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, horizontal: true, distributed: true, barHeight: '60%' } },
+    colors: agentes.map(a => a.color),
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 }, formatter: (val) => `$${(val/1000).toFixed(1)}K`, offsetX: 5 },
+    xaxis: { categories: agentes.map(a => a.nombre.split(' ')[0]), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val.toLocaleString()}` } },
+  };
+  const comisionesBarSeries = [{ name: 'Comisiones', data: agentes.map(a => a.comisiones) }];
+
+  // ApexCharts - Satisfacción Promedio (Gauge)
+  const satisfaccionOptions = {
+    chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90, endAngle: 90,
+        hollow: { size: '55%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 16 },
+          value: { show: true, fontSize: '22px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -10, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Satisfacción'],
+  };
+  const satisfaccionSeries = [Math.round(agentes.reduce((sum, a) => sum + a.satisfaccionCliente, 0) / agentes.length)];
+
   // KPIs del equipo
   const kpisEquipo = [
     { title: 'Total Agentes', value: agentes.length, desc: '2 nuevos este mes', icon: <FaUsers />, color: 'from-blue-500 to-blue-600' },
@@ -322,6 +395,72 @@ const Agentes = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Gráficos ApexCharts - Métricas del Equipo */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaStar className="text-yellow-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Satisfacción</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Promedio del equipo</p>
+          <Chart options={satisfaccionOptions} series={satisfaccionSeries} type="radialBar" height={160} />
+          <div className="space-y-2 mt-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Promedio sector</span>
+              <span className="font-bold text-gray-500">85%</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Tu equipo</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> +6%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaUsers className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Especialidades</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución del equipo</p>
+          <Chart options={especialidadDonutOptions} series={especialidadDonutSeries} type="donut" height={200} />
+        </div>
+
+        <div className={`${cardBase} xl:col-span-2`}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaDollarSign className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Comisiones por Agente</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Ranking de este mes</p>
+          <Chart options={comisionesBarOptions} series={comisionesBarSeries} type="bar" height={180} />
+        </div>
+      </div>
+
+      {/* Gráfico de Rendimiento Amplio */}
+      <div className="mb-6">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaChartLine className="text-purple-500" />
+                <h3 className="font-semibold dark:text-gray-100">Rendimiento del Equipo</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Operaciones por agente - últimos 6 meses</p>
+            </div>
+          </div>
+          <Chart options={rendimientoEquipoOptions} series={rendimientoEquipoSeries} type="area" height={240} />
+          <div className="grid grid-cols-5 gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+            {agentes.map((a, i) => (
+              <div key={a.id} className="text-center p-2 rounded-lg" style={{ backgroundColor: `${a.color}20` }}>
+                <p className="text-sm font-bold" style={{ color: a.color }}>{a.ventas}</p>
+                <p className="text-xs text-gray-500">{a.nombre.split(' ')[0]}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Gráfico de Rendimiento y Listado de Agentes */}

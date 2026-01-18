@@ -4,33 +4,56 @@ const { authenticateToken } = require('../auth');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+function agentScopeId(req) {
+  if (req.user && req.user.role === 'admin') return null;
+  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
+}
+
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { q } = req.query;
+    const scopeId = agentScopeId(req);
     const filter = q ? { $or: [ { title: { $regex: q, $options: 'i' } }, { description: { $regex: q, $options: 'i' } } ] } : {};
+    if (scopeId) filter.agentId = scopeId;
     const items = await Propiedad.find(filter).sort({ updatedAt: -1 }).limit(1000).lean();
     res.json(items);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const item = await Propiedad.findById(req.params.id).lean();
     if (!item) return res.status(404).json({ error: 'Not found' });
+    const scopeId = agentScopeId(req);
+    if (scopeId && String(item.agentId || '') !== scopeId) return res.status(403).json({ error: 'forbidden' });
     res.json(item);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const created = await Propiedad.create(req.body || {});
+    const scopeId = agentScopeId(req);
+    const body = { ...(req.body || {}) };
+    if (body.featured === undefined && body.metadata && body.metadata.featured !== undefined) {
+      body.featured = !!body.metadata.featured;
+    }
+    if (scopeId) body.agentId = scopeId;
+    const created = await Propiedad.create(body);
     res.status(201).json(created);
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const updated = await Propiedad.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const scopeId = agentScopeId(req);
+    const filter = { _id: req.params.id };
+    if (scopeId) filter.agentId = scopeId;
+    const body = { ...(req.body || {}) };
+    if (body.featured === undefined && body.metadata && body.metadata.featured !== undefined) {
+      body.featured = !!body.metadata.featured;
+    }
+    if (scopeId) body.agentId = scopeId;
+    const updated = await Propiedad.findOneAndUpdate(filter, body, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: 'Not found' });
     res.json(updated);
   } catch (err) { res.status(400).json({ error: err.message }); }
@@ -38,7 +61,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const deleted = await Propiedad.findByIdAndDelete(req.params.id);
+    const scopeId = agentScopeId(req);
+    const filter = { _id: req.params.id };
+    if (scopeId) filter.agentId = scopeId;
+    const deleted = await Propiedad.findOneAndDelete(filter);
     if (!deleted) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }

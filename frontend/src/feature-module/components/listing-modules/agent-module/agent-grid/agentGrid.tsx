@@ -4,8 +4,11 @@ import Breadcrumb from "../../../../../core/common/Breadcrumb/breadcrumb";
 import { Agent_Type, Select_Area, Select_Category, Select_City } from "../../../../../core/common/selectOption";
 import CommonSelect from "../../../../../core/common/common-select/commonSelect";
 import { all_routes } from "../../../../routes/all_routes";
+import { useState } from "react";
+import AgenteCreateModal from "../../../../../components/AgenteCreateModal";
 
 const AgentGrid = () => {
+  const [showModal, setShowModal] = useState(false);
   return (
     <>
       {/* ========================
@@ -64,6 +67,17 @@ const AgentGrid = () => {
                         defaultValue={Select_Category[0]}
                       />
                 </div>
+              </div>
+            </div>
+            <div className="row mb-4">
+              <div className="col-12 text-end">
+                <button
+                  type="button"
+                  className="btn btn-primary align-items-center d-inline-flex"
+                  onClick={() => setShowModal(true)}
+                >
+                  <i className="material-icons-outlined me-1">person_add</i>Nuevo Agente
+                </button>
               </div>
             </div>
             {/* start row */}
@@ -448,6 +462,11 @@ const AgentGrid = () => {
           </div>
         </div>
         {/* End Search Modal */}
+        <AgenteCreateModal
+          show={showModal}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => window.location.reload()}
+        />
       </div>
       {/* ========================
 		End Page Content

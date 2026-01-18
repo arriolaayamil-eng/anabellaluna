@@ -1,15 +1,131 @@
 import { Link } from "react-router";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import StickyBox from "react-sticky-box";
-import { all_routes } from "../../../../routes/all_routes";
 import { TimePicker, type TimePickerProps } from "antd";
 import { useState } from "react";
 import dayjs from "dayjs";
+import publicService from "../../../../../services/publicService";
 
-const BuyLeftForm = () => {
+type AgentInfo = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  email?: string;
+  phone?: string;
+};
+
+type BuyLeftFormProps = {
+  agent?: AgentInfo;
+  propertySlug?: string;
+};
+
+const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
   const [activeTab, setActiveTab] = useState<"info" | "schedule">("info");
 
-  const onChangeTime: TimePickerProps["onChange"] = () => {};
+  const [infoName, setInfoName] = useState("");
+  const [infoEmail, setInfoEmail] = useState("");
+  const [infoPhone, setInfoPhone] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
+
+  const [visitDay, setVisitDay] = useState("");
+  const [visitTime, setVisitTime] = useState<string>("");
+  const [visitName, setVisitName] = useState("");
+  const [visitEmail, setVisitEmail] = useState("");
+  const [visitPhone, setVisitPhone] = useState("");
+  const [visitMessage, setVisitMessage] = useState("");
+
+  const [isSubmittingInfo, setIsSubmittingInfo] = useState(false);
+  const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const onChangeTime: TimePickerProps["onChange"] = (value) => {
+    setVisitTime(value ? value.format("HH:mm") : "");
+  };
+
+  const validateContact = (fullName: string, email: string, phone: string) => {
+    if (!String(fullName || "").trim()) return "Name is required";
+    const e = String(email || "").trim();
+    const p = String(phone || "").trim();
+    if (!e && !p) return "Email or Phone is required";
+    return "";
+  };
+
+  const submitInfo = async () => {
+    if (!propertySlug) {
+      setFeedback({ type: "error", message: "Missing property identifier" });
+      return;
+    }
+    const msg = validateContact(infoName, infoEmail, infoPhone);
+    if (msg) {
+      setFeedback({ type: "error", message: msg });
+      return;
+    }
+
+    setIsSubmittingInfo(true);
+    setFeedback(null);
+    try {
+      await publicService.createEnquiry({
+        propertySlug,
+        fullName: infoName,
+        email: infoEmail || undefined,
+        phone: infoPhone || undefined,
+        message: infoMessage || undefined,
+      });
+      setFeedback({ type: "success", message: "Your enquiry was sent" });
+      setInfoMessage("");
+    } catch (e: any) {
+      setFeedback({ type: "error", message: e?.message || "Could not send enquiry" });
+    } finally {
+      setIsSubmittingInfo(false);
+    }
+  };
+
+  const submitVisit = async () => {
+    if (!propertySlug) {
+      setFeedback({ type: "error", message: "Missing property identifier" });
+      return;
+    }
+    const msg = validateContact(visitName, visitEmail, visitPhone);
+    if (msg) {
+      setFeedback({ type: "error", message: msg });
+      return;
+    }
+    if (!visitDay) {
+      setFeedback({ type: "error", message: "Select Day is required" });
+      return;
+    }
+    if (!visitTime) {
+      setFeedback({ type: "error", message: "Select Time is required" });
+      return;
+    }
+
+    const startIso = dayjs(`${visitDay} ${visitTime}`, "YYYY-MM-DD HH:mm", true);
+    if (!startIso.isValid()) {
+      setFeedback({ type: "error", message: "Invalid date/time" });
+      return;
+    }
+    const endIso = startIso.add(1, "hour");
+
+    setIsSubmittingVisit(true);
+    setFeedback(null);
+    try {
+      await publicService.scheduleVisit({
+        propertySlug,
+        fullName: visitName,
+        email: visitEmail || undefined,
+        phone: visitPhone || undefined,
+        message: visitMessage || undefined,
+        start: startIso.toISOString(),
+        end: endIso.toISOString(),
+      });
+      setFeedback({ type: "success", message: "Visit scheduled" });
+      setVisitMessage("");
+    } catch (e: any) {
+      setFeedback({ type: "error", message: e?.message || "Could not schedule visit" });
+    } finally {
+      setIsSubmittingVisit(false);
+    }
+  };
   return (
     <>
       {/* col end */}
@@ -23,6 +139,17 @@ const BuyLeftForm = () => {
               <h5 className="mb-0">Enquiry</h5>
             </div>
             <div className="card-body">
+              {feedback ? (
+                <div
+                  className={`mb-3 rounded-lg border px-3 py-2 fs-14 ${
+                    feedback.type === "success"
+                      ? "border-success bg-success-subtle text-success"
+                      : "border-danger bg-danger-subtle text-danger"
+                  }`}
+                >
+                  {feedback.message}
+                </div>
+              ) : null}
               {/* Bootstrap Tabs */}
               <div className="d-flex align-items-center justify-content-between gap-2 custom-btn flex-wrap">
                 <Link
@@ -70,14 +197,14 @@ const BuyLeftForm = () => {
                       <div className="d-flex align-items-center gap-2">
                         <div className="avatar avatar-lg">
                           <ImageWithBasePath
-                            src="assets/img/users/user-06.jpg"
+                            src={agent?.avatarUrl || "assets/img/users/user-06.jpg"}
                             alt="image"
                             className="rounded-circle"
                           />
                         </div>
                         <div>
                           <h6 className="mb-1 fs-16 fw-semibold">
-                            Adrian Hendriques
+                            {agent?.name || ""}
                           </h6>
                           <p className="mb-0 fs-14 text-body">
                             {" "}
@@ -94,6 +221,8 @@ const BuyLeftForm = () => {
                       type="text"
                       className="form-control"
                       placeholder="Your Name"
+                      value={infoName}
+                      onChange={(e) => setInfoName(e.target.value)}
                     />
                   </div>
                   <div className="mb-3">
@@ -102,6 +231,8 @@ const BuyLeftForm = () => {
                       type="text"
                       className="form-control"
                       placeholder="Your Email"
+                      value={infoEmail}
+                      onChange={(e) => setInfoEmail(e.target.value)}
                     />
                   </div>
                   <div className="mb-3">
@@ -110,6 +241,8 @@ const BuyLeftForm = () => {
                       type="text"
                       className="form-control"
                       placeholder="Your Phone Number"
+                      value={infoPhone}
+                      onChange={(e) => setInfoPhone(e.target.value)}
                     />
                   </div>
                   <div className="mb-4">
@@ -119,13 +252,19 @@ const BuyLeftForm = () => {
                     <textarea
                       className="form-control"
                       rows={3}
-                      defaultValue={""}
+                      value={infoMessage}
+                      onChange={(e) => setInfoMessage(e.target.value)}
                     />
                   </div>
                   <div>
-                    <Link to="#" className="btn btn-dark w-100 py-2 fs-14">
+                    <button
+                      type="button"
+                      className="btn btn-dark w-100 py-2 fs-14"
+                      onClick={submitInfo}
+                      disabled={isSubmittingInfo}
+                    >
                       Submit
-                    </Link>
+                    </button>
                   </div>
                 </div>
                 <div
@@ -137,15 +276,15 @@ const BuyLeftForm = () => {
                     <div className="card-body">
                       <div className="d-flex align-items-center gap-2">
                         <div className="avatar avatar-lg">
-                          <img
-                            src="assets/img/users/user-06.jpg"
+                          <ImageWithBasePath
+                            src={agent?.avatarUrl || "assets/img/users/user-06.jpg"}
                             alt="image"
                             className="rounded-circle"
                           />
                         </div>
                         <div>
                           <h6 className="mb-1 fs-16 fw-semibold">
-                            Adrian Hendriques
+                            {agent?.name || ""}
                           </h6>
                           <p className="mb-0 fs-14 text-body">
                             {" "}
@@ -187,6 +326,15 @@ const BuyLeftForm = () => {
                     </div>
                   </div>
                   <div className="mb-3">
+                    <label className="form-label fw-semibold"> Day </label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={visitDay}
+                      onChange={(e) => setVisitDay(e.target.value)}
+                    />
+                  </div>
+                  <div className="mb-3">
                     <label className="form-label fw-semibold">
                       {" "}
                       Select Time{" "}
@@ -212,6 +360,8 @@ const BuyLeftForm = () => {
                       type="text"
                       className="form-control"
                       placeholder="Your Name"
+                      value={visitName}
+                      onChange={(e) => setVisitName(e.target.value)}
                     />
                   </div>
                   <div className="mb-3">
@@ -220,6 +370,8 @@ const BuyLeftForm = () => {
                       type="text"
                       className="form-control"
                       placeholder="Your Email"
+                      value={visitEmail}
+                      onChange={(e) => setVisitEmail(e.target.value)}
                     />
                   </div>
                   <div className="mb-3">
@@ -228,6 +380,8 @@ const BuyLeftForm = () => {
                       type="text"
                       className="form-control"
                       placeholder="Your Phone Number"
+                      value={visitPhone}
+                      onChange={(e) => setVisitPhone(e.target.value)}
                     />
                   </div>
                   <div className="mb-4">
@@ -238,13 +392,19 @@ const BuyLeftForm = () => {
                     <textarea
                       className="form-control"
                       rows={3}
-                      defaultValue={""}
+                      value={visitMessage}
+                      onChange={(e) => setVisitMessage(e.target.value)}
                     />
                   </div>
                   <div>
-                    <Link to="#" className="btn btn-dark w-100 py-2 fs-14">
+                    <button
+                      type="button"
+                      className="btn btn-dark w-100 py-2 fs-14"
+                      onClick={submitVisit}
+                      disabled={isSubmittingVisit}
+                    >
                       Submit
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -260,72 +420,32 @@ const BuyLeftForm = () => {
             <div className="card-body">
               <div className="d-flex align-items-center gap-2 mb-3">
                 <div className="avatar avatar-lg">
-                  <img
-                    src="assets/img/users/user-06.jpg"
+                  <ImageWithBasePath
+                    src={agent?.avatarUrl || "assets/img/users/user-06.jpg"}
                     alt="image"
                     className="rounded-circle"
                   />
                 </div>
                 <div>
-                  <h6 className="mb-1 fs-16 fw-semibold">John Carter</h6>
-                  <div className="review-icons d-flex align-items-center">
-                    <div className="me-1">
-                      <i className="material-icons-outlined fs-14 text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined fs-14 text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined fs-14 text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined fs-14 text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined fs-14 text-warning">
-                        star
-                      </i>
-                    </div>
-                    <p className="mb-0 fs-14 text-body">5.0 (12 Reviews) </p>
-                  </div>
+                  <h6 className="mb-1 fs-16 fw-semibold">{agent?.name || ""}</h6>
                 </div>
               </div>
-              <ul className="mb-3">
-                <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
-                  <span className="text-body"> Phone</span> Call Us : +1 12545
-                  45548
-                </li>
-                <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
-                  <span className="text-body">Email</span>info@example.com
-                </li>
-                <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
-                  <span className="text-body">No of Listings</span>05
-                </li>
-                <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
-                  <span className="text-body">No of Bookings</span>225
-                </li>
-                <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
-                  <span className="text-body">Member on</span>15 Jan2014
-                </li>
-                <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-0">
-                  <span className="text-body">Verification</span>
-                  <div className="badge bg-success text-white">Verified</div>
-                </li>
-              </ul>
-              <div className="d-flex align-items-center justify-content-between gap-3">
-                <Link
-                  to="#"
-                  className="btn btn-primary d-flex align-center fs-14 fw-medium w-100 justify-content-center"
-                >
-                  Whatsapp
-                </Link>
-                <Link
-                  to="#"
-                  className="btn btn-dark d-flex align-center fs-14 fw-medium w-100 text-center justify-content-center"
-                >
-                  Chat Now
-                </Link>
-              </div>
+              {(agent?.phone || agent?.email) && (
+                <ul className="mb-0">
+                  {agent?.phone ? (
+                    <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
+                      <span className="text-body"> Phone</span>
+                      {agent.phone}
+                    </li>
+                  ) : null}
+                  {agent?.email ? (
+                    <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-0">
+                      <span className="text-body">Email</span>
+                      {agent.email}
+                    </li>
+                  ) : null}
+                </ul>
+              )}
             </div>
             {/* end card body*/}
           </div>
@@ -361,6 +481,7 @@ const BuyLeftForm = () => {
           </div>
           {/* end card */}
           {/* Items-4 */}
+          {false && (
           <div className="card">
             <div className="card-header">
               <h5 className="mb-0">Mortarage Calculator</h5>
@@ -419,12 +540,14 @@ const BuyLeftForm = () => {
             </div>
             {/* end card body*/}
           </div>
+          )}
           {/* end card */}
           {/* Items-5 */}
+          {false && (
           <div className="card mb-0">
             <div className="custom-map position-relative">
               <Link
-                to={all_routes.buyGridMap}
+                to="#"
                 className="btn btn-dark fw-medium"
               >
                 View Location
@@ -456,6 +579,7 @@ const BuyLeftForm = () => {
             </div>
             {/* end card body*/}
           </div>
+          )}
           {/* end card */}
         </StickyBox>
       </div>

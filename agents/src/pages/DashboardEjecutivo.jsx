@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaHome, FaUserFriends, FaDollarSign, FaKey, FaExclamationTriangle, FaCheckCircle, FaBell, FaMapMarkerAlt, FaTasks, FaTimes, FaChartLine, FaCalendarAlt, FaTrophy } from 'react-icons/fa';
+import { FaHome, FaUserFriends, FaDollarSign, FaKey, FaExclamationTriangle, FaCheckCircle, FaBell, FaMapMarkerAlt, FaTasks, FaTimes, FaChartLine, FaCalendarAlt, FaTrophy, FaChartPie, FaChartBar, FaArrowUp, FaArrowDown, FaPercentage, FaFunnelDollar } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import Chart from 'react-apexcharts';
 
 // Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend } from '@syncfusion/ej2-react-charts';
+import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, LineSeries, SplineAreaSeries, SplineSeries, DateTime, DataLabel, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, PieSeries, AccumulationLegend, AccumulationTooltip, AccumulationDataLabel, StackingColumnSeries } from '@syncfusion/ej2-react-charts';
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const DashboardEjecutivo = () => {
@@ -111,7 +112,308 @@ const DashboardEjecutivo = () => {
     { id: 4, tipo: 'peligro', texto: 'Propiedad sin fotos hace 7 días', icono: <FaExclamationTriangle />, urgencia: 'media' },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:scale-105 hover:shadow-lg';
+  // Datos para gráfico de tendencia de ingresos mensual
+  const ingresosMensuales = [
+    { mes: 'Ene', ingresos: 420, ventas: 8, alquileres: 12 },
+    { mes: 'Feb', ingresos: 380, ventas: 6, alquileres: 14 },
+    { mes: 'Mar', ingresos: 520, ventas: 10, alquileres: 15 },
+    { mes: 'Abr', ingresos: 610, ventas: 12, alquileres: 18 },
+    { mes: 'May', ingresos: 580, ventas: 11, alquileres: 16 },
+    { mes: 'Jun', ingresos: 720, ventas: 14, alquileres: 20 },
+    { mes: 'Jul', ingresos: 680, ventas: 13, alquileres: 19 },
+    { mes: 'Ago', ingresos: 750, ventas: 15, alquileres: 22 },
+    { mes: 'Sep', ingresos: 820, ventas: 16, alquileres: 24 },
+    { mes: 'Oct', ingresos: 850, ventas: 18, alquileres: 26 },
+    { mes: 'Nov', ingresos: 920, ventas: 20, alquileres: 28 },
+    { mes: 'Dic', ingresos: 980, ventas: 22, alquileres: 30 },
+  ];
+
+  // Datos para gráfico de distribución de propiedades (pie)
+  const distribucionPropiedades = [
+    { tipo: 'Departamentos', cantidad: 42, color: '#3B82F6' },
+    { tipo: 'Casas', cantidad: 28, color: '#10B981' },
+    { tipo: 'PH', cantidad: 12, color: '#8B5CF6' },
+    { tipo: 'Locales', cantidad: 8, color: '#F59E0B' },
+    { tipo: 'Oficinas', cantidad: 5, color: '#EF4444' },
+    { tipo: 'Terrenos', cantidad: 5, color: '#6B7280' },
+  ];
+
+  // Datos para comparativa ventas vs alquileres
+  const comparativaOperaciones = [
+    { mes: 'Jul', ventas: 520, alquileres: 180 },
+    { mes: 'Ago', ventas: 580, alquileres: 210 },
+    { mes: 'Sep', ventas: 650, alquileres: 190 },
+    { mes: 'Oct', ventas: 720, alquileres: 230 },
+    { mes: 'Nov', ventas: 780, alquileres: 250 },
+    { mes: 'Dic', ventas: 850, alquileres: 280 },
+  ];
+
+  // Datos para rendimiento por zona
+  const rendimientoZonas = [
+    { zona: 'Palermo', operaciones: 28, ingresos: 420, tendencia: '+15%' },
+    { zona: 'Belgrano', operaciones: 22, ingresos: 380, tendencia: '+8%' },
+    { zona: 'Recoleta', operaciones: 18, ingresos: 520, tendencia: '+22%' },
+    { zona: 'Microcentro', operaciones: 15, ingresos: 180, tendencia: '-5%' },
+    { zona: 'Caballito', operaciones: 12, ingresos: 150, tendencia: '+12%' },
+  ];
+
+  // ApexCharts - Progreso Financiero (Radial Bar)
+  const progresoFinancieroOptions = {
+    chart: {
+      type: 'radialBar',
+      height: 280,
+      sparkline: { enabled: false },
+      background: 'transparent',
+    },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135,
+        endAngle: 135,
+        hollow: {
+          size: '65%',
+          background: 'transparent',
+        },
+        track: {
+          background: currentMode === 'Dark' ? '#374151' : '#E5E7EB',
+          strokeWidth: '100%',
+        },
+        dataLabels: {
+          name: {
+            show: true,
+            fontSize: '14px',
+            fontWeight: 600,
+            color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280',
+            offsetY: -10,
+          },
+          value: {
+            show: true,
+            fontSize: '32px',
+            fontWeight: 700,
+            color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937',
+            offsetY: 5,
+            formatter: (val) => `${val}%`,
+          },
+        },
+      },
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        type: 'horizontal',
+        colorStops: [
+          { offset: 0, color: '#10B981', opacity: 1 },
+          { offset: 100, color: '#059669', opacity: 1 },
+        ],
+      },
+    },
+    stroke: { lineCap: 'round' },
+    labels: ['Meta Anual'],
+  };
+  const progresoFinancieroSeries = [87];
+
+  // ApexCharts - Coeficiente de Cierre de Leads (Donut)
+  const cierreLeadsOptions = {
+    chart: {
+      type: 'donut',
+      height: 280,
+      background: 'transparent',
+    },
+    labels: ['Cerrados', 'En Negociación', 'Perdidos', 'Nuevos'],
+    colors: ['#10B981', '#F59E0B', '#EF4444', '#3B82F6'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            name: {
+              show: true,
+              fontSize: '14px',
+              fontWeight: 600,
+              color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280',
+            },
+            value: {
+              show: true,
+              fontSize: '24px',
+              fontWeight: 700,
+              color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937',
+            },
+            total: {
+              show: true,
+              label: 'Total Leads',
+              fontSize: '12px',
+              fontWeight: 500,
+              color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280',
+              formatter: () => '248',
+            },
+          },
+        },
+      },
+    },
+    dataLabels: { enabled: false },
+    legend: {
+      show: true,
+      position: 'bottom',
+      labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+    },
+    stroke: { show: false },
+    tooltip: {
+      theme: currentMode === 'Dark' ? 'dark' : 'light',
+    },
+  };
+  const cierreLeadsSeries = [58, 42, 28, 120];
+
+  // ApexCharts - Ingresos vs Gastos (Area Gradient)
+  const ingresosGastosOptions = {
+    chart: {
+      type: 'area',
+      height: 300,
+      background: 'transparent',
+      toolbar: { show: false },
+      zoom: { enabled: false },
+    },
+    colors: ['#10B981', '#EF4444'],
+    dataLabels: { enabled: false },
+    stroke: {
+      curve: 'smooth',
+      width: 3,
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.45,
+        opacityTo: 0.05,
+        stops: [0, 100],
+      },
+    },
+    xaxis: {
+      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+      labels: {
+        style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' },
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      labels: {
+        style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' },
+        formatter: (val) => `$${val}K`,
+      },
+    },
+    grid: {
+      borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB',
+      strokeDashArray: 4,
+    },
+    legend: {
+      show: true,
+      position: 'top',
+      horizontalAlign: 'right',
+      labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+    },
+    tooltip: {
+      theme: currentMode === 'Dark' ? 'dark' : 'light',
+      y: { formatter: (val) => `$${val}K` },
+    },
+  };
+  const ingresosGastosSeries = [
+    { name: 'Ingresos', data: [420, 380, 520, 610, 580, 720, 680, 750, 820, 850, 920, 980] },
+    { name: 'Gastos', data: [180, 165, 210, 245, 220, 290, 275, 310, 340, 355, 380, 405] },
+  ];
+
+  // ApexCharts - Funnel de Conversión de Leads
+  const funnelLeadsOptions = {
+    chart: {
+      type: 'bar',
+      height: 280,
+      background: 'transparent',
+      toolbar: { show: false },
+    },
+    plotOptions: {
+      bar: {
+        borderRadius: 8,
+        horizontal: true,
+        distributed: true,
+        barHeight: '70%',
+        dataLabels: { position: 'bottom' },
+      },
+    },
+    colors: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981'],
+    dataLabels: {
+      enabled: true,
+      textAnchor: 'start',
+      style: { colors: ['#fff'], fontSize: '12px', fontWeight: 600 },
+      formatter: (val, opt) => `${opt.w.globals.labels[opt.dataPointIndex]}: ${val}`,
+      offsetX: 10,
+    },
+    xaxis: {
+      categories: ['Leads Captados', 'Contactados', 'En Negociación', 'Cerrados'],
+      labels: { show: false },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: { labels: { show: false } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: {
+      theme: currentMode === 'Dark' ? 'dark' : 'light',
+      y: { formatter: (val) => `${val} leads` },
+    },
+  };
+  const funnelLeadsSeries = [{ name: 'Leads', data: [248, 186, 98, 58] }];
+
+  // ApexCharts - Tasa de Conversión (Gauge)
+  const tasaConversionOptions = {
+    chart: {
+      type: 'radialBar',
+      height: 200,
+      background: 'transparent',
+      sparkline: { enabled: true },
+    },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90,
+        endAngle: 90,
+        hollow: { size: '60%' },
+        track: {
+          background: currentMode === 'Dark' ? '#374151' : '#E5E7EB',
+          strokeWidth: '100%',
+        },
+        dataLabels: {
+          name: {
+            show: true,
+            fontSize: '12px',
+            color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280',
+            offsetY: 20,
+          },
+          value: {
+            show: true,
+            fontSize: '28px',
+            fontWeight: 700,
+            color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937',
+            offsetY: -15,
+            formatter: (val) => `${val}%`,
+          },
+        },
+      },
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shade: 'dark',
+        colorStops: [
+          { offset: 0, color: '#8B5CF6', opacity: 1 },
+          { offset: 100, color: '#6366F1', opacity: 1 },
+        ],
+      },
+    },
+    stroke: { lineCap: 'round' },
+    labels: ['Tasa de Cierre'],
+  };
+  const tasaConversionSeries = [23.4];
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg';
 
   return (
     <div className="p-6 bg-main-bg dark:bg-main-dark-bg min-h-screen">
@@ -163,6 +465,382 @@ const DashboardEjecutivo = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Gráficos Principales - Tendencias y Distribución */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+        {/* Gráfico de Ingresos Mensuales - Área Spline */}
+        <div className={`${cardBase} xl:col-span-2`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaChartLine className="text-emerald-500" />
+              Tendencia de Ingresos Anual
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
+                <FaArrowUp /> +18% YoY
+              </span>
+            </div>
+          </div>
+          
+          <ChartComponent
+            id="ingresos-trend-chart"
+            primaryXAxis={{ 
+              valueType: 'Category', 
+              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+              majorGridLines: { width: 0 },
+              labelIntersectAction: 'Rotate45'
+            }}
+            primaryYAxis={{ 
+              labelFormat: '${value}K',
+              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' }
+            }}
+            tooltip={{ enable: true, format: '${point.x}: $${point.y}K' }}
+            chartArea={{ border: { width: 0 } }}
+            height="280px"
+            background="transparent"
+          >
+            <Inject services={[SplineAreaSeries, Category, Tooltip, Legend]} />
+            <SeriesCollectionDirective>
+              <SeriesDirective
+                type="SplineArea"
+                dataSource={ingresosMensuales}
+                xName="mes"
+                yName="ingresos"
+                name="Ingresos"
+                fill="url(#gradient1)"
+                border={{ color: '#10B981', width: 3 }}
+                opacity={0.6}
+              />
+            </SeriesCollectionDirective>
+          </ChartComponent>
+          
+          {/* Resumen rápido debajo del gráfico */}
+          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">$7.8M</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total Anual</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">$980K</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Mejor Mes</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">$650K</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Promedio</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico de Distribución de Propiedades - Pie */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaChartPie className="text-blue-500" />
+              Tipos de Propiedades
+            </h3>
+            <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full">
+              100 total
+            </span>
+          </div>
+          
+          <AccumulationChartComponent
+            id="propiedades-pie-chart"
+            legendSettings={{ 
+              visible: true, 
+              position: 'Bottom',
+              textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }
+            }}
+            tooltip={{ enable: true, format: '${point.x}: ${point.y} unidades' }}
+            height="320px"
+            background="transparent"
+          >
+            <Inject services={[PieSeries, AccumulationLegend, AccumulationTooltip, AccumulationDataLabel]} />
+            <AccumulationSeriesCollectionDirective>
+              <AccumulationSeriesDirective
+                dataSource={distribucionPropiedades}
+                xName="tipo"
+                yName="cantidad"
+                pointColorMapping="color"
+                innerRadius="50%"
+                dataLabel={{
+                  visible: true,
+                  position: 'Inside',
+                  name: 'cantidad',
+                  font: { fontWeight: '600', color: '#fff', size: '12px' }
+                }}
+              />
+            </AccumulationSeriesCollectionDirective>
+          </AccumulationChartComponent>
+        </div>
+      </div>
+
+      {/* Gráficos Secundarios - Comparativas */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+        {/* Gráfico Comparativo Ventas vs Alquileres */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaChartBar className="text-purple-500" />
+              Ventas vs Alquileres
+            </h3>
+            <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-1 rounded-full">
+              Últimos 6 meses
+            </span>
+          </div>
+          
+          <ChartComponent
+            id="comparativa-chart"
+            primaryXAxis={{ 
+              valueType: 'Category',
+              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+              majorGridLines: { width: 0 }
+            }}
+            primaryYAxis={{ 
+              labelFormat: '${value}K',
+              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' }
+            }}
+            tooltip={{ enable: true }}
+            legendSettings={{ visible: true, position: 'Top', textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } }}
+            chartArea={{ border: { width: 0 } }}
+            height="280px"
+            background="transparent"
+          >
+            <Inject services={[ColumnSeries, Category, Tooltip, Legend]} />
+            <SeriesCollectionDirective>
+              <SeriesDirective
+                type="Column"
+                dataSource={comparativaOperaciones}
+                xName="mes"
+                yName="ventas"
+                name="Ventas"
+                fill="#8B5CF6"
+                columnSpacing={0.1}
+                cornerRadius={{ topLeft: 4, topRight: 4 }}
+              />
+              <SeriesDirective
+                type="Column"
+                dataSource={comparativaOperaciones}
+                xName="mes"
+                yName="alquileres"
+                name="Alquileres"
+                fill="#10B981"
+                columnSpacing={0.1}
+                cornerRadius={{ topLeft: 4, topRight: 4 }}
+              />
+            </SeriesCollectionDirective>
+          </ChartComponent>
+        </div>
+
+        {/* Rendimiento por Zona */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaMapMarkerAlt className="text-red-500" />
+              Rendimiento por Zona
+            </h3>
+            <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded-full">
+              Top 5 zonas
+            </span>
+          </div>
+          
+          <div className="space-y-4">
+            {rendimientoZonas.map((zona, i) => (
+              <div key={zona.zona} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                      i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-600' : 'bg-blue-500'
+                    }`}>
+                      {i + 1}
+                    </span>
+                    <span className="font-medium dark:text-gray-200">{zona.zona}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{zona.operaciones} ops</span>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                      zona.tendencia.startsWith('+') 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      {zona.tendencia}
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-500' : 'bg-blue-500'
+                    }`} 
+                    style={{ width: `${(zona.operaciones / 28) * 100}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>${zona.ingresos}K ingresos</span>
+                  <span>{((zona.operaciones / 95) * 100).toFixed(1)}% del total</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Métricas Financieras y Conversión - ApexCharts Premium */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        {/* Progreso Meta Anual - Radial */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaDollarSign className="text-emerald-500" />
+              Meta Financiera
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Progreso hacia objetivo anual</p>
+          <Chart
+            options={progresoFinancieroOptions}
+            series={progresoFinancieroSeries}
+            type="radialBar"
+            height={240}
+          />
+          <div className="flex justify-between items-center mt-2 pt-3 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">$13.1M</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Actual</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-600 dark:text-gray-300">$15M</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Meta</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Estado de Leads - Donut */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaUserFriends className="text-blue-500" />
+              Estado de Leads
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual de leads</p>
+          <Chart
+            options={cierreLeadsOptions}
+            series={cierreLeadsSeries}
+            type="donut"
+            height={280}
+          />
+        </div>
+
+        {/* Funnel de Conversión */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaFunnelDollar className="text-purple-500" />
+              Funnel de Conversión
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Proceso de captación a cierre</p>
+          <Chart
+            options={funnelLeadsOptions}
+            series={funnelLeadsSeries}
+            type="bar"
+            height={260}
+          />
+          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t dark:border-gray-700">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">23.4%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Tasa Cierre</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg text-center">
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">75%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Contactados</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tasa de Conversión - Gauge */}
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+              <FaPercentage className="text-indigo-500" />
+              Coef. de Cierre
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Ratio leads cerrados vs totales</p>
+          <Chart
+            options={tasaConversionOptions}
+            series={tasaConversionSeries}
+            type="radialBar"
+            height={200}
+          />
+          <div className="space-y-3 mt-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Promedio industria</span>
+              <span className="text-sm font-bold text-gray-500">18%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Tu rendimiento</span>
+              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> +5.4%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: '78%' }}></div>
+            </div>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">Por encima del 78% de competidores</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráfico Amplio - Ingresos vs Gastos */}
+      <div className="grid grid-cols-1 gap-6 mb-8">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+                <FaChartLine className="text-emerald-500" />
+                Balance Financiero Anual
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Comparativa de ingresos vs gastos operativos</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Ingresos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Gastos</span>
+              </div>
+            </div>
+          </div>
+          <Chart
+            options={ingresosGastosOptions}
+            series={ingresosGastosSeries}
+            type="area"
+            height={300}
+          />
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">$7.8M</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Ingresos Totales</p>
+            </div>
+            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">$3.2M</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Gastos Totales</p>
+            </div>
+            <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">$4.6M</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Utilidad Neta</p>
+            </div>
+            <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">59%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Margen de Ganancia</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Accesos Rápidos a Información Relevante */}

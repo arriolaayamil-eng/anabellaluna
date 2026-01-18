@@ -4,11 +4,13 @@ import { DatePickerComponent } from '@syncfusion/ej2-react-calendars';
 
 import { scheduleData } from '../data/dummy';
 import { Header } from '../components';
+import { useStateContext } from '../contexts/ContextProvider';
 
 // eslint-disable-next-line react/destructuring-assignment
 const PropertyPane = (props) => <div className="mt-5">{props.children}</div>;
 
 const Scheduler = () => {
+  const { currentMode } = useStateContext();
   const [scheduleObj, setScheduleObj] = useState();
 
   const change = (args) => {
@@ -22,7 +24,7 @@ const Scheduler = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white rounded-3xl">
+    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
       <Header category="App" title="Calendar" />
       <ScheduleComponent
         height="650px"
@@ -30,6 +32,11 @@ const Scheduler = () => {
         selectedDate={new Date(2021, 0, 10)}
         eventSettings={{ dataSource: scheduleData }}
         dragStart={onDragStart}
+        startHour="09:00"
+        endHour="21:00"
+        firstDayOfWeek={1}
+        workDays={[0, 1, 2, 3, 4, 5, 6]}
+        cssClass={currentMode === 'Dark' ? 'e-schedule-dark' : 'e-schedule-light'}
       >
         <ViewsDirective>
           { ['Day', 'Week', 'WorkWeek', 'Month', 'Agenda'].map((item) => <ViewDirective key={item} option={item} />)}

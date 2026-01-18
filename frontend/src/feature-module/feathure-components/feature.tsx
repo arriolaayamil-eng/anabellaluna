@@ -6,6 +6,11 @@ import CommonModal from "../../core/common/Common-modal/CommonModal";
 const Feature = () => {
   const location = useLocation();
 
+  const isDetailsHeader =
+    location.pathname.startsWith("/buy/") ||
+    location.pathname.startsWith("/rent/") ||
+    location.pathname === "/buy-details-schedule";
+
   return (
     <>
       <div className="main-wrapper">
@@ -15,7 +20,9 @@ const Feature = () => {
               ? "main-header-two"
               : location.pathname === "/index-3"
               ? "main-header-two"
-              : location.pathname === '/buy-details' ? 'buy-details-header-item' : location.pathname === '/buy-details-schedule' ? 'buy-details-header-item' : location.pathname === '/rent-details' ? 'buy-details-header-item' : ''
+              : isDetailsHeader
+              ? "buy-details-header-item"
+              : ""
           }`}
         >
           <Header />

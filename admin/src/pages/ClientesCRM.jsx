@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
+// ApexCharts for modern visualizations
+import Chart from 'react-apexcharts';
+// Syncfusion Grid only
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const ClientesCRM = () => {
@@ -23,8 +25,7 @@ const ClientesCRM = () => {
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   
-  // Estado para el formulario de nuevo cliente
-  const [nuevoCliente, setNuevoCliente] = useState({
+  const createEmptyClienteForm = () => ({
     nombre: '',
     apellido: '',
     email: '',
@@ -51,183 +52,278 @@ const ClientesCRM = () => {
     empresa: '',
   });
 
-  const clientesEjemplo = [
-    { 
-      id: 1, 
-      nombre: 'Juan Pérez', 
-      tipo: 'Comprador', 
-      email: 'juan@email.com', 
-      telefono: '+54 11 1234-5678',
-      telefonoAlternativo: '+54 11 1234-5679',
-      estado: 'Lead', 
-      presupuesto: 150000,
-      moneda: 'USD',
-      zona: 'Palermo', 
-      scoring: 85, 
-      ultimaInteraccion: '2025-10-08',
-      fechaRegistro: '2025-09-15',
-      origen: 'Web',
-      agente: 'Ana López',
-      ocupacion: 'Ingeniero de Software',
-      empresa: 'Tech Solutions SA',
-      direccion: 'Av. Córdoba 1234',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Departamento',
-      ambientes: 2,
-      dormitorios: 1,
-      baños: 1,
-      caracteristicas: ['Balcón', 'Gimnasio', 'Seguridad 24hs'],
-      notas: 'Cliente interesado en zona Palermo. Busca mudarse en 3 meses.',
-      interacciones: 5,
-      propiedadesVistas: 8
-    },
-    { 
-      id: 2, 
-      nombre: 'María González', 
-      tipo: 'Propietario', 
-      email: 'maria@email.com', 
-      telefono: '+54 11 8765-4321',
-      telefonoAlternativo: '',
-      estado: 'Contacto', 
-      presupuesto: 0,
-      moneda: 'USD',
-      zona: 'Recoleta', 
-      scoring: 60, 
-      ultimaInteraccion: '2025-10-07',
-      fechaRegistro: '2025-08-20',
-      origen: 'Referido',
-      agente: 'Carlos Ruiz',
-      ocupacion: 'Arquitecta',
-      empresa: 'Estudio González',
-      direccion: 'Av. Callao 567',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Casa',
-      ambientes: 0,
-      dormitorios: 0,
-      baños: 0,
-      caracteristicas: [],
-      notas: 'Propietaria con 2 departamentos en Recoleta para vender.',
-      interacciones: 3,
-      propiedadesVistas: 0
-    },
-    { 
-      id: 3, 
-      nombre: 'Carlos Rodríguez', 
-      tipo: 'Comprador', 
-      email: 'carlos@email.com', 
-      telefono: '+54 11 5555-1234',
-      telefonoAlternativo: '+54 11 5555-1235',
-      estado: 'Prospecto', 
-      presupuesto: 200000,
-      moneda: 'USD',
-      zona: 'Belgrano', 
-      scoring: 92, 
-      ultimaInteraccion: '2025-10-09',
-      fechaRegistro: '2025-09-01',
-      origen: 'Redes Sociales',
-      agente: 'Laura Fernández',
-      ocupacion: 'Médico',
-      empresa: 'Hospital Italiano',
-      direccion: 'Cabildo 2890',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Casa',
-      ambientes: 3,
-      dormitorios: 2,
-      baños: 2,
-      caracteristicas: ['Jardín', 'Parrilla', 'Cochera'],
-      notas: 'Busca casa con jardín para familia. Tiene pre-aprobación bancaria.',
-      interacciones: 12,
-      propiedadesVistas: 15
-    },
-    { 
-      id: 4, 
-      nombre: 'Ana Martínez', 
-      tipo: 'Inversor', 
-      email: 'ana@email.com', 
-      telefono: '+54 11 9999-8888',
-      telefonoAlternativo: '',
-      estado: 'Negociación', 
-      presupuesto: 350000,
-      moneda: 'USD',
-      zona: 'Puerto Madero', 
-      scoring: 95, 
-      ultimaInteraccion: '2025-10-10',
-      fechaRegistro: '2025-09-25',
-      origen: 'Evento',
-      agente: 'Sofía Torres',
-      ocupacion: 'Empresaria',
-      empresa: 'Inversiones AM',
-      direccion: 'Av. Madero 1000',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Departamento',
-      ambientes: 4,
-      dormitorios: 3,
-      baños: 3,
-      caracteristicas: ['Pileta', 'Gimnasio', 'Seguridad 24hs', 'Cochera'],
-      notas: 'Inversora con cartera de propiedades. Busca oportunidades en Puerto Madero.',
-      interacciones: 18,
-      propiedadesVistas: 22
-    },
-    { 
-      id: 5, 
-      nombre: 'Luis Fernández', 
-      tipo: 'Comprador', 
-      email: 'luis@email.com', 
-      telefono: '+54 11 7777-6666',
-      telefonoAlternativo: '+54 11 7777-6667',
-      estado: 'Cerrado', 
-      presupuesto: 180000,
-      moneda: 'USD',
-      zona: 'Villa Crespo', 
-      scoring: 88, 
-      ultimaInteraccion: '2025-10-05',
-      fechaRegistro: '2025-08-10',
-      origen: 'Web',
-      agente: 'Marcos Silva',
-      ocupacion: 'Contador',
-      empresa: 'Estudio Fernández',
-      direccion: 'Av. Corrientes 4567',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      tipoPropiedad: 'Departamento',
-      ambientes: 2,
-      dormitorios: 1,
-      baños: 1,
-      caracteristicas: ['Balcón', 'Aire Acondicionado'],
-      notas: 'Operación cerrada exitosamente. Cliente satisfecho.',
-      interacciones: 10,
-      propiedadesVistas: 12
-    },
-  ];
+  // Estado para el formulario de nuevo cliente
+  const [nuevoCliente, setNuevoCliente] = useState(createEmptyClienteForm);
+  const [editingClienteId, setEditingClienteId] = useState(null);
+
+  const [clientesEjemplo, setClientesEjemplo] = useState([]);
+  const [clientesLoading, setClientesLoading] = useState(false);
+  const [clientesError, setClientesError] = useState('');
+
+  const normalizeCliente = useCallback((item) => {
+    const md = (item && item.metadata) ? item.metadata : {};
+    const id = item?._id || item?.id;
+    const tipoCliente = md.tipoCliente || md.tipo || 'Comprador';
+    const zonaInteres = md.zonaInteres || md.zona || '';
+    const presupuestoRaw = (md.presupuesto === 0 || md.presupuesto) ? md.presupuesto : '';
+    const scoringRaw = (md.scoring === 0 || md.scoring) ? md.scoring : 50;
+    const bañosVal = (md['baños'] === 0 || md['baños']) ? md['baños'] : (md.baños === 0 || md.baños) ? md.baños : '';
+
+    return {
+      id,
+      _id: id,
+      nombre: item?.nombre || '',
+      apellido: md.apellido || '',
+      tipo: tipoCliente,
+      tipoCliente,
+      email: item?.email || '',
+      telefono: item?.telefono || '',
+      telefonoAlternativo: md.telefonoAlternativo || '',
+      estado: md.estado || 'Lead',
+      presupuesto: typeof presupuestoRaw === 'number' ? presupuestoRaw : Number(presupuestoRaw || 0),
+      moneda: md.moneda || 'USD',
+      zona: zonaInteres,
+      zonaInteres,
+      scoring: typeof scoringRaw === 'number' ? scoringRaw : Number(scoringRaw || 50),
+      ultimaInteraccion: md.ultimaInteraccion || '',
+      fechaRegistro: md.fechaRegistro || '',
+      origen: md.origen || 'Web',
+      agente: md.agente || '',
+      ocupacion: md.ocupacion || '',
+      empresa: md.empresa || '',
+      direccion: item?.direccion || md.direccion || '',
+      ciudad: md.ciudad || 'Buenos Aires',
+      provincia: md.provincia || 'Buenos Aires',
+      tipoPropiedad: md.tipoPropiedad || 'Departamento',
+      ambientes: md.ambientes || '',
+      dormitorios: md.dormitorios || '',
+      baños: bañosVal,
+      caracteristicas: Array.isArray(md.caracteristicas) ? md.caracteristicas : [],
+      notas: item?.notas || md.notas || '',
+      interacciones: typeof md.interacciones === 'number' ? md.interacciones : Number(md.interacciones || 0),
+      propiedadesVistas: typeof md.propiedadesVistas === 'number' ? md.propiedadesVistas : Number(md.propiedadesVistas || 0),
+      agenteId: item?.agenteId || '',
+      metadata: md,
+    };
+  }, []);
+
+  const formFromCliente = (cliente) => {
+    const base = createEmptyClienteForm();
+    const fullName = String(cliente?.nombre || '').trim();
+    const tokens = fullName.split(' ').filter(Boolean);
+    const nombre = tokens[0] || '';
+    const apellido = cliente?.apellido || tokens.slice(1).join(' ');
+
+    return {
+      ...base,
+      nombre,
+      apellido,
+      email: cliente?.email || '',
+      telefono: cliente?.telefono || '',
+      telefonoAlternativo: cliente?.telefonoAlternativo || '',
+      tipoCliente: cliente?.tipoCliente || cliente?.tipo || base.tipoCliente,
+      estado: cliente?.estado || base.estado,
+      presupuesto: cliente?.presupuesto || '',
+      moneda: cliente?.moneda || base.moneda,
+      zonaInteres: cliente?.zonaInteres || cliente?.zona || '',
+      tipoPropiedad: cliente?.tipoPropiedad || base.tipoPropiedad,
+      ambientes: cliente?.ambientes || '',
+      dormitorios: cliente?.dormitorios || '',
+      baños: cliente?.baños || '',
+      caracteristicas: Array.isArray(cliente?.caracteristicas) ? cliente.caracteristicas : [],
+      origen: cliente?.origen || base.origen,
+      agente: cliente?.agente || '',
+      scoring: typeof cliente?.scoring === 'number' ? cliente.scoring : Number(cliente?.scoring || base.scoring),
+      notas: cliente?.notas || '',
+      direccion: cliente?.direccion || '',
+      ciudad: cliente?.ciudad || base.ciudad,
+      provincia: cliente?.provincia || base.provincia,
+      ocupacion: cliente?.ocupacion || '',
+      empresa: cliente?.empresa || '',
+    };
+  };
+
+  const buildClientePayload = (form) => {
+    const fullName = [form?.nombre, form?.apellido].filter(Boolean).join(' ').trim();
+
+    return {
+      nombre: fullName || String(form?.nombre || '').trim(),
+      email: form?.email || '',
+      telefono: form?.telefono || '',
+      direccion: form?.direccion || '',
+      notas: form?.notas || '',
+      metadata: {
+        apellido: form?.apellido || '',
+        telefonoAlternativo: form?.telefonoAlternativo || '',
+        tipoCliente: form?.tipoCliente || 'Comprador',
+        estado: form?.estado || 'Lead',
+        presupuesto: form?.presupuesto === '' ? 0 : Number(form?.presupuesto || 0),
+        moneda: form?.moneda || 'USD',
+        zonaInteres: form?.zonaInteres || '',
+        tipoPropiedad: form?.tipoPropiedad || 'Departamento',
+        ambientes: form?.ambientes || '',
+        dormitorios: form?.dormitorios || '',
+        'baños': form?.baños || '',
+        caracteristicas: Array.isArray(form?.caracteristicas) ? form.caracteristicas : [],
+        origen: form?.origen || 'Web',
+        agente: form?.agente || '',
+        scoring: Number(form?.scoring || 50),
+        ciudad: form?.ciudad || 'Buenos Aires',
+        provincia: form?.provincia || 'Buenos Aires',
+        ocupacion: form?.ocupacion || '',
+        empresa: form?.empresa || '',
+      },
+    };
+  };
+
+  const reloadClientes = useCallback(async () => {
+    setClientesLoading(true);
+    setClientesError('');
+    try {
+      const items = await crmService.clientes.getAll();
+      const normalized = Array.isArray(items) ? items.map(normalizeCliente) : [];
+      setClientesEjemplo(normalized);
+    } catch (err) {
+      setClientesError(err?.message || 'Error al cargar clientes');
+      setClientesEjemplo([]);
+    } finally {
+      setClientesLoading(false);
+    }
+  }, [normalizeCliente]);
+
+  useEffect(() => {
+    reloadClientes();
+  }, [reloadClientes]);
+
+  const openCreateModal = () => {
+    setEditingClienteId(null);
+    setNuevoCliente(createEmptyClienteForm());
+    setShowModal(true);
+  };
+
+  const handleEditCliente = (cliente) => {
+    const id = cliente?._id || cliente?.id;
+    setEditingClienteId(id || null);
+    setNuevoCliente(formFromCliente(cliente));
+    setShowModal(true);
+  };
+
+  const handleDeleteCliente = async (cliente) => {
+    const id = cliente?._id || cliente?.id;
+    if (!id) return;
+    if (!window.confirm('¿Eliminar este cliente?')) return;
+
+    setClientesError('');
+    try {
+      await crmService.clientes.delete(id);
+      setClientesEjemplo(prev => prev.filter(c => String(c.id) !== String(id)));
+      if (clienteSeleccionado && String(clienteSeleccionado.id) === String(id)) {
+        setClienteSeleccionado(null);
+        setVistaActual('dashboard');
+      }
+    } catch (err) {
+      setClientesError(err?.message || 'Error al eliminar cliente');
+    }
+  };
 
   // KPIs de Clientes
+  const leadsCalientes = clientesEjemplo.filter(c => c.scoring >= 80).length;
+  const enNegociacion = clientesEjemplo.filter(c => c.estado === 'Negociación').length;
+  const cerrados = clientesEjemplo.filter(c => c.estado === 'Cerrado').length;
+  const conversionRate = clientesEjemplo.length > 0 ? Math.round((cerrados / clientesEjemplo.length) * 100) : 0;
+
   const kpisClientes = [
-    { title: 'Total Clientes', value: clientesEjemplo.length, desc: '23 nuevos este mes', icon: <FaUsers />, color: 'from-blue-500 to-blue-600' },
-    { title: 'Leads Calientes', value: clientesEjemplo.filter(c => c.scoring >= 80).length, desc: 'Scoring > 80', icon: <FaFire />, color: 'from-red-500 to-red-600' },
-    { title: 'En Negociación', value: clientesEjemplo.filter(c => c.estado === 'Negociación').length, desc: 'Próximos a cerrar', icon: <FaChartLine />, color: 'from-green-500 to-green-600' },
-    { title: 'Conversión', value: '32%', desc: 'Lead → Cliente', icon: <FaTags />, color: 'from-purple-500 to-purple-600' },
+    { title: 'Total Clientes', value: clientesEjemplo.length, desc: `${clientesEjemplo.filter(c => c.estado === 'Lead').length} leads activos`, icon: <FaUsers />, color: 'from-blue-500 to-blue-600', trend: '+12%' },
+    { title: 'Leads Calientes', value: leadsCalientes, desc: 'Scoring > 80', icon: <FaFire />, color: 'from-red-500 to-red-600', trend: '+8%' },
+    { title: 'En Negociación', value: enNegociacion, desc: 'Próximos a cerrar', icon: <FaChartLine />, color: 'from-emerald-500 to-emerald-600', trend: '+15%' },
+    { title: 'Tasa Conversión', value: `${conversionRate}%`, desc: 'Lead → Cliente', icon: <FaTags />, color: 'from-violet-500 to-violet-600', trend: '+5%' },
   ];
 
-  // Datos para gráficos
-  const cicloVidaData = [
-    { etapa: 'Lead', cantidad: clientesEjemplo.filter(c => c.estado === 'Lead').length, fill: '#F59E0B' },
-    { etapa: 'Contacto', cantidad: clientesEjemplo.filter(c => c.estado === 'Contacto').length, fill: '#3B82F6' },
-    { etapa: 'Prospecto', cantidad: clientesEjemplo.filter(c => c.estado === 'Prospecto').length, fill: '#8B5CF6' },
-    { etapa: 'Negociación', cantidad: clientesEjemplo.filter(c => c.estado === 'Negociación').length, fill: '#F97316' },
-    { etapa: 'Cerrado', cantidad: clientesEjemplo.filter(c => c.estado === 'Cerrado').length, fill: '#10B981' },
+  // ApexCharts configurations
+  const cicloVidaDonutOptions = {
+    chart: { type: 'donut', height: 280, background: 'transparent' },
+    labels: ['Lead', 'Contacto', 'Prospecto', 'Negociación', 'Cerrado'],
+    colors: ['#F59E0B', '#3B82F6', '#8B5CF6', '#F97316', '#10B981'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+            value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' },
+            total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => clientesEjemplo.length },
+          },
+        },
+      },
+    },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const cicloVidaDonutSeries = [
+    clientesEjemplo.filter(c => c.estado === 'Lead').length,
+    clientesEjemplo.filter(c => c.estado === 'Contacto').length,
+    clientesEjemplo.filter(c => c.estado === 'Prospecto').length,
+    clientesEjemplo.filter(c => c.estado === 'Negociación').length,
+    clientesEjemplo.filter(c => c.estado === 'Cerrado').length,
   ];
 
-  const segmentacionData = [
-    { tipo: 'Comprador', cantidad: clientesEjemplo.filter(c => c.tipo === 'Comprador').length },
-    { tipo: 'Propietario', cantidad: clientesEjemplo.filter(c => c.tipo === 'Propietario').length },
-    { tipo: 'Inversor', cantidad: clientesEjemplo.filter(c => c.tipo === 'Inversor').length },
+  const funnelOptions = {
+    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, horizontal: true, distributed: true, barHeight: '70%' } },
+    colors: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981'],
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '11px', fontWeight: 600 }, formatter: (val, opt) => `${opt.w.globals.labels[opt.dataPointIndex]}: ${val}`, offsetX: 5 },
+    xaxis: { categories: ['Captados', 'Contactados', 'Negociación', 'Cerrados'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { show: false } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `${val} clientes` } },
+  };
+  const funnelSeries = [{ name: 'Clientes', data: [clientesEjemplo.length, clientesEjemplo.filter(c => c.estado !== 'Lead').length, enNegociacion, cerrados] }];
+
+  const conversionRadialOptions = {
+    chart: { type: 'radialBar', height: 200, background: 'transparent' },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '65%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '28px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: '#8B5CF6', opacity: 1 }, { offset: 100, color: '#6366F1', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Conversión'],
+  };
+  const conversionRadialSeries = [conversionRate];
+
+  const scoringAreaOptions = {
+    chart: { type: 'area', height: 260, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#10B981', '#F59E0B'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: {
+      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const scoringAreaSeries = [
+    { name: 'Nuevos Leads', data: [12, 18, 15, 22, 28, clientesEjemplo.filter(c => c.estado === 'Lead').length] },
+    { name: 'Conversiones', data: [3, 5, 4, 7, 9, cerrados] },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:shadow-lg hover:scale-[1.01]';
 
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
@@ -239,38 +335,34 @@ const ClientesCRM = () => {
   };
 
   // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nuevo cliente:', nuevoCliente);
-    alert('Cliente guardado exitosamente!');
-    setShowModal(false);
-    // Resetear formulario
-    setNuevoCliente({
-      nombre: '',
-      apellido: '',
-      email: '',
-      telefono: '',
-      telefonoAlternativo: '',
-      tipoCliente: 'Comprador',
-      estado: 'Lead',
-      presupuesto: '',
-      moneda: 'USD',
-      zonaInteres: '',
-      tipoPropiedad: 'Departamento',
-      ambientes: '',
-      dormitorios: '',
-      baños: '',
-      caracteristicas: [],
-      origen: 'Web',
-      agente: '',
-      scoring: 50,
-      notas: '',
-      direccion: '',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      ocupacion: '',
-      empresa: '',
-    });
+    setClientesError('');
+    try {
+      const payload = buildClientePayload(nuevoCliente);
+      const saved = editingClienteId
+        ? await crmService.clientes.update(editingClienteId, payload)
+        : await crmService.clientes.create(payload);
+
+      const normalized = normalizeCliente(saved);
+      setClientesEjemplo(prev => {
+        const idx = prev.findIndex(c => String(c.id) === String(normalized.id));
+        if (idx === -1) return [normalized, ...prev];
+        const next = [...prev];
+        next[idx] = normalized;
+        return next;
+      });
+
+      if (clienteSeleccionado && String(clienteSeleccionado.id) === String(normalized.id)) {
+        setClienteSeleccionado(normalized);
+      }
+
+      setShowModal(false);
+      setEditingClienteId(null);
+      setNuevoCliente(createEmptyClienteForm());
+    } catch (err) {
+      setClientesError(err?.message || 'Error al guardar cliente');
+    }
   };
 
   // Características disponibles
@@ -294,6 +386,19 @@ const ClientesCRM = () => {
   return (
     <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
       <Header category="CRM" title="👥 CRM de Clientes Avanzado" />
+
+      {(clientesError || clientesLoading) && (
+        <div className="mb-4">
+          {clientesError && (
+            <div className="text-sm rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+              {clientesError}
+            </div>
+          )}
+          {clientesLoading && !clientesError && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">Cargando clientes...</div>
+          )}
+        </div>
+      )}
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -306,7 +411,7 @@ const ClientesCRM = () => {
           </button>
         )}
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaPlus /> Nuevo Cliente
@@ -327,8 +432,8 @@ const ClientesCRM = () => {
       {/* Vista Dashboard */}
       {vistaActual === 'dashboard' && (
         <>
-      {/* KPIs de Clientes - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+      {/* KPIs de Clientes - Estilo moderno con tendencias */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         {kpisClientes.map((kpi, i) => (
           <div 
             key={i} 
@@ -338,70 +443,126 @@ const ClientesCRM = () => {
               else if (i === 2) setShowModalEnNegociacion(true);
               else if (i === 3) setShowModalConversion(true);
             }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
+            className={`${cardBase} overflow-hidden relative cursor-pointer`}
           >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
+                    {kpi.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{kpi.title}</p>
+                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">{kpi.value}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
+                    {kpi.trend}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Gráficos de Ciclo de Vida y Segmentación */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Gráfico de Ciclo de Vida */}
+      {/* Gráficos Principales - ApexCharts */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        {/* Tasa de Conversión */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Ciclo de Vida (Lead → Cerrado)</h3>
-          <AccumulationChartComponent
-            id="ciclo-vida-chart"
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="300px"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={cicloVidaData}
-                xName="etapa"
-                yName="cantidad"
-                name="Clientes"
-                innerRadius="40%"
-                dataLabel={{ visible: true, name: 'etapa', position: 'Outside' }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaTags className="text-violet-500" />
+            <h3 className="font-semibold dark:text-gray-100">Conversión</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Lead → Cliente</p>
+          <Chart options={conversionRadialOptions} series={conversionRadialSeries} type="radialBar" height={180} />
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{cerrados}</p>
+              <p className="text-xs text-gray-500">Cerrados</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-500">{clientesEjemplo.length}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </div>
+          </div>
         </div>
 
-        {/* Gráfico de Segmentación */}
+        {/* Ciclo de Vida - Donut */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🎯 Segmentación por Tipo</h3>
-          <ChartComponent
-            id="segmentacion-chart"
-            primaryXAxis={{ valueType: 'Category', title: 'Tipo de Cliente' }}
-            primaryYAxis={{ title: 'Cantidad' }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: false }}
-            height="300px"
-          >
-            <Inject services={[ColumnSeries, Category, Tooltip]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Column"
-                dataSource={segmentacionData}
-                xName="tipo"
-                yName="cantidad"
-                name="Cantidad"
-                fill={currentColor || '#3B82F6'}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaChartLine className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100">Ciclo de Vida</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución por etapa</p>
+          <Chart options={cicloVidaDonutOptions} series={cicloVidaDonutSeries} type="donut" height={260} />
+        </div>
+
+        {/* Funnel de Conversión */}
+        <div className={`xl:col-span-2 ${cardBase}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaFire className="text-orange-500" />
+            <h3 className="font-semibold dark:text-gray-100">Funnel de Clientes</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Proceso de conversión</p>
+          <Chart options={funnelOptions} series={funnelSeries} type="bar" height={180} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{conversionRate}%</p>
+              <p className="text-xs text-gray-500">Tasa Cierre</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{clientesEjemplo.length > 0 ? Math.round((clientesEjemplo.filter(c => c.estado !== 'Lead').length / clientesEjemplo.length) * 100) : 0}%</p>
+              <p className="text-xs text-gray-500">Contactados</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráfico de Tendencias - Full Width */}
+      <div className="mb-8">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaUsers className="text-emerald-500" />
+                <h3 className="font-semibold dark:text-gray-100">Tendencia de Captación</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Nuevos leads vs conversiones mensuales</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Leads</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Conversiones</span>
+              </div>
+            </div>
+          </div>
+          <Chart options={scoringAreaOptions} series={scoringAreaSeries} type="area" height={240} />
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{clientesEjemplo.length}</p>
+              <p className="text-xs text-gray-500">Total Clientes</p>
+            </div>
+            <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <p className="text-xl font-bold text-red-600 dark:text-red-400">{leadsCalientes}</p>
+              <p className="text-xs text-gray-500">Leads Calientes</p>
+            </div>
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{enNegociacion}</p>
+              <p className="text-xs text-gray-500">En Negociación</p>
+            </div>
+            <div className="text-center p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+              <p className="text-xl font-bold text-violet-600 dark:text-violet-400">+12%</p>
+              <p className="text-xs text-gray-500">vs Mes Ant.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -644,10 +805,10 @@ const ClientesCRM = () => {
                 }`}>
                   {clienteSeleccionado.estado}
                 </span>
-                <button className="px-4 py-2 bg-white text-blue-600 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
+                <button onClick={() => handleEditCliente(clienteSeleccionado)} className="px-4 py-2 bg-white text-blue-600 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
                   <FaEdit /> Editar
                 </button>
-                <button className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
+                <button onClick={() => handleDeleteCliente(clienteSeleccionado)} className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
                   <FaTrash /> Eliminar
                 </button>
               </div>
@@ -867,7 +1028,7 @@ const ClientesCRM = () => {
             <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaUsers /> Nuevo Cliente
+                  <FaUsers /> {editingClienteId ? 'Editar Cliente' : 'Nuevo Cliente'}
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">Complete los datos del cliente</p>
               </div>

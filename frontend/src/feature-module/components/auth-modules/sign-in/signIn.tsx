@@ -1,22 +1,48 @@
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import ImageWithBasePath from "../../../../core/imageWithBasePath";
 import { all_routes } from "../../../routes/all_routes";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import userService from "../../../../services/userService";
 type PasswordField = "password" | "confirmPassword";
 
 const SignIn = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [passwordVisibility, setPasswordVisibility] = useState({
     password: false,
     confirmPassword: false,
   });
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const togglePasswordVisibility = (field: PasswordField) => {
     setPasswordVisibility((prevState) => ({
       ...prevState,
       [field]: !prevState[field],
     }));
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await userService.login(username, password);
+      const from = (location.state as any)?.from;
+      const pathname = from?.pathname || all_routes.index;
+      const search = from?.search || "";
+      const hash = from?.hash || "";
+      navigate(`${pathname}${search}${hash}`, { replace: true });
+    } catch (err: any) {
+      setError(err?.message || "Error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   return (
     <>
@@ -26,7 +52,10 @@ const SignIn = () => {
           {/* start row */}
           <div className="row justify-content-center align-items-center vh-100 overflow-auto flex-wrap py-3">
             <div className="col-md-8 col-lg-6 col-xl-4 mx-auto">
-              <form className="d-flex justify-content-center align-items-center">
+              <form
+                className="d-flex justify-content-center align-items-center"
+                onSubmit={onSubmit}
+              >
                 <div className="d-flex flex-column justify-content-lg-center p-4 p-lg-0 pb-0 flex-fill">
                   <div className=" mx-auto mb-4 text-center">
                     <ImageWithBasePath
@@ -39,6 +68,11 @@ const SignIn = () => {
                     <div className="login-item-01">
                       <h4>{t("Hey There! Welcome Back")}</h4>
                       <div>
+                        {error ? (
+                          <div className="alert alert-danger" role="alert">
+                            {error}
+                          </div>
+                        ) : null}
                         <div className="mb-3">
                           <label className="form-label">
                             {t("Email")}<span className="text-danger ms-1">*</span>
@@ -48,6 +82,8 @@ const SignIn = () => {
                               type="text"
                               className="form-control"
                               placeholder={t("Enter your email")}
+                              value={username}
+                              onChange={(e) => setUsername(e.target.value)}
                             />
                             <i className="material-icons-outlined">mail</i>
                           </div>
@@ -64,6 +100,8 @@ const SignIn = () => {
                                   : "password"
                               }
                               className="pass-input form-control"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
                             />
                             <i className="material-icons-outlined">lock</i>
                             <span
@@ -101,12 +139,13 @@ const SignIn = () => {
                           </div>
                         </div>
                         <div className="mb-3">
-                          <Link
-                            to={all_routes.index}
+                          <button
+                            type="submit"
                             className="btn btn-lg bg-primary text-white w-100"
+                            disabled={isSubmitting}
                           >
                             {t("Sign In")}
-                          </Link>
+                          </button>
                         </div>
                         <div className="login-or mb-3">
                           <span className="span-or">{t("OR")}</span>
@@ -147,6 +186,7 @@ const SignIn = () => {
                             <Link
                               to={all_routes.signup}
                               className="register-btn"
+                              state={location.state as any}
                             >
                               {" "}
                               {t("Register")}

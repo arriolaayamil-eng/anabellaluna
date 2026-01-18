@@ -2,32 +2,25 @@ import Index from "../components/home/index";
 import { all_routes } from "./all_routes";
 import { Navigate, Route } from "react-router";
 import BuyGrid from "../components/listing-modules/buy-property/buy-grid/buyGrid";
-import BuyDetails from "../components/listing-modules/buy-property/buy-details/buyDetails";
 import BuyList from "../components/listing-modules/buy-property/buy-list/buyList";
-import BuyGridSidebar from "../components/listing-modules/buy-property/buy-grid-sidebar/buyGridSidebar";
-import BuyListSidebar from "../components/listing-modules/buy-property/buy-list-sidebar/buyListSidebar";
 import BuyGridMap from "../components/listing-modules/buy-property/buy-grid-map/buyGridMap";
 import BuyListMap from "../components/listing-modules/buy-property/buy-list-map/buyListMap";
+import BuyGridSidebar from "../components/listing-modules/buy-property/buy-grid-sidebar/buyGridSidebar";
+import BuyListSidebar from "../components/listing-modules/buy-property/buy-list-sidebar/buyListSidebar";
+import BuyDetails from "../components/listing-modules/buy-property/buy-details/buyDetails";
 import RentGrid from "../components/listing-modules/rent-property/rent-grid/rentGrid";
 import RentList from "../components/listing-modules/rent-property/rent-list/rentList";
 import RentGridMap from "../components/listing-modules/rent-property/rent-grid-map/rentGridMap";
+import RentListMap from "../components/listing-modules/rent-property/rent-list-map/rentListMap";
 import RentGridSidebar from "../components/listing-modules/rent-property/rent-grid-sidebar/rentGridSidebar";
 import RentListSidebar from "../components/listing-modules/rent-property/rent-list-sidebar/rentListSidebar";
-import RentListMap from "../components/listing-modules/rent-property/rent-list-map/rentListMap";
 import Rentdetails from "../components/listing-modules/rent-property/rent-details/rentdetails";
 import RentalBooking from "../components/listing-modules/rent-property/rent-booking/rentalBooking";
 import RentOrderDetails from "../components/listing-modules/rent-property/rent-order-details/rentOrderDetails";
 import RentalOrderConfirmation from "../components/listing-modules/rent-property/rental-order-confirmation/rentalOrderConfirmation";
-import RentalPayment from "../components/listing-modules/rent-property/rental-payment/rentalPayment";
 import AgentGrid from "../components/listing-modules/agent-module/agent-grid/agentGrid";
-import AgentList from "../components/listing-modules/agent-module/agent-list/agentList";
-import AgentGridSidebar from "../components/listing-modules/agent-module/agent-grid-sidebar/agentGridSidebar";
-import AgentListSidebar from "../components/listing-modules/agent-module/agent-list-sidebar/agentListSidebar";
 import AgentDetails from "../components/listing-modules/agent-module/agent-details/agentDetails";
 import AgencyGrid from "../components/listing-modules/agency-module/agency-grid/agencyGrid";
-import AgencyList from "../components/listing-modules/agency-module/agency-list/agencyList";
-import AgencyGridSidebar from "../components/listing-modules/agency-module/agency-grid-sidebar/agencyGridSidebar";
-import AgencyListSidebar from "../components/listing-modules/agency-module/agency-list-sidebar/agencyListSidebar";
 import AgencyDetails from "../components/listing-modules/agency-module/agency-details/agencyDetails";
 import AddProperyBuy from "../components/add-property-buy/addProperyBuy";
 import Cart from "../components/cart/cart";
@@ -55,6 +48,9 @@ import PrivacyPolicy from "../components/pages-modules/privacy-policy/privacyPol
 import Maintenance from "../components/pages-modules/maintenance/maintenance";
 import ComingSoon from "../components/pages-modules/coming-soon/comingSoon";
 import Checkout from "../components/pages-modules/checkout/checkout";
+import Profile from "../components/pages-modules/profile/profile";
+import UserCreateForm from "../../components/UserCreateForm";
+import RequireAuth from "../../core/auth/RequireAuth";
 
 const routes = all_routes;
 
@@ -77,45 +73,51 @@ export const publicRoutes = [
     route: Route,
   },
   {
+    path: "/create-user",
+    element: <UserCreateForm />,
+    meta_title: "Crear Usuario CRM",
+    route: Route,
+  },
+  {
     path: routes.buyPropertyGrid,
     element: <BuyGrid />,
             meta_title:"Buy Grid",
     route: Route,
   },
   {
-    path: routes.buyDetails,
-    element: <BuyDetails />,
-            meta_title:"Buy Details",
-    route: Route,
-  },
-  {
     path: routes.buyPropertyList,
     element: <BuyList />,
-      meta_title:"Buy List",
-    route: Route,
-  },
-  {
-    path: routes.buyPropertyGridSidebar,
-    element: <BuyGridSidebar />,
-          meta_title:"Buy Grid With Sidebar",
-    route: Route,
-  },
-  {
-    path: routes.buyPropertyListSidebar,
-    element: <BuyListSidebar />,
-    meta_title:"Buy List With Sidebar",
+            meta_title:"Buy List",
     route: Route,
   },
   {
     path: routes.buyGridMap,
     element: <BuyGridMap />,
-      meta_title:"Buy Grid Map",
+            meta_title:"Buy Grid Map",
     route: Route,
   },
   {
     path: routes.buyListMap,
     element: <BuyListMap />,
-      meta_title:"Buy List Map",
+            meta_title:"Buy List Map",
+    route: Route,
+  },
+  {
+    path: routes.buyPropertyGridSidebar,
+    element: <BuyGridSidebar />,
+            meta_title:"Buy Grid Sidebar",
+    route: Route,
+  },
+  {
+    path: routes.buyPropertyListSidebar,
+    element: <BuyListSidebar />,
+            meta_title:"Buy List Sidebar",
+    route: Route,
+  },
+  {
+    path: routes.buyDetails,
+    element: <BuyDetails />,
+            meta_title:"Buy Details",
     route: Route,
   },
   {
@@ -137,21 +139,21 @@ export const publicRoutes = [
     route: Route,
   },
   {
+    path: routes.rentListMap,
+    element: <RentListMap />,
+    meta_title:"Rent List Map",
+    route: Route,
+  },
+  {
     path: routes.rentPropertyGridSidebar,
     element: <RentGridSidebar />,
-    meta_title:"Rent Grid With Sidebar",
+    meta_title:"Rent Grid Sidebar",
     route: Route,
   },
   {
     path: routes.rentPropertyListSidebar,
     element: <RentListSidebar />,
-    meta_title:"Rent List With Sidebar",
-    route: Route,
-  },
-  {
-    path: routes.rentListMap,
-    element: <RentListMap />,
-    meta_title:"Rent List Map",
+    meta_title:"Rent List Sidebar",
     route: Route,
   },
   {
@@ -162,50 +164,38 @@ export const publicRoutes = [
   },
   {
     path: routes.rentBooking,
-    element: <RentalBooking />,
+    element: (
+      <RequireAuth>
+        <RentalBooking />
+      </RequireAuth>
+    ),
     meta_title:"Rental Booking",
     route: Route,
   },
   {
     path: routes.rentalOrderDetails,
-    element: <RentOrderDetails />,
+    element: (
+      <RequireAuth>
+        <RentOrderDetails />
+      </RequireAuth>
+    ),
     meta_title:"Rental Order Details",
     route: Route,
   },
   {
     path: routes.rentalOrderConfirmation,
-    element: <RentalOrderConfirmation />,
+    element: (
+      <RequireAuth>
+        <RentalOrderConfirmation />
+      </RequireAuth>
+    ),
     meta_title:"Rental Order Details",
-    route: Route,
-  },
-  {
-    path: routes.rentalPayment,
-    element: <RentalPayment />,
-    meta_title:"Rental Payment",
     route: Route,
   },
   {
     path: routes.agentGrid,
     element: <AgentGrid />,
-    meta_title:"Agent Grid",
-    route: Route,
-  },
-  {
-    path: routes.agentList,
-    element: <AgentList />,
-    meta_title:"Agent List",
-    route: Route,
-  },
-  {
-    path: routes.agentGridSidebar,
-    element: <AgentGridSidebar />,
-    meta_title:"Agent Grid With Sidebar",
-    route: Route,
-  },
-  {
-    path: routes.agentListSidebar,
-    element: <AgentListSidebar />,
-    meta_title:"Agent List With Sidebar",
+       meta_title:"Agent Grid",
     route: Route,
   },
   {
@@ -218,24 +208,6 @@ export const publicRoutes = [
     path: routes.agencyGrid,
     element: <AgencyGrid />,
        meta_title:"Agency Grid",
-    route: Route,
-  },
-  {
-    path: routes.agencyList,
-    element: <AgencyList />,
-         meta_title:"Agency List",
-    route: Route,
-  },
-  {
-    path: routes.agencyGridSidebar,
-    element: <AgencyGridSidebar />,
-        meta_title:"Agency Grid With Sidebar",
-    route: Route,
-  },
-  {
-    path: routes.agencyListSidebar,
-    element: <AgencyListSidebar />,
-          meta_title:"Agency List With Sidebar",
     route: Route,
   },
   {
@@ -252,7 +224,11 @@ export const publicRoutes = [
   },
   {
     path: routes.cart,
-    element: <Cart />,
+    element: (
+      <RequireAuth>
+        <Cart />
+      </RequireAuth>
+    ),
        meta_title:"Cart",
     route: Route,
   },
@@ -300,7 +276,11 @@ export const publicRoutes = [
   },
   {
     path: routes.wishlist,
-    element: <Wishlist />,
+    element: (
+      <RequireAuth>
+        <Wishlist />
+      </RequireAuth>
+    ),
       meta_title:"Wishlist",
     route: Route,
   },
@@ -348,8 +328,22 @@ export const publicRoutes = [
   },
   {
     path: routes.checkout,
-    element: <Checkout />,
+    element: (
+      <RequireAuth>
+        <Checkout />
+      </RequireAuth>
+    ),
        meta_title:"Checkout",
+    route: Route,
+  },
+  {
+    path: routes.profile,
+    element: (
+      <RequireAuth>
+        <Profile />
+      </RequireAuth>
+    ),
+    meta_title:"Mi Perfil",
     route: Route,
   },
 ];

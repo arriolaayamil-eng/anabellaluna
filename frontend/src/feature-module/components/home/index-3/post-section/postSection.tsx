@@ -30,17 +30,16 @@ const PostSection = () => {
                   <span className="sec-line2" />
                 </div>
                 <span className="text-white d-block mb-3">
-                  Post Your Property
+                  Encontrá tu propiedad ideal
                 </span>
                 <h2 className="text-white">
-                  Looking to Post your Exsisting Property We Provide Awesome
-                  Solution
+                  ¿Buscás comprar o alquilar? Tenemos la solución perfecta para vos
                 </h2>
                 <Link
-                  to={all_routes.addpropertybuy}
+                  to={all_routes.contactUs}
                   className="btn btn-primary d-inline-flex"
                 >
-                  Start Post Your Property
+                  Contactanos
                 </Link>
               </div>
               {/* Section Title End */}

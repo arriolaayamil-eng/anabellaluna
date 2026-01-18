@@ -1,6 +1,13 @@
 import { api } from '../config/api';
 
 export const crmService = {
+  // ============ LINKS (DOCUMENTOS <-> ENTIDADES CRM) ============
+  links: {
+    getByEntity: (entityType, entityId) => api.get(`/crm/links?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`),
+    link: ({ documentId, entityType, entityId }) => api.post('/crm/link', { documentId, entityType, entityId }),
+    unlink: ({ documentId, entityType, entityId }) => api.post('/crm/unlink', { documentId, entityType, entityId }),
+  },
+
   // ============ PROPIEDADES ============
   propiedades: {
     getAll: () => api.get('/crm/propiedades'),
@@ -61,6 +68,12 @@ export const crmService = {
     getPropiedadesStats: () => api.get('/crm/stats/propiedades'),
     getVentasStats: () => api.get('/crm/stats/ventas'),
     getAgentesStats: () => api.get('/crm/stats/agentes'),
+  },
+
+  // ============ RECOMPENSAS ============
+  rewards: {
+    getSummary: () => api.get('/crm/rewards/summary'),
+    getAgentRewards: (agenteId) => api.get(`/crm/rewards/agent/${agenteId}`),
   },
 };
 

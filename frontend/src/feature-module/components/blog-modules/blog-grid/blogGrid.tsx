@@ -1,9 +1,48 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import ImageWithBasePath from "../../../../core/imageWithBasePath";
 import { all_routes } from "../../../routes/all_routes";
 import Breadcrumb from "../../../../core/common/Breadcrumb/breadcrumb";
+import publicService from "../../../../services/publicService";
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 const BlogGrid = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        const res = await publicService.getBlogPosts();
+        if (!isMounted) return;
+        setPosts(res.items || []);
+      } catch {
+        if (!isMounted) return;
+        setPosts([]);
+      } finally {
+        if (!isMounted) return;
+        setIsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <>
       {/* ========================
@@ -21,6 +60,74 @@ const BlogGrid = () => {
         <div className="content">
           <div className="container">
             {/* start row */}
+            <div className="row row-gap-4 justify-content-center">
+              {isLoading ? (
+                <div className="col-12 text-center">Loading...</div>
+              ) : null}
+
+              {!isLoading && posts.length === 0 ? (
+                <div className="col-12 text-center">No posts</div>
+              ) : null}
+
+              {posts.map((post) => (
+                <div key={post.id || post.slug} className="col-md-6 col-lg-4">
+                  <div className="blog-item-01">
+                    <div className="blog-img">
+                      <Link
+                        to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}
+                      >
+                        {post.coverUrl ? (
+                          <ImageWithBasePath
+                            src={post.coverUrl}
+                            alt="img"
+                            className="img-fluid"
+                          />
+                        ) : null}
+                      </Link>
+                    </div>
+                    <div className="blog-content">
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+                        <span className="badge badge-sm bg-secondary fw-semibold">
+                          {post.category?.name || ""}
+                        </span>
+                        <div className="d-flex align-items-center author-details">
+                          <div className="d-flex align-items-center me-3">
+                            <Link to={all_routes.agentDetails}>
+                              {post.authorAgent?.avatarUrl ? (
+                                <ImageWithBasePath
+                                  src={post.authorAgent.avatarUrl}
+                                  alt="image"
+                                  className="avatar avatar-sm rounded-circle me-2"
+                                />
+                              ) : null}
+                            </Link>
+                            <Link to={all_routes.agentDetails}>
+                              {post.authorAgent?.name || ""}
+                            </Link>
+                          </div>
+                          <span className="d-inline-flex align-items-center">
+                            <i className="material-icons-outlined me-1">events</i>
+                            {formatDate(post.publishedAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="mb-1">
+                          <Link
+                            to={post.slug ? all_routes.blogDetailsPath(post.slug) : "#"}
+                          >
+                            {post.title || ""}
+                          </Link>
+                        </h5>
+                        <p className="mb-0">{post.excerpt || ""}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {false && (
             <div className="row row-gap-4 justify-content-center">
               <div className="col-md-6 col-lg-4">
                 <div className="blog-item-01">
@@ -458,6 +565,7 @@ const BlogGrid = () => {
               </div>
               {/* end col */}
             </div>
+            )}
             {/* end row */}
             <div className="d-flex align-items-center justify-content-center">
               <Link

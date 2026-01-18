@@ -28,15 +28,14 @@ const WorkSection = () => {
                   Solution
                 </h2>
                 <p>
-                  Whether you're selling or renting, we make it easy to post
-                  your property and reach the right audience with powerful tools
-                  and expert support.
+                  Ya sea que estés buscando comprar o alquilar, te ayudamos a encontrar
+                  la propiedad perfecta con herramientas potentes y soporte experto.
                 </p>
                 <Link
-                  to={all_routes.addpropertybuy}
+                  to={all_routes.contactUs}
                   className="btn btn-primary"
                 >
-                  Start Post Your Property
+                  Contactanos
                 </Link>
               </div>
               {/* Section Title End */}

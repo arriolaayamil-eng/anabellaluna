@@ -11,7 +11,7 @@ export const documentService = {
   getById: (id) => api.get(`/documents/${id}`),
 
   // Subir documentos
-  upload: (files) => api.uploadFiles('/documents', files),
+  upload: (files, options = {}) => api.uploadFiles('/documents', files, options),
 
   // Actualizar documento
   update: (id, data) => api.put(`/documents/${id}`, data),
@@ -23,7 +23,7 @@ export const documentService = {
   getVersions: (documentId) => api.get(`/documents/${documentId}/versions`),
 
   // Subir nueva versión
-  uploadVersion: (documentId, file) => api.uploadFiles(`/documents/${documentId}/versions`, [file]),
+  uploadVersion: (documentId, file, options = {}) => api.uploadFiles(`/documents/${documentId}/versions`, [file], options),
 
   // Restaurar versión
   restoreVersion: (documentId, versionId) => 

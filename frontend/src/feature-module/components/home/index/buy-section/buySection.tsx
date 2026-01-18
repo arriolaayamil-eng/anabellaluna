@@ -56,12 +56,12 @@ const BuySection = () => {
                 </div>
                 <div className="buy-property bg-white d-flex align-items-center justify-content-between">
                   <h6 className="mb-0">
-                    <Link to={all_routes.addpropertybuy}>
-                      Vender
+                    <Link to={all_routes.buyPropertyGrid}>
+                      Comprar
                     </Link>
                   </h6>
                   <Link
-                    to={all_routes.addpropertybuy}
+                    to={all_routes.buyPropertyGrid}
                     className="arrow sell-arrow d-flex align-items-center justify-content-center bg-warning rounded-circle"
                   >
                     <i className="fa-solid fa-arrow-right" />

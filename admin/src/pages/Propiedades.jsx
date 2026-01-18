@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaList, FaThLarge, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
+import { documentService } from '../services/documentService';
+import API_CONFIG, { getAuthToken } from '../config/api';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
+// ApexCharts for modern visualizations
+import Chart from 'react-apexcharts';
+// Syncfusion Grid only
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Propiedades = () => {
@@ -22,18 +26,42 @@ const Propiedades = () => {
   // Estados para las vistas
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
+
+  const [propiedades, setPropiedades] = useState([]);
+  const [agentes, setAgentes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [editingPropiedadId, setEditingPropiedadId] = useState(null);
+  const [adjuntos, setAdjuntos] = useState([]);
+  const [adjuntosLoading, setAdjuntosLoading] = useState(false);
+  const [adjuntosError, setAdjuntosError] = useState('');
+
+  const [filesFotos, setFilesFotos] = useState([]);
+  const [filesDocumentos, setFilesDocumentos] = useState([]);
+  const [filesPlanos, setFilesPlanos] = useState([]);
+
+  const [videoUrlDraft, setVideoUrlDraft] = useState('');
   
   // Estado para el formulario de nueva propiedad
   const [nuevaPropiedad, setNuevaPropiedad] = useState({
     titulo: '',
     tipo: 'Departamento',
+    categoria: '',
     operacion: 'Venta',
+    featured: false,
     precio: '',
+    precioOferta: '',
+    precioPorM2: '',
+    tipoEstructura: '',
+    idPropiedad: '',
     moneda: 'USD',
+    unidadPrecio: 'month',
     direccion: '',
     barrio: '',
     ciudad: 'Buenos Aires',
     provincia: 'Buenos Aires',
+    pais: 'AR',
     codigoPostal: '',
     m2Totales: '',
     m2Cubiertos: '',
@@ -41,210 +69,51 @@ const Propiedades = () => {
     dormitorios: '',
     baños: '',
     cocheras: '',
+    balcon: '',
+    piso: '',
+    armario: '',
+    tv: '',
+    purificadorAgua: '',
+    microondas: '',
+    aireAcondicionado: '',
+    refrigerador: '',
+    tamanoGaraje: '',
+    disponibleDesde: '',
+    anioConstruccion: '',
+    cortinas: '',
     antiguedad: '',
     estado: 'Disponible',
     descripcion: '',
     amenities: [],
+    videoUrls: [],
     agente: '',
     comision: '3',
   });
 
-  const propiedades = [
-    { 
-      id: 1, 
-      titulo: 'Depto 2amb Palermo', 
-      tipo: 'Departamento', 
-      estado: 'Disponible', 
-      precio: 150000, 
-      moneda: 'USD',
-      operacion: 'Venta',
-      m2: 45, 
-      m2Cubiertos: 40,
-      ambientes: 2,
-      dormitorios: 1,
-      baños: 1,
-      cocheras: 0,
-      antiguedad: 5,
-      direccion: 'Av. Santa Fe 3456',
-      barrio: 'Palermo',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      codigoPostal: 'C1425',
-      descripcion: 'Hermoso departamento de 2 ambientes en el corazón de Palermo. Luminoso, con balcón y excelente distribución. Edificio con amenities.',
-      amenities: ['Balcón', 'Gimnasio', 'Seguridad 24hs', 'Laundry'],
-      agente: 'Ana López', 
-      visitas: 1248, 
-      fotos: 8,
-      fechaPublicacion: '2025-09-15',
-      comision: 3
-    },
-    { 
-      id: 2, 
-      titulo: 'Casa 3amb Belgrano', 
-      tipo: 'Casa', 
-      estado: 'Reservada', 
-      precio: 280000, 
-      moneda: 'USD',
-      operacion: 'Venta',
-      m2: 120, 
-      m2Cubiertos: 95,
-      ambientes: 3,
-      dormitorios: 2,
-      baños: 2,
-      cocheras: 1,
-      antiguedad: 10,
-      direccion: 'Cabildo 2345',
-      barrio: 'Belgrano',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      codigoPostal: 'C1428',
-      descripcion: 'Casa de estilo clásico en Belgrano. Amplio jardín, parrilla y cochera. Ideal para familias.',
-      amenities: ['Jardín', 'Parrilla', 'Cochera', 'Terraza'],
-      agente: 'Carlos Ruiz', 
-      visitas: 932, 
-      fotos: 12,
-      fechaPublicacion: '2025-08-20',
-      comision: 3.5
-    },
-    { 
-      id: 3, 
-      titulo: 'Oficina Microcentro', 
-      tipo: 'Oficina', 
-      estado: 'Vendida', 
-      precio: 95000, 
-      moneda: 'USD',
-      operacion: 'Venta',
-      m2: 35, 
-      m2Cubiertos: 35,
-      ambientes: 1,
-      dormitorios: 0,
-      baños: 1,
-      cocheras: 0,
-      antiguedad: 15,
-      direccion: 'Florida 456',
-      barrio: 'Microcentro',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      codigoPostal: 'C1005',
-      descripcion: 'Oficina comercial en pleno microcentro. Excelente ubicación cerca del subte. Lista para usar.',
-      amenities: ['Aire Acondicionado', 'Seguridad 24hs', 'Ascensor'],
-      agente: 'Laura Fernández', 
-      visitas: 678, 
-      fotos: 6,
-      fechaPublicacion: '2025-07-10',
-      comision: 4
-    },
-    { 
-      id: 4, 
-      titulo: 'PH 4amb Colegiales', 
-      tipo: 'PH', 
-      estado: 'Disponible', 
-      precio: 320000, 
-      moneda: 'USD',
-      operacion: 'Venta',
-      m2: 85, 
-      m2Cubiertos: 70,
-      ambientes: 4,
-      dormitorios: 3,
-      baños: 2,
-      cocheras: 1,
-      antiguedad: 3,
-      direccion: 'Zapiola 1234',
-      barrio: 'Colegiales',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      codigoPostal: 'C1426',
-      descripcion: 'PH moderno con terraza propia. Excelente iluminación natural. Cocina integrada y parrilla en terraza.',
-      amenities: ['Terraza', 'Parrilla', 'Cochera', 'Balcón', 'Aire Acondicionado'],
-      agente: 'Sofía Torres', 
-      visitas: 544, 
-      fotos: 15,
-      fechaPublicacion: '2025-09-01',
-      comision: 3
-    },
-    { 
-      id: 5, 
-      titulo: 'Local Comercial Recoleta', 
-      tipo: 'Local', 
-      estado: 'Alquilada', 
-      precio: 180000, 
-      moneda: 'USD',
-      operacion: 'Alquiler',
-      m2: 60, 
-      m2Cubiertos: 60,
-      ambientes: 2,
-      dormitorios: 0,
-      baños: 1,
-      cocheras: 0,
-      antiguedad: 20,
-      direccion: 'Av. Callao 987',
-      barrio: 'Recoleta',
-      ciudad: 'Buenos Aires',
-      provincia: 'Buenos Aires',
-      codigoPostal: 'C1022',
-      descripcion: 'Local comercial a la calle en zona premium de Recoleta. Gran vidriera y alto tránsito peatonal.',
-      amenities: ['Aire Acondicionado', 'Vidriera'],
-      agente: 'Marcos Silva', 
-      visitas: 423, 
-      fotos: 5,
-      fechaPublicacion: '2025-06-15',
-      comision: 5
-    },
-  ];
-
-  // KPIs de Propiedades
-  const kpisPropiedades = [
-    { title: 'Total Propiedades', value: propiedades.length, desc: '3 nuevas esta semana', icon: <FaHome />, color: 'from-blue-500 to-blue-600' },
-    { title: 'Valor Total Portfolio', value: `$${(propiedades.reduce((sum, p) => sum + p.precio, 0) / 1000).toFixed(0)}K`, desc: 'Inventario completo', icon: <FaDollarSign />, color: 'from-green-500 to-green-600' },
-    { title: 'Visitas Totales', value: propiedades.reduce((sum, p) => sum + p.visitas, 0).toLocaleString(), desc: 'Este mes', icon: <FaEye />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Fotos Subidas', value: propiedades.reduce((sum, p) => sum + p.fotos, 0), desc: 'Galería completa', icon: <FaCamera />, color: 'from-orange-500 to-orange-600' },
-  ];
-
-  // Datos para gráficos
-  const estadosData = [
-    { estado: 'Disponible', cantidad: propiedades.filter(p => p.estado === 'Disponible').length, fill: '#10B981' },
-    { estado: 'Reservada', cantidad: propiedades.filter(p => p.estado === 'Reservada').length, fill: '#F59E0B' },
-    { estado: 'Vendida', cantidad: propiedades.filter(p => p.estado === 'Vendida').length, fill: '#6B7280' },
-    { estado: 'Alquilada', cantidad: propiedades.filter(p => p.estado === 'Alquilada').length, fill: '#3B82F6' },
-  ];
-
-  const tiposData = [
-    { tipo: 'Departamento', cantidad: propiedades.filter(p => p.tipo === 'Departamento').length },
-    { tipo: 'Casa', cantidad: propiedades.filter(p => p.tipo === 'Casa').length },
-    { tipo: 'Oficina', cantidad: propiedades.filter(p => p.tipo === 'Oficina').length },
-    { tipo: 'PH', cantidad: propiedades.filter(p => p.tipo === 'PH').length },
-    { tipo: 'Local', cantidad: propiedades.filter(p => p.tipo === 'Local').length },
-  ];
-
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
-
-  // Función para manejar cambios en el formulario
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNuevaPropiedad(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Nueva propiedad:', nuevaPropiedad);
-    // Aquí iría la lógica para guardar en la base de datos
-    alert('Propiedad guardada exitosamente!');
-    setShowModal(false);
-    // Resetear formulario
+  const openCreateModal = () => {
+    setEditingPropiedadId(null);
+    setFilesFotos([]);
+    setFilesDocumentos([]);
+    setFilesPlanos([]);
+    setVideoUrlDraft('');
     setNuevaPropiedad({
       titulo: '',
       tipo: 'Departamento',
+      categoria: '',
       operacion: 'Venta',
+      featured: false,
       precio: '',
+      precioOferta: '',
+      precioPorM2: '',
+      tipoEstructura: '',
+      idPropiedad: '',
       moneda: 'USD',
+      unidadPrecio: 'month',
       direccion: '',
       barrio: '',
       ciudad: 'Buenos Aires',
       provincia: 'Buenos Aires',
+      pais: 'AR',
       codigoPostal: '',
       m2Totales: '',
       m2Cubiertos: '',
@@ -252,13 +121,603 @@ const Propiedades = () => {
       dormitorios: '',
       baños: '',
       cocheras: '',
+      balcon: '',
+      piso: '',
+      armario: '',
+      tv: '',
+      purificadorAgua: '',
+      microondas: '',
+      aireAcondicionado: '',
+      refrigerador: '',
+      tamanoGaraje: '',
+      disponibleDesde: '',
+      anioConstruccion: '',
+      cortinas: '',
       antiguedad: '',
       estado: 'Disponible',
       descripcion: '',
       amenities: [],
+      videoUrls: [],
       agente: '',
       comision: '3',
     });
+    setShowModal(true);
+  };
+
+  const handleEditPropiedad = (prop) => {
+    if (!prop) return;
+    setEditingPropiedadId(prop.id || null);
+    setFilesFotos([]);
+    setFilesDocumentos([]);
+    setFilesPlanos([]);
+    setVideoUrlDraft('');
+    setNuevaPropiedad({
+      titulo: prop.titulo || '',
+      tipo: prop.tipo || 'Departamento',
+      categoria: prop.categoria || '',
+      operacion: prop.operacion || 'Venta',
+      featured: !!prop.featured,
+      precio: prop.precio || '',
+      precioOferta: prop.precioOferta || '',
+      precioPorM2: prop.precioPorM2 || '',
+      tipoEstructura: prop.tipoEstructura || '',
+      idPropiedad: prop.idPropiedad || '',
+      moneda: prop.moneda || 'USD',
+      unidadPrecio: prop.unidadPrecio || 'month',
+      direccion: prop.direccion || '',
+      barrio: prop.barrio || '',
+      ciudad: prop.ciudad || 'Buenos Aires',
+      provincia: prop.provincia || 'Buenos Aires',
+      pais: prop.pais || 'AR',
+      codigoPostal: prop.codigoPostal || '',
+      m2Totales: prop.m2 || '',
+      m2Cubiertos: prop.m2Cubiertos || '',
+      ambientes: prop.ambientes || '',
+      dormitorios: prop.dormitorios || '',
+      baños: prop.baños || '',
+      cocheras: prop.cocheras || '',
+      balcon: prop.balcon || '',
+      piso: prop.piso || '',
+      armario: prop.armario || '',
+      tv: prop.tv || '',
+      purificadorAgua: prop.purificadorAgua || '',
+      microondas: prop.microondas || '',
+      aireAcondicionado: prop.aireAcondicionado || '',
+      refrigerador: prop.refrigerador || '',
+      tamanoGaraje: prop.tamanoGaraje || '',
+      disponibleDesde: prop.disponibleDesde || '',
+      anioConstruccion: prop.anioConstruccion || '',
+      cortinas: prop.cortinas || '',
+      antiguedad: prop.antiguedad || '',
+      estado: prop.estado || 'Disponible',
+      descripcion: prop.descripcion || '',
+      amenities: Array.isArray(prop.amenities) ? prop.amenities : [],
+      videoUrls: Array.isArray(prop.videoUrls) ? prop.videoUrls : [],
+      agente: prop.agenteId || '',
+      comision: String(prop.comision ?? '3'),
+    });
+    setShowModal(true);
+  };
+
+  const downloadOrOpenDoc = async (doc, mode) => {
+    if (!doc || !doc.url) return;
+    const absolute = String(doc.url).startsWith('http') ? String(doc.url) : `${API_CONFIG.baseURL}${doc.url}`;
+
+    if (String(doc.url).startsWith('http')) {
+      if (mode === 'view') {
+        window.open(absolute, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = absolute;
+      a.download = doc.nombre || 'archivo';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return;
+    }
+
+    const token = getAuthToken();
+    const res = await fetch(absolute, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Error al descargar archivo');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const filename = doc.nombre || 'archivo';
+
+    if (mode === 'view') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return;
+    }
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const loadAdjuntos = async (propId) => {
+    if (!propId) {
+      setAdjuntos([]);
+      return;
+    }
+    setAdjuntosLoading(true);
+    setAdjuntosError('');
+    try {
+      const links = await crmService.links.getByEntity('propiedad', propId);
+      setAdjuntos(Array.isArray(links) ? links : []);
+    } catch (e) {
+      setAdjuntos([]);
+      setAdjuntosError(e?.message || 'Error al cargar archivos');
+    } finally {
+      setAdjuntosLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const id = propiedadSeleccionada && propiedadSeleccionada.id ? propiedadSeleccionada.id : null;
+    if (vistaActual !== 'detalle' || !id) {
+      setAdjuntos([]);
+      setAdjuntosError('');
+      return;
+    }
+    loadAdjuntos(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vistaActual, propiedadSeleccionada && propiedadSeleccionada.id]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [agentesData, propiedadesData] = await Promise.all([
+          crmService.agentes.getAll(),
+          crmService.propiedades.getAll(),
+        ]);
+
+        if (!mounted) return;
+        setAgentes(Array.isArray(agentesData) ? agentesData : []);
+
+        const agentesById = new Map((Array.isArray(agentesData) ? agentesData : []).map((a) => [String(a._id), a]));
+        const mapped = (Array.isArray(propiedadesData) ? propiedadesData : []).map((p) => {
+          const meta = p.metadata || {};
+          const agenteDoc = p.agentId ? agentesById.get(String(p.agentId)) : null;
+          const agenteNombre = meta.agenteNombre || (agenteDoc ? agenteDoc.nombre : '');
+
+          return {
+            id: p._id,
+            titulo: p.title || meta.titulo || '',
+            tipo: meta.tipo || 'Departamento',
+            categoria: meta.categoria || '',
+            featured: !!(p.featured != null ? p.featured : meta.featured),
+            operacion: meta.operacion || 'Venta',
+            unidadPrecio: meta.unit || 'month',
+            precio: typeof p.price === 'number' ? p.price : Number(meta.precio || 0),
+            moneda: p.moneda || meta.moneda || 'ARS',
+            precioOferta: meta.precioOferta != null ? Number(meta.precioOferta || 0) : '',
+            precioPorM2: meta.precioPorM2 != null ? Number(meta.precioPorM2 || 0) : '',
+            tipoEstructura: meta.tipoEstructura || '',
+            idPropiedad: meta.idPropiedad || '',
+            direccion: p.address || meta.direccion || '',
+            barrio: meta.barrio || '',
+            ciudad: meta.ciudad || '',
+            provincia: meta.provincia || '',
+            pais: meta.pais || meta.country || 'AR',
+            codigoPostal: meta.codigoPostal || '',
+            descripcion: p.description || meta.descripcion || '',
+            amenities: Array.isArray(meta.amenities) ? meta.amenities : [],
+            videoUrls: Array.isArray(meta.videoUrls)
+              ? meta.videoUrls
+              : meta.videoUrl
+                ? [meta.videoUrl]
+                : [],
+            agente: agenteNombre,
+            agenteId: meta.agenteId || p.agentId || '',
+            visitas: Number(meta.visitas || 0),
+            fotos: Number(meta.fotos || 0),
+            fechaPublicacion: meta.fechaPublicacion || '',
+            comision: Number(meta.comision || 0),
+            m2: Number(meta.m2Totales || meta.m2 || 0),
+            m2Cubiertos: Number(meta.m2Cubiertos || 0),
+            ambientes: Number(meta.ambientes || 0),
+            dormitorios: Number(meta.dormitorios || 0),
+            baños: Number(meta.baños || 0),
+            cocheras: Number(meta.cocheras || 0),
+            balcon: meta.balcon || '',
+            piso: meta.piso || '',
+            armario: meta.armario || '',
+            tv: meta.tv || '',
+            purificadorAgua: meta.purificadorAgua || '',
+            microondas: meta.microondas || '',
+            aireAcondicionado: meta.aireAcondicionado || '',
+            refrigerador: meta.refrigerador || '',
+            tamanoGaraje: meta.tamanoGaraje || '',
+            disponibleDesde: meta.disponibleDesde || '',
+            anioConstruccion: meta.anioConstruccion || '',
+            cortinas: meta.cortinas || '',
+            antiguedad: Number(meta.antiguedad || 0),
+            estado: p.status || meta.estado || 'Disponible',
+          };
+        });
+
+        setPropiedades(mapped);
+      } catch (e) {
+        if (!mounted) return;
+        setError(e?.message || 'Error al cargar propiedades');
+      } finally {
+        if (!mounted) return;
+        setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // KPIs de Propiedades
+  const totalValorPortfolio = propiedades.reduce((sum, p) => sum + (Number(p.precio || 0) || 0), 0);
+  const totalVisitas = propiedades.reduce((sum, p) => sum + (Number(p.visitas || 0) || 0), 0);
+  const totalFotos = propiedades.reduce((sum, p) => sum + (Number(p.fotos || 0) || 0), 0);
+  const disponibles = propiedades.filter(p => p.estado === 'Disponible').length;
+  const reservadas = propiedades.filter(p => p.estado === 'Reservada').length;
+
+  const kpisPropiedades = [
+    { title: 'Total Propiedades', value: propiedades.length, desc: `${disponibles} disponibles`, icon: <FaHome />, color: 'from-blue-500 to-blue-600', trend: '+8%' },
+    { title: 'Valor Portfolio', value: `$${(totalValorPortfolio / 1000000).toFixed(1)}M`, desc: 'Inventario activo', icon: <FaDollarSign />, color: 'from-emerald-500 to-emerald-600', trend: '+12%' },
+    { title: 'Visitas Totales', value: totalVisitas.toLocaleString(), desc: 'Últimos 30 días', icon: <FaEye />, color: 'from-violet-500 to-violet-600', trend: '+15%' },
+    { title: 'Reservadas', value: reservadas, desc: 'Próximas a cerrar', icon: <FaBuilding />, color: 'from-amber-500 to-amber-600', trend: '+5%' },
+  ];
+
+  // ApexCharts configurations
+  const estadosDonutOptions = {
+    chart: { type: 'donut', height: 280, background: 'transparent' },
+    labels: ['Disponible', 'Reservada', 'Vendida', 'Alquilada'],
+    colors: ['#10B981', '#F59E0B', '#6B7280', '#3B82F6'],
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+            value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' },
+            total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => propiedades.length },
+          },
+        },
+      },
+    },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const estadosDonutSeries = [
+    propiedades.filter(p => p.estado === 'Disponible').length,
+    propiedades.filter(p => p.estado === 'Reservada').length,
+    propiedades.filter(p => p.estado === 'Vendida').length,
+    propiedades.filter(p => p.estado === 'Alquilada').length,
+  ];
+
+  const tiposBarOptions = {
+    chart: { type: 'bar', height: 280, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 8, horizontal: false, columnWidth: '60%', distributed: true } },
+    colors: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'],
+    dataLabels: { enabled: true, style: { colors: ['#fff'], fontSize: '11px', fontWeight: 600 } },
+    xaxis: {
+      categories: ['Depto', 'Casa', 'Oficina', 'PH', 'Local'],
+      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const tiposBarSeries = [{
+    name: 'Propiedades',
+    data: [
+      propiedades.filter(p => p.tipo === 'Departamento').length,
+      propiedades.filter(p => p.tipo === 'Casa').length,
+      propiedades.filter(p => p.tipo === 'Oficina').length,
+      propiedades.filter(p => p.tipo === 'PH').length,
+      propiedades.filter(p => p.tipo === 'Local').length,
+    ],
+  }];
+
+  const valorPorTipoOptions = {
+    chart: { type: 'area', height: 260, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#8B5CF6'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: {
+      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+      labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' }, formatter: (val) => `$${val}M` } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val}M` } },
+  };
+  const valorPorTipoSeries = [{ name: 'Valor Portfolio', data: [2.1, 2.4, 2.2, 2.8, 3.1, totalValorPortfolio / 1000000] }];
+
+  const ocupacionRadialOptions = {
+    chart: { type: 'radialBar', height: 220, background: 'transparent' },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '65%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '28px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Ocupación'],
+  };
+  const ocupacionPct = propiedades.length > 0 ? Math.round(((propiedades.filter(p => p.estado === 'Alquilada' || p.estado === 'Vendida').length) / propiedades.length) * 100) : 0;
+  const ocupacionRadialSeries = [ocupacionPct];
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:shadow-lg hover:scale-[1.01]';
+
+  // Función para manejar cambios en el formulario
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNuevaPropiedad(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Función para manejar el envío del formulario
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError('');
+
+      const agenteDoc = agentes.find((a) => String(a._id) === String(nuevaPropiedad.agente));
+      const agenteNombre = agenteDoc ? agenteDoc.nombre : '';
+
+      const payload = {
+        title: nuevaPropiedad.titulo,
+        description: nuevaPropiedad.descripcion,
+        address: nuevaPropiedad.direccion,
+        price: Number(nuevaPropiedad.precio || 0),
+        moneda: nuevaPropiedad.moneda,
+        featured: !!nuevaPropiedad.featured,
+        status: nuevaPropiedad.estado,
+        agentId: nuevaPropiedad.agente || undefined,
+        metadata: {
+          titulo: nuevaPropiedad.titulo,
+          tipo: nuevaPropiedad.tipo,
+          categoria: nuevaPropiedad.categoria,
+          operacion: nuevaPropiedad.operacion,
+          unit: nuevaPropiedad.unidadPrecio,
+          precio: Number(nuevaPropiedad.precio || 0),
+          moneda: nuevaPropiedad.moneda,
+          precioOferta: Number(nuevaPropiedad.precioOferta || 0),
+          precioPorM2: Number(nuevaPropiedad.precioPorM2 || 0),
+          tipoEstructura: nuevaPropiedad.tipoEstructura,
+          idPropiedad: nuevaPropiedad.idPropiedad,
+          direccion: nuevaPropiedad.direccion,
+          barrio: nuevaPropiedad.barrio,
+          ciudad: nuevaPropiedad.ciudad,
+          provincia: nuevaPropiedad.provincia,
+          pais: nuevaPropiedad.pais,
+          codigoPostal: nuevaPropiedad.codigoPostal,
+          m2Totales: Number(nuevaPropiedad.m2Totales || 0),
+          m2Cubiertos: Number(nuevaPropiedad.m2Cubiertos || 0),
+          ambientes: Number(nuevaPropiedad.ambientes || 0),
+          dormitorios: Number(nuevaPropiedad.dormitorios || 0),
+          baños: Number(nuevaPropiedad.baños || 0),
+          cocheras: Number(nuevaPropiedad.cocheras || 0),
+          balcon: nuevaPropiedad.balcon,
+          piso: nuevaPropiedad.piso,
+          armario: nuevaPropiedad.armario,
+          tv: nuevaPropiedad.tv,
+          purificadorAgua: nuevaPropiedad.purificadorAgua,
+          microondas: nuevaPropiedad.microondas,
+          aireAcondicionado: nuevaPropiedad.aireAcondicionado,
+          refrigerador: nuevaPropiedad.refrigerador,
+          tamanoGaraje: nuevaPropiedad.tamanoGaraje,
+          disponibleDesde: nuevaPropiedad.disponibleDesde,
+          anioConstruccion: nuevaPropiedad.anioConstruccion,
+          cortinas: nuevaPropiedad.cortinas,
+          antiguedad: Number(nuevaPropiedad.antiguedad || 0),
+          estado: nuevaPropiedad.estado,
+          descripcion: nuevaPropiedad.descripcion,
+          amenities: nuevaPropiedad.amenities,
+          videoUrls: Array.isArray(nuevaPropiedad.videoUrls) ? nuevaPropiedad.videoUrls : [],
+          agenteId: nuevaPropiedad.agente,
+          agenteNombre,
+          comision: Number(nuevaPropiedad.comision || 0),
+        },
+      };
+
+      const saved = editingPropiedadId
+        ? await crmService.propiedades.update(editingPropiedadId, payload)
+        : await crmService.propiedades.create(payload);
+
+      const mapped = {
+        id: saved._id,
+        titulo: saved.title || payload.metadata.titulo || '',
+        tipo: payload.metadata.tipo,
+        categoria: payload.metadata.categoria,
+        operacion: payload.metadata.operacion,
+        unidadPrecio: payload.metadata.unit,
+        precio: saved.price ?? payload.metadata.precio,
+        moneda: saved.moneda || payload.metadata.moneda,
+        featured: saved.featured ?? payload.featured,
+        precioOferta: payload.metadata.precioOferta,
+        precioPorM2: payload.metadata.precioPorM2,
+        tipoEstructura: payload.metadata.tipoEstructura,
+        idPropiedad: payload.metadata.idPropiedad,
+        direccion: saved.address || payload.metadata.direccion,
+        barrio: payload.metadata.barrio,
+        ciudad: payload.metadata.ciudad,
+        provincia: payload.metadata.provincia,
+        pais: payload.metadata.pais,
+        codigoPostal: payload.metadata.codigoPostal,
+        descripcion: saved.description || payload.metadata.descripcion,
+        amenities: payload.metadata.amenities,
+        videoUrls: payload.metadata.videoUrls,
+        agente: payload.metadata.agenteNombre,
+        agenteId: saved.agentId || payload.metadata.agenteId,
+        visitas: 0,
+        fotos: 0,
+        fechaPublicacion: '',
+        comision: payload.metadata.comision,
+        m2: payload.metadata.m2Totales,
+        m2Cubiertos: payload.metadata.m2Cubiertos,
+        ambientes: payload.metadata.ambientes,
+        dormitorios: payload.metadata.dormitorios,
+        baños: payload.metadata.baños,
+        cocheras: payload.metadata.cocheras,
+        balcon: payload.metadata.balcon,
+        piso: payload.metadata.piso,
+        armario: payload.metadata.armario,
+        tv: payload.metadata.tv,
+        purificadorAgua: payload.metadata.purificadorAgua,
+        microondas: payload.metadata.microondas,
+        aireAcondicionado: payload.metadata.aireAcondicionado,
+        refrigerador: payload.metadata.refrigerador,
+        tamanoGaraje: payload.metadata.tamanoGaraje,
+        disponibleDesde: payload.metadata.disponibleDesde,
+        anioConstruccion: payload.metadata.anioConstruccion,
+        cortinas: payload.metadata.cortinas,
+        antiguedad: payload.metadata.antiguedad,
+        estado: saved.status || payload.metadata.estado,
+      };
+
+      setPropiedades((prev) => {
+        const idx = prev.findIndex((p) => String(p.id) === String(mapped.id));
+        if (idx === -1) return [mapped, ...prev];
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...mapped };
+        return next;
+      });
+
+      if (propiedadSeleccionada && String(propiedadSeleccionada.id) === String(mapped.id)) {
+        setPropiedadSeleccionada(mapped);
+      }
+
+      const uploadGroup = async (files, categoria) => {
+        const arr = Array.isArray(files) ? files : [];
+        if (!arr.length) return [];
+        const resp = await documentService.upload(arr, {
+          fields: { categoria, relacionado: `Propiedad:${mapped.id}` },
+          headers: { 'x-domain': 'crm' },
+        });
+        const uploaded = resp && resp.uploaded ? resp.uploaded : [];
+        await Promise.all((Array.isArray(uploaded) ? uploaded : []).map((d) => crmService.links.link({ documentId: d._id, entityType: 'propiedad', entityId: mapped.id })));
+        return Array.isArray(uploaded) ? uploaded : [];
+      };
+
+      const upFotos = await uploadGroup(filesFotos, 'Propiedad - Fotos');
+      await uploadGroup(filesDocumentos, 'Propiedad - Documentos');
+      await uploadGroup(filesPlanos, 'Propiedad - Planos');
+
+      const fotosAdded = Array.isArray(upFotos) ? upFotos.length : 0;
+      if (fotosAdded > 0) {
+        const nextFotos = Number((propiedadSeleccionada && String(propiedadSeleccionada.id) === String(mapped.id) ? propiedadSeleccionada.fotos : mapped.fotos) || 0) + fotosAdded;
+        setPropiedades((prev) => prev.map((p) => (String(p.id) === String(mapped.id) ? { ...p, fotos: nextFotos } : p)));
+        if (propiedadSeleccionada && String(propiedadSeleccionada.id) === String(mapped.id)) {
+          setPropiedadSeleccionada((cur) => (cur ? { ...cur, fotos: nextFotos } : cur));
+        }
+      }
+
+      setEditingPropiedadId(null);
+      setFilesFotos([]);
+      setFilesDocumentos([]);
+      setFilesPlanos([]);
+      setVideoUrlDraft('');
+      setShowModal(false);
+
+      // Resetear formulario
+      setNuevaPropiedad({
+        titulo: '',
+        tipo: 'Departamento',
+        categoria: '',
+        operacion: 'Venta',
+        featured: false,
+        precio: '',
+        precioOferta: '',
+        precioPorM2: '',
+        tipoEstructura: '',
+        idPropiedad: '',
+        moneda: 'USD',
+        unidadPrecio: 'month',
+        direccion: '',
+        barrio: '',
+        ciudad: 'Buenos Aires',
+        provincia: 'Buenos Aires',
+        pais: 'AR',
+        codigoPostal: '',
+        m2Totales: '',
+        m2Cubiertos: '',
+        ambientes: '',
+        dormitorios: '',
+        baños: '',
+        cocheras: '',
+        balcon: '',
+        piso: '',
+        armario: '',
+        tv: '',
+        purificadorAgua: '',
+        microondas: '',
+        aireAcondicionado: '',
+        refrigerador: '',
+        tamanoGaraje: '',
+        disponibleDesde: '',
+        anioConstruccion: '',
+        cortinas: '',
+        antiguedad: '',
+        estado: 'Disponible',
+        descripcion: '',
+        amenities: [],
+        videoUrls: [],
+        agente: '',
+        comision: '3',
+      });
+    } catch (e) {
+      setError(e?.message || 'Error al guardar propiedad');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const eliminarPropiedad = async (prop) => {
+    if (!prop?.id) return;
+    const ok = window.confirm('¿Eliminar esta propiedad?');
+    if (!ok) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      await crmService.propiedades.delete(prop.id);
+      setPropiedades((prev) => prev.filter((p) => String(p.id) !== String(prop.id)));
+      setVistaActual('dashboard');
+      setPropiedadSeleccionada(null);
+    } catch (e) {
+      setError(e?.message || 'Error al eliminar propiedad');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Amenities disponibles
@@ -283,6 +742,12 @@ const Propiedades = () => {
   return (
     <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
       <Header category="Propiedades" title="🏠 Gestión de Propiedades" />
+
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
+          {error}
+        </div>
+      )}
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -295,7 +760,7 @@ const Propiedades = () => {
           </button>
         )}
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaPlus /> Nueva Propiedad
@@ -316,8 +781,8 @@ const Propiedades = () => {
       {/* Vista Dashboard */}
       {vistaActual === 'dashboard' && (
         <>
-      {/* KPIs de Propiedades - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+      {/* KPIs de Propiedades - Estilo moderno con tendencias */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         {kpisPropiedades.map((kpi, i) => (
           <div 
             key={i} 
@@ -327,70 +792,112 @@ const Propiedades = () => {
               else if (i === 2) setShowModalVisitasTotales(true);
               else if (i === 3) setShowModalFotosSubidas(true);
             }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
+            className={`${cardBase} overflow-hidden relative cursor-pointer`}
           >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
+                    {kpi.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{kpi.title}</p>
+                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">{kpi.value}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
+                    {kpi.trend}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Gráficos de Estados y Tipos */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Gráfico de Estados */}
+      {/* Gráficos Principales - ApexCharts */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+        {/* Tasa de Ocupación */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Estados de Propiedades</h3>
-          <AccumulationChartComponent
-            id="estados-chart"
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="300px"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={estadosData}
-                xName="estado"
-                yName="cantidad"
-                name="Propiedades"
-                innerRadius="40%"
-                dataLabel={{ visible: true, name: 'estado', position: 'Outside' }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaHome className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100">Ocupación</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Propiedades ocupadas</p>
+          <Chart options={ocupacionRadialOptions} series={ocupacionRadialSeries} type="radialBar" height={200} />
+          <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{propiedades.filter(p => p.estado === 'Alquilada' || p.estado === 'Vendida').length}</p>
+              <p className="text-xs text-gray-500">Ocupadas</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-500">{propiedades.filter(p => p.estado === 'Disponible').length}</p>
+              <p className="text-xs text-gray-500">Libres</p>
+            </div>
+          </div>
         </div>
 
-        {/* Gráfico de Tipos */}
+        {/* Estado de Propiedades - Donut */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipos de Propiedades</h3>
-          <ChartComponent
-            id="tipos-chart"
-            primaryXAxis={{ valueType: 'Category', title: 'Tipos' }}
-            primaryYAxis={{ title: 'Cantidad' }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: false }}
-            height="300px"
-          >
-            <Inject services={[ColumnSeries, Category, Tooltip]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Column"
-                dataSource={tiposData}
-                xName="tipo"
-                yName="cantidad"
-                name="Cantidad"
-                fill={currentColor || '#3B82F6'}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <div className="flex items-center gap-2 mb-1">
+            <FaBuilding className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100">Estados</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual</p>
+          <Chart options={estadosDonutOptions} series={estadosDonutSeries} type="donut" height={260} />
+        </div>
+
+        {/* Tipos de Propiedades - Bar */}
+        <div className={`xl:col-span-2 ${cardBase}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaThLarge className="text-violet-500" />
+            <h3 className="font-semibold dark:text-gray-100">Por Tipología</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Cantidad por tipo de propiedad</p>
+          <Chart options={tiposBarOptions} series={tiposBarSeries} type="bar" height={260} />
+        </div>
+      </div>
+
+      {/* Gráfico de Valor Portfolio - Full Width */}
+      <div className="mb-8">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaDollarSign className="text-violet-500" />
+                <h3 className="font-semibold dark:text-gray-100">Evolución del Portfolio</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Valor total de propiedades por mes</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-violet-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Valor Portfolio</span>
+              </div>
+            </div>
+          </div>
+          <Chart options={valorPorTipoOptions} series={valorPorTipoSeries} type="area" height={240} />
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+              <p className="text-xl font-bold text-violet-600 dark:text-violet-400">${(totalValorPortfolio / 1000000).toFixed(1)}M</p>
+              <p className="text-xs text-gray-500">Total Actual</p>
+            </div>
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{propiedades.length}</p>
+              <p className="text-xs text-gray-500">Propiedades</p>
+            </div>
+            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">${propiedades.length > 0 ? (totalValorPortfolio / propiedades.length / 1000).toFixed(0) : 0}K</p>
+              <p className="text-xs text-gray-500">Promedio</p>
+            </div>
+            <div className="text-center p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">+12%</p>
+              <p className="text-xs text-gray-500">vs Mes Ant.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -579,10 +1086,10 @@ const Propiedades = () => {
               }`}>
                 {propiedadSeleccionada.estado}
               </span>
-              <button className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors flex items-center gap-2">
+              <button onClick={() => handleEditPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors flex items-center gap-2">
                 <FaEdit /> Editar
               </button>
-              <button className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2">
+              <button onClick={() => eliminarPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2" disabled={loading}>
                 <FaTrash /> Eliminar
               </button>
             </div>
@@ -682,6 +1189,65 @@ const Propiedades = () => {
                   ))}
                 </div>
               </div>
+
+              <div className={cardBase}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold dark:text-gray-100">📎 Archivos</h3>
+                  {adjuntosLoading && <span className="text-sm text-gray-500 dark:text-gray-400">Cargando...</span>}
+                </div>
+
+                {adjuntosError && (
+                  <div className="mb-3 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                    {adjuntosError}
+                  </div>
+                )}
+
+                {!adjuntosLoading && (!adjuntos || adjuntos.length === 0) && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Sin archivos vinculados.</div>
+                )}
+
+                {Array.isArray(adjuntos) && adjuntos.length > 0 && (
+                  <div className="space-y-3">
+                    {adjuntos.map((l) => {
+                      const d = l && l.document ? l.document : null;
+                      const docId = d && d._id ? d._id : null;
+                      return (
+                        <div key={l._id} className="flex items-center justify-between gap-3 p-3 border dark:border-gray-700 rounded-lg">
+                          <div className="min-w-0">
+                            <div className="font-semibold dark:text-gray-100 truncate">{d ? d.nombre : 'Documento'}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{d ? `${d.tipo || ''}${d.categoria ? ` • ${d.categoria}` : ''}` : ''}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => downloadOrOpenDoc(d, 'view')} className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
+                              Ver
+                            </button>
+                            <button type="button" onClick={() => downloadOrOpenDoc(d, 'download')} className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
+                              Descargar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!docId) return;
+                                const ok = window.confirm('¿Desvincular este archivo?');
+                                if (!ok) return;
+                                try {
+                                  await crmService.links.unlink({ documentId: docId, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
+                                  setAdjuntos((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x._id) !== String(l._id)) : prev));
+                                } catch (e) {
+                                  setAdjuntosError(e?.message || 'Error al desvincular archivo');
+                                }
+                              }}
+                              className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600"
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Columna Lateral */}
@@ -769,7 +1335,7 @@ const Propiedades = () => {
             <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaHome /> Nueva Propiedad
+                  <FaHome /> {editingPropiedadId ? 'Editar Propiedad' : 'Nueva Propiedad'}
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">Complete los datos de la propiedad</p>
               </div>
@@ -828,6 +1394,20 @@ const Propiedades = () => {
 
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Categoría
+                    </label>
+                    <input
+                      type="text"
+                      name="categoria"
+                      value={nuevaPropiedad.categoria}
+                      onChange={handleInputChange}
+                      placeholder="Ej: Residencial"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
                       Operación *
                     </label>
                     <select
@@ -857,6 +1437,19 @@ const Propiedades = () => {
                         <option value="USD">USD</option>
                         <option value="ARS">ARS</option>
                       </select>
+                      {String(nuevaPropiedad.operacion || '').toLowerCase().includes('alquil') ? (
+                        <select
+                          name="unidadPrecio"
+                          value={nuevaPropiedad.unidadPrecio}
+                          onChange={handleInputChange}
+                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        >
+                          <option value="month">Mes</option>
+                          <option value="week">Semana</option>
+                          <option value="day">Día</option>
+                          <option value="night">Noche</option>
+                        </select>
+                      ) : null}
                       <input
                         type="number"
                         name="precio"
@@ -867,6 +1460,20 @@ const Propiedades = () => {
                         className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Precio de Oferta
+                    </label>
+                    <input
+                      type="number"
+                      name="precioOferta"
+                      value={nuevaPropiedad.precioOferta}
+                      onChange={handleInputChange}
+                      placeholder="140000"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
                   </div>
 
                   <div>
@@ -885,6 +1492,19 @@ const Propiedades = () => {
                       <option value="Vendida">Vendida</option>
                       <option value="Alquilada">Alquilada</option>
                     </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
+                      <input
+                        type="checkbox"
+                        name="featured"
+                        checked={!!nuevaPropiedad.featured}
+                        onChange={handleInputChange}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      Featured
+                    </label>
                   </div>
                 </div>
               </div>
@@ -955,6 +1575,20 @@ const Propiedades = () => {
 
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      País
+                    </label>
+                    <input
+                      type="text"
+                      name="pais"
+                      value={nuevaPropiedad.pais}
+                      onChange={handleInputChange}
+                      placeholder="AR"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
                       Código Postal
                     </label>
                     <input
@@ -975,6 +1609,47 @@ const Propiedades = () => {
                   <FaHome className="text-green-500" /> Características
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      ID de la propiedad
+                    </label>
+                    <input
+                      type="text"
+                      name="idPropiedad"
+                      value={nuevaPropiedad.idPropiedad}
+                      onChange={handleInputChange}
+                      placeholder="PROP-001"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Precio por m²
+                    </label>
+                    <input
+                      type="number"
+                      name="precioPorM2"
+                      value={nuevaPropiedad.precioPorM2}
+                      onChange={handleInputChange}
+                      placeholder="3500"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Tipo de estructura
+                    </label>
+                    <input
+                      type="text"
+                      name="tipoEstructura"
+                      value={nuevaPropiedad.tipoEstructura}
+                      onChange={handleInputChange}
+                      placeholder="Hormigón"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">
                       M² Totales *
@@ -1124,6 +1799,119 @@ const Propiedades = () => {
                 </div>
               </div>
 
+              <div>
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Multimedia</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Fotos
+                    </label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => setFilesFotos(Array.from(e.target.files || []))}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    {filesFotos.length ? (
+                      <div className="mt-2 text-sm dark:text-gray-200">
+                        {filesFotos.length} archivo(s) seleccionado(s)
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Planos
+                    </label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf"
+                      onChange={(e) => setFilesPlanos(Array.from(e.target.files || []))}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    {filesPlanos.length ? (
+                      <div className="mt-2 text-sm dark:text-gray-200">
+                        {filesPlanos.length} archivo(s) seleccionado(s)
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Documentos
+                    </label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.zip"
+                      onChange={(e) => setFilesDocumentos(Array.from(e.target.files || []))}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    {filesDocumentos.length ? (
+                      <div className="mt-2 text-sm dark:text-gray-200">
+                        {filesDocumentos.length} archivo(s) seleccionado(s)
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                    Videos (YouTube/Vimeo)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={videoUrlDraft}
+                      onChange={(e) => setVideoUrlDraft(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const v = String(videoUrlDraft || '').trim();
+                        if (!v) return;
+                        setNuevaPropiedad((prev) => ({
+                          ...prev,
+                          videoUrls: Array.from(new Set([...(prev.videoUrls || []), v])),
+                        }));
+                        setVideoUrlDraft('');
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  {(nuevaPropiedad.videoUrls || []).length ? (
+                    <div className="mt-3 space-y-2">
+                      {(nuevaPropiedad.videoUrls || []).map((u, idx) => (
+                        <div
+                          key={`${u}-${idx}`}
+                          className="flex items-center justify-between gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg"
+                        >
+                          <div className="text-sm dark:text-gray-200 break-all">{u}</div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNuevaPropiedad((prev) => ({
+                                ...prev,
+                                videoUrls: (prev.videoUrls || []).filter((x) => x !== u),
+                              }))
+                            }
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
               {/* Agente y Comisión */}
               <div>
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -1142,11 +1930,9 @@ const Propiedades = () => {
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     >
                       <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
+                      {agentes.map((a) => (
+                        <option key={a._id} value={a._id}>{a.nombre}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -1181,6 +1967,7 @@ const Propiedades = () => {
                   type="submit"
                   style={{ backgroundColor: currentColor }}
                   className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
+                  disabled={loading}
                 >
                   <FaSave /> Guardar Propiedad
                 </button>
@@ -1261,7 +2048,7 @@ const Propiedades = () => {
                   <FaDollarSign /> Valor Total del Portfolio
                 </h2>
                 <p className="text-green-100 text-sm mt-1">
-                  Total: ${propiedades.reduce((sum, p) => sum + p.precio, 0).toLocaleString()} USD
+                  Total: ${totalValorPortfolio.toLocaleString()} USD
                 </p>
               </div>
               <button onClick={() => setShowModalValorPortfolio(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
@@ -1271,7 +2058,7 @@ const Propiedades = () => {
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
-                {propiedades.sort((a, b) => b.precio - a.precio).map((prop) => (
+                {[...propiedades].sort((a, b) => b.precio - a.precio).map((prop) => (
                   <div key={prop.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -1307,19 +2094,19 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Valor Total</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${propiedades.reduce((sum, p) => sum + p.precio, 0).toLocaleString()}
+                      ${totalValorPortfolio.toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Comisión Potencial</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${propiedades.reduce((sum, p) => sum + (p.precio * p.comision / 100), 0).toLocaleString()}
+                      ${propiedades.reduce((sum, p) => sum + ((Number(p.precio || 0) || 0) * (Number(p.comision || 0) || 0) / 100), 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Precio Promedio</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${Math.round(propiedades.reduce((sum, p) => sum + p.precio, 0) / propiedades.length).toLocaleString()}
+                      ${Math.round(propiedades.length ? (totalValorPortfolio / propiedades.length) : 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1339,7 +2126,7 @@ const Propiedades = () => {
                   <FaEye /> Visitas Totales
                 </h2>
                 <p className="text-purple-100 text-sm mt-1">
-                  {propiedades.reduce((sum, p) => sum + p.visitas, 0).toLocaleString()} visitas totales
+                  {totalVisitas.toLocaleString()} visitas totales
                 </p>
               </div>
               <button onClick={() => setShowModalVisitasTotales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
@@ -1349,7 +2136,7 @@ const Propiedades = () => {
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
-                {propiedades.sort((a, b) => b.visitas - a.visitas).map((prop, index) => (
+                {[...propiedades].sort((a, b) => b.visitas - a.visitas).map((prop, index) => (
                   <div key={prop.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center gap-4">
                       <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
@@ -1379,7 +2166,7 @@ const Propiedades = () => {
                         <div className="mt-2 w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div 
                             className="bg-purple-600 h-2 rounded-full" 
-                            style={{ width: `${(prop.visitas / Math.max(...propiedades.map(p => p.visitas))) * 100}%` }}
+                            style={{ width: `${maxVisitas ? ((prop.visitas / maxVisitas) * 100) : 0}%` }}
                           />
                         </div>
                       </div>
@@ -1393,19 +2180,19 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Visitas</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {propiedades.reduce((sum, p) => sum + p.visitas, 0).toLocaleString()}
+                      {totalVisitas.toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Promedio por Propiedad</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {Math.round(propiedades.reduce((sum, p) => sum + p.visitas, 0) / propiedades.length).toLocaleString()}
+                      {Math.round(propiedades.length ? (totalVisitas / propiedades.length) : 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Más Visitada</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {Math.max(...propiedades.map(p => p.visitas)).toLocaleString()}
+                      {maxVisitas.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1425,7 +2212,7 @@ const Propiedades = () => {
                   <FaCamera /> Fotos Subidas
                 </h2>
                 <p className="text-orange-100 text-sm mt-1">
-                  {propiedades.reduce((sum, p) => sum + p.fotos, 0)} fotos en total
+                  {totalFotos} fotos en total
                 </p>
               </div>
               <button onClick={() => setShowModalFotosSubidas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
@@ -1435,7 +2222,7 @@ const Propiedades = () => {
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
-                {propiedades.sort((a, b) => b.fotos - a.fotos).map((prop) => (
+                {[...propiedades].sort((a, b) => b.fotos - a.fotos).map((prop) => (
                   <div key={prop.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -1465,7 +2252,7 @@ const Propiedades = () => {
                         <div className="text-center">
                           <p className="text-xs text-gray-500 dark:text-gray-400">Ratio</p>
                           <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                            {Math.round(prop.visitas / prop.fotos)}
+                            {prop.fotos ? Math.round(prop.visitas / prop.fotos) : 0}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">visitas/foto</p>
                         </div>
@@ -1495,19 +2282,19 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Fotos</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {propiedades.reduce((sum, p) => sum + p.fotos, 0)}
+                      {totalFotos}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Promedio por Propiedad</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {Math.round(propiedades.reduce((sum, p) => sum + p.fotos, 0) / propiedades.length)}
+                      {Math.round(propiedades.length ? (totalFotos / propiedades.length) : 0)}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Más Fotos</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {Math.max(...propiedades.map(p => p.fotos))}
+                      {maxFotos}
                     </p>
                   </div>
                   <div>

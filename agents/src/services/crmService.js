@@ -1,6 +1,13 @@
 import { api } from '../config/api';
 
 export const crmService = {
+  // ============ LINKS (DOCUMENTOS <-> ENTIDADES CRM) ============
+  links: {
+    getByEntity: (entityType, entityId) => api.get(`/crm/links?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`),
+    link: ({ documentId, entityType, entityId }) => api.post('/crm/link', { documentId, entityType, entityId }),
+    unlink: ({ documentId, entityType, entityId }) => api.post('/crm/unlink', { documentId, entityType, entityId }),
+  },
+
   // ============ PROPIEDADES ============
   propiedades: {
     getAll: () => api.get('/crm/propiedades'),
@@ -53,6 +60,11 @@ export const crmService = {
     create: (data) => api.post('/crm/tareas', data),
     update: (id, data) => api.put(`/crm/tareas/${id}`, data),
     delete: (id) => api.delete(`/crm/tareas/${id}`),
+    // Kanban endpoints
+    getKanban: () => api.get('/crm/tareas/kanban'),
+    getKanbanColumns: () => api.get('/crm/tareas/kanban/columns'),
+    saveKanbanColumns: (columns) => api.put('/crm/tareas/kanban/columns', { columns }),
+    moveTask: (id, kanbanColumn, position) => api.put(`/crm/tareas/kanban/move/${id}`, { kanbanColumn, position }),
   },
 
   // ============ ESTADÍSTICAS ============
@@ -61,6 +73,140 @@ export const crmService = {
     getPropiedadesStats: () => api.get('/crm/stats/propiedades'),
     getVentasStats: () => api.get('/crm/stats/ventas'),
     getAgentesStats: () => api.get('/crm/stats/agentes'),
+  },
+
+  // ============ NAVBAR SUMMARY ============
+  navbar: {
+    getSummary: () => api.get('/crm/navbar-summary'),
+  },
+
+  // ============ ACTIVIDADES (CONSULTAS / EVENTOS) ============
+  activities: {
+    getAll: (params = {}) => {
+      const q = params.q ? `q=${encodeURIComponent(params.q)}` : '';
+      const clientId = params.clientId ? `clientId=${encodeURIComponent(params.clientId)}` : '';
+      const propertyId = params.propertyId ? `propertyId=${encodeURIComponent(params.propertyId)}` : '';
+      const type = params.type ? `type=${encodeURIComponent(params.type)}` : '';
+      const parts = [q, clientId, propertyId, type].filter(Boolean);
+      const qs = parts.length ? `?${parts.join('&')}` : '';
+      return api.get(`/crm/activities${qs}`);
+    },
+    getById: (id) => api.get(`/crm/activities/${encodeURIComponent(id)}`),
+    create: (data) => api.post('/crm/activities', data),
+    update: (id, data) => api.put(`/crm/activities/${encodeURIComponent(id)}`, data),
+    delete: (id) => api.delete(`/crm/activities/${encodeURIComponent(id)}`),
+  },
+
+  // ============ INTEGRACIONES ============
+  integrations: {
+    googleCalendar: {
+      // OAuth credentials management (per-agent)
+      getCredentials: () => api.get('/crm/integrations/google-calendar/credentials'),
+      saveCredentials: (clientId, clientSecret) => api.put('/crm/integrations/google-calendar/credentials', { clientId, clientSecret }),
+      deleteCredentials: () => api.delete('/crm/integrations/google-calendar/credentials'),
+      // Calendar connection
+      status: () => api.get('/crm/integrations/google-calendar/status'),
+      getAuthUrl: () => api.get('/crm/integrations/google-calendar/auth-url'),
+      disconnect: () => api.post('/crm/integrations/google-calendar/disconnect', {}),
+    },
+    googleMaps: {
+      getConfig: () => api.get('/crm/integrations/google-maps/config'),
+      saveConfig: (data) => api.put('/crm/integrations/google-maps/config', data),
+      deleteConfig: () => api.delete('/crm/integrations/google-maps/config'),
+    },
+    googleCloud: {
+      getConfig: () => api.get('/crm/integrations/google-cloud/config'),
+      saveConfig: (data) => api.put('/crm/integrations/google-cloud/config', data),
+    },
+  },
+
+  // ============ RECOMPENSAS ============
+  rewards: {
+    getMy: () => api.get('/crm/rewards/my'),
+    getUnseen: () => api.get('/crm/rewards/unseen'),
+    markCelebrated: (rewardIds) => api.post('/crm/rewards/mark-celebrated', { rewardIds }),
+    getMetrics: (period = 'monthly') => api.get(`/crm/rewards/metrics?period=${period}`),
+    recordLogin: () => api.post('/crm/rewards/record-login', {}),
+    calculate: () => api.post('/crm/rewards/calculate', {}),
+    getSummary: () => api.get('/crm/rewards/summary'),
+    getAgentRewards: (agenteId) => api.get(`/crm/rewards/agent/${agenteId}`),
+  },
+
+  // ============ REPORTES ============
+  reports: {
+    getTypes: () => api.get('/crm/reports/types'),
+    getConfig: () => api.get('/crm/reports/config'),
+    updateConfig: (data) => api.put('/crm/reports/config', data),
+    getData: (reportId, params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return api.get(`/crm/reports/data/${reportId}${qs ? `?${qs}` : ''}`);
+    },
+    getAllData: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return api.get(`/crm/reports/all-data${qs ? `?${qs}` : ''}`);
+    },
+    generate: (data) => api.post('/crm/reports/generate', data),
+    sendToERP: (reportId) => api.post('/crm/reports/send-to-erp', { reportId }),
+    getHistory: () => api.get('/crm/reports/history'),
+  },
+
+  // ============ CHAT INTERNO ============
+  chat: {
+    // Get list of agents for chat
+    getAgents: () => api.get('/crm/messages/agents'),
+    
+    // Get all conversations for current user
+    getConversations: () => api.get('/crm/messages/conversations'),
+    
+    // Get message history with a specific user
+    getHistory: (partnerId, options = {}) => {
+      const params = new URLSearchParams();
+      if (options.limit) params.append('limit', options.limit);
+      if (options.before) params.append('before', options.before);
+      const qs = params.toString();
+      return api.get(`/crm/messages/history/${partnerId}${qs ? `?${qs}` : ''}`);
+    },
+    
+    // Send a message
+    send: (receiverId, content, options = {}) => api.post('/crm/messages/send', {
+      receiverId,
+      content,
+      contentType: options.contentType || 'text',
+      attachment: options.attachment,
+      receiverType: options.receiverType || 'agent'
+    }),
+    
+    // Mark messages as read
+    markAsRead: (partnerId) => api.put(`/crm/messages/read/${partnerId}`),
+    
+    // Get unread count
+    getUnreadCount: () => api.get('/crm/messages/unread'),
+    
+    // Delete a message
+    delete: (messageId) => api.delete(`/crm/messages/${messageId}`),
+    
+    // Update online status
+    setOnlineStatus: (online) => api.put('/crm/messages/status/online', { online }),
+    
+    // Search messages
+    search: (query, limit = 20) => api.get(`/crm/messages/search?q=${encodeURIComponent(query)}&limit=${limit}`),
+    
+    // Typing indicator
+    sendTyping: (partnerId, isTyping) => api.post('/crm/messages/typing', { partnerId, isTyping }),
+    
+    // Group chat
+    createGroup: (name, participantIds) => api.post('/crm/messages/group/create', { name, participantIds }),
+    sendToGroup: (groupId, content, contentType = 'text') => api.post(`/crm/messages/group/${groupId}/send`, { content, contentType }),
+    getGroupHistory: (groupId, options = {}) => {
+      const params = new URLSearchParams();
+      if (options.limit) params.append('limit', options.limit);
+      if (options.before) params.append('before', options.before);
+      const qs = params.toString();
+      return api.get(`/crm/messages/group/${groupId}/history${qs ? `?${qs}` : ''}`);
+    },
+    
+    // Broadcast (admin only)
+    broadcast: (content, contentType = 'text') => api.post('/crm/messages/broadcast', { content, contentType }),
   },
 };
 

@@ -3,19 +3,24 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import BuyGalleryItem from "../../buy-property/buy-details/buyGalleryItem";
 import RentRightForm from "./rentRightForm";
 import { all_routes } from "../../../../routes/all_routes";
+import publicService, { type PropertyDetail } from "../../../../../services/publicService";
 
 type SliderType = Slider;
 const Rentdetails = () => {
+  const { slug } = useParams<{ slug: string }>();
   const [mainSlider, setMainSlider] = useState<SliderType | undefined>(
     undefined
   );
   const [thumbSlider, setThumbSlider] = useState<SliderType | undefined>(
     undefined
   );
+
+  const [property, setProperty] = useState<PropertyDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const mainRef = useRef<SliderType>(null);
   const thumbRef = useRef<SliderType>(null);
@@ -57,6 +62,87 @@ const Rentdetails = () => {
     setThumbSlider(thumbRef.current ?? undefined);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+    const run = async () => {
+      if (!slug) {
+        setProperty(null);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const res = await publicService.getPropertyBySlug(slug);
+        if (!isMounted) return;
+        setProperty(res.item || null);
+      } catch {
+        if (!isMounted) return;
+        setProperty(null);
+      } finally {
+        if (!isMounted) return;
+        setIsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  const galleryImages = (
+    (property?.galleryUrls && property.galleryUrls.length
+      ? property.galleryUrls
+      : property?.media?.coverUrl
+        ? [property.media.coverUrl]
+        : [])
+  ).filter(Boolean);
+
+  const priceLabel = () => {
+    if (property?.price?.amount == null) return "";
+    const currency = property.price.currency ? `${property.price.currency} ` : "";
+    const unit = property.price.unit ? ` / ${property.price.unit}` : "";
+    return `${currency}${property.price.amount}${unit}`;
+  };
+
+  const locationLabel = [
+    property?.location?.addressLine,
+    property?.location?.neighborhood,
+    property?.location?.city,
+    property?.location?.province,
+    property?.location?.postalCode,
+    property?.location?.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const amenities = (property?.amenities || []).filter(Boolean);
+  const floorPlanUrls = (property?.floorPlanUrls || []).filter(Boolean);
+  const videoUrls = (property?.videoUrls || []).filter(Boolean);
+
+  const toEmbedUrl = (url: string) => {
+    const raw = String(url || "").trim();
+    if (!raw) return "";
+
+    if (raw.includes("youtube.com/embed/")) return raw;
+    if (raw.includes("youtu.be/")) {
+      const id = raw.split("youtu.be/")[1]?.split(/[?&]/)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : raw;
+    }
+    if (raw.includes("youtube.com/watch")) {
+      const q = raw.split("?")[1] || "";
+      const params = new URLSearchParams(q);
+      const id = params.get("v");
+      return id ? `https://www.youtube.com/embed/${id}` : raw;
+    }
+
+    const vimeoMatch = raw.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch && vimeoMatch[1]) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+
+    return raw;
+  };
+
   return (
     <>
       {/* ========================
@@ -70,37 +156,24 @@ const Rentdetails = () => {
               <div className="row align-items-center text-center position-relative z-1">
                 <div className="col-xl-8">
                   <div className="d-flex align-center gap-2 mb-2">
-                    <span className="badge bg-primary">Condo</span>
-                    <span className="badge bg-secondary">For Rent</span>
+                    <span className="badge bg-primary">{property?.type || ""}</span>
+                    <span className="badge bg-secondary">
+                      {property?.operation === "buy" ? "For Sale" : "For Rent"}
+                    </span>
                   </div>
                   <h1 className="breadcrumb-title text-start ">
-                    Beautiful Condo Room
+                    {property?.title || ""}
                   </h1>
                   <div className="d-flex align-items-center gap-2 flex-wrap gap-1">
-                    <div className="d-flex align-items-center justify-content-center">
-                      <i className="material-icons-outlined text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined text-warning">
-                        star
-                      </i>
-                      <i className="material-icons-outlined text-warning">
-                        star
-                      </i>
-                      <span className="text-white ms-1"> 5.0 </span>
-                    </div>
+                    {property?.status ? (
+                      <span className="badge bg-success">{property.status}</span>
+                    ) : null}
                     <i className="fa-solid fa-circle text-body" />
                     <div className="fs-14 mb-0 text-white d-flex align-items-center flex-wrap gap-1 custom-address-item">
                       <i className="material-icons-outlined text-white me-1">
                         location_on
                       </i>
-                      318-330 S Oakley Blvd, Chicago, IL 60612, USA
+                      {locationLabel}
                       <Link
                         to={all_routes.rentGridMap}
                         className="text-primary fs-14 text-decoration-underline ms-1"
@@ -108,10 +181,12 @@ const Rentdetails = () => {
                         View Location
                       </Link>
                     </div>
-                    <i className="fa-solid fa-circle text-body" />
-                    <p className="fs-14 mb-0 text-white">
-                      Last Updated on : 24 Feb 2025
-                    </p>
+                    {false && (
+                      <>
+                        <i className="fa-solid fa-circle text-body" />
+                        <p className="fs-14 mb-0 text-white">Last Updated</p>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="col-xl-4 d-flex d-xl-block flex-wrap gap-3">
@@ -134,10 +209,7 @@ const Rentdetails = () => {
                   </div>
                   <div className="d-flex align-items-center gap-3 justify-content-xl-end justify-content-start">
                     <h4 className="mb-0 text-primary text-xl-end text-start">
-                      $400
-                      <span className="fs-14 fw-normal text-white">
-                        / Month
-                      </span>
+                      {priceLabel()}
                     </h4>
                     <Link
                       to={all_routes.rentBooking}
@@ -161,23 +233,25 @@ const Rentdetails = () => {
             {/* start row */}
             <div className="row">
               <div className="col-xl-8">
-                <div className="mb-4 d-inline-flex align-center justify-content-between w-100 flex-wrap gap-1">
-                  <div className="d-inline-flex align-center gap-2">
-                    <span className="badge bg-danger d-flex align-items-center">
-                      <i className="material-icons-outlined fs-14 me-1">
-                        generating_tokens
-                      </i>
-                      Trending
-                    </span>
-                    <span className="badge bg-orange d-flex align-items-center">
-                      <i className="material-icons-outlined  fs-14 me-1">
-                        loyalty
-                      </i>
-                      Featured
-                    </span>
+                {false && (
+                  <div className="mb-4 d-inline-flex align-center justify-content-between w-100 flex-wrap gap-1">
+                    <div className="d-inline-flex align-center gap-2">
+                      <span className="badge bg-danger d-flex align-items-center">
+                        <i className="material-icons-outlined fs-14 me-1">
+                          generating_tokens
+                        </i>
+                        Trending
+                      </span>
+                      <span className="badge bg-orange d-flex align-items-center">
+                        <i className="material-icons-outlined  fs-14 me-1">
+                          loyalty
+                        </i>
+                        Featured
+                      </span>
+                    </div>
+                    <p className="mb-0 text-dark">total No of Visits : 45</p>
                   </div>
-                  <p className="mb-0 text-dark">total No of Visits : 45</p>
-                </div>
+                )}
                 {/* start slider */}
                 <div className="slider-card service-slider-card mb-4">
                   <div className="slide-part mb-4">
@@ -186,55 +260,21 @@ const Rentdetails = () => {
                       ref={mainRef}
                       className="slider service-slider"
                     >
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-1.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-2.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-3.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-4.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-5.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-6.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
-                      <div className="service-img-wrap">
-                        <ImageWithBasePath
-                          src="assets/img/buy/buy-slide-img-2.jpg"
-                          className="img-fluid"
-                          alt="Slider Img"
-                        />
-                      </div>
+                      {galleryImages.length ? (
+                        galleryImages.map((src, idx) => (
+                          <div key={`${src}-${idx}`} className="service-img-wrap">
+                            <ImageWithBasePath
+                              src={src}
+                              className="img-fluid"
+                              alt={property?.title || "Slider Img"}
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="service-img-wrap">
+                          <div className="text-center">{isLoading ? "Loading..." : "No images"}</div>
+                        </div>
+                      )}
                     </Slider>
                   </div>
                   <Slider
@@ -242,55 +282,21 @@ const Rentdetails = () => {
                     ref={thumbRef}
                     className="slider slider-nav-thumbnails"
                   >
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-1.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-2.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-3.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-4.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-5.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-6.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
-                    <div className="slide-img">
-                      <ImageWithBasePath
-                        src="assets/img/buy/buy-details-img-2.jpg"
-                        className="img-fluid"
-                        alt="Slider Img"
-                      />
-                    </div>
+                    {galleryImages.length ? (
+                      galleryImages.map((src, idx) => (
+                        <div key={`${src}-${idx}`} className="slide-img">
+                          <ImageWithBasePath
+                            src={src}
+                            className="img-fluid"
+                            alt={property?.title || "Slider Img"}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="slide-img">
+                        <div className="text-center">{isLoading ? "Loading..." : "No images"}</div>
+                      </div>
+                    )}
                   </Slider>
                 </div>
                 {/* End slider */}
@@ -315,24 +321,11 @@ const Rentdetails = () => {
                     >
                       <div className="accordion-body">
                         <p>
-                          This property is mostly wooded and sits high on a
-                          hilltop overlooking the Mohawk River Valley.Located
-                          right in the heart of Upstate NYs Amish farm Country,
-                          this land is certified organic makingit extremely
-                          rare! Good road frontage on a paved county road with
-                          utilities make it an amazingsetting for your dream
-                          country getaway! If you like views, you must see this
-                          property!This propertyis mostly wooded and sits high
-                          on a hilltop overlooking the Mohawk River Valley.
+                          {property?.description || ""}
                         </p>
                         <div className="more-menu">
                           <p>
-                            Located right inthe heart of Upstate NYs Amish farm
-                            Country, this land is certified organic making it
-                            extremelyrare! Good road frontage on a paved county
-                            road with utilities make it an amazing setting for
-                            yourdream country getaway! If you like views, you
-                            must see this property!
+                            {property?.description || ""}
                           </p>
                         </div>
                         <div className="view-all d-inline-flex align-items-center">
@@ -365,6 +358,51 @@ const Rentdetails = () => {
                     >
                       <div className="accordion-body">
                         {/* start row */}
+                        <div className="row row-gap-4">
+                          <div className="col-lg-3 col-md-6">
+                            <div className="buy-property-items">
+                              <p>
+                                <i className="material-icons-outlined">bed</i>
+                                Bedrooms: {property?.features?.beds ?? ""}
+                              </p>
+                              <p className="mb-lg-0">
+                                <i className="material-icons-outlined">bathtub</i>
+                                Bathrooms: {property?.features?.baths ?? ""}
+                              </p>
+                            </div>
+                          </div>
+                          {/* end col */}
+                          <div className="col-lg-3 col-md-6">
+                            <div className="buy-property-items">
+                              <p>
+                                <i className="material-icons-outlined">meeting_room</i>
+                                Rooms: {property?.features?.rooms ?? ""}
+                              </p>
+                              <p className="mb-lg-0">
+                                <i className="material-icons-outlined">
+                                  directions_car_filled
+                                </i>
+                                Parking: {property?.features?.parking ?? ""}
+                              </p>
+                            </div>
+                          </div>
+                          {/* end col */}
+                          <div className="col-lg-3 col-md-6">
+                            <div className="buy-property-items">
+                              <p>
+                                <i className="material-icons-outlined">straighten</i>
+                                Area: {property?.features?.areaSqFt ?? ""} m²
+                              </p>
+                              <p className="mb-lg-0">
+                                <i className="material-icons-outlined">crop_square</i>
+                                Covered: {property?.features?.coveredAreaSqFt ?? ""} m²
+                              </p>
+                            </div>
+                          </div>
+                          {/* end col */}
+                        </div>
+
+                        {false && (
                         <div className="row row-gap-4">
                           <div className="col-lg-3 col-md-6">
                             <div className="buy-property-items">
@@ -451,60 +489,33 @@ const Rentdetails = () => {
                           </div>
                           {/* end col */}
                         </div>
+                        )}
                         {/* end row */}
                       </div>
                     </div>
                   </div>
                   {/* about property items */}
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-3"
-                        aria-expanded="true"
+                  {false && (
+                    <div className="accordion-item">
+                      <div className="accordion-header">
+                        <button
+                          className="accordion-button"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#accordion-3"
+                          aria-expanded="true"
+                        >
+                          About Property
+                        </button>
+                      </div>
+                      <div
+                        id="accordion-3"
+                        className="accordion-collapse collapse show"
                       >
-                        About Property
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-3"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        <p className="mb-2">
-                          This property is mostly wooded and sits high on a
-                          hilltop overlooking the Mohawk River Valley.
-                        </p>
-                        <p className="mb-2">
-                          <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                          100 meters from school. 3km away from bypass.
-                        </p>
-                        <p className="mb-2">
-                          <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                          First floor - 2 large bedrooms with attached
-                          bathrooms.
-                        </p>
-                        <p className="mb-2">
-                          <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                          Spacious and well-Equipped kitchen.
-                        </p>
-                        <p className="mb-2">
-                          <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                          Inviting living room with balcony.
-                        </p>
-                        <p className="mb-2">
-                          <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                          Terrace with breathtaking views.
-                        </p>
-                        <p className="mb-0">
-                          <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                          Independent electric and water connections.
-                        </p>
+                        <div className="accordion-body" />
                       </div>
                     </div>
-                  </div>
+                  )}
                   {/* amenities items */}
                   <div className="accordion-item">
                     <div className="accordion-header">
@@ -523,194 +534,121 @@ const Rentdetails = () => {
                       className="accordion-collapse collapse show"
                     >
                       <div className="accordion-body">
-                        {/* start row */}
-                        <div className="row row-gap-4">
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">
-                                  fitness_center
-                                </i>
-                                Gym
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  supervised_user_circle
-                                </i>
-                                Visitor Parking
-                              </p>
-                            </div>
+                        {amenities.length ? (
+                          <div className="row row-gap-4">
+                            {amenities.map((amenity) => (
+                              <div key={amenity} className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
+                                    {amenity}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">pool</i>
-                                Swimming Pool
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  wb_sunny
-                                </i>
-                                Natural Light
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">
-                                  snippet_folder
-                                </i>
-                                Power Backup
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  meeting_room
-                                </i>
-                                Airy Rooms
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">
-                                  local_bar
-                                </i>
-                                Clubhouse
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  interests
-                                </i>
-                                Spacious Interior
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                        </div>
-                        {/* end row */}
+                        ) : (
+                          <div className="text-center">{isLoading ? "Loading..." : "No amenities"}</div>
+                        )}
                       </div>
                     </div>
                   </div>
                   {/* floor plan items */}
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-5"
-                        aria-expanded="true"
+                  {floorPlanUrls.length ? (
+                    <div className="accordion-item">
+                      <div className="accordion-header">
+                        <button
+                          className="accordion-button"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#accordion-5"
+                          aria-expanded="true"
+                        >
+                          Floor Plan
+                        </button>
+                      </div>
+                      <div
+                        id="accordion-5"
+                        className="accordion-collapse collapse show"
                       >
-                        Floor Plan
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-5"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        <div className="card border-0 shadow-none bg-light rounded mb-3">
-                          <div className="card-body d-flex align-center justify-content-between gap-2 flex-wrap">
-                            <h6 className="fs-16 fw-semibold mb-0">
-                              Balcony Plan
-                            </h6>
-                            <div className="d-flex align-items-center floor-items">
-                              <Link to="#" className="fs-16 text-dark">
-                                <i className="material-icons-outlined">
-                                  file_download
-                                </i>
-                              </Link>
-                              <Link to="#" className="fs-16 text-dark">
-                                <i className="material-icons-outlined">
-                                  remove_red_eye
-                                </i>
-                              </Link>
+                        <div className="accordion-body">
+                          {floorPlanUrls.map((url, idx) => (
+                            <div
+                              key={`${url}-${idx}`}
+                              className="card border-0 shadow-none bg-light rounded mb-3"
+                            >
+                              <div className="card-body d-flex align-center justify-content-between gap-2 flex-wrap">
+                                <h6 className="fs-16 fw-semibold mb-0">
+                                  Plan {idx + 1}
+                                </h6>
+                                <div className="d-flex align-items-center floor-items">
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="fs-16 text-dark"
+                                  >
+                                    <i className="material-icons-outlined">
+                                      remove_red_eye
+                                    </i>
+                                  </a>
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="fs-16 text-dark"
+                                  >
+                                    <i className="material-icons-outlined">
+                                      file_download
+                                    </i>
+                                  </a>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        <div className="card border-0 shadow-none bg-light rounded mb-3">
-                          <div className="card-body d-flex align-center justify-content-between gap-2 flex-wrap">
-                            <h6 className="fs-16 fw-semibold mb-0">
-                              Front Hall
-                            </h6>
-                            <div className="d-flex align-items-center floor-items">
-                              <Link to="#" className="fs-16 text-dark">
-                                <i className="material-icons-outlined">
-                                  file_download
-                                </i>
-                              </Link>
-                              <Link to="#" className="fs-16 text-dark">
-                                <i className="material-icons-outlined">
-                                  remove_red_eye
-                                </i>
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="card border-0 shadow-none bg-light rounded mb-0">
-                          <div className="card-body d-flex align-center justify-content-between gap-2 flex-wrap">
-                            <h6 className="fs-16 fw-semibold mb-0">Kitchen</h6>
-                            <div className="d-flex align-items-center floor-items">
-                              <Link to="#" className="fs-16 text-dark">
-                                <i className="material-icons-outlined">
-                                  file_download
-                                </i>
-                              </Link>
-                              <Link to="#" className="fs-16 text-dark">
-                                <i className="material-icons-outlined">
-                                  remove_red_eye
-                                </i>
-                              </Link>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
                   {/* gallery items */}
-                 <BuyGalleryItem/>
+                 <BuyGalleryItem images={galleryImages} />
                   {/* video items */}
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-7"
-                        aria-expanded="true"
+                  {videoUrls.length ? (
+                    <div className="accordion-item">
+                      <div className="accordion-header">
+                        <button
+                          className="accordion-button"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#accordion-7"
+                          aria-expanded="true"
+                        >
+                          Video
+                        </button>
+                      </div>
+                      <div
+                        id="accordion-7"
+                        className="accordion-collapse collapse show"
                       >
-                        Video
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-7"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        <div className="video-items position-relative">
-                          <ImageWithBasePath
-                            src="assets/img/buy/video-img.jpg"
-                            alt="image"
-                            className="img-fluid video-bg"
-                          />
-                          <Link
-                            className="video-icon"
-                            data-fancybox=""
-                            to="https://www.youtube.com/embed/AWovHEZcpQU"
-                          >
-                            <i className="material-icons-outlined">
-                              play_circle_filled
-                            </i>
-                          </Link>
+                        <div className="accordion-body">
+                          <div className="row row-gap-4">
+                            {videoUrls.map((url, idx) => (
+                              <div key={`${url}-${idx}`} className="col-12">
+                                <div className="ratio ratio-16x9">
+                                  <iframe
+                                    src={toEmbedUrl(url)}
+                                    title={`video-${idx + 1}`}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
                   {/* faq items */}
                   <div className="accordion-item">
                     <div className="accordion-header">
@@ -1350,7 +1288,7 @@ const Rentdetails = () => {
               </div>
               {/* col end */}
               <div className="col-xl-4 theiaStickySidebar buy-details-item">
-             <RentRightForm/>
+             <RentRightForm agent={property?.agent} />
               </div>
               {/* col end */}
             </div>
@@ -1362,7 +1300,7 @@ const Rentdetails = () => {
                 <div className="property-card mb-0 flex-fill">
                   <div className="property-listing-item p-0 mb-0 shadow-none">
                     <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
+                      <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                         <ImageWithBasePath
                           className="img-fluid"
                           src="assets/img/buy/buy-grid-img-10.jpg"
@@ -1419,7 +1357,7 @@ const Rentdetails = () => {
                       <div className="d-flex align-items-center justify-content-between mb-3">
                         <div>
                           <h6 className="title mb-1">
-                            <Link to={all_routes.rentDetails}>
+                            <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                               Beautiful Condo Room
                             </Link>
                           </h6>
@@ -1485,7 +1423,7 @@ const Rentdetails = () => {
                 <div className="property-card mb-0 flex-fill">
                   <div className="property-listing-item p-0 mb-0 shadow-none">
                     <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
+                      <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                         <ImageWithBasePath
                           className="img-fluid"
                           src="assets/img/buy/buy-grid-img-11.jpg"
@@ -1542,7 +1480,7 @@ const Rentdetails = () => {
                       <div className="d-flex align-items-center justify-content-between mb-3">
                         <div>
                           <h6 className="title mb-1">
-                            <Link to={all_routes.rentDetails}>
+                            <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                               Serenity Condo Suite
                             </Link>
                           </h6>
@@ -1608,7 +1546,7 @@ const Rentdetails = () => {
                 <div className="property-card mb-0 flex-fill">
                   <div className="property-listing-item p-0 mb-0 shadow-none">
                     <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
+                      <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                         <ImageWithBasePath
                           className="img-fluid"
                           src="assets/img/buy/buy-grid-img-12.jpg"
@@ -1665,7 +1603,7 @@ const Rentdetails = () => {
                       <div className="d-flex align-items-center justify-content-between mb-3">
                         <div>
                           <h6 className="title mb-1">
-                            <Link to={all_routes.rentDetails}>
+                            <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                               Downtown Luxe Room
                             </Link>
                           </h6>
@@ -1731,7 +1669,7 @@ const Rentdetails = () => {
                 <div className="property-card mb-0 flex-fill">
                   <div className="property-listing-item p-0 mb-0 shadow-none">
                     <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
+                      <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                         <ImageWithBasePath
                           className="img-fluid"
                           src="assets/img/buy/buy-grid-img-13.jpg"
@@ -1788,7 +1726,7 @@ const Rentdetails = () => {
                       <div className="d-flex align-items-center justify-content-between mb-3">
                         <div>
                           <h6 className="title mb-1">
-                            <Link to={all_routes.rentDetails}>
+                            <Link to={property?.slug ? all_routes.rentDetailsPath(property.slug) : "#"}>
                               Modern Haven Suite
                             </Link>
                           </h6>
@@ -1854,6 +1792,33 @@ const Rentdetails = () => {
           </div>
         </div>
         {/* End Content */}
+
+        {/* Location Map - Full Width */}
+        {locationLabel && (
+          <div className="location-map-section mt-5">
+            <div className="container-fluid px-0">
+              <div className="bg-light py-4">
+                <div className="container">
+                  <h3 className="mb-3">
+                    <i className="material-icons-outlined align-middle me-2">location_on</i>
+                    Ubicación de la Propiedad
+                  </h3>
+                  <p className="text-muted mb-0">{locationLabel}</p>
+                </div>
+              </div>
+              <iframe
+                title="Property Location Map"
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&q=${encodeURIComponent(locationLabel)}`}
+              />
+            </div>
+          </div>
+        )}
       </div>
       {/* ========================
 			End Page Content

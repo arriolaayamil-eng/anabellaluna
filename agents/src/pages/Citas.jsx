@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { ScheduleComponent, Day, Week, WorkWeek, Month, Agenda, Inject } from '@syncfusion/ej2-react-schedule';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaMapMarkerAlt, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaGripVertical, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaMapMarkerAlt, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaGripVertical, FaPlus, FaEdit, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
+import Chart from 'react-apexcharts';
 
 // Syncfusion Components
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
@@ -45,26 +47,11 @@ const Citas = () => {
     { id: 3, tipo: 'Ubicación', tiempo: 'Al confirmar', activo: true },
   ]);
   
-  // Estado para Kanban (Todo List)
-  const [columnas, setColumnas] = useState([
-    { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
-    { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
-    { id: 'completado', nombre: 'Completado', color: '#10B981' },
-  ]);
-  
-  const [tareas, setTareas] = useState({
-    pendiente: [
-      { id: 1, titulo: 'Preparar documentación Depto Palermo', prioridad: 'Alta', fecha: '2025-10-11' },
-      { id: 2, titulo: 'Llamar a cliente Juan Pérez', prioridad: 'Media', fecha: '2025-10-11' },
-    ],
-    enProgreso: [
-      { id: 3, titulo: 'Coordinar visita Casa Belgrano', prioridad: 'Alta', fecha: '2025-10-12' },
-      { id: 4, titulo: 'Revisar contrato alquiler', prioridad: 'Baja', fecha: '2025-10-13' },
-    ],
-    completado: [
-      { id: 5, titulo: 'Enviar propuestas a cliente', prioridad: 'Media', fecha: '2025-10-10' },
-    ],
-  });
+  // Estado para Kanban (Todo List) - Conectado al backend
+  const [columnas, setColumnas] = useState([]);
+  const [tareas, setTareas] = useState({});
+  const [kanbanLoading, setKanbanLoading] = useState(false);
+  const [kanbanSaving, setKanbanSaving] = useState(false);
   
   const [nuevaTarea, setNuevaTarea] = useState({
     titulo: '',
@@ -79,58 +66,84 @@ const Citas = () => {
   });
   
   const [draggedTask, setDraggedTask] = useState(null);
+  const [dropTargetColumn, setDropTargetColumn] = useState(null);
 
-  // Datos de ejemplo para el calendario
-  const citasData = [
-    {
-      Id: 1,
-      Subject: 'Visita - Depto Palermo',
-      StartTime: new Date(2025, 9, 10, 10, 0),
-      EndTime: new Date(2025, 9, 10, 11, 0),
-      Description: 'Cliente: Juan Pérez - Propiedad: Depto 2amb Palermo',
-      IsAllDay: false,
-      tipo: 'Visita',
-      cliente: 'Juan Pérez',
-      agente: 'Ana López',
-      estado: 'Confirmada'
-    },
-    {
-      Id: 2,
-      Subject: 'Reunión con Propietario',
-      StartTime: new Date(2025, 9, 10, 14, 0),
-      EndTime: new Date(2025, 9, 10, 15, 0),
-      Description: 'Tasación de propiedad en Recoleta',
-      IsAllDay: false,
-      tipo: 'Reunión',
-      cliente: 'María González',
-      agente: 'Carlos Ruiz',
-      estado: 'Pendiente'
-    },
-    {
-      Id: 3,
-      Subject: 'Firma de Contrato',
-      StartTime: new Date(2025, 9, 11, 16, 0),
-      EndTime: new Date(2025, 9, 11, 17, 30),
-      Description: 'Cliente: María González - Venta Casa Belgrano',
-      IsAllDay: false,
-      tipo: 'Firma',
-      cliente: 'María González',
-      agente: 'Laura Fernández',
-      estado: 'Confirmada'
-    },
-    {
-      Id: 4,
-      Subject: 'Llamada Seguimiento',
-      StartTime: new Date(2025, 9, 12, 9, 0),
-      EndTime: new Date(2025, 9, 12, 9, 30),
-      Description: 'Seguimiento post-visita',
-      IsAllDay: false,
-      tipo: 'Llamada',
-      cliente: 'Carlos Rodríguez',
-      agente: 'Sofía Torres',
-      estado: 'Programada'
-    },
-  ];
+  // Cargar datos del Kanban desde el backend
+  const loadKanbanData = async () => {
+    setKanbanLoading(true);
+    try {
+      const [columnsData, tasksData] = await Promise.all([
+        crmService.tareas.getKanbanColumns(),
+        crmService.tareas.getKanban()
+      ]);
+      setColumnas(Array.isArray(columnsData) ? columnsData : [
+        { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
+        { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
+        { id: 'completado', nombre: 'Completado', color: '#10B981' },
+      ]);
+      setTareas(tasksData || {});
+    } catch (e) {
+      console.error('Error loading kanban:', e);
+      // Usar columnas por defecto si hay error
+      setColumnas([
+        { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
+        { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
+        { id: 'completado', nombre: 'Completado', color: '#10B981' },
+      ]);
+    } finally {
+      setKanbanLoading(false);
+    }
+  };
+
+  // Cargar Kanban cuando se abre el modal
+  useEffect(() => {
+    if (showModalKanban) {
+      loadKanbanData();
+    }
+  }, [showModalKanban]);
+
+  const [citasItems, setCitasItems] = useState([]);
+  const [citasLoading, setCitasLoading] = useState(false);
+  const [citasError, setCitasError] = useState('');
+
+  const reloadCitas = async () => {
+    setCitasLoading(true);
+    setCitasError('');
+    try {
+      const items = await crmService.citas.getAll();
+      setCitasItems(Array.isArray(items) ? items : []);
+    } catch (e) {
+      setCitasError(e?.message || 'Error al cargar citas');
+      setCitasItems([]);
+    } finally {
+      setCitasLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadCitas();
+  }, []);
+
+  const citasData = useMemo(() => {
+    return (Array.isArray(citasItems) ? citasItems : []).map((c) => {
+      const md = c && c.metadata ? c.metadata : {};
+      const contact = md.contact || {};
+      const start = c.fecha ? new Date(c.fecha) : new Date();
+      const end = c.fechaFin ? new Date(c.fechaFin) : new Date(start.getTime() + 60 * 60 * 1000);
+      return {
+        Id: c._id || c.id,
+        Subject: c.titulo || c.tipo || 'Cita',
+        StartTime: start,
+        EndTime: end,
+        Description: c.notas || '',
+        IsAllDay: false,
+        tipo: c.tipo || '',
+        cliente: contact.fullName || md.clienteNombre || '',
+        agente: '',
+        estado: c.estado || '',
+      };
+    });
+  }, [citasItems]);
 
   // KPIs de Citas
   const kpisCitas = [
@@ -158,7 +171,68 @@ const Citas = () => {
     { dia: 'Dom', cantidad: 0 },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  // ApexCharts - Distribución de Citas (Donut)
+  const citasDonutOptions = {
+    chart: { type: 'donut', height: 220, background: 'transparent' },
+    labels: ['Visita', 'Reunión', 'Firma', 'Llamada'],
+    colors: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'],
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => citasData.length || '0' } } } } },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const citasDonutSeries = tiposCitasData.map(t => t.cantidad);
+
+  // ApexCharts - Citas por Día (Bar)
+  const citasDiaOptions = {
+    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '50%', distributed: true } },
+    colors: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#9CA3AF'],
+    dataLabels: { enabled: false },
+    xaxis: { categories: citasPorDia.map(c => c.dia), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const citasDiaSeries = [{ name: 'Citas', data: citasPorDia.map(c => c.cantidad) }];
+
+  // ApexCharts - Tasa de Asistencia (Gauge)
+  const asistenciaOptions = {
+    chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90, endAngle: 90,
+        hollow: { size: '55%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 16 },
+          value: { show: true, fontSize: '22px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -10, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', colorStops: [{ offset: 0, color: '#8B5CF6', opacity: 1 }, { offset: 100, color: '#6366F1', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Asistencia'],
+  };
+  const asistenciaSeries = [85];
+
+  // ApexCharts - Tendencia Semanal (Area)
+  const tendenciaSemanalOptions = {
+    chart: { type: 'area', height: 200, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false }, sparkline: { enabled: false } },
+    colors: ['#3B82F6'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: { categories: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'], labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const tendenciaSemanalSeries = [{ name: 'Citas', data: [12, 18, 15, 21] }];
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-[1.02]';
 
   // Funciones de manejo para Cita
   const handleCitaChange = (e) => {
@@ -166,24 +240,50 @@ const Citas = () => {
     setNuevaCita(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCitaSubmit = (e) => {
+  const handleCitaSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nueva cita:', nuevaCita);
-    alert('¡Cita agendada exitosamente!');
-    setShowModalCita(false);
-    setNuevaCita({
-      tipo: 'Visita',
-      titulo: '',
-      cliente: '',
-      propiedad: '',
-      agente: '',
-      fecha: '',
-      horaInicio: '',
-      horaFin: '',
-      ubicacion: '',
-      descripcion: '',
-      recordatorio: '24h',
-    });
+    setCitasError('');
+
+    try {
+      const startStr = `${nuevaCita.fecha}T${nuevaCita.horaInicio}`;
+      const endStr = nuevaCita.horaFin ? `${nuevaCita.fecha}T${nuevaCita.horaFin}` : '';
+      const start = new Date(startStr);
+      const end = endStr ? new Date(endStr) : new Date(start.getTime() + 60 * 60 * 1000);
+      if (Number.isNaN(start.getTime())) throw new Error('Fecha/hora inválida');
+
+      await crmService.citas.create({
+        fecha: start.toISOString(),
+        fechaFin: end.toISOString(),
+        titulo: nuevaCita.titulo,
+        tipo: nuevaCita.tipo,
+        ubicacion: nuevaCita.ubicacion,
+        notas: nuevaCita.descripcion,
+        estado: 'Programada',
+        metadata: {
+          clienteNombre: nuevaCita.cliente,
+          propiedadNombre: nuevaCita.propiedad,
+        },
+      });
+
+      await reloadCitas();
+      alert('¡Cita agendada exitosamente!');
+      setShowModalCita(false);
+      setNuevaCita({
+        tipo: 'Visita',
+        titulo: '',
+        cliente: '',
+        propiedad: '',
+        agente: '',
+        fecha: '',
+        horaInicio: '',
+        horaFin: '',
+        ubicacion: '',
+        descripcion: '',
+        recordatorio: '24h',
+      });
+    } catch (err) {
+      setCitasError(err?.message || 'No se pudo agendar la cita');
+    }
   };
 
   // Funciones para Recordatorios
@@ -193,104 +293,207 @@ const Citas = () => {
     ));
   };
 
-  // Funciones para Kanban
+  // Funciones para Kanban - Conectadas al backend con auto-guardado
   const handleTareaChange = (e) => {
     const { name, value } = e.target;
     setNuevaTarea(prev => ({ ...prev, [name]: value }));
   };
 
-  const agregarTarea = (e) => {
+  const agregarTarea = async (e) => {
     e.preventDefault();
-    const tarea = {
-      id: Date.now(),
-      titulo: nuevaTarea.titulo,
-      prioridad: nuevaTarea.prioridad,
-      fecha: nuevaTarea.fecha,
-    };
-    
-    setTareas(prev => ({
-      ...prev,
-      [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), tarea]
-    }));
-    
-    setNuevaTarea({
-      titulo: '',
-      prioridad: 'Media',
-      fecha: '',
-      columna: columnas[0]?.id || 'pendiente',
-    });
+    setKanbanSaving(true);
+    try {
+      const newTask = await crmService.tareas.create({
+        title: nuevaTarea.titulo,
+        priority: nuevaTarea.prioridad,
+        dueDate: nuevaTarea.fecha ? new Date(nuevaTarea.fecha).toISOString() : null,
+        kanbanColumn: nuevaTarea.columna,
+        position: (tareas[nuevaTarea.columna]?.length || 0),
+      });
+      
+      // Actualizar estado local
+      setTareas(prev => ({
+        ...prev,
+        [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), newTask]
+      }));
+      
+      setNuevaTarea({
+        titulo: '',
+        prioridad: 'Media',
+        fecha: '',
+        columna: columnas[0]?.id || 'pendiente',
+      });
+    } catch (e) {
+      console.error('Error creating task:', e);
+      alert('Error al crear tarea');
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
-  const eliminarTarea = (columna, id) => {
-    setTareas(prev => ({
-      ...prev,
-      [columna]: prev[columna].filter(t => t.id !== id)
-    }));
+  const eliminarTarea = async (columna, id) => {
+    setKanbanSaving(true);
+    try {
+      await crmService.tareas.delete(id);
+      setTareas(prev => ({
+        ...prev,
+        [columna]: prev[columna].filter(t => (t._id || t.id) !== id)
+      }));
+    } catch (e) {
+      console.error('Error deleting task:', e);
+      alert('Error al eliminar tarea');
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
-  // Funciones Drag and Drop
+  // Funciones Drag and Drop con auto-guardado
   const handleDragStart = (e, tarea, columnaId) => {
     setDraggedTask({ tarea, columnaOrigen: columnaId });
     e.dataTransfer.effectAllowed = 'move';
+    // Agregar efecto visual al elemento arrastrado
+    e.target.style.opacity = '0.5';
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, columnaId) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    // Resaltar la columna destino
+    if (columnaId !== dropTargetColumn) {
+      setDropTargetColumn(columnaId);
+    }
   };
 
-  const handleDrop = (e, columnaDestino) => {
+  const handleDragLeave = (e, columnaId) => {
+    // Solo limpiar si salimos de la columna actual
+    if (dropTargetColumn === columnaId) {
+      setDropTargetColumn(null);
+    }
+  };
+
+  const handleDrop = async (e, columnaDestino) => {
     e.preventDefault();
+    setDropTargetColumn(null);
     if (!draggedTask) return;
 
     const { tarea, columnaOrigen } = draggedTask;
+    const tareaId = tarea._id || tarea.id;
     
     if (columnaOrigen !== columnaDestino) {
+      setKanbanSaving(true);
+      
+      // Actualizar UI inmediatamente (optimistic update)
       setTareas(prev => ({
         ...prev,
-        [columnaOrigen]: prev[columnaOrigen].filter(t => t.id !== tarea.id),
-        [columnaDestino]: [...(prev[columnaDestino] || []), tarea]
+        [columnaOrigen]: (prev[columnaOrigen] || []).filter(t => (t._id || t.id) !== tareaId),
+        [columnaDestino]: [...(prev[columnaDestino] || []), { ...tarea, kanbanColumn: columnaDestino }]
       }));
+      
+      // Guardar en backend
+      try {
+        await crmService.tareas.moveTask(tareaId, columnaDestino, (tareas[columnaDestino]?.length || 0));
+        console.log(`✅ Tarea movida a columna: ${columnaDestino}`);
+      } catch (err) {
+        console.error('Error moving task:', err);
+        alert('Error al mover tarea. Reintentando...');
+        // Revertir si hay error
+        setTareas(prev => ({
+          ...prev,
+          [columnaDestino]: (prev[columnaDestino] || []).filter(t => (t._id || t.id) !== tareaId),
+          [columnaOrigen]: [...(prev[columnaOrigen] || []), tarea]
+        }));
+      } finally {
+        setKanbanSaving(false);
+      }
     }
     
     setDraggedTask(null);
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e) => {
+    // Restaurar opacidad
+    e.target.style.opacity = '1';
     setDraggedTask(null);
+    setDropTargetColumn(null);
   };
 
-  // Funciones para gestión de columnas
-  const agregarColumna = (e) => {
+  // Funciones para gestión de columnas con auto-guardado
+  const agregarColumna = async (e) => {
     e.preventDefault();
+    if (!nuevaColumna.nombre.trim()) {
+      alert('Ingresa un nombre para la columna');
+      return;
+    }
+    
+    setKanbanSaving(true);
     const nuevaCol = {
       id: `col_${Date.now()}`,
-      nombre: nuevaColumna.nombre,
+      nombre: nuevaColumna.nombre.trim(),
       color: nuevaColumna.color,
     };
     
-    setColumnas(prev => [...prev, nuevaCol]);
+    const newColumnas = [...columnas, nuevaCol];
+    setColumnas(newColumnas);
     setTareas(prev => ({ ...prev, [nuevaCol.id]: [] }));
     setNuevaColumna({ nombre: '', color: '#8B5CF6' });
+    
+    // Guardar en backend
+    try {
+      await crmService.tareas.saveKanbanColumns(newColumnas);
+      console.log(`✅ Columna "${nuevaCol.nombre}" creada`);
+    } catch (err) {
+      console.error('Error saving columns:', err);
+      alert('Error al guardar la columna');
+      // Revertir
+      setColumnas(columnas);
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
-  const eliminarColumna = (columnaId) => {
+  const eliminarColumna = async (columnaId) => {
     if (columnas.length <= 1) {
       alert('Debe haber al menos una columna');
       return;
     }
     
+    const columnaAEliminar = columnas.find(c => c.id === columnaId);
     const tareasEnColumna = tareas[columnaId]?.length || 0;
     if (tareasEnColumna > 0) {
-      if (!window.confirm(`Esta columna tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla de todas formas?`)) {
+      if (!window.confirm(`La columna "${columnaAEliminar?.nombre}" tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla?`)) {
         return;
       }
     }
     
-    setColumnas(prev => prev.filter(col => col.id !== columnaId));
+    setKanbanSaving(true);
+    
+    // Eliminar las tareas de la columna si hay
+    if (tareasEnColumna > 0) {
+      for (const tarea of tareas[columnaId]) {
+        try {
+          await crmService.tareas.delete(tarea._id || tarea.id);
+        } catch (err) {
+          console.error('Error deleting task:', err);
+        }
+      }
+    }
+    
+    const newColumnas = columnas.filter(col => col.id !== columnaId);
+    setColumnas(newColumnas);
     const newTareas = { ...tareas };
     delete newTareas[columnaId];
     setTareas(newTareas);
+    
+    // Guardar en backend
+    try {
+      await crmService.tareas.saveKanbanColumns(newColumnas);
+      console.log(`✅ Columna "${columnaAEliminar?.nombre}" eliminada`);
+    } catch (err) {
+      console.error('Error saving columns:', err);
+      alert('Error al eliminar la columna');
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
   return (
@@ -345,126 +548,202 @@ const Citas = () => {
         ))}
       </div>
 
-      {/* Calendario y Gráficos */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        {/* Calendario Principal */}
-        <div className={`xl:col-span-2 ${cardBase}`}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📅 Calendario Completo</h3>
-          <ScheduleComponent
-            height="500px"
-            eventSettings={{ dataSource: citasData }}
-            selectedDate={new Date(2025, 9, 10)}
-          >
-            <Inject services={[Day, Week, WorkWeek, Month, Agenda]} />
-          </ScheduleComponent>
+      {/* Gráficos ApexCharts - Métricas de Agenda */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaPercentage className="text-purple-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tasa Asistencia</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Efectividad de citas</p>
+          <Chart options={asistenciaOptions} series={asistenciaSeries} type="radialBar" height={160} />
+          <div className="space-y-2 mt-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Objetivo</span>
+              <span className="font-bold text-gray-500">90%</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Actual</span>
+              <span className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> 85%
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Panel de Análisis */}
-        <div className="space-y-6">
-          {/* Gráfico de Tipos de Citas */}
-          <div className={cardBase}>
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Tipos de Citas</h3>
-            <AccumulationChartComponent
-              id="tipos-citas-chart"
-              tooltip={{ enable: true }}
-              legendSettings={{ visible: true }}
-              height="250px"
-            >
-              <AccInject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-              <AccumulationSeriesCollectionDirective>
-                <AccumulationSeriesDirective
-                  type="Pie"
-                  dataSource={tiposCitasData}
-                  xName="tipo"
-                  yName="cantidad"
-                  name="Citas"
-                  dataLabel={{ visible: true, name: 'tipo', position: 'Outside' }}
-                />
-              </AccumulationSeriesCollectionDirective>
-            </AccumulationChartComponent>
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaCalendarAlt className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tipos de Citas</h3>
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual</p>
+          <Chart options={citasDonutOptions} series={citasDonutSeries} type="donut" height={200} />
+        </div>
 
-          {/* Citas por Día */}
-          <div className={cardBase}>
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📈 Citas por Día</h3>
-            <ChartComponent
-              id="citas-dia-chart"
-              primaryXAxis={{ valueType: 'Category' }}
-              primaryYAxis={{ title: 'Cantidad' }}
-              tooltip={{ enable: true }}
-              legendSettings={{ visible: false }}
-              height="200px"
-            >
-              <ChartInject services={[ColumnSeries, Category, Tooltip]} />
-              <SeriesCollectionDirective>
-                <SeriesDirective
-                  type="Column"
-                  dataSource={citasPorDia}
-                  xName="dia"
-                  yName="cantidad"
-                  name="Citas"
-                  fill={currentColor || '#3B82F6'}
-                />
-              </SeriesCollectionDirective>
-            </ChartComponent>
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaClock className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Citas por Día</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Esta semana</p>
+          <Chart options={citasDiaOptions} series={citasDiaSeries} type="bar" height={180} />
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaChartLine className="text-orange-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tendencia Mensual</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Últimas 4 semanas</p>
+          <Chart options={tendenciaSemanalOptions} series={tendenciaSemanalSeries} type="area" height={180} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">66</p>
+              <p className="text-xs text-gray-500">Total Mes</p>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">+12%</p>
+              <p className="text-xs text-gray-500">vs Ant.</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Grid de Próximas Citas y Panel de Recordatorios */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Grid de Próximas Citas */}
+      {/* Paneles de Estadísticas - Fila superior */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        {/* Gráfico de Tipos de Citas */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🕒 Próximas Citas</h3>
-          <GridComponent
-            dataSource={citasData}
-            allowPaging
-            pageSettings={{ pageSize: 5 }}
-            allowSorting
+          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">📊 Tipos de Citas</h3>
+          <AccumulationChartComponent
+            id="tipos-citas-chart"
+            tooltip={{ enable: true }}
+            legendSettings={{ visible: true, position: 'Bottom' }}
+            height="180px"
           >
-            <GridInject services={[Page, Sort]} />
-            <ColumnsDirective>
-              <ColumnDirective field="Subject" headerText="Cita" width="200" />
-              <ColumnDirective field="tipo" headerText="Tipo" width="100" />
-              <ColumnDirective field="cliente" headerText="Cliente" width="150" />
-              <ColumnDirective field="agente" headerText="Agente" width="130" />
-              <ColumnDirective field="estado" headerText="Estado" width="100" />
-            </ColumnsDirective>
-          </GridComponent>
+            <AccInject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
+            <AccumulationSeriesCollectionDirective>
+              <AccumulationSeriesDirective
+                type="Pie"
+                dataSource={tiposCitasData}
+                xName="tipo"
+                yName="cantidad"
+                name="Citas"
+                dataLabel={{ visible: false }}
+              />
+            </AccumulationSeriesCollectionDirective>
+          </AccumulationChartComponent>
         </div>
 
-        {/* Panel de Recordatorios */}
+        {/* Citas por Día */}
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🔔 Recordatorios Automáticos</h3>
-          <div className="space-y-4">
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaBell className="text-blue-500" />
-                <h4 className="font-bold dark:text-gray-200">24h Antes</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Email + SMS automático</p>
-              <p className="text-xs text-green-600 mt-1">✅ Activo</p>
-            </div>
+          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">📈 Citas por Día</h3>
+          <ChartComponent
+            id="citas-dia-chart"
+            primaryXAxis={{ valueType: 'Category', labelStyle: { size: '10px' } }}
+            primaryYAxis={{ title: '', labelStyle: { size: '10px' } }}
+            tooltip={{ enable: true }}
+            legendSettings={{ visible: false }}
+            height="180px"
+          >
+            <ChartInject services={[ColumnSeries, Category, Tooltip]} />
+            <SeriesCollectionDirective>
+              <SeriesDirective
+                type="Column"
+                dataSource={citasPorDia}
+                xName="dia"
+                yName="cantidad"
+                name="Citas"
+                fill={currentColor || '#3B82F6'}
+              />
+            </SeriesCollectionDirective>
+          </ChartComponent>
+        </div>
 
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaPhoneAlt className="text-green-500" />
-                <h4 className="font-bold dark:text-gray-200">2h Antes</h4>
+        {/* Próximas Citas - Versión compacta */}
+        <div className={cardBase}>
+          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">🕒 Próximas Citas</h3>
+          <div className="space-y-2 max-h-[180px] overflow-y-auto">
+            {citasData.slice(0, 4).map((cita, idx) => (
+              <div key={cita.Id || idx} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium dark:text-gray-200 truncate">{cita.Subject}</p>
+                  <p className="text-gray-500 dark:text-gray-400 truncate">{cita.cliente || cita.tipo}</p>
+                </div>
+                <span className="text-gray-400 flex-shrink-0">{cita.StartTime.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</span>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">WhatsApp recordatorio</p>
-              <p className="text-xs text-green-600 mt-1">✅ Activo</p>
-            </div>
+            ))}
+            {citasData.length === 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Sin citas próximas</p>
+            )}
+          </div>
+        </div>
 
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaMapMarkerAlt className="text-purple-500" />
-                <h4 className="font-bold dark:text-gray-200">Ubicación</h4>
+        {/* Recordatorios Automáticos - Versión compacta */}
+        <div className={cardBase}>
+          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">🔔 Recordatorios</h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <FaBell className="text-blue-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium dark:text-gray-200">24h Antes</p>
+                <p className="text-gray-500 dark:text-gray-400">Email + SMS</p>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Compartir ubicación automática</p>
-              <p className="text-xs text-green-600 mt-1">✅ Activo</p>
+              <span className="text-green-500 text-xs">✓</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <FaPhoneAlt className="text-green-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium dark:text-gray-200">2h Antes</p>
+                <p className="text-gray-500 dark:text-gray-400">WhatsApp</p>
+              </div>
+              <span className="text-green-500 text-xs">✓</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <FaMapMarkerAlt className="text-purple-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium dark:text-gray-200">Ubicación</p>
+                <p className="text-gray-500 dark:text-gray-400">Automática</p>
+              </div>
+              <span className="text-green-500 text-xs">✓</span>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Calendario Principal - Ancho completo y altura expandida */}
+      <div className={`${cardBase} mb-6`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold dark:text-gray-100">📅 Calendario Completo</h3>
+          <button
+            onClick={reloadCitas}
+            disabled={citasLoading}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            <FaSync className={citasLoading ? 'animate-spin' : ''} />
+            {citasLoading ? 'Cargando...' : 'Actualizar'}
+          </button>
+        </div>
+        {citasError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+            {citasError}
+          </div>
+        )}
+        <ScheduleComponent
+          height="650px"
+          width="100%"
+          eventSettings={{ dataSource: citasData }}
+          selectedDate={new Date()}
+          startHour="09:00"
+          endHour="21:00"
+          showTimeIndicator={true}
+          timeScale={{ enable: true, interval: 60, slotCount: 2 }}
+          firstDayOfWeek={1}
+          workDays={[0, 1, 2, 3, 4, 5, 6]}
+          cssClass={currentMode === 'Dark' ? 'e-schedule-dark' : 'e-schedule-light'}
+        >
+          <Inject services={[Day, Week, WorkWeek, Month, Agenda]} />
+        </ScheduleComponent>
       </div>
 
       {/* Panel de Seguimiento Post-Cita */}
@@ -696,14 +975,45 @@ const Citas = () => {
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {Object.values(tareas).flat().length} tareas
                 </span>
+                {kanbanSaving && (
+                  <span className="text-xs text-purple-500 flex items-center gap-1">
+                    <FaSync className="animate-spin" /> Guardando...
+                  </span>
+                )}
+                {kanbanLoading && (
+                  <span className="text-xs text-blue-500 flex items-center gap-1">
+                    <FaSync className="animate-spin" /> Cargando...
+                  </span>
+                )}
               </div>
-              <button onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                <FaTimes className="text-xl" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={loadKanbanData} 
+                  disabled={kanbanLoading}
+                  className="text-gray-400 hover:text-purple-500 transition-colors p-2"
+                  title="Recargar"
+                >
+                  <FaSync className={kanbanLoading ? 'animate-spin' : ''} />
+                </button>
+                <button onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ backgroundColor: currentMode === 'Dark' ? '#1a1a1a' : '#f8f9fa' }}>
+              {/* Loading State */}
+              {kanbanLoading && columnas.length === 0 && (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <FaSync className="animate-spin text-4xl text-purple-500 mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">Cargando tablero...</p>
+                  </div>
+                </div>
+              )}
+
               {/* Formulario Minimalista para Nueva Tarea */}
+              {!kanbanLoading && (
               <form onSubmit={agregarTarea} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm`}>
                 <div className="flex gap-3 items-center">
                   <input
@@ -738,8 +1048,10 @@ const Citas = () => {
                   </button>
                 </div>
               </form>
+              )}
 
               {/* Formulario para Nueva Columna */}
+              {!kanbanLoading && (
               <form onSubmit={agregarColumna} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm`}>
                 <div className="flex gap-3 items-center">
                   <FaPlus className="text-gray-400" />
@@ -762,16 +1074,27 @@ const Citas = () => {
                   </button>
                 </div>
               </form>
+              )}
 
               {/* Tablero Kanban con Drag and Drop */}
+              {!kanbanLoading && (
               <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '500px' }}>
                 {columnas.map((columna) => (
                   <div 
                     key={columna.id}
-                    onDragOver={handleDragOver}
+                    onDragOver={(e) => handleDragOver(e, columna.id)}
+                    onDragLeave={(e) => handleDragLeave(e, columna.id)}
                     onDrop={(e) => handleDrop(e, columna.id)}
-                    className={`flex-shrink-0 w-80 ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm`}
-                    style={{ borderTop: `3px solid ${columna.color}` }}
+                    className={`flex-shrink-0 w-80 rounded-lg p-4 shadow-sm transition-all duration-200
+                      ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'}
+                      ${dropTargetColumn === columna.id ? 'ring-2 ring-purple-500 ring-opacity-50 scale-[1.02]' : ''}
+                    `}
+                    style={{ 
+                      borderTop: `3px solid ${columna.color}`,
+                      backgroundColor: dropTargetColumn === columna.id 
+                        ? (currentMode === 'Dark' ? '#374151' : '#f3f4f6') 
+                        : undefined
+                    }}
                   >
                     {/* Header de Columna */}
                     <div className="flex items-center justify-between mb-4">
@@ -793,35 +1116,41 @@ const Citas = () => {
 
                     {/* Tareas con Drag and Drop */}
                     <div className="space-y-2 min-h-[400px]">
-                      {(tareas[columna.id] || []).map((tarea) => (
-                        <div
-                          key={tarea.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, tarea, columna.id)}
-                          onDragEnd={handleDragEnd}
-                          className={`${currentMode === 'Dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 cursor-move hover:shadow-md transition-shadow border ${currentMode === 'Dark' ? 'border-gray-600' : 'border-gray-200'}`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="text-sm font-medium dark:text-gray-100 flex-1">{tarea.titulo}</h4>
-                            <button 
-                              onClick={() => eliminarTarea(columna.id, tarea.id)} 
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                              <FaTrash className="text-xs" />
-                            </button>
+                      {(tareas[columna.id] || []).map((tarea) => {
+                        const tareaId = tarea._id || tarea.id;
+                        const titulo = tarea.title || tarea.titulo || 'Sin título';
+                        const prioridad = tarea.priority || tarea.prioridad || 'Media';
+                        const fecha = tarea.dueDate ? new Date(tarea.dueDate).toLocaleDateString('es-AR') : (tarea.fecha || '');
+                        return (
+                          <div
+                            key={tareaId}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, tarea, columna.id)}
+                            onDragEnd={handleDragEnd}
+                            className={`${currentMode === 'Dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 cursor-move hover:shadow-md transition-shadow border ${currentMode === 'Dark' ? 'border-gray-600' : 'border-gray-200'}`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="text-sm font-medium dark:text-gray-100 flex-1">{titulo}</h4>
+                              <button 
+                                onClick={() => eliminarTarea(columna.id, tareaId)} 
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                              >
+                                <FaTrash className="text-xs" />
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                              }`}>
+                                {prioridad === 'Alta' ? '🔴' : prioridad === 'Media' ? '🟡' : '🟢'} {prioridad}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{fecha}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              tarea.prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                              tarea.prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                              'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                            }`}>
-                              {tarea.prioridad === 'Alta' ? '🔴' : tarea.prioridad === 'Media' ? '🟡' : '🟢'} {tarea.prioridad}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{tarea.fecha}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {(tareas[columna.id] || []).length === 0 && (
                         <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
                           Arrastra tareas aquí
@@ -831,6 +1160,7 @@ const Citas = () => {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           </div>
         </div>

@@ -45,3 +45,496 @@
 .e-input-group:not(.e-float-icon-left), .e-input-group.e-success:not(.e-float-icon-left), .e-input-group.e-warning:not(.e-float-icon-left), .e-input-group.e-error:not(.e-float-icon-left), .e-input-group.e-control-wrapper:not(.e-float-icon-left), .e-input-group.e-control-wrapper.e-success:not(.e-float-icon-left), .e-input-group.e-control-wrapper.e-warning:not(.e-float-icon-left), .e-input-group.e-control-wrapper.e-error:not(.e-float-icon-left){
   border: none;
 }
+
+/* ========== DARK MODE - Syncfusion Schedule Calendar ========== */
+/* Main container */
+.e-schedule-dark.e-schedule,
+.e-schedule-dark .e-schedule {
+  background-color: #1f2937 !important;
+}
+
+/* Toolbar */
+.e-schedule-dark.e-schedule .e-schedule-toolbar,
+.e-schedule-dark.e-schedule .e-schedule-toolbar .e-toolbar-items {
+  background-color: #1f2937 !important;
+}
+
+.e-schedule-dark.e-schedule .e-toolbar .e-tbar-btn {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.e-schedule-dark.e-schedule .e-toolbar .e-tbar-btn:hover {
+  background-color: #4b5563 !important;
+}
+
+.e-schedule-dark.e-schedule .e-toolbar .e-tbar-btn.e-active {
+  background-color: #6366f1 !important;
+  color: #fff !important;
+}
+
+.e-schedule-dark.e-schedule .e-toolbar .e-tbar-btn-text {
+  color: #e5e7eb !important;
+}
+
+.e-schedule-dark.e-schedule .e-toolbar .e-icons {
+  color: #9ca3af !important;
+}
+
+.e-schedule-dark.e-schedule .e-date-range .e-tbar-btn-text {
+  color: #e5e7eb !important;
+}
+
+/* Header row - Days */
+.e-schedule-dark.e-schedule .e-date-header-wrap,
+.e-schedule-dark.e-schedule .e-date-header-wrap table {
+  background-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-header-row {
+  background-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-header-cells {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #e5e7eb !important;
+}
+
+.e-schedule-dark.e-schedule .e-header-cells .e-header-day,
+.e-schedule-dark.e-schedule .e-header-cells .e-header-date,
+.e-schedule-dark.e-schedule .e-header-cells span {
+  color: #e5e7eb !important;
+}
+
+/* Content area - Time slots and cells */
+.e-schedule-dark.e-schedule .e-content-wrap,
+.e-schedule-dark.e-schedule .e-content-wrap table,
+.e-schedule-dark.e-schedule .e-content-table {
+  background-color: #1f2937 !important;
+}
+
+.e-schedule-dark.e-schedule .e-work-cells {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-work-cells:hover {
+  background-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-work-hours {
+  background-color: #1e293b !important;
+}
+
+.e-schedule-dark.e-schedule .e-alternate-cells {
+  background-color: #1a202c !important;
+}
+
+/* Time column */
+.e-schedule-dark.e-schedule .e-time-cells-wrap,
+.e-schedule-dark.e-schedule .e-time-cells-wrap table {
+  background-color: #1f2937 !important;
+}
+
+.e-schedule-dark.e-schedule .e-time-cells {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-time-slots,
+.e-schedule-dark.e-schedule .e-time-cells .e-time-slots {
+  color: #9ca3af !important;
+  background-color: #1f2937 !important;
+}
+
+/* All day row */
+.e-schedule-dark.e-schedule .e-all-day-row td,
+.e-schedule-dark.e-schedule .e-all-day-cells {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+}
+
+/* Current time indicator */
+.e-schedule-dark.e-schedule .e-current-time {
+  border-color: #ef4444 !important;
+}
+
+.e-schedule-dark.e-schedule .e-current-timeline {
+  border-color: #ef4444 !important;
+}
+
+/* Appointments */
+.e-schedule-dark.e-schedule .e-appointment {
+  background-color: #6366f1 !important;
+  border-color: #4f46e5 !important;
+}
+
+.e-schedule-dark.e-schedule .e-appointment .e-subject,
+.e-schedule-dark.e-schedule .e-appointment .e-time,
+.e-schedule-dark.e-schedule .e-appointment .e-appointment-details {
+  color: #fff !important;
+}
+
+/* Month view */
+.e-schedule-dark.e-schedule .e-month-view .e-work-cells {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-month-view .e-date-header {
+  color: #e5e7eb !important;
+}
+
+.e-schedule-dark.e-schedule .e-month-view .e-other-month {
+  background-color: #111827 !important;
+  color: #6b7280 !important;
+}
+
+.e-schedule-dark.e-schedule .e-month-view .e-current-date .e-date-header {
+  background-color: #6366f1 !important;
+  color: #fff !important;
+}
+
+/* Week view specific */
+.e-schedule-dark.e-schedule .e-week-view .e-header-cells,
+.e-schedule-dark.e-schedule .e-day-view .e-header-cells {
+  background-color: #374151 !important;
+}
+
+/* Agenda view */
+.e-schedule-dark.e-schedule .e-agenda-view {
+  background-color: #1f2937 !important;
+}
+
+.e-schedule-dark.e-schedule .e-agenda-view .e-day-date-header {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.e-schedule-dark.e-schedule .e-agenda-view .e-agenda-item {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+}
+
+.e-schedule-dark.e-schedule .e-agenda-view .e-subject,
+.e-schedule-dark.e-schedule .e-agenda-view .e-date-time {
+  color: #e5e7eb !important;
+}
+
+/* Selected cell */
+.e-schedule-dark.e-schedule .e-selected-cell {
+  background-color: #4b5563 !important;
+}
+
+/* Resource header */
+.e-schedule-dark.e-schedule .e-resource-cells {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #e5e7eb !important;
+}
+
+/* Scrollbar */
+.e-schedule-dark.e-schedule .e-content-wrap::-webkit-scrollbar-track {
+  background-color: #1f2937 !important;
+}
+
+.e-schedule-dark.e-schedule .e-content-wrap::-webkit-scrollbar-thumb {
+  background-color: #4b5563 !important;
+}
+
+/* Quick popup */
+.e-schedule-dark .e-quick-popup-wrapper,
+.e-quick-popup-wrapper.e-schedule-dark {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.e-schedule-dark .e-quick-popup-wrapper .e-popup-header,
+.e-schedule-dark .e-quick-popup-wrapper .e-popup-content {
+  background-color: #1f2937 !important;
+}
+
+.e-schedule-dark .e-quick-popup-wrapper .e-subject,
+.e-schedule-dark .e-quick-popup-wrapper .e-popup-header .e-subject {
+  color: #e5e7eb !important;
+}
+
+.e-schedule-dark .e-quick-popup-wrapper .e-date-time,
+.e-schedule-dark .e-quick-popup-wrapper .e-resource,
+.e-schedule-dark .e-quick-popup-wrapper .e-location {
+  color: #9ca3af !important;
+}
+
+/* More events popup */
+.e-schedule-dark.e-schedule .e-more-popup-wrapper {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.e-schedule-dark.e-schedule .e-more-popup-wrapper .e-header {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+/* Today highlight */
+.e-schedule-dark.e-schedule .e-current-day {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+/* ========== DARK MODE - Syncfusion Charts ========== */
+.dark .e-chart,
+.dark .e-accumulationchart {
+  background-color: transparent !important;
+}
+
+.dark .e-chart text,
+.dark .e-accumulationchart text {
+  fill: #9ca3af !important;
+}
+
+.dark .e-chart .e-chart-legend-text,
+.dark .e-accumulationchart .e-chart-legend-text {
+  fill: #e5e7eb !important;
+}
+
+/* ========== DARK MODE - Syncfusion Grids ========== */
+.dark .e-grid {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.dark .e-grid .e-headercell {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+  border-color: #4b5563 !important;
+}
+
+.dark .e-grid .e-rowcell {
+  background-color: #1f2937 !important;
+  color: #e5e7eb !important;
+  border-color: #374151 !important;
+}
+
+.dark .e-grid .e-row:hover .e-rowcell {
+  background-color: #374151 !important;
+}
+
+/* ========== ERP LOGIN (Anabella Luna) ========== */
+.al-login-bg {
+  background:
+    radial-gradient(1200px 600px at 10% 20%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(1000px 500px at 90% 10%, rgba(16, 185, 129, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 50% 95%, rgba(236, 72, 153, 0.12), transparent 60%);
+}
+
+.dark .al-login-bg {
+  background:
+    radial-gradient(1200px 600px at 10% 20%, rgba(99, 102, 241, 0.26), transparent 60%),
+    radial-gradient(1000px 500px at 90% 10%, rgba(16, 185, 129, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 50% 95%, rgba(236, 72, 153, 0.12), transparent 60%);
+}
+
+.al-login-left {
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(16, 185, 129, 0.10));
+}
+
+.dark .al-login-left {
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(16, 185, 129, 0.12));
+}
+
+.al-login-logo {
+  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.12));
+}
+
+.al-login-card {
+  transform: translateZ(0);
+}
+
+.al-fade-up {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: alFadeUp 700ms cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+@keyframes alFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.al-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6842ef, #03bd9d);
+  box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.55);
+  animation: alPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes alPulse {
+  0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.40); }
+  70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0.0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.0); }
+}
+
+.al-login-btn {
+  background: linear-gradient(135deg, #6842ef, #03bd9d);
+  box-shadow: 0 12px 30px rgba(104, 66, 239, 0.25);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.al-login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(104, 66, 239, 0.28);
+}
+
+.al-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: alSpin 800ms linear infinite;
+}
+
+@keyframes alSpin {
+  to { transform: rotate(360deg); }
+}
+
+.al-login-alert {
+  min-height: 18px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  font-size: 0.875rem;
+  padding: 0;
+  color: #b91c1c;
+}
+
+.dark .al-login-alert {
+  color: #fca5a5;
+}
+
+.al-alert-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.al-shake {
+  animation: alShake 420ms cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes alShake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+.al-success {
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 18px 50px rgba(16, 185, 129, 0.18);
+  border-radius: 20px;
+}
+
+.al-left-copy {
+  background: rgba(255, 255, 255, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 18px;
+  padding: 18px 18px;
+  backdrop-filter: blur(8px);
+}
+
+.dark .al-left-copy {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.al-left-title {
+  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.al-pw-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 38px;
+  width: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.al-pw-toggle:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.al-icon-swap {
+  display: inline-flex;
+  animation: alIconSwap 160ms ease;
+}
+
+@keyframes alIconSwap {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.al-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(17, 24, 39, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.dark .al-login-overlay {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.al-login-overlay-card {
+  width: min(420px, 100%);
+  padding: 18px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(700px 280px at 10% 10%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(700px 280px at 90% 20%, rgba(16, 185, 129, 0.14), transparent 60%),
+    rgba(255, 255, 255, 0.92);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.20);
+  text-align: center;
+}
+
+.dark .al-login-overlay-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(700px 280px at 10% 10%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(700px 280px at 90% 20%, rgba(16, 185, 129, 0.16), transparent 60%),
+    rgba(17, 24, 39, 0.92);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+}
+
+.al-wheel {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  margin: 6px auto 0;
+  background: conic-gradient(from 0deg, rgba(104, 66, 239, 1), rgba(3, 189, 157, 1), rgba(236, 72, 153, 1), rgba(104, 66, 239, 1));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  animation: alWheelSpin 900ms linear infinite;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.18));
+}
+
+@keyframes alWheelSpin {
+  to { transform: rotate(360deg); }
+}

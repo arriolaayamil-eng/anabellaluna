@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Use an explicit placeholder so the developer is prompted to set a real URI in .env
 const DEFAULT_PLACEHOLDER = 'mongodb://<username>:<password>@host:27017/<database>?retryWrites=true&w=majority';

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaCalendarAlt, FaTimes, FaSave, FaHome, FaUser, FaMapMarkerAlt, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaArrowDown, FaCalendarAlt, FaTimes, FaSave, FaHome, FaUser, FaMapMarkerAlt, FaClock, FaCheckCircle, FaFunnelDollar } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import Chart from 'react-apexcharts';
 
 // Syncfusion Components
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
@@ -95,7 +96,92 @@ const Ventas = () => {
     { tipo: 'Alquiler', cantidad: operaciones.filter(o => o.tipo === 'Alquiler').length },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  // ApexCharts - Progreso Meta de Ventas
+  const metaVentasOptions = {
+    chart: { type: 'radialBar', height: 200, background: 'transparent', sparkline: { enabled: false } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -135, endAngle: 135,
+        hollow: { size: '60%', background: 'transparent' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '11px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: -8 },
+          value: { show: true, fontSize: '24px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: '#10B981', opacity: 1 }, { offset: 100, color: '#059669', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Meta Mensual'],
+  };
+  const metaVentasSeries = [40];
+
+  // ApexCharts - Distribución de Operaciones (Donut)
+  const operacionesDonutOptions = {
+    chart: { type: 'donut', height: 220, background: 'transparent' },
+    labels: ['Cerradas', 'En Curso', 'Reservadas'],
+    colors: ['#10B981', '#3B82F6', '#F59E0B'],
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => operaciones.length } } } } },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const operacionesDonutSeries = [estadosData[0].cantidad, estadosData[1].cantidad, estadosData[2].cantidad];
+
+  // ApexCharts - Tendencia Ingresos (Area)
+  const ingresosTrendOptions = {
+    chart: { type: 'area', height: 260, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+    colors: ['#8B5CF6', '#10B981'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: { categories: ventasPorMes.map(v => v.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const ingresosTrendSeries = [
+    { name: 'Ventas', data: ventasPorMes.map(v => v.ventas) },
+    { name: 'Alquileres', data: ventasPorMes.map(v => v.alquileres) },
+  ];
+
+  // ApexCharts - Funnel de Conversión
+  const funnelVentasOptions = {
+    chart: { type: 'bar', height: 180, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, horizontal: true, distributed: true, barHeight: '60%' } },
+    colors: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981'],
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 }, formatter: (val, opt) => `${opt.w.globals.labels[opt.dataPointIndex]}: ${val}`, offsetX: 5 },
+    xaxis: { categories: ['Leads', 'Visitas', 'Ofertas', 'Cerradas'], labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { show: false } },
+    grid: { show: false },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const funnelVentasSeries = [{ name: 'Operaciones', data: [45, 28, 15, 8] }];
+
+  // ApexCharts - Tasa de Cierre (Gauge)
+  const tasaCierreOptions = {
+    chart: { type: 'radialBar', height: 160, background: 'transparent', sparkline: { enabled: true } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90, endAngle: 90,
+        hollow: { size: '55%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 16 },
+          value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -10, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', colorStops: [{ offset: 0, color: '#F59E0B', opacity: 1 }, { offset: 100, color: '#D97706', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Tasa Cierre'],
+  };
+  const tasaCierreSeries = [Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length) * 100)];
+
+  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-[1.02]';
 
   // Funciones de manejo para Venta
   const handleVentaChange = (e) => {
@@ -217,6 +303,111 @@ const Ventas = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Gráficos ApexCharts - Métricas Financieras */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaDollarSign className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Meta Ventas</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Progreso mensual</p>
+          <Chart options={metaVentasOptions} series={metaVentasSeries} type="radialBar" height={180} />
+          <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
+            <div className="text-center">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">2</p>
+              <p className="text-xs text-gray-500">Cerradas</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gray-500">5</p>
+              <p className="text-xs text-gray-500">Meta</p>
+            </div>
+          </div>
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaFileContract className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Estado Operaciones</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual</p>
+          <Chart options={operacionesDonutOptions} series={operacionesDonutSeries} type="donut" height={200} />
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaFunnelDollar className="text-purple-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Funnel de Ventas</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Conversión de leads</p>
+          <Chart options={funnelVentasOptions} series={funnelVentasSeries} type="bar" height={160} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">17.7%</p>
+              <p className="text-xs text-gray-500">Conversión</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">62%</p>
+              <p className="text-xs text-gray-500">Visitas</p>
+            </div>
+          </div>
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaPercentage className="text-orange-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tasa de Cierre</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Efectividad</p>
+          <Chart options={tasaCierreOptions} series={tasaCierreSeries} type="radialBar" height={140} />
+          <div className="space-y-2 mt-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Promedio sector</span>
+              <span className="font-bold text-gray-500">35%</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Tu rendimiento</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> +5%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráfico de Tendencia Amplio */}
+      <div className="mb-6">
+        <div className={cardBase}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <FaChartLine className="text-purple-500" />
+                <h3 className="font-semibold dark:text-gray-100">Tendencia de Operaciones</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Ventas vs Alquileres últimos 6 meses</p>
+            </div>
+          </div>
+          <Chart options={ingresosTrendOptions} series={ingresosTrendSeries} type="area" height={240} />
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
+            <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">51</p>
+              <p className="text-xs text-gray-500">Ventas Total</p>
+            </div>
+            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">85</p>
+              <p className="text-xs text-gray-500">Alquileres</p>
+            </div>
+            <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">$29.9K</p>
+              <p className="text-xs text-gray-500">Comisiones</p>
+            </div>
+            <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">+18%</p>
+              <p className="text-xs text-gray-500">vs Ant.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gráficos de Tendencias y Estados */}

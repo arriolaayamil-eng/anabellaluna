@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { header } from "./headerData";
 import { useDispatch, useSelector } from "react-redux";
 import ImageWithBasePath from "../../imageWithBasePath";
 import { setDataTheme } from "../../redux/themeSettingSlice";
 import { all_routes } from "../../../feature-module/routes/all_routes";
+import userService from "../../../services/userService";
 
 const Header = () => {
   const [subOpen, setSubopen] = useState<any>("");
   const [subsidebar, setSubsidebar] = useState("");
   const [subsidebar2, setSubsidebar2] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isFixed, setIsFixed] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
   const handleDataThemeChange = (theme: string) => {
     dispatch(setDataTheme(theme));
@@ -68,6 +72,42 @@ const Header = () => {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", dataTheme);
   }, [dataTheme]);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      const authenticated = userService.isAuthenticated();
+      setIsLoggedIn(authenticated);
+      if (authenticated) {
+        setCurrentUser(userService.getCurrentUser());
+      } else {
+        setCurrentUser(null);
+      }
+    };
+    checkAuth();
+    // Re-check on location change (e.g., after login/logout)
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    userService.logout();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    navigate(all_routes.index);
+  };
+
+  const getUserDisplayName = () => {
+    if (currentUser?.nombre) return currentUser.nombre;
+    if (currentUser?.username) return currentUser.username.split('@')[0];
+    return 'Usuario';
+  };
+
+  const getUserInitials = () => {
+    const name = getUserDisplayName();
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <>
       {/* Header Start */}
@@ -312,18 +352,39 @@ const Header = () => {
                 </button>
               </div>
               <div className="menu-login">
-                <Link
-                  to={all_routes.signup}
-                  className="btn btn-primary w-100 mb-2"
-                >
-                  Iniciar Sesión
-                </Link>
-                <Link
-                  to={all_routes.signin}
-                  className="btn btn-secondary w-100"
-                >
-                  Crear Cuenta
-                </Link>
+                {isLoggedIn ? (
+                  <>
+                    <Link
+                      to={all_routes.profile}
+                      className="btn btn-primary w-100 mb-2"
+                    >
+                      <i className="material-icons-outlined me-1">person</i>
+                      Mi Perfil
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="btn btn-secondary w-100"
+                    >
+                      <i className="material-icons-outlined me-1">logout</i>
+                      Cerrar Sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to={all_routes.signin}
+                      className="btn btn-primary w-100 mb-2"
+                    >
+                      Iniciar Sesión
+                    </Link>
+                    <Link
+                      to={all_routes.signup}
+                      className="btn btn-secondary w-100"
+                    >
+                      Crear Cuenta
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
             {location.pathname === "/index" ||
@@ -338,7 +399,6 @@ const Header = () => {
                 >
                   <i className="material-icons-outlined">search</i>
                 </Link>
-                {/* Selector de idioma eliminado a pedido del usuario */}
                 <button
                   type="button"
                   className="topbar-link btn btn-light me-2"
@@ -348,31 +408,50 @@ const Header = () => {
                     {dataTheme === "light" ? "dark_mode" : "wb_sunny"}
                   </i>
                 </button>
-                <Link
-                  to={all_routes.signin}
-                  className="btn btn-lg btn-primary d-inline-flex align-items-center"
-                >
-                  <i className="material-icons-outlined me-1">lock</i>
-                  Iniciar Sesión
-                </Link>
-                <Link
-                  to={all_routes.signup}
-                  className="btn btn-lg btn-dark d-inline-flex align-items-center"
-                >
-                  <i className="material-icons-outlined me-1">perm_identity</i>
-                  Crear Cuenta
-                </Link>
+                {isLoggedIn ? (
+                  <>
+                    <Link
+                      to={all_routes.profile}
+                      className="btn btn-lg btn-primary d-inline-flex align-items-center"
+                    >
+                      <i className="material-icons-outlined me-1">person</i>
+                      Mi Perfil
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="btn btn-lg btn-dark d-inline-flex align-items-center"
+                    >
+                      <i className="material-icons-outlined me-1">logout</i>
+                      Cerrar Sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to={all_routes.signin}
+                      className="btn btn-lg btn-primary d-inline-flex align-items-center"
+                    >
+                      <i className="material-icons-outlined me-1">lock</i>
+                      Iniciar Sesión
+                    </Link>
+                    <Link
+                      to={all_routes.signup}
+                      className="btn btn-lg btn-dark d-inline-flex align-items-center"
+                    >
+                      <i className="material-icons-outlined me-1">perm_identity</i>
+                      Crear Cuenta
+                    </Link>
+                  </>
+                )}
               </div>
             ) : (
               <div className="nav header-items">
                 <Link
                   to="#"
                   className={`topbar-link btn btn-light topbar-search ${
-                    [
-                      "/buy-details",
-                      "/rent-details",
-                      "/buy-details-schedule",
-                    ].includes(location.pathname)
+                    (location.pathname.startsWith("/buy/") ||
+                      location.pathname.startsWith("/rent/") ||
+                      location.pathname === "/buy-details-schedule")
                       ? "custom-btn-light"
                       : ""
                   }`}
@@ -395,11 +474,9 @@ const Header = () => {
                   <Link
                     to="#"
                     className={`topbar-link btn btn-light ${
-                      [
-                        "/buy-details",
-                        "/rent-details",
-                        "/buy-details-schedule",
-                      ].includes(location.pathname)
+                      (location.pathname.startsWith("/buy/") ||
+                        location.pathname.startsWith("/rent/") ||
+                        location.pathname === "/buy-details-schedule")
                         ? "custom-btn-light"
                         : ""
                     }`}
@@ -659,11 +736,9 @@ const Header = () => {
                 <Link
                   to={all_routes.cart}
                   className={`topbar-link btn btn-light topbar-cart ${
-                    [
-                      "/buy-details",
-                      "/rent-details",
-                      "/buy-details-schedule",
-                    ].includes(location.pathname)
+                    (location.pathname.startsWith("/buy/") ||
+                      location.pathname.startsWith("/rent/") ||
+                      location.pathname === "/buy-details-schedule")
                       ? "custom-btn-light"
                       : ""
                   }`}
@@ -671,83 +746,104 @@ const Header = () => {
                   <i className="material-icons-outlined">shopping_cart</i>
                   <span className="badge-icon bg-danger">3</span>
                 </Link>
-                <Link
-                  to={all_routes.addpropertybuy}
-                  className="btn btn-lg btn-dark d-inline-flex align-items-center topbar-add"
-                >
-                  <i className="material-icons-outlined me-1">home</i>
-                  Publicar propiedad
-                </Link>
-                <div className="dropdown topbar-profile d-flex">
-                  <Link to="#" className="avatar" data-bs-toggle="dropdown">
-                    <ImageWithBasePath
-                      src="assets/img/users/user-06.jpg"
-                      alt="img"
-                      className="img-fluid rounded-circle"
-                    />
-                  </Link>
-                  <div className="dropdown-menu dropdown-menu-end">
-                    <div className="d-flex align-items-center user-profile">
-                      <ImageWithBasePath
-                        src="assets/img/users/user-06.jpg"
-                        className="rounded-circle"
-                        width={42}
-                        height={42}
-                        alt="image"
-                      />
-                      <div className="ms-2">
-                        <h6 className="mb-1">Jafna Cremson</h6>
-                        <span className="d-block">Administrador</span>
+                {isLoggedIn ? (
+                  <div className="dropdown topbar-profile d-flex">
+                    <Link to="#" className="avatar" data-bs-toggle="dropdown">
+                      {currentUser?.avatar ? (
+                        <img
+                          src={currentUser.avatar}
+                          alt="img"
+                          className="img-fluid rounded-circle"
+                          style={{ width: 40, height: 40, objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div 
+                          className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+                          style={{ width: 40, height: 40, fontSize: 14, fontWeight: 600 }}
+                        >
+                          {getUserInitials()}
+                        </div>
+                      )}
+                    </Link>
+                    <div className="dropdown-menu dropdown-menu-end">
+                      <div className="d-flex align-items-center user-profile">
+                        {currentUser?.avatar ? (
+                          <img
+                            src={currentUser.avatar}
+                            className="rounded-circle"
+                            width={42}
+                            height={42}
+                            style={{ objectFit: 'cover' }}
+                            alt="image"
+                          />
+                        ) : (
+                          <div 
+                            className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+                            style={{ width: 42, height: 42, fontSize: 14, fontWeight: 600 }}
+                          >
+                            {getUserInitials()}
+                          </div>
+                        )}
+                        <div className="ms-2">
+                          <h6 className="mb-1">{getUserDisplayName()}</h6>
+                          <span className="d-block">{currentUser?.email || ''}</span>
+                        </div>
                       </div>
+                      <Link
+                        to={all_routes.profile}
+                        className="dropdown-item d-inline-flex align-items-center"
+                      >
+                        <i className="material-icons-outlined me-2">
+                          person_outline
+                        </i>
+                        Mi Perfil
+                      </Link>
+                      <Link
+                        to={all_routes.wishlist}
+                        className="dropdown-item d-inline-flex align-items-center"
+                      >
+                        <i className="material-icons-outlined me-2">
+                          favorite_border
+                        </i>
+                        Mis Favoritos
+                      </Link>
+                      <Link
+                        to={all_routes.notification}
+                        className="dropdown-item d-inline-flex align-items-center"
+                      >
+                        <i className="material-icons-outlined me-2">
+                          notifications_none
+                        </i>
+                        Notificaciones
+                      </Link>
+                      <hr className="dropdown-divider" />
+                      <button
+                        onClick={handleLogout}
+                        className="dropdown-item d-inline-flex align-items-center link-danger"
+                      >
+                        <i className="material-icons-outlined me-2">logout</i>
+                        Cerrar sesión
+                      </button>
                     </div>
-                    {/* Item*/}
-                    <Link
-                      to="#"
-                      className="dropdown-item d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-2">
-                        person_outline
-                      </i>
-                      Configuración de perfil
-                    </Link>
-                    {/* Item*/}
-                    <Link
-                      to={all_routes.notification}
-                      className="dropdown-item d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-2">
-                        notifications_none
-                      </i>
-                      Notificaciones
-                    </Link>
-                    {/* Item*/}
-                    <Link
-                      to="#"
-                      className="dropdown-item d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-2">
-                        help_outline
-                      </i>
-                      Ayuda y soporte
-                    </Link>
-                    {/* Item*/}
-                    <Link
-                      to="#"
-                      className="dropdown-item d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-2">settings</i>
-                      Configuración
-                    </Link>
-                    <hr className="dropdown-divider" />
+                  </div>
+                ) : (
+                  <>
                     <Link
                       to={all_routes.signin}
-                      className="dropdown-item d-inline-flex align-items-center link-danger"
+                      className="btn btn-lg btn-primary d-inline-flex align-items-center"
                     >
-                      <i className="material-icons-outlined me-2">logout</i>
-                      Cerrar sesión
+                      <i className="material-icons-outlined me-1">lock</i>
+                      Iniciar Sesión
                     </Link>
-                  </div>
-                </div>
+                    <Link
+                      to={all_routes.signup}
+                      className="btn btn-lg btn-dark d-inline-flex align-items-center"
+                    >
+                      <i className="material-icons-outlined me-1">perm_identity</i>
+                      Crear Cuenta
+                    </Link>
+                  </>
+                )}
               </div>
             )}
           </nav>
