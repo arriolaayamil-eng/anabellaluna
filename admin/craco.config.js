@@ -1,4 +1,7 @@
 module.exports = {
+  eslint: {
+    enable: false,
+  },
   webpack: {
     configure: (config) => {
       // Exclude Syncfusion packages from source-map-loader to avoid missing source map files

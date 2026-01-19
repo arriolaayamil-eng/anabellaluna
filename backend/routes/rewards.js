@@ -138,7 +138,7 @@ function agentScopeId(req) {
 router.get('/my', authenticateToken, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
-    if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
+    if (!agenteId) return res.json([]); // Return empty array for non-agents
     
     const rewards = await Reward.find({ agenteId })
       .sort({ createdAt: -1 })
@@ -155,7 +155,7 @@ router.get('/my', authenticateToken, async (req, res) => {
 router.get('/unseen', authenticateToken, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
-    if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
+    if (!agenteId) return res.json([]); // Return empty array for non-agents
     
     const rewards = await Reward.find({ 
       agenteId, 

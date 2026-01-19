@@ -79,6 +79,22 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+
+    // For agents without agenteId, try to find and link the Agente by email/username
+    if (user.role === 'agent' && !user.agenteId) {
+      const agente = await Agente.findOne({
+        $or: [
+          { email: username },
+          { email: user.email },
+          { nombre: username },
+        ],
+      }).exec();
+      if (agente) {
+        user.agenteId = agente._id;
+        await user.save();
+      }
+    }
+
     const token = signToken(user);
     res.json({ token });
   } catch (err) {
