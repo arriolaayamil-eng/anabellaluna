@@ -154,6 +154,13 @@ function presignedGetObject(bucket, objectName, expirySeconds = 60) {
     if (!client) return reject(new Error('MinIO is not configured'));
     client.presignedGetObject(bucket, objectName, expirySeconds, (err, url) => {
       if (err) return reject(err);
+      // Replace localhost URL with public URL if configured
+      const publicUrl = (process.env.MINIO_PUBLIC_URL || '').trim();
+      if (publicUrl && url) {
+        const minioBaseUrl = `http${minioConfig.useSSL ? 's' : ''}://${minioConfig.endPoint}:${minioConfig.port}`;
+        const fixedUrl = url.replace(minioBaseUrl, publicUrl);
+        return resolve(fixedUrl);
+      }
       return resolve(url);
     });
   });
