@@ -14,8 +14,8 @@ async function run() {
   console.log('Connected to DB, seeding...');
   const resetDemo = process.argv.includes('--reset-demo');
 
-  const adminUsername = 'admin';
-  const adminPassword = 'admin123';
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const adminHash = await bcrypt.hash(adminPassword, 10);
   const admin = await User.findOneAndUpdate(
     { username: adminUsername },
