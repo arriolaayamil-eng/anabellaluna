@@ -601,8 +601,13 @@ export const links = [
     title: 'Integraciones',
     links: [
       {
-        name: 'erp-integracion',
+        name: 'integraciones',
+        displayName: 'Configurar APIs',
         icon: <MdOutlineIntegrationInstructions />,
+      },
+      {
+        name: 'erp-integracion',
+        icon: <BsPlugin />,
       },
       {
         name: 'contabilidad',
@@ -615,10 +620,6 @@ export const links = [
       {
         name: 'apis-externas',
         icon: <AiOutlineApi />,
-      },
-      {
-        name: 'webhooks',
-        icon: <BsPlugin />,
       },
     ],
   },

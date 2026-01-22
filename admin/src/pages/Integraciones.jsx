@@ -1,39 +1,281 @@
-import React from 'react';
-import { FaPlug, FaCheck, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaGoogle, FaCheck, FaTimes, FaCopy, FaEye, FaEyeSlash, FaSave, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
 import { Header } from '../components';
+import { useStateContext } from '../contexts/ContextProvider';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const getAuthToken = () => localStorage.getItem('authToken');
 
 const Integraciones = () => {
-  const integraciones = [
-    { nombre: 'ZonaProp', descripcion: 'Portal inmobiliario líder', conectado: true, logo: '🏢' },
-    { nombre: 'ArgentinaProp', descripcion: 'Publicación de propiedades', conectado: true, logo: '🏘️' },
-    { nombre: 'MercadoLibre', descripcion: 'Marketplace de propiedades', conectado: false, logo: '🛒' },
-    { nombre: 'Google Calendar', descripcion: 'Sincronización de citas', conectado: true, logo: '📅' },
-    { nombre: 'WhatsApp Business', descripcion: 'Mensajería con clientes', conectado: false, logo: '💬' },
-    { nombre: 'Mailchimp', descripcion: 'Email marketing', conectado: false, logo: '📧' },
-  ];
+  const { currentColor } = useStateContext();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+  const [copied, setCopied] = useState('');
+  const [message, setMessage] = useState({ type: '', text: '' });
+  
+  const [googleOAuth, setGoogleOAuth] = useState({
+    clientId: '',
+    clientSecret: '',
+    hasCredentials: false,
+    redirectUri: '',
+  });
+
+  useEffect(() => {
+    loadGoogleOAuthConfig();
+  }, []);
+
+  const loadGoogleOAuthConfig = async () => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_URL}/admin/config/google-oauth`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGoogleOAuth({
+          clientId: data.clientId || '',
+          clientSecret: data.clientSecret || '',
+          hasCredentials: data.hasCredentials || false,
+          redirectUri: data.redirectUri || '',
+        });
+      }
+    } catch (err) {
+      console.error('Error loading Google OAuth config:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveGoogleOAuth = async () => {
+    if (!googleOAuth.clientId || !googleOAuth.clientSecret) {
+      setMessage({ type: 'error', text: 'Client ID y Client Secret son requeridos' });
+      return;
+    }
+    
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_URL}/admin/config/google-oauth`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clientId: googleOAuth.clientId,
+          clientSecret: googleOAuth.clientSecret,
+        }),
+      });
+      
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Credenciales guardadas correctamente' });
+        setGoogleOAuth(prev => ({ ...prev, hasCredentials: true }));
+      } else {
+        const data = await res.json();
+        setMessage({ type: 'error', text: data.error || 'Error al guardar' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error de conexión' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteGoogleOAuth = async () => {
+    if (!window.confirm('¿Eliminar las credenciales de Google OAuth? Los agentes no podrán conectar sus calendarios.')) {
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_URL}/admin/config/google-oauth`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (res.ok) {
+        setGoogleOAuth({ clientId: '', clientSecret: '', hasCredentials: false, redirectUri: googleOAuth.redirectUri });
+        setMessage({ type: 'success', text: 'Credenciales eliminadas' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error al eliminar' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(''), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+        <Header category="Configuración" title="Integraciones" />
+        <div className="flex justify-center py-10">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }}></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
       <Header category="Configuración" title="Integraciones" />
       
+      {message.text && (
+        <div className={`mb-6 p-4 rounded-lg ${
+          message.type === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        }`}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Google Calendar OAuth Configuration */}
+      <div className="border dark:border-gray-700 rounded-xl p-6 mb-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+            <FaGoogle className="text-2xl text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-xl font-bold dark:text-gray-200">Google Calendar</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Configuración central OAuth para sincronización de calendarios de agentes
+            </p>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            googleOAuth.hasCredentials 
+              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+          }`}>
+            {googleOAuth.hasCredentials ? <><FaCheck className="inline mr-1" /> Configurado</> : <><FaTimes className="inline mr-1" /> No configurado</>}
+          </span>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 mb-6">
+          <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">📋 Instrucciones:</h4>
+          <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
+            <li>Ir a <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-900">Google Cloud Console <FaExternalLinkAlt className="inline text-xs" /></a></li>
+            <li>Crear o seleccionar un proyecto</li>
+            <li>Habilitar la API de Google Calendar</li>
+            <li>Crear credenciales OAuth 2.0 (tipo "Web Application")</li>
+            <li>Agregar la URI de redirección (abajo) a "Authorized redirect URIs"</li>
+            <li>Copiar el Client ID y Client Secret aquí</li>
+          </ol>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Redirect URI (copiar a Google Console)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={googleOAuth.redirectUri}
+                readOnly
+                className="flex-1 px-4 py-2 border rounded-lg bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 text-sm"
+              />
+              <button
+                onClick={() => copyToClipboard(googleOAuth.redirectUri, 'redirect')}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                title="Copiar"
+              >
+                {copied === 'redirect' ? <FaCheck className="text-green-600" /> : <FaCopy className="dark:text-gray-300" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Client ID *
+            </label>
+            <input
+              type="text"
+              value={googleOAuth.clientId}
+              onChange={(e) => setGoogleOAuth(prev => ({ ...prev, clientId: e.target.value }))}
+              placeholder="xxxxxx.apps.googleusercontent.com"
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Client Secret *
+            </label>
+            <div className="flex gap-2">
+              <input
+                type={showSecret ? 'text' : 'password'}
+                value={googleOAuth.clientSecret}
+                onChange={(e) => setGoogleOAuth(prev => ({ ...prev, clientSecret: e.target.value }))}
+                placeholder="GOCSPX-xxxxxx"
+                className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+              />
+              <button
+                onClick={() => setShowSecret(!showSecret)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                title={showSecret ? 'Ocultar' : 'Mostrar'}
+              >
+                {showSecret ? <FaEyeSlash className="dark:text-gray-300" /> : <FaEye className="dark:text-gray-300" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={saveGoogleOAuth}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-2 text-white rounded-lg transition-colors disabled:opacity-50"
+              style={{ backgroundColor: currentColor }}
+            >
+              <FaSave /> {saving ? 'Guardando...' : 'Guardar Credenciales'}
+            </button>
+            {googleOAuth.hasCredentials && (
+              <button
+                onClick={deleteGoogleOAuth}
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                <FaTrash /> Eliminar
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6 pt-6 border-t dark:border-gray-700">
+          <h4 className="font-semibold dark:text-gray-200 mb-2">💡 ¿Cómo funciona?</h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Una vez configuradas las credenciales aquí, los <strong>agentes solo necesitan hacer clic en "Conectar Google Calendar"</strong> desde su panel de Integraciones.
+            No necesitan configurar nada más. Sus calendarios personales de Google se sincronizarán automáticamente con las citas del CRM.
+          </p>
+        </div>
+      </div>
+
+      {/* Other integrations (placeholder) */}
+      <h3 className="text-lg font-semibold dark:text-gray-200 mb-4">Otras Integraciones</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {integraciones.map((int, index) => (
-          <div key={index} className="border dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow">
+        {[
+          { nombre: 'ZonaProp', descripcion: 'Portal inmobiliario líder', conectado: false, logo: '🏢' },
+          { nombre: 'ArgentinaProp', descripcion: 'Publicación de propiedades', conectado: false, logo: '🏘️' },
+          { nombre: 'MercadoLibre', descripcion: 'Marketplace de propiedades', conectado: false, logo: '🛒' },
+          { nombre: 'WhatsApp Business', descripcion: 'Mensajería con clientes', conectado: false, logo: '💬' },
+          { nombre: 'Mailchimp', descripcion: 'Email marketing', conectado: false, logo: '📧' },
+        ].map((int, index) => (
+          <div key={index} className="border dark:border-gray-700 rounded-lg p-6 opacity-60">
             <div className="flex items-center justify-between mb-4">
               <div className="text-4xl">{int.logo}</div>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                int.conectado ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-              }`}>
-                {int.conectado ? <><FaCheck className="inline mr-1" /> Conectado</> : <><FaTimes className="inline mr-1" /> Desconectado</>}
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                Próximamente
               </span>
             </div>
             <h3 className="text-lg font-bold dark:text-gray-200 mb-2">{int.nombre}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{int.descripcion}</p>
-            <button className={`w-full py-2 px-4 rounded-lg transition-colors ${
-              int.conectado ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}>
-              {int.conectado ? 'Desconectar' : 'Conectar'}
-            </button>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{int.descripcion}</p>
           </div>
         ))}
       </div>

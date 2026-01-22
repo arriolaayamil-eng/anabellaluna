@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { MdSpaceDashboard, MdOutlineCancel } from 'react-icons/md';
+import { MdSpaceDashboard, MdOutlineCancel, MdOutlineIntegrationInstructions } from 'react-icons/md';
 import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaCheckSquare, FaChartBar, FaTrophy, FaBuilding, FaUserTie, FaComments } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
@@ -16,6 +16,7 @@ const menuItems = [
   { name: 'Documentos', path: '/documentos', icon: <FaCheckSquare /> },
   { name: 'Reportes', path: '/reportes', icon: <FaChartBar /> },
   { name: 'Recompensas', path: '/recompensas', icon: <FaTrophy /> },
+  { name: 'Integraciones', path: '/integraciones', icon: <MdOutlineIntegrationInstructions /> },
 ];
 
 const Sidebar = () => {

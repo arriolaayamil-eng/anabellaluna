@@ -3,6 +3,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const db = require('./db');
 const cloudinary = require('./cloudinary');
@@ -20,6 +21,7 @@ const {
 const streamifier = require('streamifier');
 const Document = require('./models/Document');
 const Version = require('./models/Version');
+const User = require('./models/User');
 const { router: authRouter, authenticateToken } = require('./auth');
 const crmRoutes = require('./routes/crm');
 const auditRoutes = require('./routes/audit');
@@ -38,8 +40,32 @@ const reportsRoutes = require('./routes/reports');
 const notificationsRoutes = require('./routes/notifications');
 const automationsRoutes = require('./routes/automations');
 const fechasImportantesRoutes = require('./routes/fechasImportantes');
+const globalConfigRoutes = require('./routes/globalConfig');
 const { initReportScheduler } = require('./services/reportScheduler');
 const { initAutomationScheduler } = require('./services/automationScheduler');
+
+// Sync admin credentials from .env on startup
+async function syncAdminCredentials() {
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminUsername || !adminPassword) {
+    console.log('[AdminSync] ADMIN_USERNAME or ADMIN_PASSWORD not set in .env, skipping sync');
+    return;
+  }
+  
+  try {
+    const adminHash = await bcrypt.hash(adminPassword, 10);
+    const admin = await User.findOneAndUpdate(
+      { username: adminUsername },
+      { $set: { password_hash: adminHash, role: 'admin' } },
+      { upsert: true, new: true }
+    ).exec();
+    console.log(`[AdminSync] Admin credentials synced: ${admin.username}`);
+  } catch (err) {
+    console.error('[AdminSync] Failed to sync admin credentials:', err.message);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -86,6 +112,7 @@ app.use('/crm/reports', reportsRoutes);
 app.use('/crm/notifications', notificationsRoutes);
 app.use('/crm/automations', automationsRoutes);
 app.use('/crm/fechas-importantes', fechasImportantesRoutes);
+app.use('/admin/config', globalConfigRoutes);
 
 // Generic CRM routes (links) - MUST come after specific routes
 app.use('/crm', crmRoutes);
@@ -500,6 +527,9 @@ if (require.main === module) {
         console.warn(`MinIO is unavailable on startup: ${msg}`);
       }
     }
+
+    // Sync admin credentials from .env before listening
+    await syncAdminCredentials();
 
     app.listen(PORT, () => {
       console.log(`Document backend listening on http://localhost:${PORT}`);

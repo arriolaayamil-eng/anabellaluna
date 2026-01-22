@@ -1,30 +1,86 @@
 const crypto = require('crypto');
 const { google } = require('googleapis');
 
+// Cache for global credentials (refreshed periodically)
+let globalCredentialsCache = null;
+let globalCredentialsCacheTime = 0;
+const CACHE_TTL = 60000; // 1 minute
+
 function getEnv(name, fallback) {
   const v = process.env[name];
   if (v === undefined || v === null || String(v).trim() === '') return fallback;
   return String(v);
 }
 
-// Check if global OAuth is configured (fallback)
+// Get global credentials from database (with caching)
+async function getGlobalCredentials() {
+  const now = Date.now();
+  if (globalCredentialsCache && (now - globalCredentialsCacheTime) < CACHE_TTL) {
+    return globalCredentialsCache;
+  }
+  
+  try {
+    const GlobalConfig = require('../models/GlobalConfig');
+    const config = await GlobalConfig.getValue('google_oauth_credentials', {});
+    globalCredentialsCache = {
+      clientId: config.clientId || '',
+      clientSecret: config.clientSecret || '',
+    };
+    globalCredentialsCacheTime = now;
+    return globalCredentialsCache;
+  } catch (err) {
+    console.error('Error loading global OAuth credentials:', err.message);
+    return { clientId: '', clientSecret: '' };
+  }
+}
+
+// Sync version for checking (uses cache or env fallback)
+function getGlobalCredentialsSync() {
+  if (globalCredentialsCache) {
+    return globalCredentialsCache;
+  }
+  // Fallback to env vars if cache not populated
+  return {
+    clientId: getEnv('GOOGLE_OAUTH_CLIENT_ID', ''),
+    clientSecret: getEnv('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+  };
+}
+
+// Check if global OAuth is configured (sync check using cache/env)
 function isGlobalConfigured() {
+  const creds = getGlobalCredentialsSync();
   return Boolean(
-    getEnv('GOOGLE_OAUTH_CLIENT_ID') &&
-    getEnv('GOOGLE_OAUTH_CLIENT_SECRET') &&
+    (creds.clientId || getEnv('GOOGLE_OAUTH_CLIENT_ID')) &&
+    (creds.clientSecret || getEnv('GOOGLE_OAUTH_CLIENT_SECRET')) &&
     getEnv('GOOGLE_OAUTH_REDIRECT_URI')
   );
 }
 
-// Check if agent has their own OAuth credentials configured
+// Async check for global config (more accurate)
+async function isGlobalConfiguredAsync() {
+  const creds = await getGlobalCredentials();
+  const hasDb = Boolean(creds.clientId && creds.clientSecret);
+  const hasEnv = Boolean(getEnv('GOOGLE_OAUTH_CLIENT_ID') && getEnv('GOOGLE_OAUTH_CLIENT_SECRET'));
+  return (hasDb || hasEnv) && Boolean(getEnv('GOOGLE_OAUTH_REDIRECT_URI'));
+}
+
+// Check if agent has their own OAuth credentials configured (deprecated - keeping for backward compat)
 function isAgentConfigured(agentMetadata) {
   const oauth = agentMetadata?.googleOAuth || {};
   return Boolean(oauth.clientId && oauth.clientSecret);
 }
 
-// Combined check - either agent or global config
+// Combined check - global config only (agents no longer need own credentials)
 function isConfigured(agentMetadata) {
-  return isAgentConfigured(agentMetadata) || isGlobalConfigured();
+  // For backward compatibility, still check agent credentials
+  // But primary check is global config
+  return isGlobalConfigured() || isAgentConfigured(agentMetadata);
+}
+
+// Async version of isConfigured
+async function isConfiguredAsync(agentMetadata) {
+  const globalOk = await isGlobalConfiguredAsync();
+  return globalOk || isAgentConfigured(agentMetadata);
 }
 
 // Get redirect URI (always from env since it's server-specific)
@@ -32,17 +88,33 @@ function getRedirectUri() {
   return getEnv('GOOGLE_OAUTH_REDIRECT_URI', 'http://localhost:4000/crm/integrations/google-calendar/callback');
 }
 
-// Create OAuth client using agent credentials or fallback to global
-function createOAuthClient(agentMetadata) {
+// Create OAuth client using GLOBAL credentials (agents no longer configure their own)
+async function createOAuthClientAsync(agentMetadata) {
+  const globalCreds = await getGlobalCredentials();
   const oauth = agentMetadata?.googleOAuth || {};
   
-  // Try agent credentials first, fallback to global
-  const clientId = oauth.clientId || getEnv('GOOGLE_OAUTH_CLIENT_ID');
-  const clientSecret = oauth.clientSecret || getEnv('GOOGLE_OAUTH_CLIENT_SECRET');
+  // Priority: Global DB config > Agent config (deprecated) > Env vars
+  const clientId = globalCreds.clientId || oauth.clientId || getEnv('GOOGLE_OAUTH_CLIENT_ID');
+  const clientSecret = globalCreds.clientSecret || oauth.clientSecret || getEnv('GOOGLE_OAUTH_CLIENT_SECRET');
   const redirectUri = getRedirectUri();
   
   if (!clientId || !clientSecret || !redirectUri) {
-    throw new Error('Google OAuth is not configured. Please configure your credentials in Integrations.');
+    throw new Error('Google OAuth is not configured. Admin must configure credentials in Settings.');
+  }
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+}
+
+// Sync version for backward compatibility (uses cache)
+function createOAuthClient(agentMetadata) {
+  const globalCreds = getGlobalCredentialsSync();
+  const oauth = agentMetadata?.googleOAuth || {};
+  
+  const clientId = globalCreds.clientId || oauth.clientId || getEnv('GOOGLE_OAUTH_CLIENT_ID');
+  const clientSecret = globalCreds.clientSecret || oauth.clientSecret || getEnv('GOOGLE_OAUTH_CLIENT_SECRET');
+  const redirectUri = getRedirectUri();
+  
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw new Error('Google OAuth is not configured. Admin must configure credentials in Settings.');
   }
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
@@ -186,10 +258,14 @@ async function deleteCalendarEvent({ refreshToken, calendarId, eventId, agentMet
 
 module.exports = {
   isConfigured,
+  isConfiguredAsync,
   isAgentConfigured,
   isGlobalConfigured,
+  isGlobalConfiguredAsync,
   getRedirectUri,
   createOAuthClient,
+  createOAuthClientAsync,
+  getGlobalCredentials,
   getAuthUrl,
   parseAndVerifyState,
   exchangeCodeForTokens,
