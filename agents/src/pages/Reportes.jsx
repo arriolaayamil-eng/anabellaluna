@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, Legend, Category, Tooltip, 
-  ColumnSeries, LineSeries, SplineAreaSeries, BarSeries, StackingColumnSeries, StackingBarSeries,
-  AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, 
-  AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries,
-  DataLabel
-} from '@syncfusion/ej2-react-charts';
-import { CircularGaugeComponent, AxesDirective, AxisDirective, PointersDirective, PointerDirective, RangesDirective, RangeDirective, Inject as GaugeInject, Annotations } from '@syncfusion/ej2-react-circulargauge';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Inject as GridInject, PdfExport, ExcelExport, Toolbar } from '@syncfusion/ej2-react-grids';
+import { toast } from 'react-toastify';
+import Chart from 'react-apexcharts';
 import { 
   FaChartBar, FaDownload, FaCalendarAlt, FaFilter, FaArrowUp, FaDollarSign, FaUsers, FaHome,
   FaChartLine, FaChartPie, FaMapMarkedAlt, FaStar, FaEye, FaTrophy, FaMoneyBillWave,
@@ -17,6 +10,7 @@ import {
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
+import { exportDashboardToPDF } from '../utils/exportDashboardToPDF';
 
 // Definición de los 20 tipos de reportes
 const REPORT_DEFINITIONS = [
@@ -55,7 +49,8 @@ const Reportes = () => {
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState([]);
   const [expandedReport, setExpandedReport] = useState(null);
-  const gridRef = useRef(null);
+  const [exportProgress, setExportProgress] = useState(null);
+  const chartRefs = useRef({});
 
   // Cargar configuración y datos
   const loadData = useCallback(async () => {
@@ -128,30 +123,81 @@ const Reportes = () => {
     }
   };
 
-  // Generar reporte PDF
-  const generateReport = async (type = 'manual') => {
+  // Generar reporte PDF (client-side DOM capture)
+  const generateReport = async (type = 'manual', action = 'download') => {
     setGenerating(true);
+    setExportProgress(0);
     try {
+      // Ensure dashboard tab is active so charts are rendered
+      const prevTab = activeTab;
+      if (activeTab !== 'dashboard') {
+        setActiveTab('dashboard');
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+
       const selectedIds = Object.entries(selectedReports)
-        .filter(([, selected]) => selected)
+        .filter(([, v]) => v)
         .map(([id]) => id);
-      
+
+      const chartElements = selectedIds
+        .map((id) => chartRefs.current[id])
+        .filter(Boolean);
+
+      // Wait for ApexCharts SVGs to finish rendering
+      await new Promise((r) => setTimeout(r, 500));
+
+      const { blob, period } = await exportDashboardToPDF({
+        chartElements,
+        reportDefinitions: REPORT_DEFINITIONS,
+        selectedReports,
+        reportData,
+        year: selectedYear,
+        month: selectedMonth,
+        type,
+        userName: 'Agente CRM',
+        onProgress: setExportProgress,
+      });
+
+      if (action === 'download') {
+        // Download locally
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reporte-${period}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } else if (action === 'send') {
+        // Send PDF to ERP
+        await crmService.reports.sendPdf(blob, `reporte-${period}.pdf`, {
+          type,
+          period,
+          agentName: 'Agente CRM',
+        });
+      }
+
+      // Register in history
       await crmService.reports.generate({
         type,
-        period: `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`,
+        period,
         selectedReports: selectedIds,
       });
-      
-      // Recargar historial
+
+      // Check milestones (non-blocking)
+      crmService.rewards.checkMilestones('report').catch(() => {});
+
       const historyRes = await crmService.reports.getHistory();
       setHistory(historyRes.data || []);
-      
-      alert('Reporte generado correctamente. Se enviará automáticamente al ERP.');
+
+      if (prevTab !== 'dashboard') setActiveTab(prevTab);
+
     } catch (err) {
       console.error('Error generating report:', err);
-      alert('Error al generar el reporte');
+      toast.error('Error al generar el reporte');
     } finally {
       setGenerating(false);
+      setExportProgress(null);
     }
   };
 
@@ -164,10 +210,10 @@ const Reportes = () => {
       const historyRes = await crmService.reports.getHistory();
       setHistory(historyRes.data || []);
       
-      alert('Reporte enviado al ERP correctamente');
+      toast.success('Reporte enviado al ERP correctamente');
     } catch (err) {
       console.error('Error sending to ERP:', err);
-      alert('Error al enviar el reporte');
+      toast.error('Error al enviar el reporte');
     } finally {
       setSending(false);
     }
@@ -184,166 +230,196 @@ const Reportes = () => {
     }
   };
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg';
-  const cardHover = `${cardBase} transition transform hover:scale-[1.02] cursor-pointer`;
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
+  const cardHover = `${cardBase} cursor-pointer`;
+  const axisLabelColor = isDark ? '#9CA3AF' : '#6B7280';
+  const gridColor = isDark ? '#374151' : '#E5E7EB';
+  const tooltipTheme = isDark ? 'dark' : 'light';
 
-  // Renderizar gráfico según tipo
+  const renderEmpty = (text = 'Sin datos disponibles') => (
+    <div className="text-gray-500 text-center py-8">{text}</div>
+  );
+
   const renderChart = (reportDef, data) => {
-    if (!data || data.error) {
-      return <div className="text-gray-500 text-center py-8">Sin datos disponibles</div>;
-    }
+    if (!data || data.error) return renderEmpty();
 
-    const chartData = data.chartData || [];
-    
+    const chartData = Array.isArray(data.chartData) ? data.chartData : [];
+
     switch (reportDef.chartType) {
       case 'column':
-      case 'bar':
+      case 'bar': {
+        if (!chartData.length) return renderEmpty();
+        const keys = Object.keys(chartData[0] || {});
+        if (keys.length < 2) return renderEmpty();
+        const categories = chartData.map((r) => r[keys[0]]);
+        const values = chartData.map((r) => Number(r[keys[1]]) || 0);
         return (
-          <ChartComponent
-            id={`chart-${reportDef.id}`}
-            primaryXAxis={{ valueType: 'Category', labelRotation: -45 }}
-            primaryYAxis={{ title: '' }}
-            tooltip={{ enable: true }}
-            height="250px"
-          >
-            <Inject services={[ColumnSeries, BarSeries, Category, Tooltip, Legend, DataLabel]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                dataSource={chartData}
-                xName={Object.keys(chartData[0] || {})[0]}
-                yName={Object.keys(chartData[0] || {})[1]}
-                type={reportDef.chartType === 'bar' ? 'Bar' : 'Column'}
-                fill={reportDef.color}
-                marker={{ dataLabel: { visible: true, position: 'Top' } }}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <Chart
+            options={{
+              chart: { type: 'bar', height: 250, background: 'transparent', toolbar: { show: false } },
+              plotOptions: { bar: { borderRadius: 6, columnWidth: '55%', distributed: chartData.length <= 8 } },
+              colors: [reportDef.color],
+              dataLabels: { enabled: true, style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 } },
+              xaxis: {
+                categories,
+                labels: { style: { colors: axisLabelColor, fontSize: '10px' }, rotate: -45 },
+                axisBorder: { show: false }, axisTicks: { show: false },
+              },
+              yaxis: { labels: { style: { colors: axisLabelColor, fontSize: '10px' } } },
+              grid: { borderColor: gridColor, strokeDashArray: 4 },
+              legend: { show: false },
+              tooltip: { theme: tooltipTheme },
+            }}
+            series={[{ name: keys[1], data: values }]}
+            type="bar"
+            height={250}
+          />
         );
+      }
 
-      case 'line':
+      case 'line': {
+        if (!chartData.length) return renderEmpty();
+        const keys = Object.keys(chartData[0] || {});
+        if (keys.length < 2) return renderEmpty();
+        const categories = chartData.map((r) => r[keys[0]]);
+        const values = chartData.map((r) => Number(r[keys[1]]) || 0);
         return (
-          <ChartComponent
-            id={`chart-${reportDef.id}`}
-            primaryXAxis={{ valueType: 'Category' }}
-            primaryYAxis={{ title: '' }}
-            tooltip={{ enable: true }}
-            height="250px"
-          >
-            <Inject services={[LineSeries, Category, Tooltip, Legend]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                dataSource={chartData}
-                xName={Object.keys(chartData[0] || {})[0]}
-                yName={Object.keys(chartData[0] || {})[1]}
-                type="Line"
-                fill={reportDef.color}
-                width={3}
-                marker={{ visible: true, width: 8, height: 8, fill: reportDef.color }}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <Chart
+            options={{
+              chart: { type: 'area', height: 250, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
+              colors: [reportDef.color],
+              dataLabels: { enabled: false },
+              stroke: { curve: 'smooth', width: 2.5 },
+              fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+              xaxis: {
+                categories,
+                labels: { style: { colors: axisLabelColor, fontSize: '10px' } },
+                axisBorder: { show: false }, axisTicks: { show: false },
+              },
+              yaxis: { labels: { style: { colors: axisLabelColor, fontSize: '10px' } } },
+              grid: { borderColor: gridColor, strokeDashArray: 4 },
+              tooltip: { theme: tooltipTheme },
+              markers: { size: 4, colors: [reportDef.color], strokeColors: '#fff', strokeWidth: 2 },
+            }}
+            series={[{ name: keys[1], data: values }]}
+            type="area"
+            height={250}
+          />
         );
+      }
 
-      case 'pie':
+      case 'pie': {
+        if (!chartData.length) return renderEmpty();
+        const keys = Object.keys(chartData[0] || {});
+        if (keys.length < 2) return renderEmpty();
+        const labels = chartData.map((r) => String(r[keys[0]]));
+        const values = chartData.map((r) => Number(r[keys[1]]) || 0);
         return (
-          <AccumulationChartComponent
-            id={`chart-${reportDef.id}`}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true, position: 'Bottom' }}
-            height="250px"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={chartData}
-                xName={Object.keys(chartData[0] || {})[0]}
-                yName={Object.keys(chartData[0] || {})[1]}
-                innerRadius="30%"
-                dataLabel={{ visible: true, position: 'Outside' }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
+          <Chart
+            options={{
+              chart: { type: 'donut', height: 260, background: 'transparent' },
+              labels,
+              colors: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#F97316', '#EC4899'],
+              plotOptions: {
+                pie: {
+                  donut: {
+                    size: '65%',
+                    labels: {
+                      show: true,
+                      name: { show: true, fontSize: '12px', fontWeight: 600, color: axisLabelColor },
+                      value: { show: true, fontSize: '18px', fontWeight: 700, color: isDark ? '#F3F4F6' : '#1F2937' },
+                      total: { show: true, label: 'Total', fontSize: '11px', color: axisLabelColor, formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) },
+                    },
+                  },
+                },
+              },
+              dataLabels: { enabled: false },
+              legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: axisLabelColor } },
+              stroke: { show: false },
+              tooltip: { theme: tooltipTheme },
+            }}
+            series={values}
+            type="donut"
+            height={260}
+          />
         );
+      }
 
-      case 'stackedBar':
+      case 'stackedBar': {
+        if (!chartData.length) return renderEmpty();
+        const categories = chartData.map((r) => r.rango);
         return (
-          <ChartComponent
-            id={`chart-${reportDef.id}`}
-            primaryXAxis={{ valueType: 'Category' }}
-            primaryYAxis={{ title: '' }}
-            tooltip={{ enable: true }}
-            height="250px"
-          >
-            <Inject services={[StackingBarSeries, Category, Tooltip, Legend]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                dataSource={chartData}
-                xName="rango"
-                yName="disponibles"
-                type="StackingBar"
-                name="Disponibles"
-                fill="#3B82F6"
-              />
-              <SeriesDirective
-                dataSource={chartData}
-                xName="rango"
-                yName="vendidas"
-                type="StackingBar"
-                name="Vendidas"
-                fill="#10B981"
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+          <Chart
+            options={{
+              chart: { type: 'bar', height: 250, background: 'transparent', toolbar: { show: false }, stacked: true },
+              plotOptions: { bar: { borderRadius: 4, horizontal: true } },
+              colors: ['#3B82F6', '#10B981'],
+              dataLabels: { enabled: false },
+              xaxis: {
+                categories,
+                labels: { style: { colors: axisLabelColor, fontSize: '10px' } },
+                axisBorder: { show: false }, axisTicks: { show: false },
+              },
+              yaxis: { labels: { style: { colors: axisLabelColor, fontSize: '10px' } } },
+              grid: { borderColor: gridColor, strokeDashArray: 4 },
+              legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: axisLabelColor } },
+              tooltip: { theme: tooltipTheme },
+            }}
+            series={[
+              { name: 'Disponibles', data: chartData.map((r) => Number(r.disponibles) || 0) },
+              { name: 'Vendidas', data: chartData.map((r) => Number(r.vendidas) || 0) },
+            ]}
+            type="bar"
+            height={250}
+          />
         );
+      }
 
-      case 'gauge':
-        const gaugeValue = data.current || data.tasaCobro || 0;
+      case 'gauge': {
+        const gaugeValue = Number(data.current ?? data.tasaCobro ?? 0);
+        const gaugeColor = gaugeValue >= 70 ? '#10B981' : gaugeValue >= 40 ? '#F59E0B' : '#EF4444';
         return (
           <div className="flex flex-col items-center">
-            <CircularGaugeComponent
-              id={`gauge-${reportDef.id}`}
-              height="200px"
-              width="200px"
-            >
-              <GaugeInject services={[Annotations]} />
-              <AxesDirective>
-                <AxisDirective
-                  minimum={0}
-                  maximum={100}
-                  startAngle={230}
-                  endAngle={130}
-                  lineStyle={{ width: 0 }}
-                  majorTicks={{ width: 0 }}
-                  minorTicks={{ width: 0 }}
-                  labelStyle={{ font: { size: '0px' } }}
-                >
-                  <RangesDirective>
-                    <RangeDirective start={0} end={40} color="#EF4444" startWidth={20} endWidth={20} />
-                    <RangeDirective start={40} end={70} color="#F59E0B" startWidth={20} endWidth={20} />
-                    <RangeDirective start={70} end={100} color="#10B981" startWidth={20} endWidth={20} />
-                  </RangesDirective>
-                  <PointersDirective>
-                    <PointerDirective value={gaugeValue} radius="80%" color={reportDef.color} pointerWidth={10} />
-                  </PointersDirective>
-                </AxisDirective>
-              </AxesDirective>
-            </CircularGaugeComponent>
-            <p className="text-3xl font-bold mt-2" style={{ color: reportDef.color }}>{gaugeValue}%</p>
+            <Chart
+              options={{
+                chart: { type: 'radialBar', height: 220, background: 'transparent' },
+                plotOptions: {
+                  radialBar: {
+                    startAngle: -135, endAngle: 135,
+                    hollow: { size: '65%', background: 'transparent' },
+                    track: { background: isDark ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+                    dataLabels: {
+                      name: { show: true, fontSize: '12px', fontWeight: 600, color: axisLabelColor, offsetY: -8 },
+                      value: { show: true, fontSize: '28px', fontWeight: 700, color: isDark ? '#F3F4F6' : '#1F2937', offsetY: 4, formatter: (val) => `${val}%` },
+                    },
+                  },
+                },
+                fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', colorStops: [{ offset: 0, color: gaugeColor, opacity: 1 }, { offset: 100, color: gaugeColor, opacity: 0.8 }] } },
+                stroke: { lineCap: 'round' },
+                labels: [reportDef.name],
+              }}
+              series={[Math.min(gaugeValue, 100)]}
+              type="radialBar"
+              height={220}
+            />
           </div>
         );
+      }
 
       case 'radar':
         return (
           <div className="flex flex-col items-center">
             <div className="text-5xl font-bold mb-4" style={{ color: reportDef.color }}>
-              {data.promedio || 0}%
+              {Number(data.promedio || 0)}%
             </div>
             <div className="grid grid-cols-2 gap-2 w-full">
               {chartData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                  <span className="text-sm dark:text-gray-300">{item.metric}</span>
-                  <span className="font-bold" style={{ color: reportDef.color }}>{item.value}%</span>
+                <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-secondary-dark-bg rounded-lg border border-gray-100 dark:border-gray-700">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{item.metric}</span>
+                  <span className="font-bold" style={{ color: reportDef.color }}>
+                    {item.value}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -351,23 +427,28 @@ const Reportes = () => {
         );
 
       case 'map':
+        if (!chartData.length) return renderEmpty();
         return (
           <div className="space-y-2">
             {chartData.slice(0, 8).map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                <span className="text-sm dark:text-gray-300 flex items-center gap-2">
+              <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-secondary-dark-bg rounded-lg border border-gray-100 dark:border-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
                   <FaMapMarkedAlt style={{ color: reportDef.color }} />
                   {item.zona}
                 </span>
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="h-2 rounded-full" 
-                    style={{ 
-                      width: `${Math.min(item.cantidad * 5, 100)}px`,
-                      backgroundColor: reportDef.color 
-                    }} 
-                  />
-                  <span className="font-bold text-sm" style={{ color: reportDef.color }}>{item.cantidad}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{
+                        width: `${Math.min((item.cantidad || 0) * 5, 100)}%`,
+                        backgroundColor: reportDef.color,
+                      }}
+                    />
+                  </div>
+                  <span className="font-bold text-sm min-w-[24px] text-right" style={{ color: reportDef.color }}>
+                    {item.cantidad}
+                  </span>
                 </div>
               </div>
             ))}
@@ -375,28 +456,29 @@ const Reportes = () => {
         );
 
       case 'table':
+        if (!chartData.length) return renderEmpty();
         return (
           <div className="overflow-x-auto max-h-60">
             <table className="w-full text-sm">
-              <thead className="bg-gray-100 dark:bg-gray-800">
-                <tr>
-                  <th className="p-2 text-left dark:text-gray-300">Propiedad</th>
-                  <th className="p-2 text-right dark:text-gray-300">Días</th>
-                  <th className="p-2 text-right dark:text-gray-300">Precio</th>
+              <thead>
+                <tr className="bg-gray-100 dark:bg-gray-800/60">
+                  <th className="p-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">Propiedad</th>
+                  <th className="p-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">Días</th>
+                  <th className="p-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">Precio</th>
                 </tr>
               </thead>
               <tbody>
                 {chartData.slice(0, 5).map((item, idx) => (
-                  <tr key={idx} className="border-b dark:border-gray-700">
-                    <td className="p-2 dark:text-gray-300 truncate max-w-[150px]">{item.titulo}</td>
-                    <td className="p-2 text-right text-red-500 font-bold">{item.diasEnMercado}</td>
-                    <td className="p-2 text-right dark:text-gray-300">${(item.precio || 0).toLocaleString()}</td>
+                  <tr key={idx} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                    <td className="p-2.5 text-gray-700 dark:text-gray-300 truncate max-w-[150px]">{item.titulo}</td>
+                    <td className="p-2.5 text-right text-red-500 dark:text-red-400 font-bold">{item.diasEnMercado}</td>
+                    <td className="p-2.5 text-right text-gray-700 dark:text-gray-300">${Number(item.precio || 0).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {data.total > 5 && (
-              <p className="text-center text-gray-500 mt-2 text-xs">+{data.total - 5} más</p>
+            {Number(data.total || 0) > 5 && (
+              <p className="text-center text-gray-400 dark:text-gray-500 mt-2 text-xs">+{Number(data.total || 0) - 5} más</p>
             )}
           </div>
         );
@@ -405,14 +487,18 @@ const Reportes = () => {
         return (
           <div className="space-y-4">
             <div className="text-center">
-              <p className="text-4xl font-bold" style={{ color: reportDef.color }}>{data.total || 0}</p>
-              <p className="text-sm text-gray-500">citas este mes</p>
+              <p className="text-4xl font-bold" style={{ color: reportDef.color }}>
+                {Number(data.total || 0)}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">citas este mes</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {(data.porEstado || []).map((item, idx) => (
-                <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 rounded text-center">
-                  <p className="text-lg font-bold" style={{ color: reportDef.color }}>{item.cantidad}</p>
-                  <p className="text-xs text-gray-500">{item.estado}</p>
+                <div key={idx} className="p-3 bg-gray-50 dark:bg-secondary-dark-bg rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+                  <p className="text-lg font-bold" style={{ color: reportDef.color }}>
+                    {item.cantidad}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.estado}</p>
                 </div>
               ))}
             </div>
@@ -420,43 +506,20 @@ const Reportes = () => {
         );
 
       default:
-        return <div className="text-gray-500 text-center py-8">Tipo de gráfico no soportado</div>;
+        return renderEmpty('Tipo de gráfico no soportado');
     }
   };
 
-  // KPIs rápidos
-  const kpis = [
-    { 
-      title: 'Reportes Seleccionados', 
-      value: Object.values(selectedReports).filter(Boolean).length,
-      total: REPORT_DEFINITIONS.length,
-      icon: <FaChartBar />,
-      color: 'from-blue-500 to-blue-600'
-    },
-    { 
-      title: 'Envío Automático', 
-      value: reportConfig?.autoSendEnabled ? 'Activo' : 'Inactivo',
-      icon: <FaPaperPlane />,
-      color: reportConfig?.autoSendEnabled ? 'from-green-500 to-green-600' : 'from-gray-400 to-gray-500'
-    },
-    { 
-      title: 'Reportes Generados', 
-      value: history.length,
-      icon: <FaFileAlt />,
-      color: 'from-purple-500 to-purple-600'
-    },
-    { 
-      title: 'Enviados al ERP', 
-      value: history.filter(h => h.sentToERP).length,
-      icon: <FaCheck />,
-      color: 'from-orange-500 to-orange-600'
-    },
-  ];
 
   if (loading) {
     return (
-      <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-        <Header category="Analítica" title="📊 Reportes y Estadísticas" />
+      <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+        <div className="mb-6">
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaChartBar className="text-indigo-500" /> Reportes y Estadísticas
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Analítica avanzada del negocio</p>
+        </div>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2" style={{ borderColor: currentColor }} />
         </div>
@@ -465,7 +528,27 @@ const Reportes = () => {
   }
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 relative ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      {exportProgress !== null && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-10 max-w-md w-full mx-4 text-center">
+            <div className="mb-6">
+              <div className="w-16 h-16 mx-auto border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${currentColor} transparent ${currentColor} ${currentColor}` }} />
+            </div>
+            <h3 className="text-xl font-bold dark:text-white mb-2">Generando Reporte PDF</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Capturando gráficos y datos del dashboard...
+            </p>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
+              <div
+                className="h-3 rounded-full transition-all duration-300"
+                style={{ width: `${exportProgress}%`, backgroundColor: currentColor }}
+              />
+            </div>
+            <p className="text-sm font-medium" style={{ color: currentColor }}>{exportProgress}%</p>
+          </div>
+        </div>
+      )}
       <Header category="Analítica" title="📊 Reportes y Estadísticas" />
       
       {/* Tabs de navegación */}
@@ -525,61 +608,38 @@ const Reportes = () => {
         </button>
         <div className="flex-1" />
         <button
-          onClick={() => generateReport('manual')}
+          onClick={() => generateReport('manual', 'download')}
           disabled={generating}
           className="flex items-center gap-2 px-6 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: currentColor }}
         >
           {generating ? <FaSync className="animate-spin" /> : <FaDownload />}
-          Generar PDF
+          Descargar PDF
         </button>
         <button
-          onClick={() => generateReport('annual')}
+          onClick={() => generateReport('manual', 'send')}
           disabled={generating}
           className="flex items-center gap-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
         >
-          {generating ? <FaSync className="animate-spin" /> : <FaFileAlt />}
-          Reporte Anual
+          {generating ? <FaSync className="animate-spin" /> : <FaPaperPlane />}
+          Enviar al ERP
         </button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        {kpis.map((kpi, i) => (
-          <div key={i} className={cardBase}>
-            <div className="flex items-center gap-4">
-              <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>
-                {kpi.icon}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-xl font-bold dark:text-gray-100">
-                  {kpi.value}{kpi.total && `/${kpi.total}`}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Contenido según tab activo */}
       {activeTab === 'dashboard' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {REPORT_DEFINITIONS.filter(r => selectedReports[r.id]).map((report) => (
             <div 
-              key={report.id} 
-              className={`${cardHover} ${expandedReport === report.id ? 'xl:col-span-2 xl:row-span-2' : ''}`}
+              key={report.id}
+              ref={(el) => { chartRefs.current[report.id] = el; }}
+              data-report-id={report.id}
+              className={`${cardHover} ${expandedReport === report.id ? 'md:col-span-2' : ''}`}
               onClick={() => setExpandedReport(expandedReport === report.id ? null : report.id)}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-xl p-2 rounded-lg text-white" style={{ backgroundColor: report.color }}>
-                    {report.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold dark:text-gray-100">{report.name}</h3>
-                    <p className="text-xs text-gray-500">{report.description}</p>
-                  </div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg" style={{ color: report.color }}>{report.icon}</span>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-100">{report.name}</h3>
                 </div>
                 <input
                   type="checkbox"
@@ -589,6 +649,7 @@ const Reportes = () => {
                   style={{ accentColor: currentColor }}
                 />
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{report.description}</p>
               {renderChart(report, reportData[report.id])}
             </div>
           ))}

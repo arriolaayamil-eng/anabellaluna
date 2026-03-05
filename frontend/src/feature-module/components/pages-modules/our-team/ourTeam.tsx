@@ -1,716 +1,101 @@
 import { Link } from "react-router";
+import { useState, useEffect } from "react";
 import Breadcrumb from "../../../../core/common/Breadcrumb/breadcrumb";
 import ImageWithBasePath from "../../../../core/imageWithBasePath";
+import { all_routes } from "../../../routes/all_routes";
+import publicService from "../../../../services/publicService";
 
 const OurTeam = () => {
+  const [agents, setAgents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let m = true;
+    (async () => {
+      try {
+        const res = await publicService.getAgents();
+        if (m) setAgents(res.items || []);
+      } catch { /* keep empty */ }
+      finally { if (m) setIsLoading(false); }
+    })();
+    return () => { m = false; };
+  }, []);
+
   return (
     <>
-      {/* ========================
-			Start Page Content
-		========================= */}
       <div className="page-wrapper">
-        {/* Start Breadscrumb */}
-        <Breadcrumb title="Team" paths={[{ label: "Team", active: true }]} />
-
-        {/* End Breadscrumb */}
-        {/* Start Content */}
+        <Breadcrumb title="Nuestro Equipo" paths={[{ label: "Nuestro Equipo", active: true }]} />
         <div className="content">
           <div className="container">
-            {/* start row */}
-            <div className="row row-gap-4">
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-01.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Seth Franklin
-                      </Link>
-                      <p className="mb-4">CEO</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
+            <div className="section-heading text-center mb-4">
+              <h2>Nuestro Equipo</h2>
+              <div className="sec-line">
+                <span className="sec-line1" />
+                <span className="sec-line2" />
               </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-02.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Carol Currie
-                      </Link>
-                      <p className="mb-4">Marketing Head</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-04.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Daniel Moreno
-                      </Link>
-                      <p className="mb-4">Marketing Head</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-03.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Linda Martin
-                      </Link>
-                      <p className="mb-4">Developer</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-05.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Bonnie Scott
-                      </Link>
-                      <p className="mb-4">CEO</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-07.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Jacquelin Maldonado
-                      </Link>
-                      <p className="mb-4">Marketing Head</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-13.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Peggy Smith
-                      </Link>
-                      <p className="mb-4">Marketing Head</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-15.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Mary Oliver
-                      </Link>
-                      <p className="mb-4">Developer</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-14.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Nicholas Massey
-                      </Link>
-                      <p className="mb-4">CEO</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-17.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Katherine Marker
-                      </Link>
-                      <p className="mb-4">Marketing Head</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-18.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Kevin kent
-                      </Link>
-                      <p className="mb-4">Marketing Head</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-md-6 col-lg-3">
-                <div className="card mb-0">
-                  <div className="card-body">
-                    <div className="text-center">
-                      <Link to="#">
-                        <ImageWithBasePath
-                          src="assets/img/users/user-12.jpg"
-                          alt="img"
-                          className="avatar avatar-xl rounded-circle mb-4"
-                        />
-                      </Link>
-                      <Link
-                        to="#"
-                        className="fw-semibold d-block"
-                      >
-                        Richard Pearson
-                      </Link>
-                      <p className="mb-4">Developer</p>
-                      <div className="d-flex align-items-center justify-content-center">
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-x-twitter" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-facebook" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-instagram" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0 me-2"
-                        >
-                          <i className="fa-brands fa-linkedin" />
-                        </Link>
-                        <Link
-                          to="#"
-                          className="btn btn-light rounded-2 p-2 d-inline-flex align-items-center justify-content-end border-0"
-                        >
-                          <i className="fa-brands fa-pinterest" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
+              <p>Profesionales comprometidos con encontrar tu lugar ideal.</p>
             </div>
-            {/* end row */}
+            {isLoading && (
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Cargando...</span>
+                </div>
+              </div>
+            )}
+            {!isLoading && agents.length === 0 && (
+              <div className="text-center py-5">
+                <i className="material-icons-outlined fs-1 text-muted">people_outline</i>
+                <p className="mt-2 text-muted">No hay miembros del equipo disponibles.</p>
+              </div>
+            )}
+            {!isLoading && agents.length > 0 && (
+              <div className="row row-gap-4">
+                {agents.map((agent) => {
+                  const detailPath = `${all_routes.agentDetails}?id=${agent.id}`;
+                  return (
+                    <div key={agent.id} className="col-xl-3 col-lg-4 col-md-6">
+                      <div className="card text-center h-100">
+                        <div className="card-body">
+                          <div className="mb-3">
+                            {agent.avatarUrl ? (
+                              <ImageWithBasePath src={agent.avatarUrl} alt={agent.name} className="avatar avatar-xxl rounded-circle" />
+                            ) : (
+                              <div className="avatar avatar-xxl rounded-circle bg-light d-inline-flex align-items-center justify-content-center">
+                                <i className="material-icons-outlined text-muted fs-1">person</i>
+                              </div>
+                            )}
+                          </div>
+                          <h6 className="mb-1"><Link to={detailPath}>{agent.name}</Link></h6>
+                          {agent.cargo && <p className="fs-14 text-muted mb-2">{agent.cargo}</p>}
+                          {agent.especialidad && <span className="badge bg-secondary mb-2">{agent.especialidad}</span>}
+                          <div className="d-flex justify-content-center gap-2 mt-2">
+                            {agent.redesSociales?.linkedin && (
+                              <a href={agent.redesSociales.linkedin} target="_blank" rel="noopener noreferrer" className="btn btn-outline-dark btn-sm">
+                                <i className="fab fa-linkedin-in" />
+                              </a>
+                            )}
+                            {agent.redesSociales?.instagram && (
+                              <a href={agent.redesSociales.instagram} target="_blank" rel="noopener noreferrer" className="btn btn-outline-dark btn-sm">
+                                <i className="fab fa-instagram" />
+                              </a>
+                            )}
+                            {agent.email && (
+                              <a href={`mailto:${agent.email}`} className="btn btn-outline-dark btn-sm">
+                                <i className="material-icons-outlined fs-16">email</i>
+                              </a>
+                            )}
+                          </div>
+                          <Link to={detailPath} className="btn btn-dark btn-sm w-100 mt-3">Ver Perfil</Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-        {/* End Content */}
       </div>
-      {/* ========================
-			End Page Content
-		========================= */}
     </>
   );
 };

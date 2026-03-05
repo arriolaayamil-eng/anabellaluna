@@ -1,392 +1,255 @@
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import Breadcrumb from "../../../../../core/common/Breadcrumb/breadcrumb";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { all_routes } from "../../../../routes/all_routes";
-import ListingSliderProperties from "./listingSliderProperties";
-import ListingSliderApartments from "./listingSliderApartments";
-import ListingSliderCondos from "./listingSliderCondos";
-import ListingSliderHome from "./listingSliderHome";
-import AgentSidebar from "./agentSidebar";
-import { useTranslation } from "react-i18next";
+import { useState, useEffect } from "react";
+import publicService from "../../../../../services/publicService";
+import type { PropertyCard } from "../../../../../services/publicService";
+import PropertyGridCard from "../../common/PropertyGridCard";
 
 const AgentDetails = () => {
-  const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const agentId = searchParams.get("id") || "";
+
+  const [agent, setAgent] = useState<any>(null);
+  const [properties, setProperties] = useState<PropertyCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!agentId) return;
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await publicService.getAgentById(agentId);
+        if (!isMounted) return;
+        setAgent(res.agent || null);
+        setProperties(res.properties || []);
+      } catch {
+        if (!isMounted) return;
+        setAgent(null);
+        setProperties([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [agentId]);
+
+  const handleToggleFavorite = (id: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <>
+        <div className="page-wrapper">
+          <Breadcrumb
+            title="Detalle del Agente"
+            paths={[{ label: "Detalle del Agente", active: true }]}
+          />
+          <div className="content">
+            <div className="container">
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Cargando...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!agent) {
+    return (
+      <>
+        <div className="page-wrapper">
+          <Breadcrumb
+            title="Agente no encontrado"
+            paths={[{ label: "Agente", active: true }]}
+          />
+          <div className="content">
+            <div className="container">
+              <div className="text-center py-5">
+                <i className="material-icons-outlined fs-1 text-muted">
+                  person_off
+                </i>
+                <p className="mt-2 text-muted">Agente no encontrado.</p>
+                <Link to={all_routes.agentGrid} className="btn btn-dark">
+                  Ver todos los agentes
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      {/* ========================
-		Start Page Content
-	========================= */}
       <div className="page-wrapper">
         <Breadcrumb
-          title={t("agentDetails.breadcrumbTitle")}
-          paths={[{ label: t("agentDetails.breadcrumbTitle"), active: true }]}
+          title={agent.name}
+          paths={[
+            { label: "Equipo", link: all_routes.agentGrid },
+            { label: agent.name, active: true },
+          ]}
         />
-
-        {/* End Breadscrumb */}
-        {/* Start Content */}
         <div className="content">
           <div className="container">
-            <div className="agent-profile-item">
-              <div className="agent-img">
-                <ImageWithBasePath
-                  src="assets/img/agents/agent-01.jpg"
-                  alt="image"
-                />
-              </div>
-              <div className="agent-content flex-fill">
-                <div className="d-flex align-items-center mb-3">
-                  <i className="material-icons-outlined text-warning">star</i>
-                  <i className="material-icons-outlined text-warning">star</i>
-                  <i className="material-icons-outlined text-warning">star</i>
-                  <i className="material-icons text-warning">star_border</i>
-                  <i className="material-icons text-warning">star_border</i>
-                  <span className="fs-14 ms-1">
-                    {t("common.reviewSummary", { rating: "5.0", total: "37" })}
-                  </span>
-                </div>
-                <div className="d-flex align-items-center justify-content-between border-bottom flex-wrap row-gap-3 pb-3 mb-3">
-                  <div>
-                    <h5 className="mb-1">Milton Rodriguez</h5>
-                    <p className="mb-0 fs-14">Vihaan Real-estate</p>
-                  </div>
-                  <div className="d-flex align-items-center">
-                    <Link
-                      to="#"
-                      className="btn btn-primary d-inline-flex align-items-center me-2"
-                    >
-                      <i className="material-icons-outlined me-1">
-                        chat_bubble_outline
-                      </i>
-                      {t("agentDetails.buttons.whatsapp")}
-                    </Link>
-                    <Link
-                      to="#"
-                      className="btn btn-dark d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-1">call</i>
-                      {t("agentDetails.buttons.callMe")}
-                    </Link>
-                  </div>
-                </div>
-                <div className="agent-info">
-                  <p>
-                    {t("agentDetails.info.memberSince")} : <span>28 Apr 2025</span>
-                  </p>
-                  <p>
-                    {t("agentDetails.info.agentLicense")} : <span>090-0348-843</span>
-                  </p>
-                  <p>
-                    {t("agentDetails.info.taxNumber")} : <span>090-0348-843</span>
-                  </p>
-                </div>
-              </div>
-            </div>
             <div className="row">
-              <div className="col-lg-8">
-                <div className="accordion accordions-items-seperate">
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-1"
-                        aria-expanded="true"
-                      >
-                        About
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-1"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        <p>
-                          With generous frontage on a paved county road and all
-                          necessary utilities at the boundary, you can build
-                          your dream cabin, homestead, or weekend getaway with
-                          ease. Imagine sipping your morning coffee on a
-                          wrap-around porch as mist drifts through the valley
-                          below, or gathering around a firepit under a canopy of
-                          stars.
-                        </p>
-                        <div className="more-menu">
-                          <p>
-                            Imagine sipping your morning coffee on a wrap-around
-                            porch as mist drifts through the valley below, or
-                            gathering around a firepit under a canopy of stars.
-                          </p>
-                        </div>
-                        <div className="view-all d-inline-flex align-items-center">
-                          <Link to="#" className="viewall-button">
-                            Read More{" "}
-                          </Link>
-                          <i className="material-icons-outlined">
-                            keyboard_arrow_down
+              {/* Agent Profile Sidebar */}
+              <div className="col-lg-4">
+                <div className="card">
+                  <div className="card-body text-center">
+                    <div className="mb-3">
+                      {agent.avatarUrl ? (
+                        <ImageWithBasePath
+                          src={agent.avatarUrl}
+                          alt={agent.name}
+                          className="avatar avatar-xxl rounded-circle"
+                        />
+                      ) : (
+                        <div className="avatar avatar-xxl rounded-circle bg-light d-inline-flex align-items-center justify-content-center">
+                          <i className="material-icons-outlined text-muted fs-1">
+                            person
                           </i>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-2"
-                        aria-expanded="true"
-                      >
-                        Service Areas
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-2"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        <div className="service-area">
-                          <p className="d-inline-flex align-items-center">
-                            <span className="d-inline-flex me-2">
-                              <i className="material-icons-outlined">place</i>
-                            </span>
-                            Chicago
-                          </p>
-                          <p className="d-inline-flex align-items-center">
-                            <span className="d-inline-flex me-2">
-                              <i className="material-icons-outlined">place</i>
-                            </span>
-                            Los Angeles
-                          </p>
-                          <p className="d-inline-flex align-items-center">
-                            <span className="d-inline-flex me-2">
-                              <i className="material-icons-outlined">place</i>
-                            </span>
-                            Miami Beach
-                          </p>
-                          <p className="d-inline-flex align-items-center">
-                            <span className="d-inline-flex me-2">
-                              <i className="material-icons-outlined">place</i>
-                            </span>
-                            New York
-                          </p>
+                    <h5 className="mb-1">{agent.name}</h5>
+                    {agent.cargo && (
+                      <p className="text-muted mb-2">{agent.cargo}</p>
+                    )}
+                    {agent.especialidad && (
+                      <span className="badge bg-secondary mb-3">
+                        {agent.especialidad}
+                      </span>
+                    )}
+                    {agent.bio && (
+                      <p className="fs-14 text-start mt-3">{agent.bio}</p>
+                    )}
+                    <hr />
+                    <div className="text-start">
+                      {agent.email && (
+                        <div className="d-flex align-items-center mb-2">
+                          <i className="material-icons-outlined text-primary me-2">
+                            email
+                          </i>
+                          <a href={`mailto:${agent.email}`}>{agent.email}</a>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-3"
-                        aria-expanded="true"
-                      >
-                        Specialities
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-3"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        <div className="d-flex align-items-center flex-wrap row-gap-3">
-                          <span className="badge bg-light text-dark me-3">
-                            Property Management
-                          </span>
-                          <span className="badge bg-light text-dark me-3">
-                            Real Estate Management
-                          </span>
-                          <span className="badge bg-light text-dark me-3">
-                            Real Estate Appraising
-                          </span>
-                          <span className="badge bg-light text-dark">
-                            Apartment Brokerage
-                          </span>
+                      )}
+                      {agent.phone && (
+                        <div className="d-flex align-items-center mb-2">
+                          <i className="material-icons-outlined text-primary me-2">
+                            phone
+                          </i>
+                          <a href={`tel:${agent.phone}`}>{agent.phone}</a>
                         </div>
+                      )}
+                      <div className="d-flex align-items-center mb-2">
+                        <i className="material-icons-outlined text-primary me-2">
+                          home
+                        </i>
+                        <span>
+                          {agent.propertyCount || 0} propiedad
+                          {agent.propertyCount !== 1 ? "es" : ""}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div className="border-top position-relative mt-3 pt-3 mb-4 mb-lg-0">
-                  <h5 className="mb-4">{t("agentDetails.listing.title")}</h5>
-                  <ul className="nav nav-pills listing-nav" role="tablist">
-                    <li className="nav-item" role="presentation">
-                      <Link
-                        className="nav-link active"
-                        data-bs-toggle="tab"
-                        to="#listing-1"
-                        role="tab"
-                        aria-controls="listing-1"
-                        aria-selected="true"
-                      >
-                        <i className="material-icons-outlined me-2">
-                          maps_home_work
-                        </i>
-                        {t("agentDetails.listing.allProperties", { count: 25 })}
-                      </Link>
-                    </li>
-                    <li className="nav-item" role="presentation">
-                      <Link
-                        className="nav-link"
-                        data-bs-toggle="tab"
-                        to="#listing-2"
-                        role="tab"
-                        aria-controls="listing-2"
-                        aria-selected="false"
-                        tabIndex={-1}
-                      >
-                        <i className="material-icons-outlined me-2">
-                          apartment
-                        </i>
-                        {t("agentDetails.listing.apartment")}
-                      </Link>
-                    </li>
-                    <li className="nav-item" role="presentation">
-                      <Link
-                        className="nav-link"
-                        data-bs-toggle="tab"
-                        to="#listing-3"
-                        role="tab"
-                        aria-controls="listing-3"
-                        aria-selected="false"
-                        tabIndex={-1}
-                      >
-                        <i className="material-icons-outlined me-2">
-                          corporate_fare
-                        </i>
-                        {t("agentDetails.listing.condos")}
-                      </Link>
-                    </li>
-                    <li className="nav-item" role="presentation">
-                      <Link
-                        className="nav-link"
-                        data-bs-toggle="tab"
-                        to="#listing-4"
-                        role="tab"
-                        aria-controls="listing-4"
-                        aria-selected="false"
-                        tabIndex={-1}
-                      >
-                        <i className="material-icons-outlined me-2">home</i>
-                        {t("agentDetails.listing.home")}
-                      </Link>
-                    </li>
-                  </ul>
-                  <div className="tab-content">
-                    <div
-                      className="tab-pane fade active show"
-                      id="listing-1"
-                      role="tabpanel"
-                    >
-              <ListingSliderProperties/>
-                    </div>
-                    <div
-                      className="tab-pane fade"
-                      id="listing-2"
-                      role="tabpanel"
-                    >
-                      <ListingSliderApartments/>
-                    </div>
-                    <div
-                      className="tab-pane fade"
-                      id="listing-3"
-                      role="tabpanel"
-                    >
-                    <ListingSliderCondos/>
-                    </div>
-                    <div
-                      className="tab-pane fade"
-                      id="listing-4"
-                      role="tabpanel"
-                    >
-                     <ListingSliderHome/>
-                    </div>
+                    {(agent.redesSociales?.linkedin ||
+                      agent.redesSociales?.instagram ||
+                      agent.redesSociales?.facebook) && (
+                      <>
+                        <hr />
+                        <div className="d-flex align-items-center justify-content-center gap-2">
+                          {agent.redesSociales?.linkedin && (
+                            <a
+                              href={agent.redesSociales.linkedin}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-sm btn-outline-secondary"
+                            >
+                              <i className="fab fa-linkedin-in" />
+                            </a>
+                          )}
+                          {agent.redesSociales?.instagram && (
+                            <a
+                              href={agent.redesSociales.instagram}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-sm btn-outline-secondary"
+                            >
+                              <i className="fab fa-instagram" />
+                            </a>
+                          )}
+                          {agent.redesSociales?.facebook && (
+                            <a
+                              href={agent.redesSociales.facebook}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-sm btn-outline-secondary"
+                            >
+                              <i className="fab fa-facebook-f" />
+                            </a>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="col-lg-4 theiaStickySidebar">
-                <AgentSidebar/>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* End Content */}
 
-        {/* Search Modal */}
-        <div
-          className="modal fade"
-          id="search-modal"
-          tabIndex={-1}
-          aria-hidden="true"
-        >
-          <div className="modal-dialog  modal-dialog-centered modal-lg">
-            <div className="modal-content">
-              <div className="modal-body search-wrap">
-                <form
-                  className="search-form"
-                  id="search-form"
-                >
-                  <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5>{t("agentDetails.searchModal.title")}</h5>
-                    <Link to="#" className="close" data-bs-dismiss="modal">
-                      <i className="material-icons-outlined">close</i>
-                    </Link>
-                  </div>
-                  <div className="input-group input-group-flat">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder={t("agentDetails.searchModal.keywordPlaceholder")}
-                    />
-                    <span className="input-group-text">
-                      <i className="material-icons-outlined">search</i>
-                    </span>
-                  </div>
-                  <h6>{t("agentDetails.searchModal.popularProperties")}</h6>
-                  <div className="search-list">
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        {t("agentDetails.searchModal.properties.beautifulCondoRoom")}
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        {t("agentDetails.searchModal.properties.royalApartment")}
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        {t("agentDetails.searchModal.properties.grandVillaHouse")}
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        {t("agentDetails.searchModal.properties.grandMahaka")}
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        {t("agentDetails.searchModal.properties.lunariaResidence")}
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        {t("agentDetails.searchModal.properties.stephenAlexanderHomes")}
-                      </Link>
+              {/* Agent Properties */}
+              <div className="col-lg-8">
+                <h5 className="mb-3">
+                  Propiedades de {agent.name} ({properties.length})
+                </h5>
+
+                {properties.length === 0 && (
+                  <div className="text-center py-5">
+                    <i className="material-icons-outlined fs-1 text-muted">
+                      home_work
+                    </i>
+                    <p className="mt-2 text-muted">
+                      Este agente no tiene propiedades publicadas.
                     </p>
                   </div>
-                </form>
+                )}
+
+                <div className="row">
+                  {properties.map((prop) => (
+                    <div
+                      key={prop.id}
+                      className="col-lg-6 col-md-6 d-flex mb-4"
+                    >
+                      <PropertyGridCard
+                        property={prop}
+                        isFavorite={favorites.has(prop.id)}
+                        onToggleFavorite={() =>
+                          handleToggleFavorite(prop.id)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-        {/* End Search Modal */}
       </div>
-      {/* ========================
-		End Page Content
-	========================= */}
     </>
   );
 };

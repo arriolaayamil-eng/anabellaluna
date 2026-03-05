@@ -22,12 +22,27 @@ const rewardSchema = new mongoose.Schema({
       'seniority_junior',     // Nivel Junior (hasta 20 clientes)
       'seniority_semisenior', // Nivel Semi-Senior (21-50 clientes)
       'seniority_senior',     // Nivel Senior (50+ clientes)
+      // ---- Milestones (first-time achievements) ----
+      'milestone_first_property',     // Primera propiedad cargada
+      'milestone_first_client',       // Primer cliente ingresado
+      'milestone_first_appointment',  // Primera cita agendada
+      'milestone_first_operation',    // Primera operación registrada
+      'milestone_first_task',         // Primera tarea completada
+      'milestone_first_report',       // Primer reporte generado
+      'milestone_first_enquiry',      // Primera consulta respondida
+      'milestone_first_automation',   // Primera automatización configurada
+      'milestone_first_document',     // Primer documento subido
+      'milestone_five_clients',       // 5 clientes ingresados
+      'milestone_ten_properties',     // 10 propiedades cargadas
+      'milestone_first_sale',         // Primera venta cerrada
+      'milestone_five_appointments',  // 5 citas completadas
+      'milestone_complete_profile',   // Perfil completo del agente
     ],
     required: true,
   },
   category: {
     type: String,
-    enum: ['star', 'badge', 'medal', 'level'],
+    enum: ['star', 'badge', 'medal', 'level', 'milestone'],
     required: true,
   },
   title: {

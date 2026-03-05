@@ -413,15 +413,26 @@ const DashboardEjecutivo = () => {
   };
   const tasaConversionSeries = [23.4];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   return (
-    <div className="p-6 bg-main-bg dark:bg-main-dark-bg min-h-screen">
-      <Header category="Principal" title="📊 Dashboard Ejecutivo - Resumen en Tiempo Real" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaChartLine className="text-indigo-500" /> Dashboard Ejecutivo
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Resumen en tiempo real</p>
+      </div>
 
       {/* KPIs en tiempo real - Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {kpis.map((kpi, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {kpis.map((kpi, i) => {
+          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6', 'from-amber-500 to-amber-600': '#f59e0b', 'from-green-500 to-green-600': '#10b981', 'from-red-500 to-red-600': '#ef4444', 'from-purple-500 to-purple-600': '#8b5cf6', 'from-orange-500 to-orange-600': '#f59e0b' };
+          const accentColor = colorMap[kpi.color] || '#6366f1';
+          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20', 'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20' };
+          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+          return (
           <div 
             key={i} 
             onClick={() => {
@@ -430,41 +441,23 @@ const DashboardEjecutivo = () => {
               else if (i === 2) setShowModalVentas(true);
               else if (i === 3) setShowModalAlquileres(true);
             }}
-            className={`${cardBase} overflow-hidden relative cursor-pointer`}
+            className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+            style={{ borderLeft: `4px solid ${accentColor}` }}
           >
-            {/* Barra de color superior */}
-            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
-            
-            {/* Contenido principal */}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
-                    {kpi.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                      {kpi.title}
-                    </p>
-                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">
-                      {kpi.value}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Descripción y tendencia */}
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {kpi.desc}
-                  </p>
-                  <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                    {kpi.trend}
-                  </span>
-                </div>
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
               </div>
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30">
+                {kpi.trend}
+              </span>
             </div>
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Gráficos Principales - Tendencias y Distribución */}

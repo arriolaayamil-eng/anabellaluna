@@ -57,8 +57,13 @@ const Tareas = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
-      <Header category="Productividad" title="Gestión de Tareas" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
+          <FaTasks className="text-indigo-500" /> Gestión de Tareas
+        </h2>
+        <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Productividad y seguimiento</p>
+      </div>
       
       <div className="mb-4">
         <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
@@ -85,6 +90,10 @@ const Tareas = () => {
             movedCards.forEach(async (card) => {
               try {
                 await crmService.tareas.update(card.Id, { status: card.Status });
+                // Check milestones when task is completed
+                if (card.Status === 'Close') {
+                  crmService.rewards.checkMilestones('task').catch(() => {});
+                }
               } catch (error) {
                 console.error('Error updating task status:', error);
               }

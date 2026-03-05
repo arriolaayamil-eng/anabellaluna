@@ -3,6 +3,10 @@ node_modules/
 dist/
 build/
 
+# === BINARIOS ===
+minio.exe
+*.exe
+
 # === LOGS ===
 npm-debug.log*
 yarn-debug.log*

@@ -91,7 +91,27 @@ export const api = {
   }),
   
   delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
+
+  patch: (endpoint, data) => apiRequest(endpoint, {
+    method: 'PATCH',
+    body: data ? JSON.stringify(data) : undefined,
+  }),
   
+  // POST that returns a Blob (for PDF downloads, etc.)
+  postForBlob: async (endpoint, data) => {
+    const url = `${API_CONFIG.baseURL}${endpoint}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody.error || errorBody.message || `HTTP error! status: ${response.status}`);
+    }
+    return response.blob();
+  },
+
   // Para upload de archivos
   uploadFiles: async (endpoint, files, options = {}) => {
     const formData = new FormData();

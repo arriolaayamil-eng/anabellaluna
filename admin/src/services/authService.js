@@ -6,13 +6,19 @@ export const authService = {
     const response = await api.post('/auth/login', { username, password });
     if (response.token) {
       localStorage.setItem('authToken', response.token);
-      // Fetch full user profile data
+      // Fetch full user profile data and enforce admin role
       try {
         const me = await api.get('/auth/me');
         if (me && me.user) {
+          if (String(me.user.role || '') !== 'admin') {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            throw new Error('Acceso restringido: solo administradores pueden ingresar al panel.');
+          }
           localStorage.setItem('user', JSON.stringify(me.user));
         }
       } catch (e) {
+        if (e.message && e.message.includes('Acceso restringido')) throw e;
         console.error('Error fetching user profile:', e);
       }
     }

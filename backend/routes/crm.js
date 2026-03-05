@@ -7,25 +7,25 @@ const Cita = require('../models/Cita');
 const Activity = require('../models/Activity');
 const Message = require('../models/Message');
 const Notification = require('../models/Notification');
-const { authenticateToken } = require('../auth');
+const {
+  authenticateToken,
+  agentScopeId,
+  getUserId,
+  requireCRMUser,
+} = require('../auth');
 
 const router = express.Router();
 
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
-
 // ============ NAVBAR SUMMARY (counts for badges) ============
-router.get('/navbar-summary', authenticateToken, async (req, res) => {
+router.get('/navbar-summary', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
-    const userId = req.user?._id || req.user?.id;
     const filter = scopeId ? { agenteId: scopeId } : {};
+    const propFilter = scopeId ? { agentId: scopeId } : {};
     
     // Properties: count available
-    const propiedadesTotal = await Propiedad.countDocuments(filter);
-    const propiedadesDisponibles = await Propiedad.countDocuments({ ...filter, estado: 'disponible' });
+    const propiedadesTotal = await Propiedad.countDocuments(propFilter);
+    const propiedadesDisponibles = await Propiedad.countDocuments({ ...propFilter, status: 'Disponible' });
     
     // Tasks: count pending (not completed)
     const tareasPendientes = await Tarea.countDocuments({ 
@@ -75,9 +75,10 @@ router.get('/navbar-summary', authenticateToken, async (req, res) => {
     
     // Internal messages: unread count
     let mensajesNoLeidos = 0;
-    if (userId) {
+    const chatUserId = scopeId || getUserId(req);
+    if (chatUserId) {
       mensajesNoLeidos = await Message.countDocuments({
-        receiverId: userId,
+        receiverId: chatUserId,
         read: false
       });
     }
@@ -123,7 +124,7 @@ router.get('/navbar-summary', authenticateToken, async (req, res) => {
 });
 
 // Link a CRM entity: { documentId, entityType, entityId }
-router.post('/link', authenticateToken, async (req, res) => {
+router.post('/link', authenticateToken, requireCRMUser, async (req, res) => {
   const { documentId, entityType, entityId } = req.body;
   if (!documentId || !entityType || !entityId) return res.status(400).json({ error: 'missing fields' });
   try {
@@ -144,7 +145,7 @@ router.post('/link', authenticateToken, async (req, res) => {
 });
 
 // Unlink
-router.post('/unlink', authenticateToken, async (req, res) => {
+router.post('/unlink', authenticateToken, requireCRMUser, async (req, res) => {
   const { documentId, entityType, entityId } = req.body;
   if (!documentId || !entityType || !entityId) return res.status(400).json({ error: 'missing fields' });
   try {
@@ -159,7 +160,7 @@ router.post('/unlink', authenticateToken, async (req, res) => {
 });
 
 // List links for an entity: /crm/links?entityType=cliente&entityId=123
-router.get('/links', authenticateToken, async (req, res) => {
+router.get('/links', authenticateToken, requireCRMUser, async (req, res) => {
   const { entityType, entityId } = req.query;
   if (!entityType || !entityId) return res.status(400).json({ error: 'entityType and entityId required' });
   try {

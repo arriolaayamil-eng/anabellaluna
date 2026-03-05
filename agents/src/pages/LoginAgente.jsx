@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
@@ -16,6 +16,11 @@ const LoginAgente = () => {
   const [loginStatus, setLoginStatus] = useState('idle');
   const [showPassword, setShowPassword] = useState(false);
   const [showLoginOverlay, setShowLoginOverlay] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (authService.isAuthenticated()) {
@@ -38,6 +43,7 @@ const LoginAgente = () => {
       await new Promise((resolve) => setTimeout(resolve, 2500));
       navigate(from, { replace: true });
     } catch (err) {
+      if (!mountedRef.current) return;
       const raw = err?.message || 'No se pudo iniciar sesión';
       const normalized = String(raw).toLowerCase();
       const message = normalized.includes('invalid') || normalized.includes('credential') || normalized.includes('unauthorized')
@@ -46,9 +52,9 @@ const LoginAgente = () => {
       setError(message);
       setLoginStatus('error');
       setShowLoginOverlay(false);
-      setTimeout(() => setLoginStatus('idle'), 700);
+      setTimeout(() => { if (mountedRef.current) setLoginStatus('idle'); }, 700);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

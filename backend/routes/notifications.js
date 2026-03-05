@@ -1,13 +1,14 @@
 const express = require('express');
 const Notification = require('../models/Notification');
-const { authenticateToken } = require('../auth');
+const Tarea = require('../models/Tarea');
+const Cita = require('../models/Cita');
+const Activity = require('../models/Activity');
+const Operacion = require('../models/Operacion');
+const Cliente = require('../models/Cliente');
+const Propiedad = require('../models/Propiedad');
+const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
-
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
 
 function applyVisibilityFilter(filter, now = new Date()) {
   const visibility = [
@@ -27,7 +28,7 @@ function applyVisibilityFilter(filter, now = new Date()) {
 }
 
 // Get all notifications for agent (with pagination and filters)
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const { leida, tipo, limite = 50, pagina = 1, prioridad } = req.query;
@@ -58,7 +59,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get unread count
-router.get('/unread-count', authenticateToken, async (req, res) => {
+router.get('/unread-count', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { leida: false };
@@ -76,7 +77,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
 });
 
 // Get single notification
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const item = await Notification.findById(req.params.id).lean();
@@ -91,7 +92,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', authenticateToken, async (req, res) => {
+router.put('/:id/read', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -110,7 +111,7 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
 });
 
 // Mark all notifications as read
-router.put('/mark-all-read', authenticateToken, async (req, res) => {
+router.put('/mark-all-read', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { leida: false };
@@ -129,7 +130,7 @@ router.put('/mark-all-read', authenticateToken, async (req, res) => {
 });
 
 // Create notification (internal/system use)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
@@ -143,7 +144,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Delete all read notifications
-router.delete('/clear-read', authenticateToken, async (req, res) => {
+router.delete('/clear-read', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { leida: true };
@@ -157,7 +158,7 @@ router.delete('/clear-read', authenticateToken, async (req, res) => {
 });
 
 // Delete notification
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -172,7 +173,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Get notification history for a specific client
-router.get('/historial/:clienteId', authenticateToken, async (req, res) => {
+router.get('/historial/:clienteId', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { entidadId: req.params.clienteId, entidadTipo: 'cliente' };
@@ -190,7 +191,7 @@ router.get('/historial/:clienteId', authenticateToken, async (req, res) => {
 });
 
 // Get automation effectiveness report
-router.get('/reporte/efectividad', authenticateToken, async (req, res) => {
+router.get('/reporte/efectividad', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const { desde, hasta } = req.query;
@@ -234,7 +235,7 @@ router.get('/reporte/efectividad', authenticateToken, async (req, res) => {
 });
 
 // Get notifications by date range for calendar view
-router.get('/calendario', authenticateToken, async (req, res) => {
+router.get('/calendario', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const { mes, año } = req.query;
@@ -256,6 +257,196 @@ router.get('/calendario', authenticateToken, async (req, res) => {
     
     res.json(notifications);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ POST /crm/notifications/generate ============
+// Generates agent-specific notifications from real business events
+router.post('/generate', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const scopeId = agentScopeId(req);
+    if (!scopeId) return res.json({ ok: true, created: 0 });
+
+    const created = [];
+    const now = new Date();
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+
+    // Helper: avoid duplicates for today
+    async function alreadyNotified(tipo, entidadId) {
+      return Notification.exists({
+        agenteId: scopeId,
+        tipo,
+        entidadId: entidadId ? String(entidadId) : undefined,
+        createdAt: { $gte: todayStart },
+      });
+    }
+
+    // 1. Today's appointments
+    const todayAppts = await Cita.find({
+      agenteId: scopeId,
+      fecha: { $gte: todayStart, $lt: todayEnd },
+      estado: { $ne: 'Cancelada' },
+    }).lean();
+
+    if (todayAppts.length > 0 && !(await alreadyNotified('cita', 'resumen_hoy'))) {
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'cita',
+        titulo: `${todayAppts.length} cita${todayAppts.length > 1 ? 's' : ''} hoy`,
+        mensaje: todayAppts.map(c => `${c.titulo || c.tipo || 'Cita'} - ${new Date(c.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`).join(' | '),
+        prioridad: 'alta',
+        entidadTipo: 'cita',
+        entidadId: 'resumen_hoy',
+        accionUrl: '/citas',
+      });
+      created.push(n);
+    }
+
+    // 2. Overdue tasks
+    const overdueTasks = await Tarea.find({
+      agenteId: scopeId,
+      dueDate: { $lt: todayStart },
+      $or: [{ status: { $ne: 'Close' } }, { completed: { $ne: true } }],
+    }).limit(5).lean();
+
+    for (const t of overdueTasks) {
+      if (await alreadyNotified('tarea', t._id)) continue;
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'tarea',
+        titulo: 'Tarea vencida',
+        mensaje: `${t.title || 'Sin título'} - Venció el ${new Date(t.dueDate).toLocaleDateString('es-AR')}`,
+        prioridad: 'alta',
+        entidadTipo: 'tarea',
+        entidadId: String(t._id),
+        entidadNombre: t.title || '',
+        accionUrl: '/tareas',
+      });
+      created.push(n);
+    }
+
+    // 3. Tasks due today
+    const todayTasks = await Tarea.find({
+      agenteId: scopeId,
+      dueDate: { $gte: todayStart, $lt: todayEnd },
+      $or: [{ status: { $ne: 'Close' } }, { completed: { $ne: true } }],
+    }).lean();
+
+    for (const t of todayTasks) {
+      if (await alreadyNotified('tarea', t._id)) continue;
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'tarea',
+        titulo: 'Tarea para hoy',
+        mensaje: t.title || 'Sin título',
+        prioridad: 'media',
+        entidadTipo: 'tarea',
+        entidadId: String(t._id),
+        entidadNombre: t.title || '',
+        accionUrl: '/tareas',
+      });
+      created.push(n);
+    }
+
+    // 4. New web inquiries (last 48h, unread)
+    const recentInquiries = await Activity.find({
+      agenteId: scopeId,
+      type: { $in: ['enquiry', 'visit_scheduled'] },
+      'metadata.read': { $ne: true },
+      createdAt: { $gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
+    }).sort({ createdAt: -1 }).limit(10).lean();
+
+    for (const inq of recentInquiries) {
+      if (await alreadyNotified('consulta_web', inq._id)) continue;
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'consulta_web',
+        titulo: inq.type === 'visit_scheduled' ? 'Nueva solicitud de visita' : 'Nueva consulta web',
+        mensaje: `${inq.metadata?.clientName || 'Visitante'} - ${inq.notes || inq.metadata?.propertyTitle || 'Sin detalle'}`,
+        prioridad: 'alta',
+        entidadTipo: 'cliente',
+        entidadId: String(inq._id),
+        entidadNombre: inq.metadata?.clientName || '',
+        accionUrl: '/consultas',
+      });
+      created.push(n);
+    }
+
+    // 5. Properties with status changes (reserved/sold in last 24h)
+    const recentProps = await Propiedad.find({
+      agentId: scopeId,
+      status: { $in: ['Reservada', 'Vendida', 'Alquilada'] },
+      updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    }).lean();
+
+    for (const prop of recentProps) {
+      if (await alreadyNotified('propiedad_estado', prop._id)) continue;
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'propiedad_estado',
+        titulo: `Propiedad ${prop.status}`,
+        mensaje: `${prop.title || 'Propiedad'} - ${prop.address || ''}`,
+        prioridad: 'media',
+        entidadTipo: 'propiedad',
+        entidadId: String(prop._id),
+        entidadNombre: prop.title || '',
+        accionUrl: '/propiedades',
+      });
+      created.push(n);
+    }
+
+    // 6. Clients with upcoming contract expiration (30 days)
+    const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const clientesConVencimiento = await Cliente.find({
+      agenteId: scopeId,
+      'metadata.fechaVencimientoContrato': { $gte: now, $lte: in30Days },
+    }).lean();
+
+    for (const cli of clientesConVencimiento) {
+      if (await alreadyNotified('contrato_vencimiento', cli._id)) continue;
+      const fecha = new Date(cli.metadata.fechaVencimientoContrato);
+      const dias = Math.ceil((fecha - now) / (1000 * 60 * 60 * 24));
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'contrato_vencimiento',
+        titulo: `Contrato por vencer en ${dias} días`,
+        mensaje: `${cli.nombre || 'Cliente'} - Vence el ${fecha.toLocaleDateString('es-AR')}`,
+        prioridad: dias <= 7 ? 'urgente' : dias <= 15 ? 'alta' : 'media',
+        entidadTipo: 'cliente',
+        entidadId: String(cli._id),
+        entidadNombre: cli.nombre || '',
+        accionUrl: '/clientes',
+      });
+      created.push(n);
+    }
+
+    // 7. New operations in the last 24h
+    const recentOps = await Operacion.find({
+      agenteId: scopeId,
+      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    }).sort({ createdAt: -1 }).limit(5).lean();
+
+    for (const op of recentOps) {
+      if (await alreadyNotified('operacion_nueva', op._id)) continue;
+      const n = await Notification.create({
+        agenteId: scopeId,
+        tipo: 'operacion_nueva',
+        titulo: `Nueva operación: ${op.tipo || 'Operación'}`,
+        mensaje: `${op.titulo || op.propiedad || 'Sin título'} - $${(op.monto || 0).toLocaleString()}`,
+        prioridad: 'alta',
+        entidadTipo: 'operacion',
+        entidadId: String(op._id),
+        entidadNombre: op.titulo || '',
+        accionUrl: '/ventas',
+      });
+      created.push(n);
+    }
+
+    res.json({ ok: true, created: created.length });
+  } catch (err) {
+    console.error('CRM notification generation error:', err);
     res.status(500).json({ error: err.message });
   }
 });

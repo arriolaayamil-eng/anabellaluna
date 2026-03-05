@@ -1,1126 +1,186 @@
+import { Link } from "react-router";
+import { useState, useEffect } from "react";
 import Slider from "react-slick";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
-import { Link } from "react-router";
-import { useState } from "react";
 import { all_routes } from "../../../../routes/all_routes";
+import publicService from "../../../../../services/publicService";
+import type { PropertyCard } from "../../../../../services/publicService";
+
+const formatPrice = (price?: { amount?: number; currency?: string; unit?: string }) => {
+  if (!price || !price.amount) return "";
+  const formatted = new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: price.currency || "ARS",
+    maximumFractionDigits: 0,
+  }).format(price.amount);
+  return price.unit ? `${formatted} / ${price.unit}` : formatted;
+};
 
 const FeaturesTwoSection = () => {
-  const bedroomLabel = (count: number) => `${count} dormitorio${count === 1 ? "" : "s"}`;
-  const bathroomLabel = (count: number) => `${count} baño${count === 1 ? "" : "s"}`;
-  const Features_Two_Section = {
+  const [properties, setProperties] = useState<PropertyCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let m = true;
+    (async () => {
+      try {
+        setIsLoading(true);
+        const res = await publicService.getProperties("rent");
+        if (!m) return;
+        const items = res.items || [];
+        setProperties(items.slice(0, 8));
+      } catch {
+        if (m) setProperties([]);
+      } finally {
+        if (m) setIsLoading(false);
+      }
+    })();
+    return () => { m = false; };
+  }, []);
+
+  const toggle = (id: string) =>
+    setFavorites((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
+  const settings = {
     dots: false,
-    infinite: true,
-    speed: 2000,
+    infinite: properties.length > 3,
+    speed: 500,
     slidesToShow: 3,
     slidesToScroll: 1,
-    autoplay: false,
     arrows: true,
     responsive: [
-      {
-        breakpoint: 1300,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          infinite: true,
-          dots: false,
-        },
-      },
-      {
-        breakpoint: 992,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          infinite: true,
-          dots: false,
-        },
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
+      { breakpoint: 1200, settings: { slidesToShow: 2 } },
+      { breakpoint: 768, settings: { slidesToShow: 1 } },
     ],
   };
-  const [selectedItems, setSelectedItems] = useState(Array(10).fill(false));
-  const handleItemClick = (index: number) => {
-    setSelectedItems((prevSelectedItems) => {
-      const updatedSelectedItems = [...prevSelectedItems];
-      updatedSelectedItems[index] = !updatedSelectedItems[index];
-      return updatedSelectedItems;
-    });
-  };
-  return (
-    <>
-      {/* start features rent section */}
-      <section className="features-section section-padding bg-light position-relative">
+
+  if (isLoading) {
+    return (
+      <section className="feature-property-sec-two section-padding">
         <div className="container">
-          {/* start title */}
-          <div
-            className="section-heading aos"
-            data-aos="fade-down"
-            data-aos-duration={1000}
-          >
-            <h2 className="mb-2 text-center">Propiedades Destacadas en Alquiler</h2>
-            <div className="sec-line">
-              <span className="sec-line1" />
-              <span className="sec-line2" />
-            </div>
-            <p className="mb-0 text-center">
-              Descubre las mejores opciones de alquiler para tu estancia
-            </p>
+          <div className="section-heading text-center">
+            <h2>Propiedades en Alquiler</h2>
+            <p>Las mejores opciones de alquiler disponibles para vos.</p>
           </div>
-          {/* end title */}
-          <Slider
-            {...Features_Two_Section}
-            className="feature-slider-item features-slider position-none"
-          >
-            {/* slide item-1 */}
-            <div className="features-slide-card">
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1000}
-              >
-                <div className="property-card flex-fill">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-01.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute top-0 start-0 end-0 p-3 z-1">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="badge badge-sm bg-danger d-flex align-items-center">
-                            <i className="material-icons-outlined">
-                              offline_bolt
-                            </i>
-                            Nuevo
-                          </div>
-                          <div className="badge badge-sm bg-orange d-flex align-items-center">
-                            <i className="material-icons-outlined">loyalty</i>
-                            Destacado
-                          </div>
-                        </div>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $21000
-                          <span className="fs-14 fw-normal"> por noche </span>
-                          </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[1] ? "selected" : ""
-                          }`}
-                          key={1}
-                          onClick={() => handleItemClick(1)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[1] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[1] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Cabaña </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Serenity Condo Suite
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            17, Grove Towers, New York, USA
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(4)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          {bathroomLabel(4)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          350 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-10.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Ethan Brooks
-                            <span className="d-block fs-14 text-body pt-1">
-                              United States
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* end card */}
-              </div>
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1500}
-              >
-                <div className="property-card flex-fill property-card mb-0">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-04.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $1580
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[2] ? "selected" : ""
-                          }`}
-                          key={2}
-                          onClick={() => handleItemClick(2)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[2] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[2] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Residencia </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Coral Bay Cabins
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            7, Rosewood Court, Brighton, UK
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          5 Dormitorios
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          3 Baños
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          700 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-13.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Sophia Mitchell
-                            <span className="d-block fs-14 text-body pt-1">
-                              United Kingdom
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando...</span>
             </div>
-            {/* slide Item-2 */}
-            <div className="features-slide-card">
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1000}
-              >
-                <div className="property-card flex-fill">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-02.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $1130
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[3] ? "selected" : ""
-                          }`}
-                          key={3}
-                          onClick={() => handleItemClick(3)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[3] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[3] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Departamento </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Gateway Apartment
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            54, Coral Sands Apartments, Australia
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(2)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          {bathroomLabel(4)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          350 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-11.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Olivia Hayes
-                            <span className="d-block fs-14 text-body pt-1">
-                              Australia
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1500}
-              >
-                <div className="property-card flex-fill mb-0">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-05.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $4500
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[5] ? "selected" : ""
-                          }`}
-                          key={5}
-                          onClick={() => handleItemClick(5)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[5] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[5] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Residencia </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Majestic Stay
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            10, Bella Vista Villas, Rome, Italy
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(2)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          {bathroomLabel(1)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          400 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-14.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Leo Ramirez
-                            <span className="d-block fs-14 text-body pt-1">
-                              Italy
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* end card */}
-              </div>
-            </div>
-            {/* slide Item-3 */}
-            <div className="features-slide-card">
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1000}
-              >
-                <div className="property-card flex-fill">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-03.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $2450
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[6] ? "selected" : ""
-                          }`}
-                          key={6}
-                          onClick={() => handleItemClick(6)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[6] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[6] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Condominio </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Cozy Urban Condo
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            130, Elmstone Flats, Manchester, UK
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(4)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          3 Baños
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          520 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-12.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Daniel Carter
-                            <span className="d-block fs-14 text-body pt-1">
-                              United Kingdom
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* end card */}
-              </div>
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1500}
-              >
-                <div className="property-card flex-fill mb-0">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-06.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $3000
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[7] ? "selected" : ""
-                          }`}
-                          key={7}
-                          onClick={() => handleItemClick(7)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[7] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[7] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Cabaña </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>Noble Nest</Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            76, Sakura Heights, Kyoto, Japan
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(4)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          {bathroomLabel(1)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          550 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-15.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Maya Rivera
-                            <span className="d-block fs-14 text-body pt-1">
-                              Japan
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* end card */}
-              </div>
-            </div>
-            {/* slide Item-4 */}
-            <div className="features-slide-card">
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1000}
-              >
-                <div className="property-card flex-fill">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-07.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $1800
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[8] ? "selected" : ""
-                          }`}
-                          key={8}
-                          onClick={() => handleItemClick(8)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[8] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[8] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Villa </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Holiday Haven Homes
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            88, Eucalypt Lane Suites, Sydney, Australia
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(2)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          {bathroomLabel(1)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          480 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-16.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Marcus Bennett
-                            <span className="d-block fs-14 text-body pt-1">
-                              Australia
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* end card */}
-              </div>
-              {/* inner item */}
-              <div
-                className="d-flex aos"
-                data-aos="fade-down"
-                data-aos-duration={1500}
-              >
-                <div className="property-card mb-0 flex-fill">
-                  <div className="property-listing-item p-0 mb-0 shadow-none">
-                    <div className="buy-grid-img mb-0 rounded-0">
-                      <Link to={all_routes.rentDetails}>
-                        <ImageWithBasePath
-                          className="img-fluid"
-                          src="assets/img/rent/rent-grid-img-08.jpg"
-                          alt="image"
-                        />
-                      </Link>
-                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
-                        <h6 className="text-white mb-0">
-                          $2680
-                                                  </h6>
-                        <Link
-                          to="#"
-                          className={`favourite ${
-                            selectedItems[9] ? "selected" : ""
-                          }`}
-                          key={9}
-                          onClick={() => handleItemClick(9)}
-                        >
-                          <i
-                            className={`material-icons-outlined ${
-                              selectedItems[9] ? "filled" : ""
-                            }`}
-                          >
-                            {selectedItems[9] ? "favorite" : "favorite_border"}
-                          </i>
-                        </Link>
-                      </div>
-                    </div>
-                    <div className="buy-grid-content">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <span className="ms-1 fs-14">Excelente</span>
-                        </div>
-                        <span className="badge bg-secondary"> Departamento </span>
-                      </div>
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                          <h6 className="title mb-1">
-                            <Link to={all_routes.buyDetails}>
-                              Rentora Apartment
-                            </Link>
-                          </h6>
-                          <p className="d-flex align-items-center fs-14 mb-0">
-                            <i className="material-icons-outlined me-1 ms-0">
-                              location_on
-                            </i>
-                            305, Palm View Towers, Dubai, UAE
-                          </p>
-                        </div>
-                      </div>
-                      <ul className="d-flex buy-grid-details d-flex mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bed
-                          </i>
-                          {bedroomLabel(2)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            bathtub
-                          </i>
-                          {bathroomLabel(2)}
-                        </li>
-                        <li className="d-flex align-items-center gap-1">
-                          <i className="material-icons-outlined bg-white text-secondary">
-                            straighten
-                          </i>
-                          350 m²
-                        </li>
-                      </ul>
-                      <div className="d-flex align-items-center justify-content-between flex-wrap border-top border-light-100 pt-3 gap-2">
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="avatar avatar-lg user-avatar">
-                            <ImageWithBasePath
-                              src="assets/img/users/user-17.jpg"
-                              alt="image"
-                              className="rounded-circle"
-                            />
-                          </div>
-                          <Link
-                            to="#"
-                            className="mb-0 fs-16 fw-medium text-dark"
-                          >
-                            Zara Collins
-                            <span className="d-block fs-14 text-body pt-1">
-                              United Arab Emirates
-                            </span>
-                          </Link>
-                        </div>
-                        <Link
-                          to={all_routes.rentDetails}
-                          className="btn btn-dark"
-                        >
-                          Reservar Ahora
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* end card */}
-              </div>
-            </div>
-          </Slider>
-          <div className="text-center d-flex align-items-center justify-content-center m-auto">
-            <Link
-              to={all_routes.rentPropertyGrid}
-              className="btn btn-lg btn-dark d-flex align-items-center gap-1"
-            >
-              Explorar Todas
-              <i className="material-icons-outlined">arrow_forward</i>
-            </Link>
           </div>
         </div>
       </section>
-      {/* end features rent section */}
-    </>
+    );
+  }
+
+  if (properties.length === 0) return null;
+
+  return (
+    <section className="feature-property-sec-two section-padding">
+      <div className="container">
+        <div className="section-heading text-center">
+          <h2>Propiedades en Alquiler</h2>
+          <div className="sec-line">
+            <span className="sec-line1" />
+            <span className="sec-line2" />
+          </div>
+          <p>Las mejores opciones de alquiler disponibles para vos.</p>
+        </div>
+        <Slider {...settings} className="feature-property-slider-two">
+          {properties.map((prop) => {
+            const isFav = favorites.has(prop.id);
+            const detailPath = all_routes.rentDetailsPath(prop.slug);
+            const coverSrc = prop.media?.coverUrl || "assets/img/buy/buy-grid-img-01.jpg";
+
+            return (
+              <div key={prop.id} className="px-2">
+                <div className="property-card flex-fill">
+                  <div className="property-listing-item p-0 mb-0 shadow-none">
+                    <div className="buy-grid-img mb-0 rounded-0">
+                      <Link to={detailPath}>
+                        <ImageWithBasePath className="img-fluid" src={coverSrc} alt={prop.title || "property"} />
+                      </Link>
+                      <div className="d-flex align-items-center justify-content-between position-absolute top-0 start-0 end-0 p-3 z-1">
+                        <div className="d-flex align-items-center gap-2">
+                          {prop.featured && (
+                            <div className="badge badge-sm bg-orange d-flex align-items-center">
+                              <i className="material-icons-outlined">loyalty</i>
+                              Destacada
+                            </div>
+                          )}
+                        </div>
+                        <Link
+                          to="#"
+                          className={`favourite ${isFav ? "selected" : ""}`}
+                          onClick={(e) => { e.preventDefault(); toggle(prop.id); }}
+                        >
+                          <i className={`material-icons-outlined ${isFav ? "filled" : ""}`}>
+                            {isFav ? "favorite" : "favorite_border"}
+                          </i>
+                        </Link>
+                      </div>
+                      <div className="d-flex align-items-center justify-content-between position-absolute bottom-0 end-0 start-0 p-3 z-1">
+                        <h6 className="text-white mb-0">{formatPrice(prop.price)}</h6>
+                        {prop.agent?.avatarUrl && (
+                          <div className="user-avatar avatar avatar-md border rounded-circle">
+                            <ImageWithBasePath src={prop.agent.avatarUrl} alt={prop.agent.name || "Agent"} className="rounded-circle" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="buy-grid-content">
+                      <div className="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                          <h6 className="title mb-1">
+                            <Link to={detailPath}>{prop.title || "Sin título"}</Link>
+                          </h6>
+                          {prop.location?.addressLine && (
+                            <p className="d-flex align-items-center fs-14 mb-0">
+                              <i className="material-icons-outlined me-1 ms-0">location_on</i>
+                              {[prop.location.addressLine, prop.location.city, prop.location.province].filter(Boolean).join(", ")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <ul className="d-flex buy-grid-details mb-3 bg-light rounded p-3 justify-content-between align-items-center flex-wrap gap-1">
+                        {(prop.features?.beds != null && prop.features.beds > 0) && (
+                          <li className="d-flex align-items-center gap-1">
+                            <i className="material-icons-outlined bg-white text-secondary">bed</i>
+                            {prop.features.beds} Hab.
+                          </li>
+                        )}
+                        {(prop.features?.baths != null && prop.features.baths > 0) && (
+                          <li className="d-flex align-items-center gap-1">
+                            <i className="material-icons-outlined bg-white text-secondary">bathtub</i>
+                            {prop.features.baths} Baño{prop.features.baths > 1 ? "s" : ""}
+                          </li>
+                        )}
+                        {(prop.features?.areaSqFt != null && prop.features.areaSqFt > 0) && (
+                          <li className="d-flex align-items-center gap-1">
+                            <i className="material-icons-outlined bg-white text-secondary">straighten</i>
+                            {prop.features.areaSqFt} m²
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Slider>
+        <div className="text-center mt-4">
+          <Link to={all_routes.rentPropertyGridSidebar} className="btn btn-dark d-inline-flex align-items-center">
+            Ver todos los alquileres
+            <i className="material-icons-outlined ms-1">arrow_forward</i>
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 };
 

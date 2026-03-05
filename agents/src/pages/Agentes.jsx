@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaArrowUp, FaArrowDown, FaPercentage } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -278,7 +279,8 @@ const Agentes = () => {
     { title: 'Rating Promedio', value: (agentes.reduce((sum, a) => sum + a.rating, 0) / agentes.length).toFixed(1), desc: 'Excelente equipo', icon: <FaStar />, color: 'from-orange-500 to-orange-600' },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
@@ -293,7 +295,7 @@ const Agentes = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Nuevo agente:', nuevoAgente);
-    alert('Agente guardado exitosamente!');
+    toast.success('Agente guardado exitosamente!');
     setShowModal(false);
     // Resetear formulario
     setNuevoAgente({
@@ -339,8 +341,13 @@ const Agentes = () => {
   const idiomasDisponibles = ['Español', 'Inglés', 'Portugués', 'Francés', 'Italiano', 'Alemán'];
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="Equipo" title="👨‍💼 Gestión de Agentes" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaUsers className="text-indigo-500" /> Gestión de Agentes
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Equipo comercial y rendimiento</p>
+      </div>
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">

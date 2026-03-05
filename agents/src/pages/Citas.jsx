@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { ScheduleComponent, Day, Week, WorkWeek, Month, Agenda, Inject } from '@syncfusion/ej2-react-schedule';
 import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaMapMarkerAlt, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaGripVertical, FaPlus, FaEdit, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt } from 'react-icons/fa';
 import { Header } from '../components';
@@ -6,17 +8,12 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import Chart from 'react-apexcharts';
 
-// Syncfusion Components
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
-import { AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, Inject as AccInject, AccumulationLegend, PieSeries, AccumulationTooltip, AccumulationDataLabel } from '@syncfusion/ej2-react-charts';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject as ChartInject, Legend, Category, Tooltip, ColumnSeries, DataLabel } from '@syncfusion/ej2-react-charts';
 
 const Citas = () => {
   const { currentMode, currentColor } = useStateContext();
   
   // Estados para modales
   const [showModalCita, setShowModalCita] = useState(false);
-  const [showModalRecordatorios, setShowModalRecordatorios] = useState(false);
   const [showModalKanban, setShowModalKanban] = useState(false);
   
   // Estados para modales de estadísticas
@@ -39,13 +36,6 @@ const Citas = () => {
     descripcion: '',
     recordatorio: '24h',
   });
-  
-  // Estado para recordatorios
-  const [recordatorios, setRecordatorios] = useState([
-    { id: 1, tipo: 'Email + SMS', tiempo: '24h', activo: true },
-    { id: 2, tipo: 'WhatsApp', tiempo: '2h', activo: true },
-    { id: 3, tipo: 'Ubicación', tiempo: 'Al confirmar', activo: true },
-  ]);
   
   // Estado para Kanban (Todo List) - Conectado al backend
   const [columnas, setColumnas] = useState([]);
@@ -150,7 +140,7 @@ const Citas = () => {
     { title: 'Citas Hoy', value: citasData.filter(c => c.StartTime.toDateString() === new Date().toDateString()).length, desc: '2 confirmadas', icon: <FaClock />, color: 'from-blue-500 to-blue-600' },
     { title: 'Esta Semana', value: citasData.length, desc: '3 visitas programadas', icon: <FaCalendarPlus />, color: 'from-green-500 to-green-600' },
     { title: 'Tasa Asistencia', value: '85%', desc: 'Últimos 30 días', icon: <FaCheckCircle />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Recordatorios', value: '12', desc: 'Enviados automáticamente', icon: <FaBell />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Pendientes', value: citasData.filter(c => c.estado === 'Programada' || c.estado === 'Pendiente').length, desc: 'Por confirmar', icon: <FaBell />, color: 'from-orange-500 to-orange-600' },
   ];
 
   // Datos para gráficos
@@ -232,7 +222,8 @@ const Citas = () => {
   };
   const tendenciaSemanalSeries = [{ name: 'Citas', data: [12, 18, 15, 21] }];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-[1.02]';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   // Funciones de manejo para Cita
   const handleCitaChange = (e) => {
@@ -266,7 +257,9 @@ const Citas = () => {
       });
 
       await reloadCitas();
-      alert('¡Cita agendada exitosamente!');
+      // Check milestones (non-blocking)
+      crmService.rewards.checkMilestones('appointment').catch(() => {});
+      toast.success('¡Cita agendada exitosamente!');
       setShowModalCita(false);
       setNuevaCita({
         tipo: 'Visita',
@@ -284,13 +277,6 @@ const Citas = () => {
     } catch (err) {
       setCitasError(err?.message || 'No se pudo agendar la cita');
     }
-  };
-
-  // Funciones para Recordatorios
-  const toggleRecordatorio = (id) => {
-    setRecordatorios(prev => prev.map(r => 
-      r.id === id ? { ...r, activo: !r.activo } : r
-    ));
   };
 
   // Funciones para Kanban - Conectadas al backend con auto-guardado
@@ -325,7 +311,7 @@ const Citas = () => {
       });
     } catch (e) {
       console.error('Error creating task:', e);
-      alert('Error al crear tarea');
+      toast.error('Error al crear tarea');
     } finally {
       setKanbanSaving(false);
     }
@@ -341,7 +327,7 @@ const Citas = () => {
       }));
     } catch (e) {
       console.error('Error deleting task:', e);
-      alert('Error al eliminar tarea');
+      toast.error('Error al eliminar tarea');
     } finally {
       setKanbanSaving(false);
     }
@@ -395,7 +381,7 @@ const Citas = () => {
         console.log(`✅ Tarea movida a columna: ${columnaDestino}`);
       } catch (err) {
         console.error('Error moving task:', err);
-        alert('Error al mover tarea. Reintentando...');
+        toast.error('Error al mover tarea. Reintentando...');
         // Revertir si hay error
         setTareas(prev => ({
           ...prev,
@@ -421,7 +407,7 @@ const Citas = () => {
   const agregarColumna = async (e) => {
     e.preventDefault();
     if (!nuevaColumna.nombre.trim()) {
-      alert('Ingresa un nombre para la columna');
+      toast.warn('Ingresa un nombre para la columna');
       return;
     }
     
@@ -443,7 +429,7 @@ const Citas = () => {
       console.log(`✅ Columna "${nuevaCol.nombre}" creada`);
     } catch (err) {
       console.error('Error saving columns:', err);
-      alert('Error al guardar la columna');
+      toast.error('Error al guardar la columna');
       // Revertir
       setColumnas(columnas);
     } finally {
@@ -453,14 +439,14 @@ const Citas = () => {
 
   const eliminarColumna = async (columnaId) => {
     if (columnas.length <= 1) {
-      alert('Debe haber al menos una columna');
+      toast.warn('Debe haber al menos una columna');
       return;
     }
     
     const columnaAEliminar = columnas.find(c => c.id === columnaId);
     const tareasEnColumna = tareas[columnaId]?.length || 0;
     if (tareasEnColumna > 0) {
-      if (!window.confirm(`La columna "${columnaAEliminar?.nombre}" tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla?`)) {
+      if (!(await confirmToast(`La columna "${columnaAEliminar?.nombre}" tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla?`))) {
         return;
       }
     }
@@ -490,15 +476,20 @@ const Citas = () => {
       console.log(`✅ Columna "${columnaAEliminar?.nombre}" eliminada`);
     } catch (err) {
       console.error('Error saving columns:', err);
-      alert('Error al eliminar la columna');
+      toast.error('Error al eliminar la columna');
     } finally {
       setKanbanSaving(false);
     }
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="Agenda" title="📅 Agenda y Citas" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaCalendarAlt className="text-blue-500" /> Agenda y Citas
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión de citas, calendario y tareas</p>
+      </div>
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -507,12 +498,6 @@ const Citas = () => {
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaCalendarPlus /> Nueva Cita
-        </button>
-        <button 
-          onClick={() => setShowModalRecordatorios(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-md"
-        >
-          <FaBell /> Recordatorios
         </button>
         <button 
           onClick={() => setShowModalKanban(true)}
@@ -609,107 +594,6 @@ const Citas = () => {
         </div>
       </div>
 
-      {/* Paneles de Estadísticas - Fila superior */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        {/* Gráfico de Tipos de Citas */}
-        <div className={cardBase}>
-          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">📊 Tipos de Citas</h3>
-          <AccumulationChartComponent
-            id="tipos-citas-chart"
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true, position: 'Bottom' }}
-            height="180px"
-          >
-            <AccInject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={tiposCitasData}
-                xName="tipo"
-                yName="cantidad"
-                name="Citas"
-                dataLabel={{ visible: false }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
-        </div>
-
-        {/* Citas por Día */}
-        <div className={cardBase}>
-          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">📈 Citas por Día</h3>
-          <ChartComponent
-            id="citas-dia-chart"
-            primaryXAxis={{ valueType: 'Category', labelStyle: { size: '10px' } }}
-            primaryYAxis={{ title: '', labelStyle: { size: '10px' } }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: false }}
-            height="180px"
-          >
-            <ChartInject services={[ColumnSeries, Category, Tooltip]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Column"
-                dataSource={citasPorDia}
-                xName="dia"
-                yName="cantidad"
-                name="Citas"
-                fill={currentColor || '#3B82F6'}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
-        </div>
-
-        {/* Próximas Citas - Versión compacta */}
-        <div className={cardBase}>
-          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">🕒 Próximas Citas</h3>
-          <div className="space-y-2 max-h-[180px] overflow-y-auto">
-            {citasData.slice(0, 4).map((cita, idx) => (
-              <div key={cita.Id || idx} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium dark:text-gray-200 truncate">{cita.Subject}</p>
-                  <p className="text-gray-500 dark:text-gray-400 truncate">{cita.cliente || cita.tipo}</p>
-                </div>
-                <span className="text-gray-400 flex-shrink-0">{cita.StartTime.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</span>
-              </div>
-            ))}
-            {citasData.length === 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Sin citas próximas</p>
-            )}
-          </div>
-        </div>
-
-        {/* Recordatorios Automáticos - Versión compacta */}
-        <div className={cardBase}>
-          <h3 className="text-sm font-semibold mb-2 dark:text-gray-100">🔔 Recordatorios</h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-              <FaBell className="text-blue-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium dark:text-gray-200">24h Antes</p>
-                <p className="text-gray-500 dark:text-gray-400">Email + SMS</p>
-              </div>
-              <span className="text-green-500 text-xs">✓</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-              <FaPhoneAlt className="text-green-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium dark:text-gray-200">2h Antes</p>
-                <p className="text-gray-500 dark:text-gray-400">WhatsApp</p>
-              </div>
-              <span className="text-green-500 text-xs">✓</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-              <FaMapMarkerAlt className="text-purple-500 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium dark:text-gray-200">Ubicación</p>
-                <p className="text-gray-500 dark:text-gray-400">Automática</p>
-              </div>
-              <span className="text-green-500 text-xs">✓</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Calendario Principal - Ancho completo y altura expandida */}
       <div className={`${cardBase} mb-6`}>
@@ -890,74 +774,6 @@ const Citas = () => {
                   <FaSave /> Agendar Cita
                 </button>
               </div>              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Recordatorios */}
-      {showModalRecordatorios && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaBell /> Configuración de Recordatorios
-                </h2>
-                <p className="text-orange-100 text-sm mt-1">Gestionar recordatorios automáticos</p>
-              </div>
-              <button onClick={() => setShowModalRecordatorios(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Recordatorios Activos</h3>
-                <div className="space-y-4">
-                  {recordatorios.map((recordatorio) => (
-                    <div key={recordatorio.id} className={`border-2 ${recordatorio.activo ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'} rounded-lg p-4 transition-all`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${recordatorio.activo ? 'bg-green-500' : 'bg-gray-400'}`}>
-                            <FaBell className="text-white text-xl" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold dark:text-gray-200">{recordatorio.tipo}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{recordatorio.tiempo}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => toggleRecordatorio(recordatorio.id)}
-                          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                            recordatorio.activo 
-                              ? 'bg-green-500 text-white hover:bg-green-600' 
-                              : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-400'
-                          }`}
-                        >
-                          {recordatorio.activo ? '✓ Activo' : 'Inactivo'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-2">💡 Información</h4>
-                <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
-                  <li>• Los recordatorios se envían automáticamente según la configuración</li>
-                  <li>• Email + SMS: Notificación por correo y mensaje de texto</li>
-                  <li>• WhatsApp: Mensaje directo al cliente</li>
-                  <li>• Ubicación: Comparte la dirección de la propiedad</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button onClick={() => setShowModalRecordatorios(false)} className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center gap-2">
-                  <FaCheckCircle /> Guardar Configuración
-                </button>
-              </div>
             </div>
           </div>
         </div>

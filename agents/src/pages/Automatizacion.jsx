@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { FaRobot, FaPlus, FaCog, FaChartLine, FaBolt, FaEnvelope, FaSms, FaBell, FaUserPlus, FaClock, FaBirthdayCake, FaFileAlt, FaHandshake, FaStar, FaExclamationTriangle, FaCheckCircle, FaTimesCircle, FaCalendarAlt, FaPlay, FaPause, FaTrash, FaTimes, FaSave, FaSync } from 'react-icons/fa';
@@ -96,7 +98,7 @@ const Automatizacion = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta automatización?')) return;
+    if (!(await confirmToast('¿Estás seguro de eliminar esta automatización?'))) return;
     try {
       await automationService.deleteAutomation(id);
       setAutomatizaciones(prev => prev.filter(a => a._id !== id));
@@ -109,7 +111,7 @@ const Automatizacion = () => {
   const handleExecute = async (id) => {
     try {
       await automationService.executeAutomation(id);
-      alert('Automatización ejecutada correctamente. Se ha creado una notificación de prueba.');
+      toast.success('Automatización ejecutada correctamente. Se ha creado una notificación de prueba.');
       loadData();
     } catch (err) {
       console.error('Error executing automation:', err);
@@ -121,6 +123,8 @@ const Automatizacion = () => {
     try {
       setSaving(true);
       await automationService.createAutomation({ template: selectedTemplate });
+      // Check milestones (non-blocking)
+      try { const { crmService } = await import('../services/crmService'); crmService.rewards.checkMilestones('automation').catch(() => {}); } catch (_) {}
       setShowModal(false);
       setSelectedTemplate('');
       loadData();
@@ -135,7 +139,7 @@ const Automatizacion = () => {
     try {
       setSaving(true);
       const result = await automationService.initializeDefaults();
-      alert(`Se crearon ${result.created || 0} automatizaciones por defecto.`);
+      toast.success(`Se crearon ${result.created || 0} automatizaciones por defecto.`);
       loadData();
     } catch (err) {
       console.error('Error initializing defaults:', err);
@@ -163,9 +167,14 @@ const Automatizacion = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Automatización" title="Centro de Automatización" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
+            <FaRobot className="text-indigo-500" /> Centro de Automatización
+          </h2>
+          <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Reglas y flujos automatizados</p>
+        </div>
         <div className="flex gap-3">
           <a
             href="/crm/fechas-importantes"

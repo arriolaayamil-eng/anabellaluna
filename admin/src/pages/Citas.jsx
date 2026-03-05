@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { ScheduleComponent, Day, Week, WorkWeek, Month, Agenda, Inject } from '@syncfusion/ej2-react-schedule';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaMapMarkerAlt, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaGripVertical, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaMapMarkerAlt, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaGripVertical, FaPlus, FaEdit, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
+import Chart from 'react-apexcharts';
 
-// Syncfusion Components
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
-import { AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, Inject as AccInject, AccumulationLegend, PieSeries, AccumulationTooltip, AccumulationDataLabel } from '@syncfusion/ej2-react-charts';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject as ChartInject, Legend, Category, Tooltip, ColumnSeries, DataLabel } from '@syncfusion/ej2-react-charts';
+// Syncfusion Grid Component
+import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Citas = () => {
   const { currentMode, currentColor } = useStateContext();
   
   // Estados para modales
   const [showModalCita, setShowModalCita] = useState(false);
-  const [showModalRecordatorios, setShowModalRecordatorios] = useState(false);
   const [showModalKanban, setShowModalKanban] = useState(false);
   
   // Estados para modales de estadísticas
@@ -38,33 +39,11 @@ const Citas = () => {
     recordatorio: '24h',
   });
   
-  // Estado para recordatorios
-  const [recordatorios, setRecordatorios] = useState([
-    { id: 1, tipo: 'Email + SMS', tiempo: '24h', activo: true },
-    { id: 2, tipo: 'WhatsApp', tiempo: '2h', activo: true },
-    { id: 3, tipo: 'Ubicación', tiempo: 'Al confirmar', activo: true },
-  ]);
-  
-  // Estado para Kanban (Todo List)
-  const [columnas, setColumnas] = useState([
-    { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
-    { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
-    { id: 'completado', nombre: 'Completado', color: '#10B981' },
-  ]);
-  
-  const [tareas, setTareas] = useState({
-    pendiente: [
-      { id: 1, titulo: 'Preparar documentación Depto Palermo', prioridad: 'Alta', fecha: '2025-10-11' },
-      { id: 2, titulo: 'Llamar a cliente Juan Pérez', prioridad: 'Media', fecha: '2025-10-11' },
-    ],
-    enProgreso: [
-      { id: 3, titulo: 'Coordinar visita Casa Belgrano', prioridad: 'Alta', fecha: '2025-10-12' },
-      { id: 4, titulo: 'Revisar contrato alquiler', prioridad: 'Baja', fecha: '2025-10-13' },
-    ],
-    completado: [
-      { id: 5, titulo: 'Enviar propuestas a cliente', prioridad: 'Media', fecha: '2025-10-10' },
-    ],
-  });
+  // Estado para Kanban (Todo List) - Conectado al backend
+  const [columnas, setColumnas] = useState([]);
+  const [tareas, setTareas] = useState({});
+  const [kanbanLoading, setKanbanLoading] = useState(false);
+  const [kanbanSaving, setKanbanSaving] = useState(false);
   
   const [nuevaTarea, setNuevaTarea] = useState({
     titulo: '',
@@ -79,65 +58,91 @@ const Citas = () => {
   });
   
   const [draggedTask, setDraggedTask] = useState(null);
+  const [dropTargetColumn, setDropTargetColumn] = useState(null);
 
-  // Datos de ejemplo para el calendario
-  const citasData = [
-    {
-      Id: 1,
-      Subject: 'Visita - Depto Palermo',
-      StartTime: new Date(2025, 9, 10, 10, 0),
-      EndTime: new Date(2025, 9, 10, 11, 0),
-      Description: 'Cliente: Juan Pérez - Propiedad: Depto 2amb Palermo',
-      IsAllDay: false,
-      tipo: 'Visita',
-      cliente: 'Juan Pérez',
-      agente: 'Ana López',
-      estado: 'Confirmada'
-    },
-    {
-      Id: 2,
-      Subject: 'Reunión con Propietario',
-      StartTime: new Date(2025, 9, 10, 14, 0),
-      EndTime: new Date(2025, 9, 10, 15, 0),
-      Description: 'Tasación de propiedad en Recoleta',
-      IsAllDay: false,
-      tipo: 'Reunión',
-      cliente: 'María González',
-      agente: 'Carlos Ruiz',
-      estado: 'Pendiente'
-    },
-    {
-      Id: 3,
-      Subject: 'Firma de Contrato',
-      StartTime: new Date(2025, 9, 11, 16, 0),
-      EndTime: new Date(2025, 9, 11, 17, 30),
-      Description: 'Cliente: María González - Venta Casa Belgrano',
-      IsAllDay: false,
-      tipo: 'Firma',
-      cliente: 'María González',
-      agente: 'Laura Fernández',
-      estado: 'Confirmada'
-    },
-    {
-      Id: 4,
-      Subject: 'Llamada Seguimiento',
-      StartTime: new Date(2025, 9, 12, 9, 0),
-      EndTime: new Date(2025, 9, 12, 9, 30),
-      Description: 'Seguimiento post-visita',
-      IsAllDay: false,
-      tipo: 'Llamada',
-      cliente: 'Carlos Rodríguez',
-      agente: 'Sofía Torres',
-      estado: 'Programada'
-    },
-  ];
+  // Cargar datos del Kanban desde el backend
+  const loadKanbanData = async () => {
+    setKanbanLoading(true);
+    try {
+      const [columnsData, tasksData] = await Promise.all([
+        crmService.tareas.getKanbanColumns(),
+        crmService.tareas.getKanban()
+      ]);
+      setColumnas(Array.isArray(columnsData) ? columnsData : [
+        { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
+        { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
+        { id: 'completado', nombre: 'Completado', color: '#10B981' },
+      ]);
+      setTareas(tasksData || {});
+    } catch (e) {
+      console.error('Error loading kanban:', e);
+      setColumnas([
+        { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
+        { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
+        { id: 'completado', nombre: 'Completado', color: '#10B981' },
+      ]);
+    } finally {
+      setKanbanLoading(false);
+    }
+  };
+
+  // Cargar Kanban cuando se abre el modal
+  useEffect(() => {
+    if (showModalKanban) {
+      loadKanbanData();
+    }
+  }, [showModalKanban]);
+
+  // Estado para citas del backend
+  const [citasItems, setCitasItems] = useState([]);
+  const [citasLoading, setCitasLoading] = useState(false);
+  const [citasError, setCitasError] = useState('');
+
+  const reloadCitas = async () => {
+    setCitasLoading(true);
+    setCitasError('');
+    try {
+      const items = await crmService.citas.getAll();
+      setCitasItems(Array.isArray(items) ? items : []);
+    } catch (e) {
+      setCitasError(e?.message || 'Error al cargar citas');
+      setCitasItems([]);
+    } finally {
+      setCitasLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadCitas();
+  }, []);
+
+  const citasData = useMemo(() => {
+    return (Array.isArray(citasItems) ? citasItems : []).map((c) => {
+      const md = c && c.metadata ? c.metadata : {};
+      const contact = md.contact || {};
+      const start = c.fecha ? new Date(c.fecha) : new Date();
+      const end = c.fechaFin ? new Date(c.fechaFin) : new Date(start.getTime() + 60 * 60 * 1000);
+      return {
+        Id: c._id || c.id,
+        Subject: c.titulo || c.tipo || 'Cita',
+        StartTime: start,
+        EndTime: end,
+        Description: c.notas || '',
+        IsAllDay: false,
+        tipo: c.tipo || '',
+        cliente: contact.fullName || md.clienteNombre || '',
+        agente: '',
+        estado: c.estado || '',
+      };
+    });
+  }, [citasItems]);
 
   // KPIs de Citas
   const kpisCitas = [
     { title: 'Citas Hoy', value: citasData.filter(c => c.StartTime.toDateString() === new Date().toDateString()).length, desc: '2 confirmadas', icon: <FaClock />, color: 'from-blue-500 to-blue-600' },
     { title: 'Esta Semana', value: citasData.length, desc: '3 visitas programadas', icon: <FaCalendarPlus />, color: 'from-green-500 to-green-600' },
     { title: 'Tasa Asistencia', value: '85%', desc: 'Últimos 30 días', icon: <FaCheckCircle />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Recordatorios', value: '12', desc: 'Enviados automáticamente', icon: <FaBell />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Pendientes', value: citasData.filter(c => c.estado === 'Programada' || c.estado === 'Pendiente').length, desc: 'Por confirmar', icon: <FaBell />, color: 'from-orange-500 to-orange-600' },
   ];
 
   // Datos para gráficos
@@ -158,7 +163,69 @@ const Citas = () => {
     { dia: 'Dom', cantidad: 0 },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  // ApexCharts - Distribución de Citas (Donut)
+  const citasDonutOptions = {
+    chart: { type: 'donut', height: 220, background: 'transparent' },
+    labels: ['Visita', 'Reunión', 'Firma', 'Llamada'],
+    colors: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'],
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => citasData.length || '0' } } } } },
+    dataLabels: { enabled: false },
+    legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+    stroke: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const citasDonutSeries = tiposCitasData.map(t => t.cantidad);
+
+  // ApexCharts - Citas por Día (Bar)
+  const citasDiaOptions = {
+    chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '50%', distributed: true } },
+    colors: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#9CA3AF'],
+    dataLabels: { enabled: false },
+    xaxis: { categories: citasPorDia.map(c => c.dia), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    legend: { show: false },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const citasDiaSeries = [{ name: 'Citas', data: citasPorDia.map(c => c.cantidad) }];
+
+  // ApexCharts - Tasa de Asistencia (Gauge)
+  const asistenciaOptions = {
+    chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90, endAngle: 90,
+        hollow: { size: '55%' },
+        track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
+        dataLabels: {
+          name: { show: true, fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', offsetY: 16 },
+          value: { show: true, fontSize: '22px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937', offsetY: -10, formatter: (val) => `${val}%` },
+        },
+      },
+    },
+    fill: { type: 'gradient', gradient: { shade: 'dark', colorStops: [{ offset: 0, color: '#8B5CF6', opacity: 1 }, { offset: 100, color: '#6366F1', opacity: 1 }] } },
+    stroke: { lineCap: 'round' },
+    labels: ['Asistencia'],
+  };
+  const asistenciaSeries = [85];
+
+  // ApexCharts - Tendencia Semanal (Area)
+  const tendenciaSemanalOptions = {
+    chart: { type: 'area', height: 200, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false }, sparkline: { enabled: false } },
+    colors: ['#3B82F6'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    xaxis: { categories: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'], labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
+    grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+    tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
+  };
+  const tendenciaSemanalSeries = [{ name: 'Citas', data: [12, 18, 15, 21] }];
+
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   // Funciones de manejo para Cita
   const handleCitaChange = (e) => {
@@ -166,194 +233,383 @@ const Citas = () => {
     setNuevaCita(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCitaSubmit = (e) => {
+  const handleCitaSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nueva cita:', nuevaCita);
-    alert('¡Cita agendada exitosamente!');
-    setShowModalCita(false);
-    setNuevaCita({
-      tipo: 'Visita',
-      titulo: '',
-      cliente: '',
-      propiedad: '',
-      agente: '',
-      fecha: '',
-      horaInicio: '',
-      horaFin: '',
-      ubicacion: '',
-      descripcion: '',
-      recordatorio: '24h',
-    });
+    setCitasError('');
+
+    try {
+      const startStr = `${nuevaCita.fecha}T${nuevaCita.horaInicio}`;
+      const endStr = nuevaCita.horaFin ? `${nuevaCita.fecha}T${nuevaCita.horaFin}` : '';
+      const start = new Date(startStr);
+      const end = endStr ? new Date(endStr) : new Date(start.getTime() + 60 * 60 * 1000);
+      if (Number.isNaN(start.getTime())) throw new Error('Fecha/hora inválida');
+
+      await crmService.citas.create({
+        fecha: start.toISOString(),
+        fechaFin: end.toISOString(),
+        titulo: nuevaCita.titulo,
+        tipo: nuevaCita.tipo,
+        ubicacion: nuevaCita.ubicacion,
+        notas: nuevaCita.descripcion,
+        estado: 'Programada',
+        metadata: {
+          clienteNombre: nuevaCita.cliente,
+          propiedadNombre: nuevaCita.propiedad,
+        },
+      });
+
+      await reloadCitas();
+      toast.success('¡Cita agendada exitosamente!');
+      setShowModalCita(false);
+      setNuevaCita({
+        tipo: 'Visita',
+        titulo: '',
+        cliente: '',
+        propiedad: '',
+        agente: '',
+        fecha: '',
+        horaInicio: '',
+        horaFin: '',
+        ubicacion: '',
+        descripcion: '',
+        recordatorio: '24h',
+      });
+    } catch (err) {
+      setCitasError(err?.message || 'No se pudo agendar la cita');
+    }
   };
 
-  // Funciones para Recordatorios
-  const toggleRecordatorio = (id) => {
-    setRecordatorios(prev => prev.map(r => 
-      r.id === id ? { ...r, activo: !r.activo } : r
-    ));
-  };
-
-  // Funciones para Kanban
+  // Funciones para Kanban - Conectadas al backend con auto-guardado
   const handleTareaChange = (e) => {
     const { name, value } = e.target;
     setNuevaTarea(prev => ({ ...prev, [name]: value }));
   };
 
-  const agregarTarea = (e) => {
+  const agregarTarea = async (e) => {
     e.preventDefault();
-    const tarea = {
-      id: Date.now(),
-      titulo: nuevaTarea.titulo,
-      prioridad: nuevaTarea.prioridad,
-      fecha: nuevaTarea.fecha,
-    };
-    
-    setTareas(prev => ({
-      ...prev,
-      [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), tarea]
-    }));
-    
-    setNuevaTarea({
-      titulo: '',
-      prioridad: 'Media',
-      fecha: '',
-      columna: columnas[0]?.id || 'pendiente',
-    });
+    setKanbanSaving(true);
+    try {
+      const newTask = await crmService.tareas.create({
+        title: nuevaTarea.titulo,
+        priority: nuevaTarea.prioridad,
+        dueDate: nuevaTarea.fecha ? new Date(nuevaTarea.fecha).toISOString() : null,
+        kanbanColumn: nuevaTarea.columna,
+        position: (tareas[nuevaTarea.columna]?.length || 0),
+      });
+      
+      setTareas(prev => ({
+        ...prev,
+        [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), newTask]
+      }));
+      
+      setNuevaTarea({
+        titulo: '',
+        prioridad: 'Media',
+        fecha: '',
+        columna: columnas[0]?.id || 'pendiente',
+      });
+    } catch (e) {
+      console.error('Error creating task:', e);
+      toast.error('Error al crear tarea');
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
-  const eliminarTarea = (columna, id) => {
-    setTareas(prev => ({
-      ...prev,
-      [columna]: prev[columna].filter(t => t.id !== id)
-    }));
+  const eliminarTarea = async (columna, id) => {
+    setKanbanSaving(true);
+    try {
+      await crmService.tareas.delete(id);
+      setTareas(prev => ({
+        ...prev,
+        [columna]: prev[columna].filter(t => (t._id || t.id) !== id)
+      }));
+    } catch (e) {
+      console.error('Error deleting task:', e);
+      toast.error('Error al eliminar tarea');
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
-  // Funciones Drag and Drop
+  // Funciones Drag and Drop con auto-guardado
   const handleDragStart = (e, tarea, columnaId) => {
     setDraggedTask({ tarea, columnaOrigen: columnaId });
     e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.5';
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, columnaId) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    if (columnaId !== dropTargetColumn) {
+      setDropTargetColumn(columnaId);
+    }
   };
 
-  const handleDrop = (e, columnaDestino) => {
+  const handleDragLeave = (e, columnaId) => {
+    if (dropTargetColumn === columnaId) {
+      setDropTargetColumn(null);
+    }
+  };
+
+  const handleDrop = async (e, columnaDestino) => {
     e.preventDefault();
+    setDropTargetColumn(null);
     if (!draggedTask) return;
 
     const { tarea, columnaOrigen } = draggedTask;
+    const tareaId = tarea._id || tarea.id;
     
     if (columnaOrigen !== columnaDestino) {
+      setKanbanSaving(true);
+      
+      // Optimistic update
       setTareas(prev => ({
         ...prev,
-        [columnaOrigen]: prev[columnaOrigen].filter(t => t.id !== tarea.id),
-        [columnaDestino]: [...(prev[columnaDestino] || []), tarea]
+        [columnaOrigen]: (prev[columnaOrigen] || []).filter(t => (t._id || t.id) !== tareaId),
+        [columnaDestino]: [...(prev[columnaDestino] || []), { ...tarea, kanbanColumn: columnaDestino }]
       }));
+      
+      try {
+        await crmService.tareas.moveTask(tareaId, columnaDestino, (tareas[columnaDestino]?.length || 0));
+      } catch (err) {
+        console.error('Error moving task:', err);
+        toast.error('Error al mover tarea. Reintentando...');
+        // Revert
+        setTareas(prev => ({
+          ...prev,
+          [columnaDestino]: (prev[columnaDestino] || []).filter(t => (t._id || t.id) !== tareaId),
+          [columnaOrigen]: [...(prev[columnaOrigen] || []), tarea]
+        }));
+      } finally {
+        setKanbanSaving(false);
+      }
     }
     
     setDraggedTask(null);
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
     setDraggedTask(null);
+    setDropTargetColumn(null);
   };
 
-  // Funciones para gestión de columnas
-  const agregarColumna = (e) => {
+  // Funciones para gestión de columnas con auto-guardado
+  const agregarColumna = async (e) => {
     e.preventDefault();
-    const nuevaCol = {
-      id: `col_${Date.now()}`,
-      nombre: nuevaColumna.nombre,
-      color: nuevaColumna.color,
-    };
-    
-    setColumnas(prev => [...prev, nuevaCol]);
-    setTareas(prev => ({ ...prev, [nuevaCol.id]: [] }));
-    setNuevaColumna({ nombre: '', color: '#8B5CF6' });
-  };
-
-  const eliminarColumna = (columnaId) => {
-    if (columnas.length <= 1) {
-      alert('Debe haber al menos una columna');
+    if (!nuevaColumna.nombre.trim()) {
+      toast.warn('Ingresa un nombre para la columna');
       return;
     }
     
+    setKanbanSaving(true);
+    const nuevaCol = {
+      id: `col_${Date.now()}`,
+      nombre: nuevaColumna.nombre.trim(),
+      color: nuevaColumna.color,
+    };
+    
+    const newColumnas = [...columnas, nuevaCol];
+    setColumnas(newColumnas);
+    setTareas(prev => ({ ...prev, [nuevaCol.id]: [] }));
+    setNuevaColumna({ nombre: '', color: '#8B5CF6' });
+    
+    try {
+      await crmService.tareas.saveKanbanColumns(newColumnas);
+    } catch (err) {
+      console.error('Error saving columns:', err);
+      toast.error('Error al guardar la columna');
+      setColumnas(columnas);
+    } finally {
+      setKanbanSaving(false);
+    }
+  };
+
+  const eliminarColumna = async (columnaId) => {
+    if (columnas.length <= 1) {
+      toast.warn('Debe haber al menos una columna');
+      return;
+    }
+    
+    const columnaAEliminar = columnas.find(c => c.id === columnaId);
     const tareasEnColumna = tareas[columnaId]?.length || 0;
     if (tareasEnColumna > 0) {
-      if (!window.confirm(`Esta columna tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla de todas formas?`)) {
+      if (!(await confirmToast(`La columna "${columnaAEliminar?.nombre}" tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla?`))) {
         return;
       }
     }
     
-    setColumnas(prev => prev.filter(col => col.id !== columnaId));
+    setKanbanSaving(true);
+    
+    if (tareasEnColumna > 0) {
+      for (const tarea of tareas[columnaId]) {
+        try {
+          await crmService.tareas.delete(tarea._id || tarea.id);
+        } catch (err) {
+          console.error('Error deleting task:', err);
+        }
+      }
+    }
+    
+    const newColumnas = columnas.filter(col => col.id !== columnaId);
+    setColumnas(newColumnas);
     const newTareas = { ...tareas };
     delete newTareas[columnaId];
     setTareas(newTareas);
+    
+    try {
+      await crmService.tareas.saveKanbanColumns(newColumnas);
+    } catch (err) {
+      console.error('Error saving columns:', err);
+      toast.error('Error al eliminar la columna');
+    } finally {
+      setKanbanSaving(false);
+    }
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="Agenda" title="📅 Agenda y Citas" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaCalendarAlt className="text-blue-500" /> Agenda y Citas
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión de citas, calendario y tareas</p>
+      </div>
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button 
           onClick={() => setShowModalCita(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaCalendarPlus /> Nueva Cita
         </button>
         <button 
-          onClick={() => setShowModalRecordatorios(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-md"
-        >
-          <FaBell /> Recordatorios
-        </button>
-        <button 
           onClick={() => setShowModalKanban(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-purple-500 hover:bg-purple-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaList /> Todo List (Kanban)
         </button>
       </div>
 
       {/* KPIs de Citas - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-        {kpisCitas.map((kpi, i) => (
-          <div 
-            key={i} 
-            onClick={() => {
-              if (i === 0) setShowModalCitasHoy(true);
-              else if (i === 1) setShowModalEstaSemana(true);
-              else if (i === 2) setShowModalTasaAsistencia(true);
-              else if (i === 3) setShowModalPendientes(true);
-            }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
-          >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {kpisCitas.map((kpi, i) => {
+          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-green-500 to-green-600': '#10b981', 'from-emerald-500 to-emerald-600': '#10b981', 'from-purple-500 to-purple-600': '#8b5cf6', 'from-orange-500 to-orange-600': '#f59e0b', 'from-amber-500 to-amber-600': '#f59e0b', 'from-red-500 to-red-600': '#ef4444', 'from-violet-500 to-violet-600': '#8b5cf6' };
+          const accentColor = colorMap[kpi.color] || '#6366f1';
+          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20' };
+          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+          return (
+            <div 
+              key={i} 
+              onClick={() => {
+                if (i === 0) setShowModalCitasHoy(true);
+                else if (i === 1) setShowModalEstaSemana(true);
+                else if (i === 2) setShowModalTasaAsistencia(true);
+                else if (i === 3) setShowModalPendientes(true);
+              }}
+              className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+              style={{ borderLeft: `4px solid ${accentColor}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
+                </div>
               </div>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Calendario y Gráficos */}
+      {/* Gráficos ApexCharts - Métricas de Agenda */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaPercentage className="text-purple-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tasa Asistencia</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Efectividad de citas</p>
+          <Chart options={asistenciaOptions} series={asistenciaSeries} type="radialBar" height={160} />
+          <div className="space-y-2 mt-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Objetivo</span>
+              <span className="font-bold text-gray-500">90%</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Actual</span>
+              <span className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                <FaArrowUp className="text-xs" /> 85%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaCalendarAlt className="text-blue-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tipos de Citas</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución actual</p>
+          <Chart options={citasDonutOptions} series={citasDonutSeries} type="donut" height={200} />
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaClock className="text-emerald-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Citas por Día</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Esta semana</p>
+          <Chart options={citasDiaOptions} series={citasDiaSeries} type="bar" height={180} />
+        </div>
+
+        <div className={cardBase}>
+          <div className="flex items-center gap-2 mb-1">
+            <FaChartLine className="text-orange-500" />
+            <h3 className="font-semibold dark:text-gray-100 text-sm">Tendencia Mensual</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Últimas 4 semanas</p>
+          <Chart options={tendenciaSemanalOptions} series={tendenciaSemanalSeries} type="area" height={180} />
+          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{citasData.length}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">+12%</p>
+              <p className="text-xs text-gray-500">vs Ant.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendario Principal y Próximas Citas - Ancho completo */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        {/* Calendario Principal */}
         <div className={`xl:col-span-2 ${cardBase}`}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📅 Calendario Completo</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-gray-100">� Calendario Completo</h3>
+            <button
+              onClick={reloadCitas}
+              disabled={citasLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <FaSync className={citasLoading ? 'animate-spin' : ''} />
+              {citasLoading ? 'Cargando...' : 'Actualizar'}
+            </button>
+          </div>
+          {citasError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
+              {citasError}
+            </div>
+          )}
           <ScheduleComponent
             height="650px"
             eventSettings={{ dataSource: citasData }}
-            selectedDate={new Date(2025, 9, 10)}
+            selectedDate={new Date()}
             startHour="09:00"
             endHour="21:00"
             firstDayOfWeek={1}
@@ -364,63 +620,45 @@ const Citas = () => {
           </ScheduleComponent>
         </div>
 
-        {/* Panel de Análisis */}
-        <div className="space-y-6">
-          {/* Gráfico de Tipos de Citas */}
-          <div className={cardBase}>
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Tipos de Citas</h3>
-            <AccumulationChartComponent
-              id="tipos-citas-chart"
-              tooltip={{ enable: true }}
-              legendSettings={{ visible: true }}
-              height="250px"
-            >
-              <AccInject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-              <AccumulationSeriesCollectionDirective>
-                <AccumulationSeriesDirective
-                  type="Pie"
-                  dataSource={tiposCitasData}
-                  xName="tipo"
-                  yName="cantidad"
-                  name="Citas"
-                  dataLabel={{ visible: true, name: 'tipo', position: 'Outside' }}
-                />
-              </AccumulationSeriesCollectionDirective>
-            </AccumulationChartComponent>
-          </div>
-
-          {/* Citas por Día */}
-          <div className={cardBase}>
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📈 Citas por Día</h3>
-            <ChartComponent
-              id="citas-dia-chart"
-              primaryXAxis={{ valueType: 'Category' }}
-              primaryYAxis={{ title: 'Cantidad' }}
-              tooltip={{ enable: true }}
-              legendSettings={{ visible: false }}
-              height="200px"
-            >
-              <ChartInject services={[ColumnSeries, Category, Tooltip]} />
-              <SeriesCollectionDirective>
-                <SeriesDirective
-                  type="Column"
-                  dataSource={citasPorDia}
-                  xName="dia"
-                  yName="cantidad"
-                  name="Citas"
-                  fill={currentColor || '#3B82F6'}
-                />
-              </SeriesCollectionDirective>
-            </ChartComponent>
+        {/* Próximas Citas - Panel lateral */}
+        <div className={cardBase}>
+          <h3 className="text-sm font-semibold mb-3 dark:text-gray-100 flex items-center gap-2">
+            <FaClock className="text-blue-500" /> Próximas Citas
+          </h3>
+          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            {citasData
+              .filter(c => c.StartTime >= new Date())
+              .sort((a, b) => a.StartTime - b.StartTime)
+              .slice(0, 10)
+              .map((cita, i) => (
+              <div key={cita.Id || i} className={`p-3 rounded-lg border ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} hover:shadow-md transition-shadow`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                    cita.tipo === 'Visita' ? 'bg-blue-500' :
+                    cita.tipo === 'Reunión' ? 'bg-green-500' :
+                    cita.tipo === 'Firma' ? 'bg-yellow-500' : 'bg-purple-500'
+                  }`}>
+                    {cita.StartTime.getHours()}:{cita.StartTime.getMinutes().toString().padStart(2, '0')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium dark:text-gray-200 truncate">{cita.Subject}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{cita.cliente || cita.tipo}</p>
+                  </div>
+                  <span className="text-gray-400 flex-shrink-0 text-xs">{cita.StartTime.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</span>
+                </div>
+              </div>
+            ))}
+            {citasData.length === 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Sin citas próximas</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Grid de Próximas Citas y Panel de Recordatorios */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Grid de Próximas Citas */}
+      {/* Grid de Próximas Citas - Tabla */}
+      <div className="mb-6">
         <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🕒 Próximas Citas</h3>
+          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🕒 Todas las Citas</h3>
           <GridComponent
             dataSource={citasData}
             allowPaging
@@ -432,89 +670,9 @@ const Citas = () => {
               <ColumnDirective field="Subject" headerText="Cita" width="200" />
               <ColumnDirective field="tipo" headerText="Tipo" width="100" />
               <ColumnDirective field="cliente" headerText="Cliente" width="150" />
-              <ColumnDirective field="agente" headerText="Agente" width="130" />
               <ColumnDirective field="estado" headerText="Estado" width="100" />
             </ColumnsDirective>
           </GridComponent>
-        </div>
-
-        {/* Panel de Recordatorios */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🔔 Recordatorios Automáticos</h3>
-          <div className="space-y-4">
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaBell className="text-blue-500" />
-                <h4 className="font-bold dark:text-gray-200">24h Antes</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Email + SMS automático</p>
-              <p className="text-xs text-green-600 mt-1">✅ Activo</p>
-            </div>
-
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaPhoneAlt className="text-green-500" />
-                <h4 className="font-bold dark:text-gray-200">2h Antes</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">WhatsApp recordatorio</p>
-              <p className="text-xs text-green-600 mt-1">✅ Activo</p>
-            </div>
-
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaMapMarkerAlt className="text-purple-500" />
-                <h4 className="font-bold dark:text-gray-200">Ubicación</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Compartir ubicación automática</p>
-              <p className="text-xs text-green-600 mt-1">✅ Activo</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Panel de Seguimiento Post-Cita */}
-      <div className={cardBase}>
-        <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📋 Seguimiento Post-Cita</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="p-6 border-2 border-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-              <FaCheckCircle className="text-4xl text-green-500 mx-auto mb-3" />
-              <h4 className="font-bold dark:text-gray-200">Completadas</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Citas finalizadas</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">18</p>
-              <p className="text-xs text-gray-500">Esta semana</p>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="p-6 border-2 border-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-              <FaUsers className="text-4xl text-blue-500 mx-auto mb-3" />
-              <h4 className="font-bold dark:text-gray-200">Interesados</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Clientes con interés</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">12</p>
-              <p className="text-xs text-gray-500">Requieren seguimiento</p>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <div className="p-6 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-              <FaClock className="text-4xl text-yellow-500 mx-auto mb-3" />
-              <h4 className="font-bold dark:text-gray-200">Reagendar</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Citas a reprogramar</p>
-              <p className="text-2xl font-bold text-yellow-600 mt-2">3</p>
-              <p className="text-xs text-gray-500">Pendientes</p>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <div className="p-6 border-2 border-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-              <FaPhoneAlt className="text-4xl text-red-500 mx-auto mb-3" />
-              <h4 className="font-bold dark:text-gray-200">No Contactados</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Sin respuesta</p>
-              <p className="text-2xl font-bold text-red-600 mt-2">2</p>
-              <p className="text-xs text-gray-500">Requieren atención</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -621,74 +779,6 @@ const Citas = () => {
         </div>
       )}
 
-      {/* Modal de Recordatorios */}
-      {showModalRecordatorios && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaBell /> Configuración de Recordatorios
-                </h2>
-                <p className="text-orange-100 text-sm mt-1">Gestionar recordatorios automáticos</p>
-              </div>
-              <button onClick={() => setShowModalRecordatorios(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Recordatorios Activos</h3>
-                <div className="space-y-4">
-                  {recordatorios.map((recordatorio) => (
-                    <div key={recordatorio.id} className={`border-2 ${recordatorio.activo ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'} rounded-lg p-4 transition-all`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${recordatorio.activo ? 'bg-green-500' : 'bg-gray-400'}`}>
-                            <FaBell className="text-white text-xl" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold dark:text-gray-200">{recordatorio.tipo}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{recordatorio.tiempo}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => toggleRecordatorio(recordatorio.id)}
-                          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                            recordatorio.activo 
-                              ? 'bg-green-500 text-white hover:bg-green-600' 
-                              : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-400'
-                          }`}
-                        >
-                          {recordatorio.activo ? '✓ Activo' : 'Inactivo'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-2">💡 Información</h4>
-                <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
-                  <li>• Los recordatorios se envían automáticamente según la configuración</li>
-                  <li>• Email + SMS: Notificación por correo y mensaje de texto</li>
-                  <li>• WhatsApp: Mensaje directo al cliente</li>
-                  <li>• Ubicación: Comparte la dirección de la propiedad</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button onClick={() => setShowModalRecordatorios(false)} className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center gap-2">
-                  <FaCheckCircle /> Guardar Configuración
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal de Kanban (Todo List) - Diseño Minimalista */}
       {showModalKanban && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -701,10 +791,30 @@ const Citas = () => {
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {Object.values(tareas).flat().length} tareas
                 </span>
+                {kanbanSaving && (
+                  <span className="text-xs text-purple-500 flex items-center gap-1">
+                    <FaSync className="animate-spin" /> Guardando...
+                  </span>
+                )}
+                {kanbanLoading && (
+                  <span className="text-xs text-blue-500 flex items-center gap-1">
+                    <FaSync className="animate-spin" /> Cargando...
+                  </span>
+                )}
               </div>
-              <button onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                <FaTimes className="text-xl" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={loadKanbanData} 
+                  disabled={kanbanLoading}
+                  className="text-gray-400 hover:text-purple-500 transition-colors p-2"
+                  title="Recargar"
+                >
+                  <FaSync className={kanbanLoading ? 'animate-spin' : ''} />
+                </button>
+                <button onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ backgroundColor: currentMode === 'Dark' ? '#1a1a1a' : '#f8f9fa' }}>
@@ -773,9 +883,12 @@ const Citas = () => {
                 {columnas.map((columna) => (
                   <div 
                     key={columna.id}
-                    onDragOver={handleDragOver}
+                    onDragOver={(e) => handleDragOver(e, columna.id)}
+                    onDragLeave={(e) => handleDragLeave(e, columna.id)}
                     onDrop={(e) => handleDrop(e, columna.id)}
-                    className={`flex-shrink-0 w-80 ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm`}
+                    className={`flex-shrink-0 w-80 ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm transition-all ${
+                      dropTargetColumn === columna.id ? 'ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-900/20' : ''
+                    }`}
                     style={{ borderTop: `3px solid ${columna.color}` }}
                   >
                     {/* Header de Columna */}
@@ -798,35 +911,41 @@ const Citas = () => {
 
                     {/* Tareas con Drag and Drop */}
                     <div className="space-y-2 min-h-[400px]">
-                      {(tareas[columna.id] || []).map((tarea) => (
-                        <div
-                          key={tarea.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, tarea, columna.id)}
-                          onDragEnd={handleDragEnd}
-                          className={`${currentMode === 'Dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 cursor-move hover:shadow-md transition-shadow border ${currentMode === 'Dark' ? 'border-gray-600' : 'border-gray-200'}`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="text-sm font-medium dark:text-gray-100 flex-1">{tarea.titulo}</h4>
-                            <button 
-                              onClick={() => eliminarTarea(columna.id, tarea.id)} 
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                              <FaTrash className="text-xs" />
-                            </button>
+                      {(tareas[columna.id] || []).map((tarea) => {
+                        const tareaId = tarea._id || tarea.id;
+                        const prioridad = tarea.priority || tarea.prioridad || 'Media';
+                        const titulo = tarea.title || tarea.titulo || 'Sin título';
+                        const fecha = tarea.dueDate ? new Date(tarea.dueDate).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : (tarea.fecha || '');
+                        return (
+                          <div
+                            key={tareaId}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, tarea, columna.id)}
+                            onDragEnd={handleDragEnd}
+                            className={`${currentMode === 'Dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 cursor-move hover:shadow-md transition-shadow border ${currentMode === 'Dark' ? 'border-gray-600' : 'border-gray-200'}`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="text-sm font-medium dark:text-gray-100 flex-1">{titulo}</h4>
+                              <button 
+                                onClick={() => eliminarTarea(columna.id, tareaId)} 
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                              >
+                                <FaTrash className="text-xs" />
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                              }`}>
+                                {prioridad === 'Alta' ? '🔴' : prioridad === 'Media' ? '🟡' : '🟢'} {prioridad}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{fecha}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              tarea.prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                              tarea.prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                              'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                            }`}>
-                              {tarea.prioridad === 'Alta' ? '🔴' : tarea.prioridad === 'Media' ? '🟡' : '🟢'} {tarea.prioridad}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{tarea.fecha}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {(tareas[columna.id] || []).length === 0 && (
                         <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
                           Arrastra tareas aquí
@@ -874,17 +993,17 @@ const Citas = () => {
                             </div>
                             <div>
                               <h3 className="font-bold text-lg dark:text-gray-100">{cita.Subject}</h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">{cita.Location}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{cita.Description}</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm mt-3">
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Cliente:</p>
-                              <p className="font-medium dark:text-gray-200">{cita.Cliente}</p>
+                              <p className="font-medium dark:text-gray-200">{cita.cliente}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600 dark:text-gray-400">Agente:</p>
-                              <p className="font-medium dark:text-gray-200">{cita.Agente}</p>
+                              <p className="text-gray-600 dark:text-gray-400">Tipo:</p>
+                              <p className="font-medium dark:text-gray-200">{cita.tipo}</p>
                             </div>
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Duración:</p>
@@ -895,11 +1014,11 @@ const Citas = () => {
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Estado:</p>
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                cita.CategoryColor === '#10B981' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                                cita.CategoryColor === '#F59E0B' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                cita.estado === 'Confirmada' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                                cita.estado === 'Programada' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
                                 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                               }`}>
-                                Confirmada
+                                {cita.estado || 'Programada'}
                               </span>
                             </div>
                           </div>
@@ -962,11 +1081,11 @@ const Citas = () => {
                             </div>
                             <div className="flex-1">
                               <h4 className="font-bold dark:text-gray-100">{cita.Subject}</h4>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">{cita.Location}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{cita.Description}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-medium dark:text-gray-200">{cita.Cliente}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{cita.Agente}</p>
+                              <p className="text-sm font-medium dark:text-gray-200">{cita.cliente}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{cita.tipo}</p>
                             </div>
                           </div>
                         </div>
@@ -1101,24 +1220,30 @@ const Citas = () => {
                   Pendientes ({(tareas.pendiente || []).length})
                 </h3>
                 <div className="space-y-2">
-                  {(tareas.pendiente || []).map((tarea) => (
-                    <div key={tarea.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-yellow-500 hover:shadow-md transition-shadow`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-bold dark:text-gray-100">{tarea.titulo}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tarea.descripcion}</p>
-                          {tarea.fecha && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                              📅 {tarea.fecha}
-                            </p>
-                          )}
+                  {(tareas.pendiente || []).map((tarea) => {
+                    const id = tarea._id || tarea.id;
+                    const titulo = tarea.title || tarea.titulo || 'Sin título';
+                    const desc = tarea.summary || tarea.descripcion || '';
+                    const fecha = tarea.dueDate ? new Date(tarea.dueDate).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : (tarea.fecha || '');
+                    return (
+                      <div key={id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-yellow-500 hover:shadow-md transition-shadow`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-bold dark:text-gray-100">{titulo}</h4>
+                            {desc && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{desc}</p>}
+                            {fecha && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                📅 {fecha}
+                              </p>
+                            )}
+                          </div>
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
+                            Pendiente
+                          </span>
                         </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
-                          Pendiente
-                        </span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1129,24 +1254,30 @@ const Citas = () => {
                   En Progreso ({(tareas.enProgreso || []).length})
                 </h3>
                 <div className="space-y-2">
-                  {(tareas.enProgreso || []).map((tarea) => (
-                    <div key={tarea.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-blue-500 hover:shadow-md transition-shadow`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-bold dark:text-gray-100">{tarea.titulo}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tarea.descripcion}</p>
-                          {tarea.fecha && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                              📅 {tarea.fecha}
-                            </p>
-                          )}
+                  {(tareas.enProgreso || []).map((tarea) => {
+                    const id = tarea._id || tarea.id;
+                    const titulo = tarea.title || tarea.titulo || 'Sin título';
+                    const desc = tarea.summary || tarea.descripcion || '';
+                    const fecha = tarea.dueDate ? new Date(tarea.dueDate).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : (tarea.fecha || '');
+                    return (
+                      <div key={id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-blue-500 hover:shadow-md transition-shadow`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-bold dark:text-gray-100">{titulo}</h4>
+                            {desc && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{desc}</p>}
+                            {fecha && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                📅 {fecha}
+                              </p>
+                            )}
+                          </div>
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            En Progreso
+                          </span>
                         </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                          En Progreso
-                        </span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

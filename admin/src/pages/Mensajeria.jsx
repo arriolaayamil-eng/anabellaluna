@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'react-toastify';
 import { FaComments, FaPaperPlane, FaSearch, FaSync, FaUsers, FaBroadcastTower, FaCheck, FaCheckDouble, FaCircle, FaUserTie, FaTimes, FaChevronLeft } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import chatService from '../services/chatService';
@@ -171,13 +172,13 @@ const Mensajeria = () => {
     setSendingBroadcast(true);
     try {
       const result = await chatService.broadcast(broadcastMessage.trim());
-      alert(`Mensaje enviado a ${result.sentTo} agentes`);
+      toast.success(`Mensaje enviado a ${result.sentTo} agentes`);
       setBroadcastMessage('');
       setShowBroadcastModal(false);
       await loadConversations();
     } catch (err) {
       console.error('Error sending broadcast:', err);
-      alert('Error al enviar el mensaje');
+      toast.error('Error al enviar el mensaje');
     } finally {
       setSendingBroadcast(false);
     }
@@ -209,25 +210,25 @@ const Mensajeria = () => {
     conv.partner?.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const cardBase = `rounded-xl shadow-md ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'}`;
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`;
 
   return (
-    <div className="m-2 md:m-6 mt-24 p-2 md:p-6">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold dark:text-white flex items-center gap-3">
-            <FaComments style={{ color: currentColor }} />
-            Mensajería Interna
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaComments className="text-indigo-500" /> Mensajería Interna
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Comunicación directa con los agentes del CRM
           </p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setShowBroadcastModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md"
             style={{ backgroundColor: currentColor }}
           >
             <FaBroadcastTower /> Enviar a Todos
@@ -235,8 +236,7 @@ const Mensajeria = () => {
           <button
             onClick={loadData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-medium transition-all hover:shadow-md"
-            style={{ borderColor: currentColor, color: currentColor }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
           >
             <FaSync className={loading ? 'animate-spin' : ''} /> Actualizar
           </button>
@@ -244,43 +244,28 @@ const Mensajeria = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className={`${cardBase} p-4 flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
-            <FaUsers className="text-2xl text-blue-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{agents.length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Agentes</p>
-          </div>
-        </div>
-        <div className={`${cardBase} p-4 flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
-            <FaComments className="text-2xl text-green-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{conversations.length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Conversaciones</p>
-          </div>
-        </div>
-        <div className={`${cardBase} p-4 flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900">
-            <FaCircle className="text-2xl text-orange-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{agents.filter(a => a.online).length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">En Línea</p>
-          </div>
-        </div>
-        <div className={`${cardBase} p-4 flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-red-100 dark:bg-red-900">
-            <FaComments className="text-2xl text-red-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{unreadCount.total}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Sin Leer</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {[
+          { title: 'Agentes', value: agents.length, icon: FaUsers, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { title: 'Conversaciones', value: conversations.length, icon: FaComments, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+          { title: 'En Línea', value: agents.filter(a => a.online).length, icon: FaCircle, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+          { title: 'Sin Leer', value: unreadCount.total, icon: FaComments, color: '#ef4444', bg: 'bg-red-50 dark:bg-red-900/20' },
+        ].map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div key={i} className={`rounded-2xl p-4 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`} style={{ borderLeft: `4px solid ${stat.color}` }}>
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                  <Icon className="text-sm" style={{ color: stat.color }} />
+                </div>
+                <div>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
+                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{stat.title}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Main Chat Area */}

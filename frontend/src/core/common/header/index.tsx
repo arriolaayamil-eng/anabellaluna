@@ -345,9 +345,12 @@ const Header = () => {
               <div className="menu-dropdown">
                 <button
                   type="button"
-                  className="btn btn-link p-0 border-0"
+                  className="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2"
                   onClick={toggleTheme}
                 >
+                  <i className="material-icons-outlined" style={{ fontSize: 18 }}>
+                    {dataTheme === "light" ? "dark_mode" : "wb_sunny"}
+                  </i>
                   {dataTheme === "light" ? "Modo Oscuro" : "Modo Claro"}
                 </button>
               </div>

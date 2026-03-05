@@ -1,600 +1,342 @@
 import { Link } from "react-router";
-import ImageWithBasePath from "../../../../core/imageWithBasePath";
-import { all_routes } from "../../../routes/all_routes";
 import Breadcrumb from "../../../../core/common/Breadcrumb/breadcrumb";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
-import { useState } from "react";
-import { City, Country, State } from "../../../../core/common/selectOption";
-import CommonSelect from "../../../../core/common/common-select/commonSelect";
-import Modal from "./modal/modal";
-import { DatePicker } from "antd";
+import { useState, useEffect } from "react";
+import { all_routes } from "../../../routes/all_routes";
+import publicService from "../../../../services/publicService";
+import userService from "../../../../services/userService";
 
 const Checkout = () => {
-  const [phone, setPhone] = useState<string | undefined>();
-  const [paymentTab, setPaymentTab] = useState<"credit" | "paypal" | "stripe">(
-    "credit"
-  ); // <-- Add this line
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const currentUser = userService.getCurrentUser();
+  const isLoggedIn = !!currentUser;
+
+  const [form, setForm] = useState({
+    fullName: currentUser?.nombre || "",
+    email: currentUser?.email || currentUser?.username || "",
+    phone: currentUser?.telefono || "",
+    address: currentUser?.direccion || "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await publicService.getCart();
+        if (!isMounted) return;
+        setCartItems(res.items || []);
+      } catch {
+        if (!isMounted) return;
+        setCartItems([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoggedIn]);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.fullName.trim()) {
+      setError("El nombre es obligatorio.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setError(null);
+      await publicService.createBookingRequest({
+        fullName: form.fullName.trim(),
+        email: form.email.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+        address: form.address.trim() || undefined,
+      });
+      setSuccess(true);
+      // Clear cart after successful booking
+      await publicService.clearCart();
+      setCartItems([]);
+    } catch (err: any) {
+      setError(err.message || "Error al enviar la solicitud.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <div className="page-wrapper">
+          <Breadcrumb
+            title="Solicitud de Reserva"
+            paths={[{ label: "Solicitud de Reserva", active: true }]}
+          />
+          <div className="content">
+            <div className="container">
+              <div className="text-center py-5">
+                <i className="material-icons-outlined fs-1 text-muted">
+                  lock
+                </i>
+                <p className="mt-2 text-muted">
+                  Iniciá sesión para continuar con la reserva.
+                </p>
+                <Link to={all_routes.signin} className="btn btn-primary">
+                  Iniciar Sesión
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (success) {
+    return (
+      <>
+        <div className="page-wrapper">
+          <Breadcrumb
+            title="Solicitud Enviada"
+            paths={[{ label: "Solicitud de Reserva", active: true }]}
+          />
+          <div className="content">
+            <div className="container">
+              <div className="text-center py-5">
+                <i
+                  className="material-icons-outlined text-success"
+                  style={{ fontSize: 64 }}
+                >
+                  check_circle
+                </i>
+                <h4 className="mt-3">¡Solicitud enviada con éxito!</h4>
+                <p className="text-muted">
+                  Nuestro equipo se pondrá en contacto contigo a la brevedad
+                  para coordinar los detalles de la reserva.
+                </p>
+                <Link to={all_routes.index} className="btn btn-dark me-2">
+                  Volver al Inicio
+                </Link>
+                <Link
+                  to={all_routes.rentPropertyGridSidebar}
+                  className="btn btn-outline-dark"
+                >
+                  Seguir Explorando
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
-      {/* ========================
-			Start Page Content
-		========================= */}
       <div className="page-wrapper">
-        {/* Start Breadscrumb */}
         <Breadcrumb
-          title="Checkout"
-          paths={[{ label: "Checkout", active: true }]}
+          title="Solicitud de Reserva"
+          paths={[{ label: "Solicitud de Reserva", active: true }]}
         />
-
-        {/* End Breadscrumb */}
-        {/* Start Content */}
         <div className="content">
           <div className="container">
-            {/* start row */}
             <div className="row">
               <div className="col-lg-12 mx-auto">
                 <div className="checkout-wrap">
-                  {/* start row */}
                   <div className="row row-gap-3">
-                    <div className="col-xl-9">
-                      <div className="checkout-item-01">
-                        <h6>Personal info</h6>
-                        {/* start row */}
-                        <div className="row">
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                First Name
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Last Name
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Email Address
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Phone Number
-                                <span className="text-danger ms-1">*</span>
-                              </label>
-                              <PhoneInput
-                                defaultCountry="US"
-                                value={phone}
-                                onChange={setPhone}
-                              />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-12">
-                            <div className="mb-3">
-                              <label className="form-label">Address</label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-12">
-                            <div className="mb-3">
-                              <label className="form-label">
-                                Address 2 (Optional)
-                              </label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">Country</label>
-                              <CommonSelect
-                                options={Country}
-                                className="select"
-                                defaultValue={Country[0]}
-                              />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">State</label>
-                              <CommonSelect
-                                options={State}
-                                className="select"
-                                defaultValue={State[0]}
-                              />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">City</label>
-                              <CommonSelect
-                                options={City}
-                                className="select"
-                                defaultValue={City[0]}
-                              />
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-6">
-                            <div className="mb-3">
-                              <label className="form-label">Zipcode</label>
-                              <input type="text" className="form-control" />
-                            </div>
-                          </div>
-                          {/* end col */}
-                        </div>
-                        {/* end row */}
-                        <hr />
-                        <h6 className="tab-head">Contact Info</h6>
-                        <ul className="nav nav-tabs mb-3">
-                          <li className="nav-item">
-                            <input
-                              type="radio"
-                              id="credit"
-                              name="pay-tab"
-                              checked={paymentTab === "credit"}
-                              onChange={() => setPaymentTab("credit")}
-                            />
-                            <label
-                              className={`nav-link${
-                                paymentTab === "credit" ? " active" : ""
-                              }`}
-                              htmlFor="credit"
-                              data-bs-target="#tab1"
-                              style={{ cursor: "pointer" }}
-                            >
-                              Credit / Debit Card
-                            </label>
-                          </li>
-                          <li className="nav-item">
-                            <input
-                              type="radio"
-                              id="paypal"
-                              name="pay-tab"
-                              checked={paymentTab === "paypal"}
-                              onChange={() => setPaymentTab("paypal")}
-                            />
-                            <label
-                              className={`nav-link${
-                                paymentTab === "paypal" ? " active" : ""
-                              }`}
-                              htmlFor="paypal"
-                              data-bs-target="#tab2"
-                              style={{ cursor: "pointer" }}
-                            >
-                              PayPal
-                            </label>
-                          </li>
-                          <li className="nav-item">
-                            <input
-                              type="radio"
-                              id="stripe"
-                              name="pay-tab"
-                              checked={paymentTab === "stripe"}
-                              onChange={() => setPaymentTab("stripe")}
-                            />
-                            <label
-                              className={`nav-link${
-                                paymentTab === "stripe" ? " active" : ""
-                              }`}
-                              htmlFor="stripe"
-                              data-bs-target="#tab3"
-                              style={{ cursor: "pointer" }}
-                            >
-                              Stripe
-                            </label>
-                          </li>
-                        </ul>
-                        <div className="tab-content mb-3">
-                          <div
-                            className={`tab-pane fade${
-                              paymentTab === "credit" ? " show active" : ""
-                            }`}
-                            id="tab1"
-                          >
-                            <div className="checkout-item-03">
-                              <h6>Payment With Credit Card</h6>
-                              {/* start row */}
-                              <div className="row">
-                                <div className="col-md-6 col-lg-4">
-                                  <div className="card">
-                                    <div className="card-body">
-                                      <div className="d-flex align-items-center justify-content-between mb-2">
-                                        <div>
-                                          <ImageWithBasePath
-                                            src="assets/img/icons/visa.svg"
-                                            alt="image"
-                                            className="img-fluid mb-2"
-                                          />
-                                          <p className="mb-0">
-                                            **** **** **** 2547
-                                          </p>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                          <Link
-                                            to="#"
-                                            className="btn btn-light rounded-circle me-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#edit_card"
-                                          >
-                                            <i className="material-icons-outlined">
-                                              edit
-                                            </i>
-                                          </Link>
-                                          <Link
-                                            to="#"
-                                            className="btn btn-light rounded-circle"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#delete_card"
-                                          >
-                                            <i className="material-icons-outlined">
-                                              delete
-                                            </i>
-                                          </Link>
-                                        </div>
-                                      </div>
-                                      <div className="expiry-time">
-                                        <p>Expiry</p>
-                                        <span>May 2028</span>
-                                      </div>
-                                    </div>
-                                    {/* end card body */}
-                                  </div>
-                                  {/* end card */}
-                                </div>
-                                {/* end col */}
-                                <div className="col-md-6 col-lg-4">
-                                  <div className="card">
-                                    <div className="card-body">
-                                      <div className="d-flex align-items-center justify-content-between mb-2">
-                                        <div>
-                                          <ImageWithBasePath
-                                            src="assets/img/icons/rupay.svg"
-                                            alt="image"
-                                            className="img-fluid mb-2"
-                                          />
-                                          <p className="mb-0">
-                                            **** **** **** 2547
-                                          </p>
-                                        </div>
-                                        <div className="d-flex align-items-center">
-                                          <Link
-                                            to="#"
-                                            className="btn btn-light rounded-circle me-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#edit_card"
-                                          >
-                                            <i className="material-icons-outlined">
-                                              edit
-                                            </i>
-                                          </Link>
-                                          <Link
-                                            to="#"
-                                            className="btn btn-light rounded-circle"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#delete_card"
-                                          >
-                                            <i className="material-icons-outlined">
-                                              delete
-                                            </i>
-                                          </Link>
-                                        </div>
-                                      </div>
-                                      <div className="expiry-time">
-                                        <p>Expiry</p>
-                                        <span>May 2028</span>
-                                      </div>
-                                    </div>
-                                    {/* end card body */}
-                                  </div>
-                                  {/* end card */}
-                                </div>
-                                {/* end col */}
-                                <div className="col-md-6 col-lg-4 d-flex">
-                                  <div className="card bg-light flex-fill">
-                                    <div className="card-body">
-                                      <div className="d-flex align-items-center justify-content-center h-100">
-                                        <Link
-                                          to="#"
-                                          className="btn btn-white d-inline-flex align-items-center justify-content-center p-2 rounded-circle"
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#add_card"
-                                        >
-                                          <i className="material-icons-outlined">
-                                            add
-                                          </i>
-                                        </Link>
-                                      </div>
-                                    </div>
-                                    {/* end card body */}
-                                  </div>
-                                  {/* end card */}
-                                </div>
-                                {/* end col */}
+                    <div className="col-xl-8">
+                      <form onSubmit={handleSubmit}>
+                        <div className="checkout-item-01">
+                          <h6>Información Personal</h6>
+                          <div className="row">
+                            <div className="col-lg-6">
+                              <div className="mb-3">
+                                <label className="form-label">
+                                  Nombre Completo
+                                  <span className="text-danger ms-1">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  name="fullName"
+                                  value={form.fullName}
+                                  onChange={handleChange}
+                                  placeholder="Tu nombre completo"
+                                  required
+                                />
                               </div>
-                              {/* end row */}
                             </div>
-                            {/* start row */}
-                            <div className="row row-gap-2">
-                              <div className="col-lg-6">
-                                <div className="checkout-item-04">
-                                  <div className="mb-0">
-                                    <label className="form-label">
-                                      Card Holder Name
-                                    </label>
-                                    <div className=" form-cover">
-                                      <input
-                                        type="text"
-                                        className="form-control"
-                                      />
-                                      <i className="material-icons-outlined">
-                                        person
-                                      </i>
-                                    </div>
-                                  </div>
-                                </div>
+                            <div className="col-lg-6">
+                              <div className="mb-3">
+                                <label className="form-label">Email</label>
+                                <input
+                                  type="email"
+                                  className="form-control"
+                                  name="email"
+                                  value={form.email}
+                                  onChange={handleChange}
+                                  placeholder="tu@email.com"
+                                />
                               </div>
-                              {/* end col */}
-                              <div className="col-lg-6">
-                                <div className="checkout-item-04">
-                                  <div className="mb-0">
-                                    <label className="form-label">
-                                      Card Number
-                                    </label>
-                                    <div className=" form-cover">
-                                      <input
-                                        type="text"
-                                        className="form-control"
-                                      />
-                                      <i className="material-icons-outlined">
-                                        account_balance_wallet
-                                      </i>
-                                    </div>
-                                  </div>
-                                </div>
+                            </div>
+                            <div className="col-lg-6">
+                              <div className="mb-3">
+                                <label className="form-label">Teléfono</label>
+                                <input
+                                  type="tel"
+                                  className="form-control"
+                                  name="phone"
+                                  value={form.phone}
+                                  onChange={handleChange}
+                                  placeholder="+54 11 1234-5678"
+                                />
                               </div>
-                              {/* end col */}
-                              <div className="col-lg-6">
-                                <div className="checkout-item-04">
-                                  <div className="mb-0">
-                                    <label className="form-label">
-                                      Expiry Date
-                                    </label>
-                                    <div className="input-group input-group-flat mb-3">
-                                      <DatePicker
-                                        className="form-control"
-                                        suffixIcon={null}
-                                      />
+                            </div>
+                            <div className="col-lg-6">
+                              <div className="mb-3">
+                                <label className="form-label">Dirección</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  name="address"
+                                  value={form.address}
+                                  onChange={handleChange}
+                                  placeholder="Tu dirección"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-12">
+                              <div className="mb-3">
+                                <label className="form-label">
+                                  Notas adicionales
+                                </label>
+                                <textarea
+                                  className="form-control"
+                                  name="notes"
+                                  value={form.notes}
+                                  onChange={handleChange}
+                                  rows={3}
+                                  placeholder="Algún comentario o pedido especial..."
+                                />
+                              </div>
+                            </div>
+                          </div>
 
-                                      <span className="input-group-text border-0">
-                                        <i className="material-icons-outlined text-dark">
-                                          calendar_today
-                                        </i>
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              {/* end col */}
-                              <div className="col-lg-6">
-                                <div className="checkout-item-04">
-                                  <div className="mb-0">
-                                    <label className="form-label">CVV</label>
-                                    <div className=" form-cover">
-                                      <input
-                                        type="text"
-                                        className="form-control"
-                                      />
-                                      <i className="material-icons-outlined">
-                                        fact_check
-                                      </i>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              {/* end col */}
-                            </div>
-                            {/* end row */}
-                          </div>
-                          <div
-                            className={`tab-pane fade${
-                              paymentTab === "paypal" ? " show active" : ""
-                            }`}
-                            id="tab2"
+                          {error && (
+                            <div className="alert alert-danger">{error}</div>
+                          )}
+
+                          <button
+                            type="submit"
+                            className="btn btn-success btn-lg w-100"
+                            disabled={submitting || cartItems.length === 0}
                           >
-                            <div className="checkout-item-03">
-                              <h6>Payment With PayPal</h6>
-                              {/* start row */}
-                              <div className="row row-gap-2">
-                                <div className="col-lg-6">
-                                  <div className="checkout-item-04">
-                                    <div className="mb-0">
-                                      <label className="form-label">
-                                        Email
-                                      </label>
-                                      <div className="form-cover">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          placeholder="Enter your email"
-                                        />
-                                        <i className="material-icons-outlined">
-                                          mail
-                                        </i>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* end col */}
-                                <div className="col-lg-6">
-                                  <div className="checkout-item-04">
-                                    <div className="mb-0">
-                                      <label className="form-label">
-                                        Password
-                                      </label>
-                                      <div className="position-relative form-cover password">
-                                        <input
-                                          type="password"
-                                          className="pass-inputs form-control"
-                                        />
-                                        <i className="material-icons-outlined">
-                                          lock
-                                        </i>
-                                        <span className="fas toggle-passwords fa-eye-slash" />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* end col */}
-                              </div>
-                              {/* end row */}
-                            </div>
-                          </div>
-                          <div
-                            className={`tab-pane fade${
-                              paymentTab === "stripe" ? " show active" : ""
-                            }`}
-                            id="tab3"
-                          >
-                            <div className="checkout-item-03">
-                              <h6>Payment With Stripe</h6>
-                              {/* start row */}
-                              <div className="row row-gap-2">
-                                <div className="col-lg-6">
-                                  <div className="checkout-item-04">
-                                    <div className="mb-0">
-                                      <label className="form-label">
-                                        Email
-                                      </label>
-                                      <div className="form-cover">
-                                        <input
-                                          type="text"
-                                          className="form-control"
-                                          placeholder="Enter your email"
-                                        />
-                                        <i className="material-icons-outlined">
-                                          mail
-                                        </i>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* end col */}
-                                <div className="col-lg-6">
-                                  <div className="checkout-item-04">
-                                    <div className="mb-0">
-                                      <label className="form-label">
-                                        Password
-                                      </label>
-                                      <div className="position-relative form-cover password">
-                                        <input
-                                          type="password"
-                                          className="pass-inputs form-control"
-                                        />
-                                        <i className="material-icons-outlined">
-                                          lock
-                                        </i>
-                                        <span className="fas toggle-passwords fa-eye-slash" />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* end col */}
-                              </div>
-                              {/* end row */}
-                            </div>
-                          </div>
+                            {submitting ? (
+                              <>
+                                <span
+                                  className="spinner-border spinner-border-sm me-2"
+                                  role="status"
+                                />
+                                Enviando...
+                              </>
+                            ) : (
+                              "Enviar Solicitud de Reserva"
+                            )}
+                          </button>
+
+                          <p className="text-muted text-center mt-3 fs-14">
+                            No se realizará ningún cobro. Nuestro equipo se
+                            comunicará contigo para coordinar los detalles.
+                          </p>
                         </div>
-                        <div className="d-flex align-items-center justify-content-end flex-wrap gap-3 pay-submit">
-                          <Link to={all_routes.cart} className="btn btn-dark">
-                            Back to Cart
-                          </Link>
-                          <Link
-                            to="#"
-                            className="btn btn-primary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#payment-success"
-                          >
-                            Confirm &amp; Pay $8395
-                          </Link>
-                        </div>
-                      </div>
+                      </form>
                     </div>
-                    {/* end col */}
-                    <div className="col-xl-3 theiaStickySidebar">
-                      <div className="checkout-item-02">
-                        <div>
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <p className="mb-0">Subtotal</p>
-                            <span>$7300</span>
-                          </div>
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <p className="mb-0">Service Charge</p>
-                            <span>$365</span>
-                          </div>
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <p className="mb-0">Tax</p>
-                            <span>$730</span>
-                          </div>
-                        </div>
-                        <hr />
-                        <div className="d-flex align-items-center justify-content-between">
-                          <h6 className="mb-0">Payable Amount</h6>
-                          <h6 className="mb-0">$8395</h6>
-                        </div>
-                        <hr />
-                        <div className="mb-0">
-                          <label className="form-label">Promo Code</label>
-                          <div className="d-flex align-items-center">
-                            <input
-                              type="text"
-                              className="form-control me-1"
-                              placeholder="Type here..."
-                            />
-                            <Link to="#" className="btn btn-lg btn-dark">
-                              Apply
-                            </Link>
+
+                    <div className="col-xl-4">
+                      <div className="card">
+                        <div className="card-body">
+                          <h6 className="mb-3">Resumen del Carrito</h6>
+
+                          {isLoading && (
+                            <div className="text-center py-3">
+                              <div
+                                className="spinner-border spinner-border-sm text-primary"
+                                role="status"
+                              />
+                            </div>
+                          )}
+
+                          {!isLoading && cartItems.length === 0 && (
+                            <p className="text-muted text-center">
+                              Tu carrito está vacío.
+                            </p>
+                          )}
+
+                          {!isLoading &&
+                            cartItems.map((item) => {
+                              const prop = item.property || {};
+                              const meta = prop.metadata || {};
+                              const title =
+                                prop.title || meta.titulo || "Propiedad";
+                              const address =
+                                prop.address || meta.direccion || "";
+
+                              return (
+                                <div
+                                  key={item._id}
+                                  className="d-flex align-items-start gap-2 mb-3 pb-3 border-bottom"
+                                >
+                                  <i className="material-icons-outlined text-primary mt-1">
+                                    home
+                                  </i>
+                                  <div>
+                                    <p className="fw-semibold mb-0">{title}</p>
+                                    {address && (
+                                      <p className="fs-14 text-muted mb-0">
+                                        {address}
+                                      </p>
+                                    )}
+                                    {item.checkIn && (
+                                      <p className="fs-14 text-muted mb-0">
+                                        {new Date(
+                                          item.checkIn
+                                        ).toLocaleDateString("es-AR")}
+                                        {item.checkOut &&
+                                          ` → ${new Date(item.checkOut).toLocaleDateString("es-AR")}`}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                          <div className="d-flex align-items-center justify-content-between mt-3">
+                            <strong>Total propiedades</strong>
+                            <strong>{cartItems.length}</strong>
                           </div>
                         </div>
                       </div>
                     </div>
-                    {/* end col */}
                   </div>
-                  {/* end row */}
                 </div>
               </div>
-              {/* end col */}
             </div>
-            {/* end row */}
           </div>
         </div>
-        {/* End Content */}
       </div>
-      {/* ========================
-			End Page Content
-		========================= */}
-      <Modal />
     </>
   );
 };

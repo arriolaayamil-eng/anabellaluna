@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const Agente = require('../models/Agente');
 const User = require('../models/User');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, requireCRMUser } = require('../auth');
 
 // Helper to validate ObjectId
 function isValidObjectId(id) {
@@ -69,7 +69,7 @@ async function getUserFromToken(req) {
 // ==================== AGENTS LIST ====================
 
 // Get all agents for chat list (excluding current user)
-router.get('/agents', authenticateToken, async (req, res) => {
+router.get('/agents', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const query = currentUser.id ? { _id: { $ne: currentUser.id } } : {};
@@ -101,7 +101,7 @@ router.get('/agents', authenticateToken, async (req, res) => {
 // ==================== CONVERSATIONS ====================
 
 // Get conversations list for current user (with last message and unread count)
-router.get('/conversations', authenticateToken, async (req, res) => {
+router.get('/conversations', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     if (!currentUser.id) {
@@ -229,7 +229,7 @@ router.get('/conversations', authenticateToken, async (req, res) => {
 // ==================== MESSAGE HISTORY ====================
 
 // Get messages between current user and a partner
-router.get('/history/:partnerId', authenticateToken, async (req, res) => {
+router.get('/history/:partnerId', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { partnerId } = req.params;
@@ -281,7 +281,7 @@ router.get('/history/:partnerId', authenticateToken, async (req, res) => {
 // ==================== SEND MESSAGE ====================
 
 // Send a new message
-router.post('/send', authenticateToken, async (req, res) => {
+router.post('/send', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { receiverId, content, contentType = 'text', attachment, receiverType = 'agent' } = req.body;
@@ -328,7 +328,7 @@ router.post('/send', authenticateToken, async (req, res) => {
 // ==================== READ STATUS ====================
 
 // Mark all messages from a partner as read
-router.put('/read/:partnerId', authenticateToken, async (req, res) => {
+router.put('/read/:partnerId', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { partnerId } = req.params;
@@ -354,7 +354,7 @@ router.put('/read/:partnerId', authenticateToken, async (req, res) => {
 });
 
 // Get unread count for current user
-router.get('/unread', authenticateToken, async (req, res) => {
+router.get('/unread', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     
@@ -404,7 +404,7 @@ router.get('/unread', authenticateToken, async (req, res) => {
 // ==================== DELETE MESSAGE ====================
 
 // Delete a message (only sender can delete)
-router.delete('/:messageId', authenticateToken, async (req, res) => {
+router.delete('/:messageId', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { messageId } = req.params;
@@ -436,7 +436,7 @@ router.delete('/:messageId', authenticateToken, async (req, res) => {
 // ==================== BROADCAST (ERP to all agents) ====================
 
 // Send broadcast message from ERP to all agents
-router.post('/broadcast', authenticateToken, async (req, res) => {
+router.post('/broadcast', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     
@@ -495,7 +495,7 @@ router.post('/broadcast', authenticateToken, async (req, res) => {
 // ==================== ONLINE STATUS ====================
 
 // Update online status for current user
-router.put('/status/online', authenticateToken, async (req, res) => {
+router.put('/status/online', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { online } = req.body;
@@ -521,7 +521,7 @@ router.put('/status/online', authenticateToken, async (req, res) => {
 // ==================== GROUP CHAT ====================
 
 // Create or get a group conversation
-router.post('/group/create', authenticateToken, async (req, res) => {
+router.post('/group/create', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { name, participantIds } = req.body;
@@ -567,7 +567,7 @@ router.post('/group/create', authenticateToken, async (req, res) => {
 });
 
 // Send message to a group
-router.post('/group/:groupId/send', authenticateToken, async (req, res) => {
+router.post('/group/:groupId/send', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { groupId } = req.params;
@@ -601,7 +601,7 @@ router.post('/group/:groupId/send', authenticateToken, async (req, res) => {
 });
 
 // Get group messages
-router.get('/group/:groupId/history', authenticateToken, async (req, res) => {
+router.get('/group/:groupId/history', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { groupId } = req.params;
     const { limit = 50, before } = req.query;
@@ -628,7 +628,7 @@ router.get('/group/:groupId/history', authenticateToken, async (req, res) => {
 // ==================== TYPING INDICATOR (optional) ====================
 
 // This would typically be handled via WebSockets, but here's a polling endpoint
-router.post('/typing', authenticateToken, async (req, res) => {
+router.post('/typing', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { partnerId, isTyping } = req.body;
@@ -644,7 +644,7 @@ router.post('/typing', authenticateToken, async (req, res) => {
 // ==================== SEARCH MESSAGES ====================
 
 // Search messages
-router.get('/search', authenticateToken, async (req, res) => {
+router.get('/search', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const currentUser = await getUserFromToken(req);
     const { q, limit = 20 } = req.query;

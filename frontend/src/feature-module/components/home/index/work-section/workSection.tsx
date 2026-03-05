@@ -23,7 +23,7 @@ const WorkSection = () => {
           {/* start row */}
           <div className="row">
             <div
-              className="col-lg-4 d-flex aos"
+              className="col-md-6 col-lg-4 d-flex aos"
               data-aos="fade-up"
               data-aos-duration={500}
             >
@@ -45,7 +45,7 @@ const WorkSection = () => {
             </div>
             {/* end col */}
             <div
-              className="col-lg-4 d-flex aos"
+              className="col-md-6 col-lg-4 d-flex aos"
               data-aos="fade-down"
               data-aos-duration={1000}
             >
@@ -55,7 +55,7 @@ const WorkSection = () => {
                 data-aos-duration={1200}
                 data-aos-delay={100}
               >
-                <div className=" mb-3 bg-danger avatar avatar-md rounded-circle p-2">
+                <div className="mb-3 bg-danger avatar avatar-md rounded-circle p-2">
                   <ImageWithBasePath
                     src="assets/img/home/icons/work-icon-2.svg"
                     alt="icon"
@@ -67,7 +67,7 @@ const WorkSection = () => {
             </div>
             {/* end col */}
             <div
-              className="col-lg-4 d-flex aos"
+              className="col-md-6 col-lg-4 d-flex mx-md-auto mx-lg-0 aos"
               data-aos="fade-up"
               data-aos-duration={500}
             >

@@ -81,7 +81,7 @@ const Tareas = () => {
             completada: t.kanbanColumn === 'done',
             source: 'tarea',
             tipo: t.tipo,
-            url: '/crm/kanban',
+            url: '/crm/citas',
           });
         });
 
@@ -117,7 +117,7 @@ const Tareas = () => {
             completada: false,
             source: 'visit',
             tipo: 'visita',
-            url: '/crm/consultas',
+            url: '/crm/citas',
           });
         });
 
@@ -278,7 +278,7 @@ const Tareas = () => {
             style={{ borderColor: currentColor, color: currentColor }}
             onClick={() => {
               setIsClicked(initialState);
-              window.location.href = '/crm/kanban';
+              window.location.href = '/crm/citas';
             }}
           >
             📋 Kanban
@@ -299,10 +299,10 @@ const Tareas = () => {
           style={{ backgroundColor: currentColor, color: 'white' }}
           onClick={() => {
             setIsClicked(initialState);
-            window.location.href = '/crm/calendario';
+            window.location.href = '/crm/citas';
           }}
         >
-          Ver Calendario Completo →
+          Ver Agenda Completa →
         </button>
       </div>
     </div>

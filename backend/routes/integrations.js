@@ -1,15 +1,10 @@
 const express = require('express');
 
 const Agente = require('../models/Agente');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const googleCalendar = require('../services/googleCalendar');
 
 const router = express.Router();
-
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
 
 function normalizeGoogleCalendar(meta) {
   const m = meta && meta.googleCalendar ? meta.googleCalendar : {};
@@ -23,7 +18,7 @@ function normalizeGoogleCalendar(meta) {
 // ============ OAUTH CREDENTIALS MANAGEMENT (per-agent) ============
 
 // Get OAuth credentials status (does NOT return the secret)
-router.get('/google-calendar/credentials', authenticateToken, async (req, res) => {
+router.get('/google-calendar/credentials', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -45,7 +40,7 @@ router.get('/google-calendar/credentials', authenticateToken, async (req, res) =
 });
 
 // Save OAuth credentials for agent
-router.put('/google-calendar/credentials', authenticateToken, async (req, res) => {
+router.put('/google-calendar/credentials', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.body && req.body.agentId ? String(req.body.agentId) : '');
@@ -77,7 +72,7 @@ router.put('/google-calendar/credentials', authenticateToken, async (req, res) =
 });
 
 // Delete OAuth credentials for agent
-router.delete('/google-calendar/credentials', authenticateToken, async (req, res) => {
+router.delete('/google-calendar/credentials', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -102,7 +97,7 @@ router.delete('/google-calendar/credentials', authenticateToken, async (req, res
 
 // ============ CALENDAR CONNECTION ============
 
-router.get('/google-calendar/status', authenticateToken, async (req, res) => {
+router.get('/google-calendar/status', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -127,7 +122,7 @@ router.get('/google-calendar/status', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/google-calendar/auth-url', authenticateToken, async (req, res) => {
+router.get('/google-calendar/auth-url', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -197,7 +192,7 @@ router.get('/google-calendar/callback', async (req, res) => {
   }
 });
 
-router.post('/google-calendar/disconnect', authenticateToken, async (req, res) => {
+router.post('/google-calendar/disconnect', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.body && req.body.agentId ? String(req.body.agentId) : '');
@@ -229,7 +224,7 @@ router.post('/google-calendar/disconnect', authenticateToken, async (req, res) =
 
 // ============ GOOGLE MAPS CONFIG ============
 
-router.get('/google-maps/config', authenticateToken, async (req, res) => {
+router.get('/google-maps/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -248,7 +243,7 @@ router.get('/google-maps/config', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/google-maps/config', authenticateToken, async (req, res) => {
+router.put('/google-maps/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.body && req.body.agentId ? String(req.body.agentId) : '');
@@ -278,7 +273,7 @@ router.put('/google-maps/config', authenticateToken, async (req, res) => {
   }
 });
 
-router.delete('/google-maps/config', authenticateToken, async (req, res) => {
+router.delete('/google-maps/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -302,7 +297,7 @@ router.delete('/google-maps/config', authenticateToken, async (req, res) => {
 
 // ============ GOOGLE CLOUD CONFIG ============
 
-router.get('/google-cloud/config', authenticateToken, async (req, res) => {
+router.get('/google-cloud/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.query && req.query.agentId ? String(req.query.agentId) : '');
@@ -323,7 +318,7 @@ router.get('/google-cloud/config', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/google-cloud/config', authenticateToken, async (req, res) => {
+router.put('/google-cloud/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const agentId = scopeId || (req.body && req.body.agentId ? String(req.body.agentId) : '');

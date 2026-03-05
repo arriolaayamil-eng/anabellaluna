@@ -1,641 +1,102 @@
 import { Link } from "react-router";
 import Breadcrumb from "../../../../../core/common/Breadcrumb/breadcrumb";
-import {
-  Agent_Type,
-  Select_Area,
-  Select_Category,
-  Select_City,
-} from "../../../../../core/common/selectOption";
-import CommonSelect from "../../../../../core/common/common-select/commonSelect";
-import StickyBox from "react-sticky-box";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { all_routes } from "../../../../routes/all_routes";
+import { useState, useEffect } from "react";
+import publicService from "../../../../../services/publicService";
 
 const AgentGridSidebar = () => {
+  const [agents, setAgents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let m = true;
+    (async () => {
+      try {
+        setIsLoading(true);
+        const res = await publicService.getAgents();
+        if (m) setAgents(res.items || []);
+      } catch {
+        if (m) setAgents([]);
+      } finally {
+        if (m) setIsLoading(false);
+      }
+    })();
+    return () => { m = false; };
+  }, []);
+
   return (
     <>
-      {/* ========================
-		Start Page Content
-	========================= */}
       <div className="page-wrapper">
-        <Breadcrumb
-          title="Agent Grid With Sidebar"
-          paths={[{ label: "Agent Grid With Sidebar", active: true }]}
-        />
-
-        {/* End Breadscrumb */}
-        {/* Start Content */}
+        <Breadcrumb title="Nuestro Equipo" paths={[{ label: "Nuestro Equipo", active: true }]} />
         <div className="content">
           <div className="container">
-            <div className="row">
-              <div className="col-xl-3 theiaStickySidebar">
-                <StickyBox offsetTop={80} offsetBottom={20}>
-                <div className="filter-sidebar mb-xl-0">
-                  <div className="filter-head d-flex align-items-center justify-content-between">
-                    <h5 className="mb-0">Filter</h5>
-                    <Link to="#" className="text-danger">
-                      Reset
-                    </Link>
-                  </div>
-                  <div className="filter-body">
-                    <div className="filter-set">
-                      <div className="d-flex align-items-center">
-                        <div
-                          className="d-flex justify-content-between w-100 filter-search-head"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#search"
-                          aria-expanded="false"
-                          role="button"
-                        >
-                          <h6 className="d-inline-flex align-items-center mb-0">
-                            Search
-                          </h6>
-                          <i className="material-icons-outlined expand-arrow">
-                            expand_less
-                          </i>
-                        </div>
-                      </div>
-                      <div id="search" className="collapse show mt-3">
-                        <div className="input-group input-group-flat mb-3">
-                          <span className="input-group-text border-0">
-                            <i className="material-icons-outlined">search</i>
-                          </span>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search here..."
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Agent Type</label>
-                          <CommonSelect
-                            options={Agent_Type}
-                            className="select"
-                            defaultValue={Agent_Type[0]}
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Select City</label>
-                          <CommonSelect
-                            options={Select_City}
-                            className="select"
-                            defaultValue={Select_City[0]}
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label">Select Area</label>
-                          <CommonSelect
-                            options={Select_Area}
-                            className="select"
-                            defaultValue={Select_Area[0]}
-                          />
-                        </div>
-                        <div>
-                          <label className="form-label">Select Category</label>
-                          <CommonSelect
-                            options={Select_Category}
-                            className="select"
-                            defaultValue={Select_Category[0]}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="filter-set">
-                      <div className="d-flex align-items-center">
-                        <div
-                          className="d-flex justify-content-between w-100 filter-search-head"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#category"
-                          aria-expanded="false"
-                          role="button"
-                        >
-                          <h6 className="mb-0">Categories</h6>
-                          <i className="material-icons-outlined expand-arrow">
-                            expand_less
-                          </i>
-                        </div>
-                      </div>
-                      <div id="category" className="collapse show mt-3">
-                        <div>
-                          <div className="form-check d-flex align-items-center ps-0 mb-2">
-                            <input
-                              className="form-check-input ms-0 mt-0"
-                              name="category"
-                              type="checkbox"
-                              id="check_1"
-                            />
-                            <label
-                              className="form-check-label ms-2"
-                              htmlFor="check_1"
-                            >
-                              Rentals (24)
-                            </label>
-                          </div>
-                          <div className="form-check d-flex align-items-center ps-0">
-                            <input
-                              className="form-check-input ms-0 mt-0"
-                              name="category"
-                              type="checkbox"
-                              id="check_2"
-                            />
-                            <label
-                              className="form-check-label ms-2"
-                              htmlFor="check_2"
-                            >
-                              Sales (75)
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                </StickyBox>
+            <div className="row align-items-center mb-4">
+              <div className="col-lg-6">
+                <p className="mb-0">
+                  Mostrando <span className="result-value">{agents.length}</span> agente{agents.length !== 1 ? "s" : ""}
+                </p>
               </div>
-              <div className="col-xl-9">
-                {/* start row */}
-                <div className="row justify-content-center">
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-01.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            10 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.4 (25 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Brenda Palmer</Link>
-                        </h5>
-                        <p className="mb-0">Buying Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-02.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            59 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.1 (64 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Julie Connor</Link>
-                        </h5>
-                        <p className="mb-0">Selling Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-03.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            53 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.3 (21 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Amanda Stiner</Link>
-                        </h5>
-                        <p className="mb-0">Selling Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-04.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            21 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.6 (18 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Larry Gardner</Link>
-                        </h5>
-                        <p className="mb-0">Buying Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-05.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            130 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.9 (139 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Robert Henry</Link>
-                        </h5>
-                        <p className="mb-0">Selling Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-06.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            78 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.8 (36 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Esther Reyes</Link>
-                        </h5>
-                        <p className="mb-0">Buying Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-07.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            70 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.5 (19 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Albert Scott</Link>
-                        </h5>
-                        <p className="mb-0">Buying Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-08.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            93 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.2 (28 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Lisa Sheppard</Link>
-                        </h5>
-                        <p className="mb-0">Selling Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-xl-4 col-md-6">
-                    <div className="agent-item">
-                      <div className="agent-img">
-                        <Link to={all_routes.agentDetails}>
-                          <ImageWithBasePath
-                            src="assets/img/agents/agent-09.jpg"
-                            className="img-fluid"
-                            alt="image"
-                          />
-                        </Link>
-                        <div className="position-absolute top-0 end-0 p-3">
-                          <span className="badge bg-secondary">
-                            10 Listings
-                          </span>
-                        </div>
-                      </div>
-                      <div className="agent-content">
-                        <div className="d-flex align-items-center justify-content-center mb-1">
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons-outlined text-warning">
-                            star
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <i className="material-icons text-warning">
-                            star_border
-                          </i>
-                          <span className="ms-1 fs-14">4.8 (25 Reviews)</span>
-                        </div>
-                        <h5 className="mb-1">
-                          <Link to={all_routes.agentDetails}>Mariana Wolf</Link>
-                        </h5>
-                        <p className="mb-0">Buying Agent</p>
-                      </div>
-                    </div>
-                  </div>{" "}
-                  {/* end col */}
-                  <div className="col-md-12">
-                    <div className="text-center pt-3">
-                      <Link
-                        to="#"
-                        className="btn btn-dark align-items-center d-inline-flex"
-                      >
-                        <i className="material-icons-outlined me-1">
-                          autorenew
-                        </i>
-                        Load More
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-                {/* end row */}
+              <div className="col-lg-6">
+                <ul className="grid-list-view d-flex align-items-center justify-content-lg-end gap-2">
+                  <li>
+                    <Link to={all_routes.agentGrid} className="list-icon active">
+                      <i className="material-icons">grid_view</i>
+                    </Link>
+                  </li>
+                </ul>
               </div>
             </div>
-          </div>
-        </div>
-        {/* End Content */}
-
-        {/* Search Modal */}
-        <div
-          className="modal fade"
-          id="search-modal"
-          tabIndex={-1}
-          aria-hidden="true"
-        >
-          <div className="modal-dialog  modal-dialog-centered modal-lg">
-            <div className="modal-content">
-              <div className="modal-body search-wrap">
-                <form
-                  className="search-form"
-                  id="search-form"
-                >
-                  <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5>What Are You Looking for?</h5>
-                    <Link
-                      to="#"
-                      className="close"
-                      data-bs-dismiss="modal"
-                    >
-                      <i className="material-icons-outlined">close</i>
-                    </Link>
-                  </div>
-                  <div className="input-group input-group-flat">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Type a Keyword...."
-                    />
-                    <span className="input-group-text">
-                      <i className="material-icons-outlined">search</i>
-                    </span>
-                  </div>
-                  <h6>Popular Properties</h6>
-                  <div className="search-list">
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        Beautiful Condo Room
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>Royal Apartment</Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        Grand Villa House
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>Grand Mahaka</Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        Lunaria Residence
-                      </Link>
-                    </p>
-                    <p>
-                      <Link to={all_routes.rentPropertyGrid}>
-                        Stephen Alexander Homes
-                      </Link>
-                    </p>
-                  </div>
-                </form>
+            {isLoading && (
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Cargando...</span>
+                </div>
               </div>
-            </div>
+            )}
+            {!isLoading && agents.length === 0 && (
+              <div className="text-center py-5">
+                <i className="material-icons-outlined fs-1 text-muted">people_outline</i>
+                <p className="mt-2 text-muted">No se encontraron agentes.</p>
+              </div>
+            )}
+            {!isLoading && agents.length > 0 && (
+              <div className="row row-gap-4">
+                {agents.map((agent) => {
+                  const agentDetailPath = `${all_routes.agentDetails}?id=${agent.id}`;
+                  return (
+                    <div key={agent.id} className="col-xl-3 col-lg-4 col-md-6">
+                      <div className="card agent-card mb-0">
+                        <div className="card-body text-center">
+                          <div className="mb-3">
+                            {agent.avatarUrl ? (
+                              <ImageWithBasePath src={agent.avatarUrl} alt={agent.name} className="avatar avatar-xxl rounded-circle" />
+                            ) : (
+                              <div className="avatar avatar-xxl rounded-circle bg-light d-inline-flex align-items-center justify-content-center">
+                                <i className="material-icons-outlined text-muted fs-1">person</i>
+                              </div>
+                            )}
+                          </div>
+                          <h6 className="mb-1"><Link to={agentDetailPath}>{agent.name}</Link></h6>
+                          {agent.cargo && <p className="fs-14 text-muted mb-2">{agent.cargo}</p>}
+                          {agent.especialidad && <span className="badge bg-secondary mb-2">{agent.especialidad}</span>}
+                          <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
+                            <span className="fs-14">
+                              <i className="material-icons-outlined text-primary fs-16 align-middle">home</i>{" "}
+                              {agent.propertyCount || 0} propiedad{agent.propertyCount !== 1 ? "es" : ""}
+                            </span>
+                          </div>
+                          <Link to={agentDetailPath} className="btn btn-dark btn-sm w-100">Ver Perfil</Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-        {/* End Search Modal */}
       </div>
-      {/* ========================
-		End Page Content
-	========================= */}
     </>
   );
 };

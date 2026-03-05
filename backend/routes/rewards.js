@@ -5,7 +5,11 @@ const Agente = require('../models/Agente');
 const Cliente = require('../models/Cliente');
 const Activity = require('../models/Activity');
 const Operacion = require('../models/Operacion');
-const { authenticateToken, requireRole } = require('../auth');
+const Propiedad = require('../models/Propiedad');
+const Tarea = require('../models/Tarea');
+const Cita = require('../models/Cita');
+const AutomationRule = require('../models/AutomationRule');
+const { authenticateToken, requireRole, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
 
@@ -107,6 +111,133 @@ const REWARD_DEFINITIONS = {
     color: '#15803D',
     period: 'permanent',
   },
+  // ---- Milestones (first-time achievements) ----
+  milestone_first_property: {
+    category: 'milestone',
+    title: '¡Tu primera propiedad!',
+    description: 'Agregaste tu primera propiedad al catálogo. ¡El comienzo de un gran portfolio!',
+    encouragement: 'Seguí sumando propiedades para ampliar tu oferta',
+    icon: '🏠',
+    color: '#0ea5e9',
+    period: 'permanent',
+  },
+  milestone_first_client: {
+    category: 'milestone',
+    title: '¡Tu primer cliente!',
+    description: 'Registraste tu primer cliente en el CRM. ¡Tu cartera empieza a crecer!',
+    encouragement: 'Cada cliente es una oportunidad. ¡Seguí así!',
+    icon: '🤝',
+    color: '#8b5cf6',
+    period: 'permanent',
+  },
+  milestone_first_appointment: {
+    category: 'milestone',
+    title: '¡Tu primera cita!',
+    description: 'Agendaste tu primera cita con un cliente. ¡La acción empieza!',
+    encouragement: 'Las visitas son el primer paso hacia el cierre',
+    icon: '📅',
+    color: '#f59e0b',
+    period: 'permanent',
+  },
+  milestone_first_operation: {
+    category: 'milestone',
+    title: '¡Tu primera operación!',
+    description: 'Registraste tu primera operación comercial. ¡Estás en camino!',
+    encouragement: 'Cada operación te acerca a una medalla de ventas',
+    icon: '💰',
+    color: '#10b981',
+    period: 'permanent',
+  },
+  milestone_first_task: {
+    category: 'milestone',
+    title: '¡Primera tarea completada!',
+    description: 'Completaste tu primera tarea. ¡Organización es clave!',
+    encouragement: 'Mantené el ritmo y organizá tu día a día',
+    icon: '✅',
+    color: '#22c55e',
+    period: 'permanent',
+  },
+  milestone_first_report: {
+    category: 'milestone',
+    title: '¡Tu primer reporte!',
+    description: 'Generaste tu primer reporte de rendimiento. ¡Datos que impulsan decisiones!',
+    encouragement: 'Los reportes te ayudan a mejorar cada semana',
+    icon: '📊',
+    color: '#6366f1',
+    period: 'permanent',
+  },
+  milestone_first_enquiry: {
+    category: 'milestone',
+    title: '¡Primera consulta atendida!',
+    description: 'Respondiste tu primera consulta web. ¡Atención al cliente de primera!',
+    encouragement: 'Respuestas rápidas generan más conversiones',
+    icon: '💬',
+    color: '#ec4899',
+    period: 'permanent',
+  },
+  milestone_first_automation: {
+    category: 'milestone',
+    title: '¡Primera automatización!',
+    description: 'Configuraste tu primera regla de automatización. ¡El sistema trabaja por vos!',
+    encouragement: 'Automatizá más tareas para enfocarte en vender',
+    icon: '🤖',
+    color: '#14b8a6',
+    period: 'permanent',
+  },
+  milestone_first_document: {
+    category: 'milestone',
+    title: '¡Primer documento!',
+    description: 'Subiste tu primer documento al sistema. ¡Todo organizado!',
+    encouragement: 'Mantené tu documentación al día',
+    icon: '📁',
+    color: '#64748b',
+    period: 'permanent',
+  },
+  milestone_five_clients: {
+    category: 'milestone',
+    title: '¡5 clientes en cartera!',
+    description: 'Ya tenés 5 clientes registrados. ¡Tu cartera crece!',
+    encouragement: 'Objetivo siguiente: 10 clientes. ¡Vas muy bien!',
+    icon: '⭐',
+    color: '#f59e0b',
+    period: 'permanent',
+  },
+  milestone_ten_properties: {
+    category: 'milestone',
+    title: '¡10 propiedades cargadas!',
+    description: 'Alcanzaste las 10 propiedades en tu catálogo. ¡Gran portfolio!',
+    encouragement: 'Más propiedades = más oportunidades de cierre',
+    icon: '🏘️',
+    color: '#0ea5e9',
+    period: 'permanent',
+  },
+  milestone_first_sale: {
+    category: 'milestone',
+    title: '¡Primera venta cerrada!',
+    description: '¡Cerraste tu primera venta! Un hito enorme en tu carrera.',
+    encouragement: 'Obtené la medalla de bronce con un 10% de conversión',
+    icon: '🎯',
+    color: '#ef4444',
+    period: 'permanent',
+  },
+  milestone_five_appointments: {
+    category: 'milestone',
+    title: '¡5 citas completadas!',
+    description: 'Ya realizaste 5 citas con clientes. ¡Experiencia que se nota!',
+    encouragement: 'Cada visita perfecciona tu técnica de venta',
+    icon: '🗓️',
+    color: '#a855f7',
+    period: 'permanent',
+  },
+  milestone_complete_profile: {
+    category: 'milestone',
+    title: '¡Perfil completo!',
+    description: 'Completaste toda la información de tu perfil. ¡Profesionalismo ante todo!',
+    encouragement: 'Un perfil completo genera más confianza',
+    icon: '🎖️',
+    color: '#FFD700',
+    period: 'permanent',
+  },
 };
 
 function getWeekBounds(date = new Date()) {
@@ -129,13 +260,8 @@ function getMonthBounds(date = new Date()) {
   return { start, end };
 }
 
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
-
 // Get rewards for current agent
-router.get('/my', authenticateToken, async (req, res) => {
+router.get('/my', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
     if (!agenteId) return res.json([]); // Return empty array for non-agents
@@ -152,7 +278,7 @@ router.get('/my', authenticateToken, async (req, res) => {
 });
 
 // Get unseen rewards (for celebration)
-router.get('/unseen', authenticateToken, async (req, res) => {
+router.get('/unseen', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
     if (!agenteId) return res.json([]); // Return empty array for non-agents
@@ -169,7 +295,7 @@ router.get('/unseen', authenticateToken, async (req, res) => {
 });
 
 // Mark rewards as seen/celebrated
-router.post('/mark-celebrated', authenticateToken, async (req, res) => {
+router.post('/mark-celebrated', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
     if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
@@ -189,7 +315,7 @@ router.post('/mark-celebrated', authenticateToken, async (req, res) => {
 });
 
 // Get metrics for current agent
-router.get('/metrics', authenticateToken, async (req, res) => {
+router.get('/metrics', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
     if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
@@ -214,7 +340,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 });
 
 // Record login (called on agent login)
-router.post('/record-login', authenticateToken, async (req, res) => {
+router.post('/record-login', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
     if (!agenteId) return res.json({ ok: true });
@@ -240,7 +366,7 @@ router.post('/record-login', authenticateToken, async (req, res) => {
 });
 
 // Calculate and assign rewards (can be called manually or by cron)
-router.post('/calculate', authenticateToken, async (req, res) => {
+router.post('/calculate', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req);
     if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
@@ -547,7 +673,7 @@ async function createReward(agenteId, type, bounds) {
   const def = REWARD_DEFINITIONS[type];
   if (!def) throw new Error(`Unknown reward type: ${type}`);
   
-  const reward = await Reward.create({
+  const rewardData = {
     agenteId,
     type,
     category: def.category,
@@ -556,11 +682,133 @@ async function createReward(agenteId, type, bounds) {
     icon: def.icon,
     color: def.color,
     period: def.period,
-    periodStart: bounds.start,
-    periodEnd: bounds.end,
-  });
+    periodStart: bounds ? bounds.start : undefined,
+    periodEnd: bounds ? bounds.end : undefined,
+  };
+
+  // Store encouragement message in metadata for milestone rewards
+  if (def.encouragement) {
+    rewardData.metadata = { encouragement: def.encouragement };
+  }
+
+  const reward = await Reward.create(rewardData);
   
   return reward;
 }
+
+// ============ MILESTONES: first-time achievement checks ============
+
+async function checkAndAwardMilestones(agenteId, hint) {
+  const newRewards = [];
+  const aid = String(agenteId);
+
+  async function alreadyHas(type) {
+    return Reward.exists({ agenteId, type });
+  }
+
+  async function award(type) {
+    if (await alreadyHas(type)) return null;
+    const r = await createReward(agenteId, type, null);
+    newRewards.push(r);
+    return r;
+  }
+
+  // Only check relevant milestones based on hint to minimize DB queries
+  const checks = hint ? [hint] : [
+    'property', 'client', 'appointment', 'operation', 'task',
+    'enquiry', 'automation', 'document', 'sale', 'profile',
+  ];
+
+  for (const check of checks) {
+    switch (check) {
+      case 'property': {
+        const count = await Propiedad.countDocuments({ agentId: aid });
+        if (count >= 1) await award('milestone_first_property');
+        if (count >= 10) await award('milestone_ten_properties');
+        break;
+      }
+      case 'client': {
+        const count = await Cliente.countDocuments({ agenteId: aid });
+        if (count >= 1) await award('milestone_first_client');
+        if (count >= 5) await award('milestone_five_clients');
+        break;
+      }
+      case 'appointment': {
+        const count = await Cita.countDocuments({ agenteId: aid });
+        if (count >= 1) await award('milestone_first_appointment');
+        if (count >= 5) await award('milestone_five_appointments');
+        break;
+      }
+      case 'operation': {
+        const count = await Operacion.countDocuments({ agenteId: aid });
+        if (count >= 1) await award('milestone_first_operation');
+        break;
+      }
+      case 'task': {
+        const count = await Tarea.countDocuments({
+          agenteId: aid,
+          $or: [{ status: 'Close' }, { completed: true }],
+        });
+        if (count >= 1) await award('milestone_first_task');
+        break;
+      }
+      case 'report': {
+        await award('milestone_first_report');
+        break;
+      }
+      case 'enquiry': {
+        const count = await Activity.countDocuments({
+          agenteId: aid,
+          type: { $in: ['enquiry', 'visit_scheduled'] },
+          'metadata.respondedAt': { $exists: true },
+        });
+        if (count >= 1) await award('milestone_first_enquiry');
+        break;
+      }
+      case 'automation': {
+        const count = await AutomationRule.countDocuments({ agenteId: aid });
+        if (count >= 1) await award('milestone_first_automation');
+        break;
+      }
+      case 'document': {
+        await award('milestone_first_document');
+        break;
+      }
+      case 'sale': {
+        const count = await Operacion.countDocuments({
+          agenteId: aid,
+          estado: { $in: ['cerrada', 'completada', 'vendida'] },
+        });
+        if (count >= 1) await award('milestone_first_sale');
+        break;
+      }
+      case 'profile': {
+        const agente = await Agente.findById(agenteId).lean();
+        if (agente && agente.nombre && agente.email && agente.telefono && agente.avatar) {
+          await award('milestone_complete_profile');
+        }
+        break;
+      }
+    }
+  }
+
+  return newRewards;
+}
+
+// POST /crm/rewards/check-milestones
+// Called after key CRM actions. Body: { hint: 'property' | 'client' | ... }
+router.post('/check-milestones', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const agenteId = agentScopeId(req);
+    if (!agenteId) return res.json({ newRewards: [] });
+
+    const { hint } = req.body;
+    const newRewards = await checkAndAwardMilestones(agenteId, hint || null);
+    res.json({ newRewards });
+  } catch (err) {
+    console.error('Milestone check error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

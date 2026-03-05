@@ -21,6 +21,13 @@ const NotificationSchema = new mongoose.Schema({
       'sistema',              // System notification
       'tarea',                // Task reminder
       'cita',                 // Appointment reminder
+      'operacion_nueva',      // New operation created
+      'consulta_web',         // New web inquiry received
+      'agente_rendimiento',   // Agent performance alert
+      'contrato_vencimiento', // Contract expiring soon (admin view)
+      'propiedad_estado',     // Property status change
+      'meta_cumplida',        // Goal achieved
+      'reporte_diario',       // Daily summary report
     ],
     required: true 
   },

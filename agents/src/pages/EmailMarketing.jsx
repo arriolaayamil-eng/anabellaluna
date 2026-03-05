@@ -128,9 +128,14 @@ const EmailMarketing = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Marketing" title="Email Marketing" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
+            <FaEnvelope className="text-blue-500" /> Email Marketing
+          </h2>
+          <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Campañas de email</p>
+        </div>
         <button
           className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
           style={{ backgroundColor: currentColor }}

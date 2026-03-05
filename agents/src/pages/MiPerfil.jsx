@@ -148,6 +148,9 @@ const MiPerfil = () => {
       // Refresh user data from server to ensure localStorage is in sync
       await authService.refreshUserData();
 
+      // Check milestones (non-blocking)
+      crmService.rewards.checkMilestones('profile').catch(() => {});
+
       setSelectedFile(null);
       setSuccess('Perfil actualizado correctamente');
       setTimeout(() => setSuccess(''), 3000);
@@ -160,7 +163,7 @@ const MiPerfil = () => {
 
   if (loading) {
     return (
-      <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+      <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: currentColor }}></div>
         </div>
@@ -169,15 +172,18 @@ const MiPerfil = () => {
   }
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className={`p-2 rounded-xl transition-colors ${currentMode === 'Dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
         >
           <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
         </button>
-        <Header category="Configuración" title="Mi Perfil" />
+        <div>
+          <h2 className={`text-lg font-semibold ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>Mi Perfil</h2>
+          <p className={`text-sm ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Configuración personal</p>
+        </div>
       </div>
 
       {error && (

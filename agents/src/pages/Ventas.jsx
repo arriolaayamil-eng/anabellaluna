@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaArrowDown, FaCalendarAlt, FaTimes, FaSave, FaHome, FaUser, FaMapMarkerAlt, FaClock, FaCheckCircle, FaFunnelDollar } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import Chart from 'react-apexcharts';
+import { crmService } from '../services/crmService';
 
 // Syncfusion Components
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
@@ -59,41 +61,49 @@ const Ventas = () => {
     prioridad: 'Media',
   });
 
-  const operaciones = [
-    { id: 1, tipo: 'Venta', propiedad: 'Depto 2amb Palermo', cliente: 'Juan Pérez', monto: 150000, estado: 'En Curso', fecha: '2025-10-05', agente: 'Ana López', comision: 5250 },
-    { id: 2, tipo: 'Alquiler', propiedad: 'Casa 3amb Belgrano', cliente: 'María González', monto: 1200, estado: 'Cerrada', fecha: '2025-09-28', agente: 'Carlos Ruiz', comision: 1200 },
-    { id: 3, tipo: 'Venta', propiedad: 'Oficina Microcentro', cliente: 'Empresa XYZ', monto: 280000, estado: 'Reservada', fecha: '2025-10-10', agente: 'Laura Fernández', comision: 9800 },
-    { id: 4, tipo: 'Venta', propiedad: 'PH Colegiales', cliente: 'Ana Martínez', monto: 320000, estado: 'Cerrada', fecha: '2025-10-01', agente: 'Sofía Torres', comision: 11200 },
-    { id: 5, tipo: 'Alquiler', propiedad: 'Local Recoleta', cliente: 'Comercio ABC', monto: 2500, estado: 'En Curso', fecha: '2025-10-08', agente: 'Marcos Silva', comision: 2500 },
-  ];
+  const [statsData, setStatsData] = useState(null);
+  const [operaciones, setOperaciones] = useState([]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const result = await crmService.stats.getOperacionesStats();
+      setStatsData(result);
+      setOperaciones(result.operaciones || []);
+    } catch (err) {
+      console.error('Error loading operaciones stats:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   // KPIs de Ventas
+  const sk = statsData?.kpis || {};
   const kpisVentas = [
-    { title: 'Ventas del Mes', value: `$${(operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0) / 1000).toFixed(0)}K`, desc: '+15% vs anterior', icon: <FaDollarSign />, color: 'from-green-500 to-green-600' },
-    { title: 'Operaciones Activas', value: operaciones.filter(o => o.estado !== 'Cerrada').length, desc: `${operaciones.filter(o => o.estado === 'Reservada').length} en cierre`, icon: <FaFileContract />, color: 'from-blue-500 to-blue-600' },
-    { title: 'Comisiones', value: `$${(operaciones.reduce((sum, o) => sum + o.comision, 0) / 1000).toFixed(0)}K`, desc: 'Este mes', icon: <FaChartLine />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Tasa de Cierre', value: `${Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length) * 100)}%`, desc: 'Últimos 30 días', icon: <FaPercentage />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Ventas del Mes', value: `$${((sk.ventasMes?.value || 0) / 1000).toFixed(0)}K`, desc: `${sk.ventasMes?.trend || '0%'} vs anterior`, icon: <FaDollarSign />, color: 'from-green-500 to-green-600' },
+    { title: 'Operaciones Activas', value: sk.operacionesActivas?.value ?? 0, desc: `${sk.operacionesActivas?.enReserva ?? 0} en cierre`, icon: <FaFileContract />, color: 'from-blue-500 to-blue-600' },
+    { title: 'Comisiones', value: `$${((sk.comisiones?.value || 0) / 1000).toFixed(0)}K`, desc: `Este mes ${sk.comisiones?.trend || ''}`, icon: <FaChartLine />, color: 'from-purple-500 to-purple-600' },
+    { title: 'Tasa de Cierre', value: `${sk.tasaCierre?.value ?? 0}%`, desc: `${sk.tasaCierre?.trend || '0%'} vs anterior`, icon: <FaPercentage />, color: 'from-orange-500 to-orange-600' },
   ];
 
-  // Datos para gráficos
-  const ventasPorMes = [
-    { mes: 'May', ventas: 6, alquileres: 12 },
-    { mes: 'Jun', ventas: 8, alquileres: 15 },
-    { mes: 'Jul', ventas: 5, alquileres: 10 },
-    { mes: 'Ago', ventas: 12, alquileres: 18 },
-    { mes: 'Sep', ventas: 9, alquileres: 14 },
-    { mes: 'Oct', ventas: 11, alquileres: 16 },
-  ];
+  // Datos reales de backend
+  const tend = statsData?.tendencia || {};
+  const est = statsData?.estados || {};
+  const fun = statsData?.funnel || {};
+  const metaData = statsData?.meta || {};
+  const seg = statsData?.seguimiento || {};
+
+  const ventasPorMes = (tend.meses || []).map((mes, i) => ({
+    mes,
+    ventas: (tend.ventas || [])[i] || 0,
+    alquileres: (tend.alquileres || [])[i] || 0,
+  }));
 
   const estadosData = [
-    { estado: 'Cerrada', cantidad: operaciones.filter(o => o.estado === 'Cerrada').length, fill: '#10B981' },
-    { estado: 'En Curso', cantidad: operaciones.filter(o => o.estado === 'En Curso').length, fill: '#3B82F6' },
-    { estado: 'Reservada', cantidad: operaciones.filter(o => o.estado === 'Reservada').length, fill: '#F59E0B' },
-  ];
-
-  const tiposData = [
-    { tipo: 'Venta', cantidad: operaciones.filter(o => o.tipo === 'Venta').length },
-    { tipo: 'Alquiler', cantidad: operaciones.filter(o => o.tipo === 'Alquiler').length },
+    { estado: 'Cerrada', cantidad: est.cerradas || 0, fill: '#10B981' },
+    { estado: 'En Curso', cantidad: est.enCurso || 0, fill: '#3B82F6' },
+    { estado: 'Reservada', cantidad: est.reservadas || 0, fill: '#F59E0B' },
   ];
 
   // ApexCharts - Progreso Meta de Ventas
@@ -114,14 +124,14 @@ const Ventas = () => {
     stroke: { lineCap: 'round' },
     labels: ['Meta Mensual'],
   };
-  const metaVentasSeries = [40];
+  const metaVentasSeries = [metaData.progress || 0];
 
   // ApexCharts - Distribución de Operaciones (Donut)
   const operacionesDonutOptions = {
     chart: { type: 'donut', height: 220, background: 'transparent' },
     labels: ['Cerradas', 'En Curso', 'Reservadas'],
     colors: ['#10B981', '#3B82F6', '#F59E0B'],
-    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => operaciones.length } } } } },
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, name: { fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '18px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '10px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => est.total || 0 } } } } },
     dataLabels: { enabled: false },
     legend: { show: true, position: 'bottom', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
     stroke: { show: false },
@@ -159,7 +169,7 @@ const Ventas = () => {
     legend: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
-  const funnelVentasSeries = [{ name: 'Operaciones', data: [45, 28, 15, 8] }];
+  const funnelVentasSeries = [{ name: 'Operaciones', data: [fun.leads || 0, fun.visitas || 0, fun.ofertas || 0, fun.cerradas || 0] }];
 
   // ApexCharts - Tasa de Cierre (Gauge)
   const tasaCierreOptions = {
@@ -179,9 +189,10 @@ const Ventas = () => {
     stroke: { lineCap: 'round' },
     labels: ['Tasa Cierre'],
   };
-  const tasaCierreSeries = [Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length) * 100)];
+  const tasaCierreSeries = [sk.tasaCierre?.value || 0];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-[1.02]';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   // Funciones de manejo para Venta
   const handleVentaChange = (e) => {
@@ -192,7 +203,9 @@ const Ventas = () => {
   const handleVentaSubmit = (e) => {
     e.preventDefault();
     console.log('Nueva venta:', nuevaVenta);
-    alert('¡Venta registrada exitosamente!');
+    // Check milestones (non-blocking)
+    crmService.rewards.checkMilestones('operation').catch(() => {});
+    toast.success('¡Venta registrada exitosamente!');
     setShowModalVenta(false);
     setNuevaVenta({
       propiedad: '',
@@ -216,7 +229,7 @@ const Ventas = () => {
   const handleAlquilerSubmit = (e) => {
     e.preventDefault();
     console.log('Nuevo alquiler:', nuevoAlquiler);
-    alert('¡Alquiler registrado exitosamente!');
+    toast.success('¡Alquiler registrado exitosamente!');
     setShowModalAlquiler(false);
     setNuevoAlquiler({
       propiedad: '',
@@ -241,7 +254,7 @@ const Ventas = () => {
   const handleSeguimientoSubmit = (e) => {
     e.preventDefault();
     console.log('Nuevo seguimiento:', nuevoSeguimiento);
-    alert('¡Seguimiento programado exitosamente!');
+    toast.success('¡Seguimiento programado exitosamente!');
     setShowModalSeguimiento(false);
     setNuevoSeguimiento({
       operacion: '',
@@ -254,8 +267,13 @@ const Ventas = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="Operaciones" title="💼 Gestión de Operaciones" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaFileContract className="text-emerald-500" /> Gestión de Operaciones
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ventas, alquileres y seguimiento</p>
+      </div>
       
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -316,11 +334,11 @@ const Ventas = () => {
           <Chart options={metaVentasOptions} series={metaVentasSeries} type="radialBar" height={180} />
           <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
             <div className="text-center">
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">2</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{metaData.cerradas ?? 0}</p>
               <p className="text-xs text-gray-500">Cerradas</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-gray-500">5</p>
+              <p className="text-lg font-bold text-gray-500">{metaData.objetivo ?? 5}</p>
               <p className="text-xs text-gray-500">Meta</p>
             </div>
           </div>
@@ -344,11 +362,11 @@ const Ventas = () => {
           <Chart options={funnelVentasOptions} series={funnelVentasSeries} type="bar" height={160} />
           <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
             <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
-              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">17.7%</p>
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fun.conversion || 0}%</p>
               <p className="text-xs text-gray-500">Conversión</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
-              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">62%</p>
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{fun.visitasPct || 0}%</p>
               <p className="text-xs text-gray-500">Visitas</p>
             </div>
           </div>
@@ -368,8 +386,8 @@ const Ventas = () => {
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-gray-600 dark:text-gray-400">Tu rendimiento</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <FaArrowUp className="text-xs" /> +5%
+              <span className={`font-bold flex items-center gap-1 ${(sk.tasaCierre?.value || 0) >= 35 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                {(sk.tasaCierre?.value || 0) >= 35 ? <FaArrowUp className="text-xs" /> : null} {sk.tasaCierre?.trend || '0%'}
               </span>
             </div>
           </div>
@@ -391,19 +409,19 @@ const Ventas = () => {
           <Chart options={ingresosTrendOptions} series={ingresosTrendSeries} type="area" height={240} />
           <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
             <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">51</p>
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{tend.totalVentas ?? 0}</p>
               <p className="text-xs text-gray-500">Ventas Total</p>
             </div>
             <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">85</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{tend.totalAlquileres ?? 0}</p>
               <p className="text-xs text-gray-500">Alquileres</p>
             </div>
             <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">$29.9K</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">${((tend.totalComisiones || 0) / 1000).toFixed(1)}K</p>
               <p className="text-xs text-gray-500">Comisiones</p>
             </div>
             <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">+18%</p>
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{tend.trendVsAnterior || '0%'}</p>
               <p className="text-xs text-gray-500">vs Ant.</p>
             </div>
           </div>
@@ -500,24 +518,24 @@ const Ventas = () => {
         <div className={cardBase}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">💰 Comisiones por Agente</h3>
           <div className="space-y-4">
-            {['Ana López', 'Carlos Ruiz', 'Laura Fernández', 'Sofía Torres', 'Marcos Silva'].map((agente, i) => {
-              const comisionAgente = operaciones.filter(o => o.agente === agente).reduce((sum, o) => sum + o.comision, 0);
+            {(statsData?.agentComisiones || []).map((ag, i) => {
+              const maxCom = Math.max(...(statsData?.agentComisiones || []).map(a => a.comision), 1);
               return (
                 <div key={i} className="border dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-bold dark:text-gray-200 text-sm">{agente}</h4>
+                    <h4 className="font-bold dark:text-gray-200 text-sm">{ag.nombre}</h4>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      ${comisionAgente.toLocaleString()}
+                      ${ag.comision.toLocaleString()}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="h-2 rounded-full bg-green-500" 
-                      style={{ width: `${Math.min((comisionAgente / 15000) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((ag.comision / maxCom) * 100, 100)}%` }}
                     ></div>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {operaciones.filter(o => o.agente === agente).length} operaciones
+                    {ag.operaciones} operaciones
                   </p>
                 </div>
               );
@@ -535,7 +553,7 @@ const Ventas = () => {
               <FaArrowUp className="text-4xl text-red-500 mx-auto mb-3" />
               <h4 className="font-bold dark:text-gray-200">Urgentes</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Requieren atención inmediata</p>
-              <p className="text-2xl font-bold text-red-600 mt-2">3</p>
+              <p className="text-2xl font-bold text-red-600 mt-2">{seg.urgentes ?? 0}</p>
               <p className="text-xs text-gray-500">Operaciones</p>
             </div>
           </div>
@@ -545,7 +563,7 @@ const Ventas = () => {
               <FaCalendarAlt className="text-4xl text-yellow-500 mx-auto mb-3" />
               <h4 className="font-bold dark:text-gray-200">Esta Semana</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Seguimientos programados</p>
-              <p className="text-2xl font-bold text-yellow-600 mt-2">8</p>
+              <p className="text-2xl font-bold text-yellow-600 mt-2">{seg.estaSemana ?? 0}</p>
               <p className="text-xs text-gray-500">Contactos</p>
             </div>
           </div>
@@ -555,7 +573,7 @@ const Ventas = () => {
               <FaHandshake className="text-4xl text-green-500 mx-auto mb-3" />
               <h4 className="font-bold dark:text-gray-200">Por Cerrar</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Próximas a finalizar</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">5</p>
+              <p className="text-2xl font-bold text-green-600 mt-2">{seg.porCerrar ?? 0}</p>
               <p className="text-xs text-gray-500">Operaciones</p>
             </div>
           </div>

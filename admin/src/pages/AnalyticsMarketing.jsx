@@ -43,7 +43,7 @@ const AnalyticsMarketing = () => {
   const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className="min-h-screen px-6 lg:px-8 pt-4 pb-6 bg-gray-50 dark:bg-main-dark-bg">
       <div className="flex justify-between items-center mb-6">
         <Header category="Marketing" title="Analytics de Marketing" />
         <div className="flex gap-2">

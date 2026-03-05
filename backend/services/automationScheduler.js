@@ -628,6 +628,72 @@ async function processImportantDatesAutomations() {
   }
 }
 
+// Generate admin notifications from real business events
+async function generateAdminNotifications() {
+  const Operacion = require('../models/Operacion');
+  const Propiedad = require('../models/Propiedad');
+  const Cita = require('../models/Cita');
+  const Tarea = require('../models/Tarea');
+  const ADMIN_ID = '__admin__';
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+
+  async function alreadyNotified(tipo, entidadId) {
+    return Notification.exists({ agenteId: ADMIN_ID, tipo, entidadId: entidadId ? String(entidadId) : undefined, createdAt: { $gte: todayStart } });
+  }
+
+  try {
+    // New web inquiries
+    const inquiries = await Activity.find({ type: { $in: ['enquiry', 'visit_scheduled'] }, 'metadata.read': { $ne: true }, createdAt: { $gte: new Date(Date.now() - 48 * 3600000) } }).sort({ createdAt: -1 }).limit(10).lean();
+    for (const inq of inquiries) {
+      if (await alreadyNotified('consulta_web', inq._id)) continue;
+      await Notification.create({ agenteId: ADMIN_ID, tipo: 'consulta_web', titulo: inq.type === 'visit_scheduled' ? 'Nueva solicitud de visita' : 'Nueva consulta web', mensaje: `${inq.metadata?.clientName || 'Visitante'} - ${inq.notes || inq.metadata?.propertyTitle || 'Sin detalle'}`, prioridad: 'alta', entidadTipo: 'cliente', entidadId: String(inq._id), entidadNombre: inq.metadata?.clientName || '', accionUrl: '/clientes' });
+    }
+
+    // New operations
+    const ops = await Operacion.find({ createdAt: { $gte: new Date(Date.now() - 24 * 3600000) } }).sort({ createdAt: -1 }).limit(10).lean();
+    for (const op of ops) {
+      if (await alreadyNotified('operacion_nueva', op._id)) continue;
+      const ag = op.agenteId ? await Agente.findById(op.agenteId).lean() : null;
+      await Notification.create({ agenteId: ADMIN_ID, tipo: 'operacion_nueva', titulo: `Nueva operación: ${op.tipo || 'Operación'}`, mensaje: `${op.titulo || op.propiedad || 'Sin título'} - ${ag?.nombre || 'Sin agente'} - $${(op.monto || 0).toLocaleString()}`, prioridad: 'alta', entidadTipo: 'operacion', entidadId: String(op._id), entidadNombre: op.titulo || '', accionUrl: '/operaciones' });
+    }
+
+    // Contracts expiring in 30 days
+    const in30 = new Date(Date.now() + 30 * 24 * 3600000);
+    const expiring = await Cliente.find({ 'metadata.fechaVencimientoContrato': { $gte: now, $lte: in30 } }).lean();
+    for (const cli of expiring) {
+      if (await alreadyNotified('contrato_vencimiento', cli._id)) continue;
+      const fecha = new Date(cli.metadata.fechaVencimientoContrato);
+      const dias = Math.ceil((fecha - now) / 86400000);
+      await Notification.create({ agenteId: ADMIN_ID, tipo: 'contrato_vencimiento', titulo: `Contrato por vencer en ${dias} días`, mensaje: `${cli.nombre || 'Cliente'} - Vence el ${fecha.toLocaleDateString('es-AR')}`, prioridad: dias <= 7 ? 'urgente' : dias <= 15 ? 'alta' : 'media', entidadTipo: 'cliente', entidadId: String(cli._id), entidadNombre: cli.nombre || '', accionUrl: '/clientes' });
+    }
+
+    // Overdue tasks
+    const overdue = await Tarea.find({ fechaVencimiento: { $lt: todayStart }, $or: [{ kanbanColumn: { $ne: 'done' } }, { kanbanColumn: { $exists: false } }] }).limit(5).lean();
+    for (const t of overdue) {
+      if (await alreadyNotified('tarea', t._id)) continue;
+      await Notification.create({ agenteId: ADMIN_ID, tipo: 'tarea', titulo: 'Tarea vencida', mensaje: `${t.titulo || t.title || 'Sin título'} - Venció el ${new Date(t.fechaVencimiento).toLocaleDateString('es-AR')}`, prioridad: 'alta', entidadTipo: 'tarea', entidadId: String(t._id), entidadNombre: t.titulo || t.title || '', accionUrl: '/tareas' });
+    }
+
+    // Today appointments summary
+    const todayAppts = await Cita.countDocuments({ fecha: { $gte: todayStart, $lt: new Date(todayStart.getTime() + 86400000) }, estado: { $ne: 'cancelada' } });
+    if (todayAppts > 0 && !(await alreadyNotified('cita', 'resumen_hoy'))) {
+      await Notification.create({ agenteId: ADMIN_ID, tipo: 'cita', titulo: `${todayAppts} cita${todayAppts > 1 ? 's' : ''} hoy`, mensaje: `Hay ${todayAppts} cita${todayAppts > 1 ? 's' : ''} agendada${todayAppts > 1 ? 's' : ''} para hoy`, prioridad: 'media', entidadTipo: 'cita', entidadId: 'resumen_hoy', accionUrl: '/citas' });
+    }
+
+    // Property status changes
+    const changedProps = await Propiedad.find({ status: { $in: ['Reservada', 'Vendida', 'Alquilada'] }, updatedAt: { $gte: new Date(Date.now() - 24 * 3600000) } }).lean();
+    for (const p of changedProps) {
+      if (await alreadyNotified('propiedad_estado', p._id)) continue;
+      await Notification.create({ agenteId: ADMIN_ID, tipo: 'propiedad_estado', titulo: `Propiedad ${p.status}`, mensaje: `${p.title || p.titulo || 'Propiedad'} - ${p.address || p.direccion || ''}`, prioridad: 'media', entidadTipo: 'propiedad', entidadId: String(p._id), entidadNombre: p.title || p.titulo || '', accionUrl: '/propiedades' });
+    }
+
+    console.log('[AutomationScheduler] Admin notifications generated');
+  } catch (err) {
+    console.error('[AutomationScheduler] Error generating admin notifications:', err.message);
+  }
+}
+
 // Run all scheduled automations (call this periodically)
 async function runScheduledAutomations() {
   console.log('[AutomationScheduler] Running scheduled automations...');
@@ -639,6 +705,7 @@ async function runScheduledAutomations() {
   await processDocumentExpirationAutomations();
   await processSpecialEventAutomations();
   await processImportantDatesAutomations();
+  await generateAdminNotifications();
   const sent = await processScheduledNotifications();
   
   console.log(`[AutomationScheduler] Completed. Sent ${sent} scheduled notifications.`);

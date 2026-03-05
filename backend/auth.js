@@ -202,7 +202,15 @@ function authenticateToken(req, res, next) {
   const token = parts[1];
   jwt.verify(token, JWT_SECRET, (err, payload) => {
     if (err) return res.status(401).json({ error: 'invalid token' });
-    req.user = payload;
+    const normalized = { ...(payload || {}) };
+    normalized.role = normalized.role || 'agent';
+    if (normalized.sub) {
+      normalized.sub = String(normalized.sub);
+      if (!normalized.id) normalized.id = normalized.sub;
+      if (!normalized._id) normalized._id = normalized.sub;
+    }
+    if (normalized.agenteId) normalized.agenteId = String(normalized.agenteId);
+    req.user = normalized;
     next();
   });
 }
@@ -217,4 +225,31 @@ function requireRole(role) {
   };
 }
 
-module.exports = { router, authenticateToken, requireRole };
+function getUserId(req) {
+  const u = req.user || {};
+  const id = u.sub || u.id || u._id;
+  return id ? String(id) : null;
+}
+
+function agentScopeId(req) {
+  if (req.user && req.user.role === 'admin') return null;
+  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
+}
+
+function requireCRMUser(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'missing token' });
+  const role = req.user.role || 'agent';
+  if (role === 'admin') return next();
+  if (role !== 'agent') return res.status(403).json({ error: 'forbidden' });
+  if (!req.user.agenteId) return res.status(403).json({ error: 'agenteId required' });
+  return next();
+}
+
+module.exports = {
+  router,
+  authenticateToken,
+  requireRole,
+  getUserId,
+  agentScopeId,
+  requireCRMUser,
+};

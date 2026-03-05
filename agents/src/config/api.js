@@ -97,6 +97,27 @@ export const api = {
   
   delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
   
+  // Upload a single Blob (e.g. PDF) with metadata fields via FormData
+  uploadBlob: async (endpoint, blob, filename, fields = {}) => {
+    const formData = new FormData();
+    formData.append('pdf', blob, filename);
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) formData.append(k, String(v));
+    });
+    const token = getAuthToken();
+    const url = `${API_CONFIG.baseURL}${endpoint}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `HTTP ${response.status}`);
+    }
+    return response.json();
+  },
+
   // Para upload de archivos
   uploadFiles: async (endpoint, files, options = {}) => {
     const formData = new FormData();

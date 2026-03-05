@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { FaGoogle, FaCheck, FaTimes, FaCopy, FaEye, FaEyeSlash, FaSave, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -7,7 +9,8 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 const getAuthToken = () => localStorage.getItem('authToken');
 
 const Integraciones = () => {
-  const { currentColor } = useStateContext();
+  const { currentColor, currentMode } = useStateContext();
+  const isDark = currentMode === 'Dark';
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
@@ -85,7 +88,7 @@ const Integraciones = () => {
   };
 
   const deleteGoogleOAuth = async () => {
-    if (!window.confirm('¿Eliminar las credenciales de Google OAuth? Los agentes no podrán conectar sus calendarios.')) {
+    if (!(await confirmToast('¿Eliminar las credenciales de Google OAuth? Los agentes no podrán conectar sus calendarios.'))) {
       return;
     }
     
@@ -116,8 +119,13 @@ const Integraciones = () => {
 
   if (loading) {
     return (
-      <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
-        <Header category="Configuración" title="Integraciones" />
+      <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+        <div className="mb-6">
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaGoogle className="text-blue-500" /> Integraciones
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Configuración de servicios externos</p>
+        </div>
         <div className="flex justify-center py-10">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }}></div>
         </div>
@@ -126,8 +134,13 @@ const Integraciones = () => {
   }
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
-      <Header category="Configuración" title="Integraciones" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaGoogle className="text-blue-500" /> Integraciones
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Configuración de servicios externos</p>
+      </div>
       
       {message.text && (
         <div className={`mb-6 p-4 rounded-lg ${
@@ -138,7 +151,7 @@ const Integraciones = () => {
       )}
 
       {/* Google Calendar OAuth Configuration */}
-      <div className="border dark:border-gray-700 rounded-xl p-6 mb-6">
+      <div className={`rounded-2xl p-6 border mb-6 ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
             <FaGoogle className="text-2xl text-blue-600 dark:text-blue-400" />
@@ -258,7 +271,7 @@ const Integraciones = () => {
       </div>
 
       {/* Other integrations (placeholder) */}
-      <h3 className="text-lg font-semibold dark:text-gray-200 mb-4">Otras Integraciones</h3>
+      <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Otras Integraciones</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           { nombre: 'ZonaProp', descripcion: 'Portal inmobiliario líder', conectado: false, logo: '🏢' },
@@ -267,15 +280,15 @@ const Integraciones = () => {
           { nombre: 'WhatsApp Business', descripcion: 'Mensajería con clientes', conectado: false, logo: '💬' },
           { nombre: 'Mailchimp', descripcion: 'Email marketing', conectado: false, logo: '📧' },
         ].map((int, index) => (
-          <div key={index} className="border dark:border-gray-700 rounded-lg p-6 opacity-60">
+          <div key={index} className={`rounded-2xl p-6 border opacity-60 ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="text-4xl">{int.logo}</div>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                 Próximamente
               </span>
             </div>
-            <h3 className="text-lg font-bold dark:text-gray-200 mb-2">{int.nombre}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{int.descripcion}</p>
+            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{int.nombre}</h3>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{int.descripcion}</p>
           </div>
         ))}
       </div>

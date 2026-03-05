@@ -1,12 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaBuilding, FaUsers, FaDollarSign, FaKey, FaArrowUp, FaArrowDown, FaChartLine, FaPercent, FaCalendarAlt, FaTrophy, FaMedal, FaAward, FaReceipt, FaBalanceScale, FaSeedling, FaClock, FaBullseye, FaUserPlus, FaHome, FaAddressBook } from 'react-icons/fa';
 import { HiOutlineDotsHorizontal, HiTrendingUp } from 'react-icons/hi';
 import Chart from 'react-apexcharts';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
 
 const DashboardEjecutivo = () => {
   const { currentMode } = useStateContext();
   const isDark = currentMode === 'Dark';
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await crmService.stats.getAdminDashboard();
+      setData(result);
+    } catch (err) {
+      console.error('Error loading admin dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboard();
+    const interval = setInterval(loadDashboard, 120000);
+    return () => clearInterval(interval);
+  }, [loadDashboard]);
 
   // Colores base para gráficos
   const chartColors = {
@@ -21,156 +43,32 @@ const DashboardEjecutivo = () => {
     grid: isDark ? '#374151' : '#e5e7eb',
   };
 
-  // ==================== INDICADORES FINANCIEROS ====================
-  const financialMetrics = {
-    ingresosTotales: { value: 8742500, prevMonth: 7125000, yearGoal: 12000000 },
-    comisionesTotales: { value: 524550, prevMonth: 427500, rate: 6 },
-    ticketPromedio: { value: 185000, prevMonth: 172000 },
-    margenOperativo: { value: 23.5, prevMonth: 21.2 },
-    roi: { value: 18.7, prevMonth: 15.3 },
-    diasPromVenta: { value: 42, prevMonth: 48 },
-    tasaConversion: { value: 68, prevMonth: 62 },
-    costoPorLead: { value: 125, prevMonth: 145 },
-  };
+  // Safely extract data with fallbacks
+  const dk = data?.kpis || {};
+  const fm = data?.financialMetrics || {};
+  const rev = data?.revenueMonthly || {};
+  const inc = data?.incomeBreakdown || {};
+  const quarters = data?.quarters || [];
+  const opsMo = data?.opsMonthly || {};
+  const propTypes = data?.propertyTypes || {};
+  const agentes = data?.agentes || [];
+  const teamMetrics = data?.teamMetrics || {};
+  const actividades = data?.actividades || [];
+  const footer = data?.footerStats || {};
 
-  // Desglose de ingresos
-  const incomeBreakdown = {
-    ventasResidencial: { value: 5245500, percent: 60 },
-    ventasComercial: { value: 1748500, percent: 20 },
-    alquileres: { value: 1311375, percent: 15 },
-    serviciosAdicionales: { value: 437125, percent: 5 },
-  };
+  function fmtMoney(val) {
+    if (!val && val !== 0) return '$0';
+    if (val >= 1000000) return `$${(val / 1000000).toFixed(2)}M`;
+    if (val >= 1000) return `$${(val / 1000).toFixed(0)}K`;
+    return `$${val}`;
+  }
 
-  // Proyección financiera trimestral
-  const quarterlyProjection = [
-    { quarter: 'Q1', actual: 2450000, projected: 2400000, goal: 3000000 },
-    { quarter: 'Q2', actual: 2890000, projected: 2800000, goal: 3000000 },
-    { quarter: 'Q3', actual: 3402500, projected: 3200000, goal: 3000000 },
-    { quarter: 'Q4', actual: null, projected: 3800000, goal: 3000000 },
-  ];
-
-  // ==================== RENDIMIENTO DEL EQUIPO ====================
-  const agentes = [
-    { 
-      nombre: 'Laura Fernández', 
-      avatar: 'LF', 
-      color: '#6366f1',
-      ventas: 22, 
-      alquileres: 8,
-      metaVentas: 25,
-      comision: 89250,
-      valorCartera: 1850000,
-      leads: 45,
-      leadsConvertidos: 32,
-      tasaConversion: 71,
-      diasPromCierre: 38,
-      calificacion: 4.9,
-      ranking: 1,
-      tendencia: '+15%',
-      metaMensual: 100000,
-    },
-    { 
-      nombre: 'Carlos Ruiz', 
-      avatar: 'CR', 
-      color: '#10b981',
-      ventas: 18, 
-      alquileres: 6,
-      metaVentas: 20,
-      comision: 72100,
-      valorCartera: 1420000,
-      leads: 38,
-      leadsConvertidos: 26,
-      tasaConversion: 68,
-      diasPromCierre: 41,
-      calificacion: 4.7,
-      ranking: 2,
-      tendencia: '+12%',
-      metaMensual: 85000,
-    },
-    { 
-      nombre: 'Ana López', 
-      avatar: 'AL', 
-      color: '#f59e0b',
-      ventas: 15, 
-      alquileres: 5,
-      metaVentas: 18,
-      comision: 58400,
-      valorCartera: 1180000,
-      leads: 32,
-      leadsConvertidos: 21,
-      tasaConversion: 66,
-      diasPromCierre: 44,
-      calificacion: 4.6,
-      ranking: 3,
-      tendencia: '+8%',
-      metaMensual: 70000,
-    },
-    { 
-      nombre: 'Martín Silva', 
-      avatar: 'MS', 
-      color: '#8b5cf6',
-      ventas: 12, 
-      alquileres: 4,
-      metaVentas: 15,
-      comision: 48200,
-      valorCartera: 920000,
-      leads: 28,
-      leadsConvertidos: 17,
-      tasaConversion: 61,
-      diasPromCierre: 47,
-      calificacion: 4.5,
-      ranking: 4,
-      tendencia: '+5%',
-      metaMensual: 60000,
-    },
-    { 
-      nombre: 'Sofía Torres', 
-      avatar: 'ST', 
-      color: '#ec4899',
-      ventas: 10, 
-      alquileres: 3,
-      metaVentas: 12,
-      comision: 39650,
-      valorCartera: 780000,
-      leads: 24,
-      leadsConvertidos: 14,
-      tasaConversion: 58,
-      diasPromCierre: 51,
-      calificacion: 4.4,
-      ranking: 5,
-      tendencia: '+3%',
-      metaMensual: 50000,
-    },
-  ];
-
-  // Métricas de equipo agregadas
-  const teamMetrics = {
-    totalAgentes: 5,
-    totalVentas: agentes.reduce((a, b) => a + b.ventas, 0),
-    totalAlquileres: agentes.reduce((a, b) => a + b.alquileres, 0),
-    totalComisiones: agentes.reduce((a, b) => a + b.comision, 0),
-    promedioConversion: Math.round(agentes.reduce((a, b) => a + b.tasaConversion, 0) / agentes.length),
-    promedioDiasCierre: Math.round(agentes.reduce((a, b) => a + b.diasPromCierre, 0) / agentes.length),
-    metaEquipo: 450000,
-    cumplimientoMeta: 69,
-  };
-
-  // Actividad reciente detallada
-  const actividades = [
-    { tipo: 'venta', texto: 'Depto 3amb vendido en Palermo', agente: 'Laura F.', tiempo: '2h', monto: '$185,000', comision: '$11,100' },
-    { tipo: 'venta', texto: 'Casa 4amb cerrada en Belgrano', agente: 'Carlos R.', tiempo: '3h', monto: '$320,000', comision: '$19,200' },
-    { tipo: 'alquiler', texto: 'PH alquilado en Colegiales', agente: 'Ana L.', tiempo: '4h', monto: '$2,200/mes', comision: '$2,200' },
-    { tipo: 'reserva', texto: 'Reserva Oficina Microcentro', agente: 'Martín S.', tiempo: '5h', monto: '$95,000', comision: 'Pendiente' },
-    { tipo: 'visita', texto: '5 visitas completadas hoy', agente: 'Sofía T.', tiempo: '6h', monto: null, comision: null },
-    { tipo: 'lead', texto: '3 nuevos leads calificados', agente: 'Laura F.', tiempo: '7h', monto: null, comision: null },
-  ];
-
-  // KPIs principales expandidos
+  // KPIs principales
   const kpis = [
-    { title: 'Ingresos Totales', value: '$8.74M', change: '+22.7%', trend: 'up', icon: FaDollarSign, color: '#10b981', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', subtitle: 'Meta anual: $12M (73%)' },
-    { title: 'Comisiones', value: '$524.5K', change: '+22.7%', trend: 'up', icon: FaPercent, color: '#6366f1', bgColor: 'bg-indigo-50 dark:bg-indigo-900/20', subtitle: '6% promedio' },
-    { title: 'Operaciones', value: '103', change: '+18', trend: 'up', icon: FaChartLine, color: '#f59e0b', bgColor: 'bg-amber-50 dark:bg-amber-900/20', subtitle: '77 ventas + 26 alquileres' },
-    { title: 'Tasa Conversión', value: '68%', change: '+6pp', trend: 'up', icon: HiTrendingUp, color: '#8b5cf6', bgColor: 'bg-purple-50 dark:bg-purple-900/20', subtitle: 'vs 62% mes anterior' },
+    { title: 'Ingresos Totales', value: dk.ingresosTotales?.value || '$0', change: dk.ingresosTotales?.change || '+0%', trend: 'up', icon: FaDollarSign, color: '#10b981', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', subtitle: `Meta anual: ${fmtMoney(dk.ingresosTotales?.yearGoal)} (${dk.ingresosTotales?.yearProgress || '0%'})` },
+    { title: 'Comisiones', value: dk.comisiones?.value || '$0', change: dk.comisiones?.change || '+0%', trend: 'up', icon: FaPercent, color: '#6366f1', bgColor: 'bg-indigo-50 dark:bg-indigo-900/20', subtitle: `${dk.comisiones?.rate || '6%'} promedio` },
+    { title: 'Operaciones', value: String(dk.operaciones?.value ?? 0), change: `+${dk.operaciones?.change || 0}`, trend: 'up', icon: FaChartLine, color: '#f59e0b', bgColor: 'bg-amber-50 dark:bg-amber-900/20', subtitle: `${dk.operaciones?.ventas ?? 0} ventas + ${dk.operaciones?.alquileres ?? 0} alquileres` },
+    { title: 'Tasa Conversión', value: dk.tasaConversion?.value || '0%', change: dk.tasaConversion?.change || '+0pp', trend: 'up', icon: HiTrendingUp, color: '#8b5cf6', bgColor: 'bg-purple-50 dark:bg-purple-900/20', subtitle: `vs ${dk.tasaConversion?.prev || '0%'} mes anterior` },
   ];
 
   // Gráfico de ingresos con proyección (Area)
@@ -182,7 +80,7 @@ const DashboardEjecutivo = () => {
       stroke: { curve: 'smooth', width: 3 },
       dataLabels: { enabled: false },
       xaxis: { 
-        categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], 
+        categories: rev.meses || ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], 
         labels: { style: { colors: chartColors.text, fontSize: '11px' } }, 
         axisBorder: { show: false }, 
         axisTicks: { show: false } 
@@ -196,9 +94,9 @@ const DashboardEjecutivo = () => {
       }
     },
     series: [
-      { name: 'Ventas', data: [520000, 480000, 620000, 590000, 710000, 680000, 820000, 780000, 950000, 1020000, 980000, 1150000] },
-      { name: 'Alquileres', data: [105000, 112000, 108000, 115000, 122000, 118000, 135000, 128000, 145000, 152000, 148000, 165000] },
-      { name: 'Comisiones', data: [37500, 35500, 43700, 42300, 49900, 47900, 57300, 54500, 65700, 70300, 67700, 78900] },
+      { name: 'Ventas', data: rev.ventas || [0] },
+      { name: 'Alquileres', data: rev.alquileres || [0] },
+      { name: 'Comisiones', data: rev.comisiones || [0] },
     ],
   };
 
@@ -210,16 +108,16 @@ const DashboardEjecutivo = () => {
       plotOptions: { bar: { horizontal: false, columnWidth: '70%', borderRadius: 4 } },
       dataLabels: { enabled: false },
       stroke: { show: true, width: 2, colors: ['transparent'] },
-      xaxis: { categories: ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025'], labels: { style: { colors: chartColors.text, fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+      xaxis: { categories: quarters.map(q => `${q.quarter} ${new Date().getFullYear()}`), labels: { style: { colors: chartColors.text, fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
       yaxis: { labels: { style: { colors: chartColors.text, fontSize: '11px' }, formatter: (val) => `$${(val/1000000).toFixed(1)}M` } },
       grid: { borderColor: chartColors.grid, strokeDashArray: 4 },
       legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: chartColors.text }, markers: { width: 8, height: 8, radius: 8 } },
       tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: (val) => val ? `$${(val/1000000).toFixed(2)}M` : 'Pendiente' } },
     },
     series: [
-      { name: 'Real', data: [2450000, 2890000, 3402500, null] },
-      { name: 'Proyectado', data: [2400000, 2800000, 3200000, 3800000] },
-      { name: 'Meta', data: [3000000, 3000000, 3000000, 3000000] },
+      { name: 'Real', data: quarters.map(q => q.actual) },
+      { name: 'Proyectado', data: quarters.map(q => q.projected) },
+      { name: 'Meta', data: quarters.map(q => q.goal) },
     ],
   };
 
@@ -228,7 +126,7 @@ const DashboardEjecutivo = () => {
     options: {
       chart: { type: 'donut', background: 'transparent' },
       colors: [chartColors.primary, chartColors.success, chartColors.warning, chartColors.purple, chartColors.pink],
-      labels: ['Departamentos', 'Casas', 'PHs', 'Oficinas', 'Locales'],
+      labels: propTypes.labels || ['Sin datos'],
       legend: { show: false },
       dataLabels: { enabled: false },
       stroke: { width: 0 },
@@ -240,14 +138,14 @@ const DashboardEjecutivo = () => {
               show: true, 
               name: { show: true, fontSize: '14px', color: chartColors.text }, 
               value: { show: true, fontSize: '24px', fontWeight: 700, color: chartColors.text }, 
-              total: { show: true, label: 'Total', fontSize: '12px', color: chartColors.text, formatter: () => '127' } 
+              total: { show: true, label: 'Total', fontSize: '12px', color: chartColors.text, formatter: () => `${propTypes.total || 0}` } 
             } 
           } 
         } 
       },
       tooltip: { theme: isDark ? 'dark' : 'light' },
     },
-    series: [52, 28, 22, 15, 10],
+    series: propTypes.series || [0],
   };
 
   // Gráfico radial conversión
@@ -267,7 +165,7 @@ const DashboardEjecutivo = () => {
       },
       labels: ['Conversión'],
     },
-    series: [68],
+    series: [data?.conversionRate || 0],
   };
 
   // Gráfico de operaciones (Bar)
@@ -279,7 +177,7 @@ const DashboardEjecutivo = () => {
       dataLabels: { enabled: false },
       stroke: { show: true, width: 2, colors: ['transparent'] },
       xaxis: { 
-        categories: ['Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], 
+        categories: opsMo.meses || [''], 
         labels: { style: { colors: chartColors.text, fontSize: '11px' } }, 
         axisBorder: { show: false }, 
         axisTicks: { show: false } 
@@ -290,8 +188,8 @@ const DashboardEjecutivo = () => {
       tooltip: { theme: isDark ? 'dark' : 'light' },
     },
     series: [
-      { name: 'Ventas', data: [12, 15, 14, 18, 16, 22] },
-      { name: 'Alquileres', data: [8, 10, 9, 12, 11, 14] },
+      { name: 'Ventas', data: opsMo.ventas || [0] },
+      { name: 'Alquileres', data: opsMo.alquileres || [0] },
     ],
   };
 
@@ -314,7 +212,7 @@ const DashboardEjecutivo = () => {
       tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: (val) => `${val}% de meta` } },
       colors: agentes.map(a => a.color),
     },
-    series: [{ name: 'Cumplimiento Meta', data: agentes.map(a => Math.round((a.comision / a.metaMensual) * 100)) }],
+    series: [{ name: 'Cumplimiento Meta', data: agentes.map(a => a.metaMensual > 0 ? Math.min(100, Math.round((a.comision / a.metaMensual) * 100)) : 0) }],
   };
 
   // Gráfico de comisiones por agente (Grouped Bar)
@@ -336,7 +234,13 @@ const DashboardEjecutivo = () => {
     ],
   };
 
-  // Gráfico radar de métricas de agentes
+  // Gráfico radar de métricas de agentes (top 2 + promedio)
+  const topAgents = agentes.slice(0, 2);
+  const avgVentas = agentes.length > 0 ? Math.round(agentes.reduce((s, a) => s + a.ventas, 0) / agentes.length) : 0;
+  const avgConv = agentes.length > 0 ? Math.round(agentes.reduce((s, a) => s + a.tasaConversion, 0) / agentes.length) : 0;
+  const avgSpeed = agentes.length > 0 ? Math.round(100 - agentes.reduce((s, a) => s + a.diasPromCierre, 0) / agentes.length) : 0;
+  const avgCartera = agentes.length > 0 ? Math.round(agentes.reduce((s, a) => s + (a.valorCartera || 0), 0) / agentes.length / 10000) : 0;
+  const avgCal = agentes.length > 0 ? Math.round(agentes.reduce((s, a) => s + (parseFloat(a.calificacion) || 0), 0) / agentes.length * 20) : 0;
   const agentRadarChart = {
     options: {
       chart: { type: 'radar', toolbar: { show: false }, background: 'transparent' },
@@ -350,9 +254,11 @@ const DashboardEjecutivo = () => {
       tooltip: { theme: isDark ? 'dark' : 'light' },
     },
     series: [
-      { name: 'Laura F.', data: [88, 71, 85, 92, 98] },
-      { name: 'Carlos R.', data: [72, 68, 78, 71, 94] },
-      { name: 'Promedio', data: [62, 65, 70, 65, 92] },
+      ...(topAgents.map(a => ({
+        name: a.nombre.split(' ').map(w => w[0] ? `${w[0]}.` : '').join('').replace(/\.$/, '') || a.nombre.split(' ')[0],
+        data: [a.ventas, a.tasaConversion, Math.max(0, 100 - a.diasPromCierre), Math.round((a.valorCartera || 0) / 10000), Math.round((parseFloat(a.calificacion) || 0) * 20)],
+      }))),
+      { name: 'Promedio', data: [avgVentas, avgConv, avgSpeed, avgCartera, avgCal] },
     ],
   };
 
@@ -373,14 +279,14 @@ const DashboardEjecutivo = () => {
               show: true, 
               name: { show: true, fontSize: '12px', color: chartColors.text }, 
               value: { show: true, fontSize: '18px', fontWeight: 700, color: chartColors.text, formatter: (val) => `$${(val/1000).toFixed(0)}K` }, 
-              total: { show: true, label: 'Total Ingresos', fontSize: '11px', color: chartColors.text, formatter: () => '$8.74M' } 
+              total: { show: true, label: 'Total Ingresos', fontSize: '11px', color: chartColors.text, formatter: () => inc.total || '$0' } 
             } 
           } 
         } 
       },
       tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: (val) => `$${(val/1000).toFixed(0)}K` } },
     },
-    series: [5245500, 1748500, 1311375, 437125],
+    series: inc.series || [0],
   };
 
   // Card base style con sombra en claro y color sutil en oscuro
@@ -422,14 +328,14 @@ const DashboardEjecutivo = () => {
       {/* Métricas financieras detalladas con iconos */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         {[
-          { label: 'Ticket Promedio', value: `$${(financialMetrics.ticketPromedio.value/1000).toFixed(0)}K`, change: '+7.6%', up: true, icon: FaReceipt, color: '#6366f1', bgColor: 'bg-indigo-500/10' },
-          { label: 'Margen Operativo', value: `${financialMetrics.margenOperativo.value}%`, change: '+2.3pp', up: true, icon: FaBalanceScale, color: '#10b981', bgColor: 'bg-emerald-500/10' },
-          { label: 'ROI', value: `${financialMetrics.roi.value}%`, change: '+3.4pp', up: true, icon: FaSeedling, color: '#22c55e', bgColor: 'bg-green-500/10' },
-          { label: 'Días Prom. Venta', value: `${financialMetrics.diasPromVenta.value}`, change: '-6 días', up: true, icon: FaClock, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
-          { label: 'Costo por Lead', value: `$${financialMetrics.costoPorLead.value}`, change: '-$20', up: true, icon: FaBullseye, color: '#ef4444', bgColor: 'bg-red-500/10' },
-          { label: 'Leads Totales', value: '167', change: '+23', up: true, icon: FaUserPlus, color: '#8b5cf6', bgColor: 'bg-purple-500/10' },
-          { label: 'Propiedades', value: '127', change: '+12', up: true, icon: FaHome, color: '#06b6d4', bgColor: 'bg-cyan-500/10' },
-          { label: 'Clientes Activos', value: '284', change: '+28', up: true, icon: FaAddressBook, color: '#ec4899', bgColor: 'bg-pink-500/10' },
+          { label: 'Ticket Promedio', value: `$${((fm.ticketPromedio?.value || 0)/1000).toFixed(0)}K`, change: fm.ticketPromedio?.change || '+0%', up: true, icon: FaReceipt, color: '#6366f1', bgColor: 'bg-indigo-500/10' },
+          { label: 'Margen Operativo', value: `${fm.margenOperativo?.value || 0}%`, change: fm.margenOperativo?.change || '+0pp', up: true, icon: FaBalanceScale, color: '#10b981', bgColor: 'bg-emerald-500/10' },
+          { label: 'ROI', value: `${fm.margenOperativo?.value || 0}%`, change: '+0pp', up: true, icon: FaSeedling, color: '#22c55e', bgColor: 'bg-green-500/10' },
+          { label: 'Días Prom. Venta', value: `${fm.diasPromVenta?.value || 0}`, change: fm.diasPromVenta?.change || '0d', up: true, icon: FaClock, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
+          { label: 'Costo por Lead', value: `$${fm.costoPorLead?.value || 0}`, change: '', up: true, icon: FaBullseye, color: '#ef4444', bgColor: 'bg-red-500/10' },
+          { label: 'Leads Totales', value: String(fm.leadsTotales || 0), change: `+${fm.clientesNuevosMes || 0}`, up: true, icon: FaUserPlus, color: '#8b5cf6', bgColor: 'bg-purple-500/10' },
+          { label: 'Propiedades', value: String(fm.propiedades || 0), change: `${fm.propiedadesDisponibles || 0} disp.`, up: true, icon: FaHome, color: '#06b6d4', bgColor: 'bg-cyan-500/10' },
+          { label: 'Clientes Activos', value: String(fm.clientesActivos || 0), change: `+${fm.clientesNuevosMes || 0}`, up: true, icon: FaAddressBook, color: '#ec4899', bgColor: 'bg-pink-500/10' },
         ].map((m, i) => {
           const Icon = m.icon;
           return (
@@ -457,7 +363,7 @@ const DashboardEjecutivo = () => {
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ventas, Alquileres y Comisiones</p>
             </div>
             <div className="text-right">
-              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>$8.74M</p>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{dk.ingresosTotales?.value || '$0'}</p>
               <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Acumulado YTD</p>
             </div>
           </div>
@@ -480,7 +386,7 @@ const DashboardEjecutivo = () => {
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Real vs Proyectado vs Meta $12M anual</p>
             </div>
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-              73% de meta anual
+              {dk.ingresosTotales?.yearProgress || '0%'} de meta anual
             </div>
           </div>
           <Chart options={projectionChart.options} series={projectionChart.series} type="bar" height={240} />
@@ -494,7 +400,7 @@ const DashboardEjecutivo = () => {
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ventas y Alquileres cerrados</p>
             </div>
             <div className="text-right">
-              <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>103</p>
+              <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{opsMo.totalYTD ?? 0}</p>
               <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>operaciones YTD</p>
             </div>
           </div>
@@ -512,12 +418,12 @@ const DashboardEjecutivo = () => {
       {/* Métricas de equipo agregadas */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
         {[
-          { label: 'Total Agentes', value: teamMetrics.totalAgentes, icon: FaUsers, color: 'text-indigo-500' },
-          { label: 'Ventas Totales', value: teamMetrics.totalVentas, icon: FaChartLine, color: 'text-emerald-500' },
-          { label: 'Alquileres', value: teamMetrics.totalAlquileres, icon: FaKey, color: 'text-purple-500' },
-          { label: 'Comisiones Equipo', value: `$${(teamMetrics.totalComisiones/1000).toFixed(0)}K`, icon: FaDollarSign, color: 'text-amber-500' },
-          { label: 'Conv. Promedio', value: `${teamMetrics.promedioConversion}%`, icon: HiTrendingUp, color: 'text-cyan-500' },
-          { label: 'Días Prom. Cierre', value: teamMetrics.promedioDiasCierre, icon: FaCalendarAlt, color: 'text-pink-500' },
+          { label: 'Total Agentes', value: teamMetrics.totalAgentes ?? 0, icon: FaUsers, color: 'text-indigo-500' },
+          { label: 'Ventas Totales', value: teamMetrics.totalVentas ?? 0, icon: FaChartLine, color: 'text-emerald-500' },
+          { label: 'Alquileres', value: teamMetrics.totalAlquileres ?? 0, icon: FaKey, color: 'text-purple-500' },
+          { label: 'Comisiones Equipo', value: `$${((teamMetrics.totalComisiones || 0)/1000).toFixed(0)}K`, icon: FaDollarSign, color: 'text-amber-500' },
+          { label: 'Conv. Promedio', value: `${teamMetrics.promedioConversion ?? 0}%`, icon: HiTrendingUp, color: 'text-cyan-500' },
+          { label: 'Días Prom. Cierre', value: teamMetrics.promedioDiasCierre ?? 0, icon: FaCalendarAlt, color: 'text-pink-500' },
         ].map((m, i) => (
           <div key={i} className={`${cardClass} !p-4`}>
             <div className="flex items-center gap-2 mb-2">
@@ -539,7 +445,7 @@ const DashboardEjecutivo = () => {
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Comparativa de rendimiento individual</p>
             </div>
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
-              Meta equipo: $450K
+              Meta equipo: ${fmtMoney(agentes.reduce((s, a) => s + (a.metaMensual || 0), 0))}
             </div>
           </div>
           <Chart options={agentCommissionsChart.options} series={agentCommissionsChart.series} type="bar" height={260} />
@@ -634,23 +540,20 @@ const DashboardEjecutivo = () => {
         <div className={cardClass}>
           <div className="flex items-center justify-between mb-4">
             <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Inventario por Tipo</h3>
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>127 propiedades activas</span>
+            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{propTypes.total || 0} propiedades activas</span>
           </div>
           <Chart options={propertyTypeChart.options} series={propertyTypeChart.series} type="donut" height={200} />
           <div className="grid grid-cols-5 gap-2 mt-4">
-            {[
-              { label: 'Deptos', value: 52, color: chartColors.primary },
-              { label: 'Casas', value: 28, color: chartColors.success },
-              { label: 'PHs', value: 22, color: chartColors.warning },
-              { label: 'Oficinas', value: 15, color: chartColors.purple },
-              { label: 'Locales', value: 10, color: chartColors.pink },
-            ].map((item, i) => (
-              <div key={i} className="text-center">
-                <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: item.color }} />
-                <p className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{item.value}</p>
-                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{item.label}</p>
-              </div>
-            ))}
+            {(propTypes.labels || []).slice(0, 5).map((label, i) => {
+              const colors = [chartColors.primary, chartColors.success, chartColors.warning, chartColors.purple, chartColors.pink];
+              return (
+                <div key={i} className="text-center">
+                  <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: colors[i % colors.length] }} />
+                  <p className={`text-xs font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{(propTypes.series || [])[i] || 0}</p>
+                  <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{label}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -658,12 +561,12 @@ const DashboardEjecutivo = () => {
       {/* Footer Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-6">
         {[
-          { label: 'Visitas Web', value: '12.4K', change: '+8%', up: true },
-          { label: 'Consultas', value: '284', change: '+12%', up: true },
-          { label: 'Tiempo Resp.', value: '2.4h', change: '-15%', up: true },
-          { label: 'Satisfacción', value: '94%', change: '+2%', up: true },
-          { label: 'NPS Score', value: '72', change: '+5', up: true },
-          { label: 'Retención', value: '89%', change: '+3%', up: true },
+          { label: 'Consultas', value: String(footer.consultasTotal ?? 0), change: '', up: true },
+          { label: 'Tiempo Resp.', value: footer.tiempoRespuesta || '0h', change: '', up: true },
+          { label: 'Satisfacción', value: footer.satisfaccion || '0%', change: '', up: true },
+          { label: 'Retención', value: footer.retencion || '0%', change: '', up: true },
+          { label: 'Leads Nuevos/Mes', value: String(fm.clientesNuevosMes ?? 0), change: '', up: true },
+          { label: 'Props. Disp.', value: String(fm.propiedadesDisponibles ?? 0), change: '', up: true },
         ].map((stat, i) => (
           <div key={i} className={`${cardClass} !p-4`}>
             <div className="flex items-center justify-between">

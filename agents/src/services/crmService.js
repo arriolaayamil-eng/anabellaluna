@@ -70,6 +70,7 @@ export const crmService = {
   // ============ ESTADÍSTICAS ============
   stats: {
     getDashboard: () => api.get('/crm/stats/dashboard'),
+    getOperacionesStats: () => api.get('/crm/stats/operaciones'),
     getPropiedadesStats: () => api.get('/crm/stats/propiedades'),
     getVentasStats: () => api.get('/crm/stats/ventas'),
     getAgentesStats: () => api.get('/crm/stats/agentes'),
@@ -128,6 +129,7 @@ export const crmService = {
     getMetrics: (period = 'monthly') => api.get(`/crm/rewards/metrics?period=${period}`),
     recordLogin: () => api.post('/crm/rewards/record-login', {}),
     calculate: () => api.post('/crm/rewards/calculate', {}),
+    checkMilestones: (hint) => api.post('/crm/rewards/check-milestones', { hint }),
     getSummary: () => api.get('/crm/rewards/summary'),
     getAgentRewards: (agenteId) => api.get(`/crm/rewards/agent/${agenteId}`),
   },
@@ -147,6 +149,7 @@ export const crmService = {
     },
     generate: (data) => api.post('/crm/reports/generate', data),
     sendToERP: (reportId) => api.post('/crm/reports/send-to-erp', { reportId }),
+    sendPdf: (blob, filename, fields = {}) => api.uploadBlob('/crm/reports/send-pdf', blob, filename, fields),
     getHistory: () => api.get('/crm/reports/history'),
   },
 

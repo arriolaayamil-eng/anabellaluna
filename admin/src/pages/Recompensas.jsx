@@ -5,7 +5,8 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const Recompensas = () => {
-  const { currentColor } = useStateContext();
+  const { currentColor, currentMode } = useStateContext();
+  const isDark = currentMode === 'Dark';
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedAgent, setExpandedAgent] = useState(null);
@@ -67,13 +68,18 @@ const Recompensas = () => {
   }), { stars: 0, medals: 0, badges: 0, totalRewards: 0 });
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Gestión" title="Recompensas de Agentes" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaTrophy className="text-amber-500" /> Recompensas de Agentes
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gamificación y logros del equipo</p>
+        </div>
         <button
           onClick={loadSummary}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50"
           style={{ backgroundColor: currentColor }}
         >
           <FaSync className={loading ? 'animate-spin' : ''} /> Actualizar
@@ -82,46 +88,33 @@ const Recompensas = () => {
 
       {/* Global Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-80">Total Estrellas</p>
-              <p className="text-3xl font-bold">{totalStats.stars}</p>
+        {[
+          { title: 'Total Estrellas', value: totalStats.stars, icon: FaStar, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+          { title: 'Total Medallas', value: totalStats.medals, icon: FaMedal, color: '#d97706', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+          { title: 'Total Badges', value: totalStats.badges, icon: FaAward, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { title: 'Total Logros', value: totalStats.totalRewards, icon: FaTrophy, color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+        ].map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <div
+              key={i}
+              className={`rounded-2xl p-6 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+              style={{ borderLeft: `4px solid ${kpi.color}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center`}>
+                  <Icon className="text-lg" style={{ color: kpi.color }} />
+                </div>
+              </div>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
             </div>
-            <FaStar className="text-4xl opacity-50" />
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-80">Total Medallas</p>
-              <p className="text-3xl font-bold">{totalStats.medals}</p>
-            </div>
-            <FaMedal className="text-4xl opacity-50" />
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-80">Total Badges</p>
-              <p className="text-3xl font-bold">{totalStats.badges}</p>
-            </div>
-            <FaAward className="text-4xl opacity-50" />
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl p-4 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-80">Total Logros</p>
-              <p className="text-3xl font-bold">{totalStats.totalRewards}</p>
-            </div>
-            <FaTrophy className="text-4xl opacity-50" />
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Agents Ranking */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+      <div className={`rounded-2xl p-6 border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
         <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
           <FaTrophy style={{ color: currentColor }} /> Ranking de Agentes
         </h3>
@@ -138,7 +131,7 @@ const Recompensas = () => {
         ) : (
           <div className="space-y-3">
             {summary.map((agent, index) => (
-              <div key={agent.agente._id} className="bg-white dark:bg-gray-700 rounded-lg shadow-sm overflow-hidden">
+              <div key={agent.agente._id} className={`rounded-xl overflow-hidden ${isDark ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
                 <div
                   className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   onClick={() => toggleAgent(agent.agente._id)}
@@ -238,7 +231,7 @@ const Recompensas = () => {
       </div>
 
       {/* Legend */}
-      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+      <div className={`mt-6 p-4 rounded-2xl border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
         <h4 className="font-medium text-sm mb-3 dark:text-gray-200">Leyenda de Recompensas</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>

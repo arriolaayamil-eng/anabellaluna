@@ -8,10 +8,12 @@ import {
   useLocation,
 } from 'react-router-dom';
 
-import { Navbar, Footer, Sidebar, ThemeSettings, Celebration } from './components';
+import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
 import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes } from './pages';
 import LoginAgente from './pages/LoginAgente';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { useStateContext } from './contexts/ContextProvider';
 import { authService } from './services/authService';
@@ -36,10 +38,10 @@ const CrmLayout = () => {
         <div
           className="bg-main-bg dark:bg-main-dark-bg min-h-screen w-full transition-all duration-300 ease-in-out"
         >
-          <div className="fixed md:static bg-main-bg dark:bg-main-dark-bg navbar w-full z-40">
+          <div className="bg-main-bg dark:bg-main-dark-bg navbar w-full">
             <Navbar />
           </div>
-          <div>
+          <div className="pt-16 md:pt-0 pb-20 md:pb-0">
             {themeSettings && (<ThemeSettings />)}
             <Outlet />
           </div>
@@ -47,6 +49,8 @@ const CrmLayout = () => {
         </div>
       </div>
       <Celebration />
+      <OnboardingTutorial />
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover theme={currentMode === 'Dark' ? 'dark' : 'light'} />
     </div>
   );
 };

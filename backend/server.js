@@ -22,7 +22,7 @@ const streamifier = require('streamifier');
 const Document = require('./models/Document');
 const Version = require('./models/Version');
 const User = require('./models/User');
-const { router: authRouter, authenticateToken } = require('./auth');
+const { router: authRouter, authenticateToken, agentScopeId } = require('./auth');
 const crmRoutes = require('./routes/crm');
 const auditRoutes = require('./routes/audit');
 const tareasRoutes = require('./routes/tareas');
@@ -41,6 +41,10 @@ const notificationsRoutes = require('./routes/notifications');
 const automationsRoutes = require('./routes/automations');
 const fechasImportantesRoutes = require('./routes/fechasImportantes');
 const globalConfigRoutes = require('./routes/globalConfig');
+const foldersRoutes = require('./routes/folders');
+const dashboardStatsRoutes = require('./routes/dashboardStats');
+const adminDashboardStatsRoutes = require('./routes/adminDashboardStats');
+const adminNotificationsRoutes = require('./routes/adminNotifications');
 const { initReportScheduler } = require('./services/reportScheduler');
 const { initAutomationScheduler } = require('./services/automationScheduler');
 
@@ -78,11 +82,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
-
 // optional request logger (morgan) if installed
 try {
   // eslint-disable-next-line global-require
@@ -112,7 +111,11 @@ app.use('/crm/reports', reportsRoutes);
 app.use('/crm/notifications', notificationsRoutes);
 app.use('/crm/automations', automationsRoutes);
 app.use('/crm/fechas-importantes', fechasImportantesRoutes);
+app.use('/crm/stats', dashboardStatsRoutes);
+app.use('/admin/stats', adminDashboardStatsRoutes);
+app.use('/admin/notifications', adminNotificationsRoutes);
 app.use('/admin/config', globalConfigRoutes);
+app.use('/files', foldersRoutes);
 
 // Generic CRM routes (links) - MUST come after specific routes
 app.use('/crm', crmRoutes);
@@ -342,6 +345,7 @@ app.post('/documents', authenticateToken, upload.array('files'), async (req, res
     const scopeId = agentScopeId(req);
     const categoria = req.body && req.body.categoria ? String(req.body.categoria) : undefined;
     const relacionado = req.body && req.body.relacionado ? String(req.body.relacionado) : undefined;
+    const folderId = req.body && req.body.folder ? String(req.body.folder) : null;
     const storageProvider = String(process.env.STORAGE_PROVIDER || 'minio').toLowerCase();
     const useMinio = storageProvider === 'minio' && isMinioConfigured();
     if (storageProvider === 'minio' && !useMinio) {
@@ -386,6 +390,7 @@ app.post('/documents', authenticateToken, upload.array('files'), async (req, res
       const doc = new Document({
         nombre: f.originalname,
         tipo,
+        mimetype: f.mimetype || '',
         categoria: categoria || undefined,
         tamano,
         url,
@@ -394,6 +399,7 @@ app.post('/documents', authenticateToken, upload.array('files'), async (req, res
         bucket: useMinio ? resolveMinioBucket(domain) : '',
         object_key: objectKey,
         agenteId: scopeId || '',
+        folder: folderId || null,
       });
       await doc.save();
       if (!doc.url) {

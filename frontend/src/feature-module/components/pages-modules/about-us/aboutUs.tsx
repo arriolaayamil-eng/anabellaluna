@@ -1,7 +1,27 @@
 import Breadcrumb from "../../../../core/common/Breadcrumb/breadcrumb";
 import ImageWithBasePath from "../../../../core/imageWithBasePath";
+import { useState, useEffect } from "react";
+import publicService from "../../../../services/publicService";
+
+const formatCount = (n: number) => {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K+`;
+  return `${n}+`;
+};
 
 const AboutUs = () => {
+  const [stats, setStats] = useState({ properties: 0, agents: 0, sales: 0, rentals: 0 });
+
+  useEffect(() => {
+    let m = true;
+    (async () => {
+      try {
+        const res = await publicService.getStats();
+        if (m) setStats(res);
+      } catch { /* keep defaults */ }
+    })();
+    return () => { m = false; };
+  }, []);
+
   return (
     <>
       {/* ========================
@@ -64,7 +84,7 @@ const AboutUs = () => {
                           className="img-fluid me-3"
                         />
                         <div>
-                          <h4 className="mb-1">50K</h4>
+                          <h4 className="mb-1">{formatCount(stats.properties)}</h4>
                           <p className="mb-0">Publicaciones Agregadas</p>
                         </div>
                       </div>
@@ -80,7 +100,7 @@ const AboutUs = () => {
                           className="img-fluid me-3"
                         />
                         <div>
-                          <h4 className="mb-1">3000+</h4>
+                          <h4 className="mb-1">{formatCount(stats.agents)}</h4>
                           <p className="mb-0">Agentes Publicados</p>
                         </div>
                       </div>
@@ -96,8 +116,8 @@ const AboutUs = () => {
                           className="img-fluid me-3"
                         />
                         <div>
-                          <h4 className="mb-1">2000+</h4>
-                          <p className="mb-0">Ventas Concretadas</p>
+                          <h4 className="mb-1">{formatCount(stats.sales)}</h4>
+                          <p className="mb-0">En Venta</p>
                         </div>
                       </div>
                     </div>
@@ -112,8 +132,8 @@ const AboutUs = () => {
                           className="img-fluid me-3"
                         />
                         <div>
-                          <h4 className="mb-1">5000+</h4>
-                          <p className="mb-0">Usuarios Registrados</p>
+                          <h4 className="mb-1">{formatCount(stats.rentals)}</h4>
+                          <p className="mb-0">En Alquiler</p>
                         </div>
                       </div>
                     </div>
@@ -197,7 +217,7 @@ const AboutUs = () => {
                 </div>
                 {/* start row */}
                 <div className="row align-items-center row-gap-4">
-                  <div className="col-md-6 col-lg-2 d-flex">
+                  <div className="col-4 col-md-4 col-lg-2 d-flex">
                     <div className="card border-0 bg-light shadow-none flex-fill mb-0">
                       <div className="card-body text-center">
                         <ImageWithBasePath
@@ -209,7 +229,7 @@ const AboutUs = () => {
                     </div>
                   </div>
                   {/* end col */}
-                  <div className="col-md-6 col-lg-2 d-flex">
+                  <div className="col-4 col-md-4 col-lg-2 d-flex">
                     <div className="card border-0 bg-light shadow-none flex-fill mb-0">
                       <div className="card-body text-center">
                         <ImageWithBasePath
@@ -221,7 +241,7 @@ const AboutUs = () => {
                     </div>
                   </div>
                   {/* end col */}
-                  <div className="col-md-6 col-lg-2 d-flex">
+                  <div className="col-4 col-md-4 col-lg-2 d-flex">
                     <div className="card border-0 bg-light shadow-none flex-fill mb-0">
                       <div className="card-body text-center">
                         <ImageWithBasePath
@@ -233,7 +253,7 @@ const AboutUs = () => {
                     </div>
                   </div>
                   {/* end col */}
-                  <div className="col-md-6 col-lg-2 d-flex">
+                  <div className="col-4 col-md-4 col-lg-2 d-flex">
                     <div className="card border-0 bg-light shadow-none flex-fill mb-0">
                       <div className="card-body text-center">
                         <ImageWithBasePath
@@ -245,7 +265,7 @@ const AboutUs = () => {
                     </div>
                   </div>
                   {/* end col */}
-                  <div className="col-md-6 col-lg-2 d-flex">
+                  <div className="col-4 col-md-4 col-lg-2 d-flex">
                     <div className="card border-0 bg-light shadow-none flex-fill mb-0">
                       <div className="card-body text-center">
                         <ImageWithBasePath
@@ -257,7 +277,7 @@ const AboutUs = () => {
                     </div>
                   </div>
                   {/* end col */}
-                  <div className="col-md-6 col-lg-2 d-flex">
+                  <div className="col-4 col-md-4 col-lg-2 d-flex">
                     <div className="card border-0 bg-light shadow-none flex-fill mb-0">
                       <div className="card-body text-center">
                         <ImageWithBasePath

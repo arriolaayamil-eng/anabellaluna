@@ -1,17 +1,12 @@
 const express = require('express');
 const Activity = require('../models/Activity');
 const Cliente = require('../models/Cliente');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const { triggerFollowUpAutomation } = require('../services/automationScheduler');
 
 const router = express.Router();
 
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
-
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { q, clientId, propertyId, type } = req.query;
     const scopeId = agentScopeId(req);
@@ -30,7 +25,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const item = await Activity.findById(req.params.id).lean();
     if (!item) return res.status(404).json({ error: 'Not found' });
@@ -43,7 +38,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
@@ -80,7 +75,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -97,7 +92,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };

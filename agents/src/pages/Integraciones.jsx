@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { FaCheck, FaTimes, FaGoogle, FaSync } from 'react-icons/fa';
 import { Header } from '../components';
+import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const Integraciones = () => {
+  const { currentMode } = useStateContext();
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +61,7 @@ const Integraciones = () => {
   };
 
   const disconnectGoogleCalendar = async () => {
-    if (!window.confirm('¿Desconectar Google Calendar?')) return;
+    if (!(await confirmToast('¿Desconectar Google Calendar?'))) return;
     setConnecting(true);
     setError('');
     try {
@@ -72,8 +76,13 @@ const Integraciones = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
-      <Header category="Configuración" title="Integraciones" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
+          <FaGoogle className="text-blue-500" /> Integraciones
+        </h2>
+        <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Conecta servicios externos</p>
+      </div>
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
@@ -94,7 +103,7 @@ const Integraciones = () => {
       ) : (
         <div className="max-w-xl">
           {/* Google Calendar Card */}
-          <div className="border dark:border-gray-700 rounded-xl p-6 hover:shadow-lg transition-shadow">
+          <div className={`rounded-2xl p-6 border ${currentMode === 'Dark' ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
                 <FaGoogle className="text-2xl text-blue-600 dark:text-blue-400" />

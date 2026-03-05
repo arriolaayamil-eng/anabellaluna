@@ -43,9 +43,14 @@ const AnalyticsMarketing = () => {
   const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Marketing" title="Analytics de Marketing" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
+            <FaChartLine className="text-emerald-500" /> Analytics de Marketing
+          </h2>
+          <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Métricas y rendimiento</p>
+        </div>
         <div className="flex gap-2">
           <button className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
             <FaFilter /> Filtros

@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -211,7 +213,7 @@ const ClientesCRM = () => {
   const handleDeleteCliente = async (cliente) => {
     const id = cliente?._id || cliente?.id;
     if (!id) return;
-    if (!window.confirm('¿Eliminar este cliente?')) return;
+    if (!(await confirmToast('¿Eliminar este cliente?'))) return;
 
     setClientesError('');
     try {
@@ -323,7 +325,8 @@ const ClientesCRM = () => {
     { name: 'Conversiones', data: [3, 5, 4, 7, 9, cerrados] },
   ];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:shadow-lg hover:scale-[1.01]';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
@@ -384,8 +387,13 @@ const ClientesCRM = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="CRM" title="👥 CRM de Clientes Avanzado" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaUsers className="text-blue-500" /> CRM de Clientes
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión avanzada de leads y clientes</p>
+      </div>
 
       {(clientesError || clientesLoading) && (
         <div className="mb-4">
@@ -405,26 +413,26 @@ const ClientesCRM = () => {
         {vistaActual !== 'dashboard' && (
           <button 
             onClick={volverAlDashboard}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
           >
             <FaArrowLeft /> Volver
           </button>
         )}
         <button 
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaPlus /> Nuevo Cliente
         </button>
         {vistaActual === 'dashboard' && (
           <button 
             onClick={() => setVistaActual('lista')}
-            className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
           >
-            <FaThLarge /> Ver Todos los Clientes
+            <FaThLarge /> Ver Todos
           </button>
         )}
-        <button className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors">
+        <button className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
           <FaSearch /> Búsqueda Avanzada
         </button>
       </div>
@@ -432,41 +440,39 @@ const ClientesCRM = () => {
       {/* Vista Dashboard */}
       {vistaActual === 'dashboard' && (
         <>
-      {/* KPIs de Clientes - Estilo moderno con tendencias */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {kpisClientes.map((kpi, i) => (
-          <div 
-            key={i} 
-            onClick={() => {
-              if (i === 0) setShowModalTotalClientes(true);
-              else if (i === 1) setShowModalLeadsCalientes(true);
-              else if (i === 2) setShowModalEnNegociacion(true);
-              else if (i === 3) setShowModalConversion(true);
-            }}
-            className={`${cardBase} overflow-hidden relative cursor-pointer`}
-          >
-            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
-                    {kpi.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">{kpi.title}</p>
-                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">{kpi.value}</p>
-                  </div>
+      {/* KPIs de Clientes */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {kpisClientes.map((kpi, i) => {
+          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-red-500 to-red-600': '#ef4444', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6' };
+          const accentColor = colorMap[kpi.color] || '#6366f1';
+          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20' };
+          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+          return (
+            <div 
+              key={i} 
+              onClick={() => {
+                if (i === 0) setShowModalTotalClientes(true);
+                else if (i === 1) setShowModalLeadsCalientes(true);
+                else if (i === 2) setShowModalEnNegociacion(true);
+                else if (i === 3) setShowModalConversion(true);
+              }}
+              className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+              style={{ borderLeft: `4px solid ${accentColor}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
-                    {kpi.trend}
-                  </span>
-                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30">
+                  {kpi.trend}
+                </span>
               </div>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Gráficos Principales - ApexCharts */}

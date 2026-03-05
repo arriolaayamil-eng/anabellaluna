@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
 import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase, FaPercentage, FaFunnelDollar, FaArrowUp, FaHeart, FaEye, FaUserClock, FaHandshake, FaThermometerHalf, FaGlobe, FaDesktop, FaMobileAlt, FaLink, FaMousePointer } from 'react-icons/fa';
 import Chart from 'react-apexcharts';
 import { Header } from '../components';
@@ -85,6 +87,7 @@ const ClientesCRM = () => {
   const [clientesEjemplo, setClientesEjemplo] = useState([]);
   const [clientesLoading, setClientesLoading] = useState(false);
   const [clientesError, setClientesError] = useState('');
+  const [dashStats, setDashStats] = useState(null);
 
   const normalizeCliente = useCallback((item) => {
     const md = (item && item.metadata) ? item.metadata : {};
@@ -237,6 +240,7 @@ const ClientesCRM = () => {
 
   useEffect(() => {
     reloadClientes();
+    crmService.stats.getDashboard().then(setDashStats).catch(() => {});
   }, [reloadClientes]);
 
   const openCreateModal = () => {
@@ -255,7 +259,7 @@ const ClientesCRM = () => {
   const handleDeleteCliente = async (cliente) => {
     const id = cliente?._id || cliente?.id;
     if (!id) return;
-    if (!window.confirm('¿Eliminar este cliente?')) return;
+    if (!(await confirmToast('¿Eliminar este cliente?'))) return;
 
     setClientesError('');
     try {
@@ -272,10 +276,10 @@ const ClientesCRM = () => {
 
   // KPIs de Clientes
   const kpisClientes = [
-    { title: 'Total Clientes', value: clientesEjemplo.length, desc: '23 nuevos este mes', icon: <FaUsers />, color: 'from-blue-500 to-blue-600' },
+    { title: 'Total Clientes', value: clientesEjemplo.length, desc: `${dashStats?.clientesNuevosMes ?? 0} nuevos este mes`, icon: <FaUsers />, color: 'from-blue-500 to-blue-600' },
     { title: 'Leads Calientes', value: clientesEjemplo.filter(c => c.scoring >= 80).length, desc: 'Scoring > 80', icon: <FaFire />, color: 'from-red-500 to-red-600' },
     { title: 'En Negociación', value: clientesEjemplo.filter(c => c.estado === 'Negociación').length, desc: 'Próximos a cerrar', icon: <FaChartLine />, color: 'from-green-500 to-green-600' },
-    { title: 'Conversión', value: '32%', desc: 'Lead → Cliente', icon: <FaTags />, color: 'from-purple-500 to-purple-600' },
+    { title: 'Conversión', value: `${clientesEjemplo.length > 0 ? Math.round((clientesEjemplo.filter(c => c.estado === 'Cerrado').length / clientesEjemplo.length) * 100) : 0}%`, desc: 'Lead → Cliente', icon: <FaTags />, color: 'from-purple-500 to-purple-600' },
   ];
 
   // Datos para gráficos
@@ -418,21 +422,22 @@ const ClientesCRM = () => {
   const presupuestoBarSeries = [{ name: 'Clientes', data: presupuestoRangos.map(p => p.cantidad) }];
 
   // ApexCharts - Tendencia de Captación (Area)
+  const capMensual = dashStats?.captacionMensual || {};
   const captacionAreaOptions = {
     chart: { type: 'area', height: 200, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false }, sparkline: { enabled: false } },
     colors: ['#3B82F6', '#10B981'],
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth', width: 2.5 },
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
-    xaxis: { categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    xaxis: { categories: capMensual.meses || ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
     yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
     grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
     legend: { show: true, position: 'top', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
   const captacionAreaSeries = [
-    { name: 'Nuevos Leads', data: [12, 18, 15, 22, 28, 24] },
-    { name: 'Convertidos', data: [3, 5, 4, 7, 9, 8] },
+    { name: 'Nuevos Leads', data: capMensual.nuevosLeads || [0] },
+    { name: 'Convertidos', data: capMensual.convertidos || [0] },
   ];
 
   // ApexCharts - Tasa de Conversión (Radial Gauge)
@@ -456,7 +461,7 @@ const ClientesCRM = () => {
     stroke: { lineCap: 'round' },
     labels: ['Conversión'],
   };
-  const conversionGaugeSeries = [conversionRate || 32];
+  const conversionGaugeSeries = [conversionRate];
 
   // ApexCharts - Engagement Score (actividad)
   const engagementAvg = clientesEjemplo.length > 0 
@@ -478,7 +483,7 @@ const ClientesCRM = () => {
     stroke: { lineCap: 'round' },
     labels: ['Engagement'],
   };
-  const engagementSeries = [engagementAvg || 68];
+  const engagementSeries = [engagementAvg];
 
   // ApexCharts - Zonas de Interés (Treemap simulado con Bar)
   const zonasData = [...new Set(clientesEjemplo.map(c => c.zonaInteres).filter(Boolean))].slice(0, 5).map(zona => ({
@@ -498,7 +503,8 @@ const ClientesCRM = () => {
   };
   const zonasBarSeries = [{ name: 'Clientes', data: zonasData.length > 0 ? zonasData.map(z => z.cantidad) : [8, 6, 5] }];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-[1.02]';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   // Clientes filtrados por tipo
   const clientesFiltrados = clientesEjemplo.filter((c) => {
@@ -541,6 +547,11 @@ const ClientesCRM = () => {
         setClienteSeleccionado(normalized);
       }
 
+      // Check milestones (non-blocking)
+      if (!editingClienteId) {
+        crmService.rewards.checkMilestones('client').catch(() => {});
+      }
+
       setShowModal(false);
       setEditingClienteId(null);
       setNuevoCliente(createEmptyClienteForm());
@@ -568,8 +579,13 @@ const ClientesCRM = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="CRM" title="👥 CRM de Clientes Avanzado" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaUsers className="text-blue-500" /> CRM de Clientes
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión avanzada de leads y clientes</p>
+      </div>
 
       {(clientesError || clientesLoading) && (
         <div className="mb-4">
@@ -731,8 +747,8 @@ const ClientesCRM = () => {
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-gray-600 dark:text-gray-400">Actual</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <FaArrowUp className="text-xs" /> +7%
+              <span className={`font-bold flex items-center gap-1 ${conversionRate >= 25 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                {conversionRate >= 25 ? <FaArrowUp className="text-xs" /> : null} {conversionRate > 25 ? '+' : ''}{conversionRate - 25}%
               </span>
             </div>
           </div>
@@ -800,7 +816,7 @@ const ClientesCRM = () => {
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Canales de captación</p>
           <Chart options={origenBarOptions} series={origenBarSeries} type="bar" height={160} />
           <div className="text-center mt-2 pt-2 border-t dark:border-gray-700">
-            <p className="text-xs text-gray-500">Canal más efectivo: <span className="font-bold text-blue-600 dark:text-blue-400">Web</span></p>
+            <p className="text-xs text-gray-500">Canal más efectivo: <span className="font-bold text-blue-600 dark:text-blue-400">{dashStats?.topOrigen || 'Web'}</span></p>
           </div>
         </div>
 
@@ -834,19 +850,19 @@ const ClientesCRM = () => {
           <Chart options={captacionAreaOptions} series={captacionAreaSeries} type="area" height={200} />
           <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t dark:border-gray-700">
             <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">119</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{capMensual.totalLeads ?? 0}</p>
               <p className="text-xs text-gray-500">Total Leads</p>
             </div>
             <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">36</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{capMensual.totalConvertidos ?? 0}</p>
               <p className="text-xs text-gray-500">Convertidos</p>
             </div>
             <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">30%</p>
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{capMensual.totalLeads > 0 ? Math.round((capMensual.totalConvertidos / capMensual.totalLeads) * 100) : 0}%</p>
               <p className="text-xs text-gray-500">Conversión</p>
             </div>
             <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">+18%</p>
+              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{dashStats?.kpis?.leadsActivosTrend || '+0%'}</p>
               <p className="text-xs text-gray-500">vs Ant.</p>
             </div>
           </div>

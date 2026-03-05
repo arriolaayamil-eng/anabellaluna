@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MdOutlineCancel } from 'react-icons/md';
-import { FaBell, FaExclamationTriangle, FaInfoCircle, FaCheckCircle, FaTimesCircle, FaBirthdayCake, FaUserPlus, FaHandshake, FaFileAlt, FaClock, FaStar, FaCalendarAlt } from 'react-icons/fa';
+import { FaBell, FaExclamationTriangle, FaInfoCircle, FaCheckCircle, FaTimesCircle, FaBirthdayCake, FaUserPlus, FaHandshake, FaFileAlt, FaClock, FaStar, FaCalendarAlt, FaBuilding, FaDollarSign, FaChartLine, FaClipboardList } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { Button } from '.';
 import notificationService from '../services/notificationService';
@@ -27,8 +27,16 @@ const Alertas = () => {
       vencimiento_documento: { icon: <FaTimesCircle />, color: 'bg-orange-50 dark:bg-orange-900/20', borderColor: 'border-orange-500', textColor: 'text-orange-600 dark:text-orange-400' },
       hito: { icon: <FaStar />, color: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-500', textColor: 'text-amber-600 dark:text-amber-400' },
       sistema: { icon: <FaInfoCircle />, color: 'bg-gray-50 dark:bg-gray-900/20', borderColor: 'border-gray-500', textColor: 'text-gray-600 dark:text-gray-400' },
-      tarea: { icon: <FaClock />, color: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-500', textColor: 'text-blue-600 dark:text-blue-400' },
+      tarea: { icon: <FaClipboardList />, color: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-500', textColor: 'text-blue-600 dark:text-blue-400' },
       cita: { icon: <FaCalendarAlt />, color: 'bg-violet-50 dark:bg-violet-900/20', borderColor: 'border-violet-500', textColor: 'text-violet-600 dark:text-violet-400' },
+      fecha_importante: { icon: <FaCalendarAlt />, color: 'bg-violet-50 dark:bg-violet-900/20', borderColor: 'border-violet-500', textColor: 'text-violet-600 dark:text-violet-400' },
+      operacion_nueva: { icon: <FaDollarSign />, color: 'bg-green-50 dark:bg-green-900/20', borderColor: 'border-green-500', textColor: 'text-green-600 dark:text-green-400' },
+      consulta_web: { icon: <FaUserPlus />, color: 'bg-cyan-50 dark:bg-cyan-900/20', borderColor: 'border-cyan-500', textColor: 'text-cyan-600 dark:text-cyan-400' },
+      agente_rendimiento: { icon: <FaChartLine />, color: 'bg-indigo-50 dark:bg-indigo-900/20', borderColor: 'border-indigo-500', textColor: 'text-indigo-600 dark:text-indigo-400' },
+      contrato_vencimiento: { icon: <FaTimesCircle />, color: 'bg-orange-50 dark:bg-orange-900/20', borderColor: 'border-orange-500', textColor: 'text-orange-600 dark:text-orange-400' },
+      propiedad_estado: { icon: <FaBuilding />, color: 'bg-emerald-50 dark:bg-emerald-900/20', borderColor: 'border-emerald-500', textColor: 'text-emerald-600 dark:text-emerald-400' },
+      meta_cumplida: { icon: <FaCheckCircle />, color: 'bg-green-50 dark:bg-green-900/20', borderColor: 'border-green-500', textColor: 'text-green-600 dark:text-green-400' },
+      reporte_diario: { icon: <FaClipboardList />, color: 'bg-slate-50 dark:bg-slate-900/20', borderColor: 'border-slate-500', textColor: 'text-slate-600 dark:text-slate-400' },
     };
     
     // Override colors for urgent priority

@@ -18,6 +18,10 @@ const BlogPost = require('../models/BlogPost');
 const minio = require('../minio');
 const Cita = require('../models/Cita');
 const googleCalendar = require('../services/googleCalendar');
+const Testimonial = require('../models/Testimonial');
+const ContactMessage = require('../models/ContactMessage');
+const FAQ = require('../models/FAQ');
+const GlobalConfig = require('../models/GlobalConfig');
 const { triggerFollowUpAutomation } = require('../services/automationScheduler');
 
 const router = express.Router();
@@ -250,15 +254,162 @@ router.get('/media/:id', async (req, res) => {
   }
 });
 
+// Stats
+router.get('/stats', async (req, res) => {
+  try {
+    const [propertyCount, agentCount] = await Promise.all([
+      Propiedad.countDocuments({}),
+      Agente.countDocuments({}),
+    ]);
+
+    // Count by operation
+    const salesCount = await Propiedad.countDocuments({ 'metadata.operacion': { $regex: 'venta', $options: 'i' } });
+    const rentalCount = await Propiedad.countDocuments({ 'metadata.operacion': { $regex: 'alquil', $options: 'i' } });
+
+    return res.json({
+      properties: propertyCount,
+      agents: agentCount,
+      sales: salesCount,
+      rentals: rentalCount,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Property stats (cities and types aggregation)
+router.get('/property-stats', async (req, res) => {
+  try {
+    const [citiesAgg, typesAgg] = await Promise.all([
+      Propiedad.aggregate([
+        { $match: { 'metadata.ciudad': { $exists: true, $ne: '' } } },
+        { $group: { _id: '$metadata.ciudad', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+      ]),
+      Propiedad.aggregate([
+        { $match: { 'metadata.tipo': { $exists: true, $ne: '' } } },
+        { $group: { _id: '$metadata.tipo', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+      ]),
+    ]);
+
+    return res.json({
+      cities: citiesAgg.map((c) => ({ name: c._id, count: c.count })),
+      types: typesAgg.map((t) => ({ name: t._id, count: t.count })),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Agents
+router.get('/agents', async (req, res) => {
+  try {
+    const agents = await Agente.find({}).sort({ nombre: 1 }).lean();
+
+    // Count properties per agent
+    const agentIds = agents.map((a) => String(a._id));
+    const propCounts = await Propiedad.aggregate([
+      { $match: { agentId: { $in: agentIds } } },
+      { $group: { _id: '$agentId', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(propCounts.map((r) => [String(r._id), r.count]));
+
+    const items = agents.map((a) => ({
+      id: String(a._id),
+      name: a.nombre || '',
+      email: a.email || '',
+      phone: a.telefono || '',
+      cargo: a.cargo || '',
+      bio: a.bio || '',
+      especialidad: a.especialidad || '',
+      avatarUrl: a.avatar || (a.metadata && (a.metadata.avatarUrl || a.metadata.avatar_url)) || '',
+      redesSociales: a.redesSociales || {},
+      propertyCount: countMap.get(String(a._id)) || 0,
+    }));
+
+    return res.json({ items });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/agents/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim();
+    if (!id || !isObjectId(id)) return res.status(400).json({ error: 'invalid agent id' });
+
+    const agent = await Agente.findById(id).lean();
+    if (!agent) return res.status(404).json({ error: 'agent not found' });
+
+    // Get agent's properties
+    const props = await Propiedad.find({ agentId: String(agent._id) }).sort({ updatedAt: -1 }).limit(50).lean();
+    const coverMap = await getPropertyCoverMap(props.map((p) => p._id));
+
+    const properties = props.map((p) => {
+      const coverUrl = coverMap.get(String(p._id)) || '';
+      return mapPropertyCard(p, agent, coverUrl);
+    });
+
+    return res.json({
+      agent: {
+        id: String(agent._id),
+        name: agent.nombre || '',
+        email: agent.email || '',
+        phone: agent.telefono || '',
+        cargo: agent.cargo || '',
+        bio: agent.bio || '',
+        especialidad: agent.especialidad || '',
+        avatarUrl: agent.avatar || (agent.metadata && (agent.metadata.avatarUrl || agent.metadata.avatar_url)) || '',
+        redesSociales: agent.redesSociales || {},
+        propertyCount: properties.length,
+      },
+      properties,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Properties
 router.get('/properties', async (req, res) => {
   try {
-    const { operation } = req.query;
+    const { operation, city, beds, baths, minPrice, maxPrice, type, search } = req.query;
     const op = String(operation || '').toLowerCase();
 
     const filter = {};
     if (op === 'rent') filter['metadata.operacion'] = { $regex: 'alquil', $options: 'i' };
     if (op === 'buy') filter['metadata.operacion'] = { $regex: 'venta', $options: 'i' };
+
+    if (city) filter['metadata.ciudad'] = { $regex: String(city), $options: 'i' };
+    if (beds) filter['metadata.dormitorios'] = { $gte: safeNumber(beds) };
+    if (baths) filter['metadata.baños'] = { $gte: safeNumber(baths) };
+    if (type) filter['metadata.tipo'] = { $regex: String(type), $options: 'i' };
+
+    if (minPrice || maxPrice) {
+      const priceFilter = {};
+      if (minPrice) priceFilter.$gte = safeNumber(minPrice);
+      if (maxPrice) priceFilter.$lte = safeNumber(maxPrice);
+      filter.$or = [
+        { price: priceFilter },
+        { 'metadata.precio': priceFilter },
+      ];
+    }
+
+    if (search) {
+      const s = String(search);
+      filter.$or = [
+        ...(filter.$or || []),
+        { title: { $regex: s, $options: 'i' } },
+        { 'metadata.titulo': { $regex: s, $options: 'i' } },
+        { address: { $regex: s, $options: 'i' } },
+        { 'metadata.direccion': { $regex: s, $options: 'i' } },
+        { 'metadata.ciudad': { $regex: s, $options: 'i' } },
+        { 'metadata.barrio': { $regex: s, $options: 'i' } },
+      ];
+    }
 
     const props = await Propiedad.find(filter).sort({ updatedAt: -1 }).limit(200).lean();
 
@@ -895,6 +1046,95 @@ router.get('/blog/posts/:slug', async (req, res) => {
     };
 
     return res.json({ item });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Testimonials
+router.get('/testimonials', async (req, res) => {
+  try {
+    const items = await Testimonial.find({ activo: true }).sort({ orden: 1, createdAt: -1 }).lean();
+    return res.json({
+      items: items.map((t) => ({
+        id: String(t._id),
+        name: t.nombre,
+        avatar: t.avatar || '',
+        text: t.texto,
+        rating: t.rating || 5,
+      })),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// FAQs
+router.get('/faqs', async (req, res) => {
+  try {
+    const items = await FAQ.find({ activo: true }).sort({ orden: 1, createdAt: -1 }).lean();
+    return res.json({
+      items: items.map((f) => ({
+        id: String(f._id),
+        question: f.pregunta,
+        answer: f.respuesta,
+        category: f.categoria || '',
+      })),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Contact form
+router.post('/contact', async (req, res) => {
+  try {
+    const { nombre, email, telefono, asunto, mensaje } = req.body || {};
+    if (!nombre || !mensaje) return res.status(400).json({ error: 'nombre and mensaje are required' });
+    const msg = await ContactMessage.create({ nombre, email, telefono, asunto, mensaje });
+    return res.json({ ok: true, id: String(msg._id) });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Gallery (property cover images)
+router.get('/gallery', async (req, res) => {
+  try {
+    const props = await Propiedad.find({}).sort({ updatedAt: -1 }).limit(30).lean();
+    const coverMap = await getPropertyCoverMap(props.map((p) => p._id));
+    const images = [];
+    for (const p of props) {
+      const url = coverMap.get(String(p._id));
+      if (url) {
+        images.push({
+          id: String(p._id),
+          url,
+          title: p.title || (p.metadata && p.metadata.titulo) || '',
+          slug: p.slug || String(p._id),
+        });
+      }
+    }
+    return res.json({ items: images });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Site config (public info about the real estate company)
+router.get('/site-config', async (req, res) => {
+  try {
+    const cfg = await GlobalConfig.findOne({ key: 'site_config' }).lean();
+    const data = (cfg && cfg.value) || {};
+    return res.json({
+      name: data.name || 'Anabella Luna Propiedades',
+      phone: data.phone || '',
+      email: data.email || '',
+      address: data.address || '',
+      whatsapp: data.whatsapp || '',
+      socialMedia: data.socialMedia || {},
+      logo: data.logo || '',
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

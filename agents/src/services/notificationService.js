@@ -56,6 +56,12 @@ const notificationService = {
     const response = await api.delete('/crm/notifications/clear-read');
     return response;
   },
+
+  // Trigger notification generation from real business events
+  generateNotifications: async () => {
+    const response = await api.post('/crm/notifications/generate', {});
+    return response;
+  },
 };
 
 export default notificationService;

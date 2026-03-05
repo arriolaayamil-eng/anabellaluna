@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const FechaImportante = require('../models/FechaImportante');
 const fechasImportantesArgentina = require('../seeds/fechasImportantesArgentina');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, requireCRMUser } = require('../auth');
 
 // Seed initial dates (run once or to reset)
-router.post('/seed', authenticateToken, async (req, res) => {
+router.post('/seed', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     for (const fecha of fechasImportantesArgentina) {
       await FechaImportante.findOneAndUpdate(
@@ -22,7 +22,7 @@ router.post('/seed', authenticateToken, async (req, res) => {
 });
 
 // Get all important dates
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const fechas = await FechaImportante.find().sort({ mes: 1, dia: 1 }).lean();
     res.json(fechas);
@@ -32,7 +32,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get active important dates
-router.get('/activas', authenticateToken, async (req, res) => {
+router.get('/activas', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const fechas = await FechaImportante.find({ activo: true }).sort({ mes: 1, dia: 1 }).lean();
     res.json(fechas);
@@ -42,7 +42,7 @@ router.get('/activas', authenticateToken, async (req, res) => {
 });
 
 // Get upcoming dates (next 30 days)
-router.get('/proximas', authenticateToken, async (req, res) => {
+router.get('/proximas', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const today = new Date();
     const fechas = await FechaImportante.find({ activo: true }).lean();
@@ -64,7 +64,7 @@ router.get('/proximas', authenticateToken, async (req, res) => {
 });
 
 // Get single date by codigo
-router.get('/:codigo', authenticateToken, async (req, res) => {
+router.get('/:codigo', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const fecha = await FechaImportante.findOne({ codigo: req.params.codigo }).lean();
     if (!fecha) {
@@ -77,7 +77,7 @@ router.get('/:codigo', authenticateToken, async (req, res) => {
 });
 
 // Update date (toggle active, update templates, etc.)
-router.put('/:codigo', authenticateToken, async (req, res) => {
+router.put('/:codigo', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { plantillaTitulo, plantillaMensaje, prioridad, activo, segmentacion } = req.body;
     const updateData = {};
@@ -105,7 +105,7 @@ router.put('/:codigo', authenticateToken, async (req, res) => {
 });
 
 // Toggle active status
-router.patch('/:codigo/toggle', authenticateToken, async (req, res) => {
+router.patch('/:codigo/toggle', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const fecha = await FechaImportante.findOne({ codigo: req.params.codigo });
     if (!fecha) {
@@ -154,7 +154,7 @@ function calcularFechaVariable(fecha, year) {
 }
 
 // Get calculated dates for current year
-router.get('/calculadas/:year', authenticateToken, async (req, res) => {
+router.get('/calculadas/:year', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const year = parseInt(req.params.year) || new Date().getFullYear();
     const fechas = await FechaImportante.find({ activo: true }).lean();

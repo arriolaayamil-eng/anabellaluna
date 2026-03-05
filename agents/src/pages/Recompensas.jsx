@@ -5,7 +5,7 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const Recompensas = () => {
-  const { currentColor } = useStateContext();
+  const { currentColor, currentMode } = useStateContext();
   const [rewards, setRewards] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +72,8 @@ const Recompensas = () => {
   };
 
   const seniorityData = getSeniorityData();
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   const groupedRewards = {
     stars: { title: 'Estrellas de Actividad', icon: <FaStar className="text-yellow-400" />, items: stars, color: 'yellow' },
@@ -81,13 +82,18 @@ const Recompensas = () => {
   };
 
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Mi Panel" title="Mis Recompensas" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaTrophy className="text-amber-500" /> Mis Recompensas
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Logros y gamificación</p>
+        </div>
         <button
           onClick={handleCalculate}
           disabled={calculating}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50"
           style={{ backgroundColor: currentColor }}
         >
           <FaSync className={calculating ? 'animate-spin' : ''} /> Actualizar

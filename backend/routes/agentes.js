@@ -3,14 +3,10 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const Agente = require('../models/Agente');
 const User = require('../models/User');
-const { authenticateToken, requireRole } = require('../auth');
+const AgentMetrics = require('../models/AgentMetrics');
+const { authenticateToken, requireRole, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
-
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
 
 async function generateUniqueUsername() {
   for (let i = 0; i < 10; i += 1) {
@@ -22,7 +18,7 @@ async function generateUniqueUsername() {
   throw new Error('failed to generate unique username');
 }
 
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { q } = req.query;
     const scopeId = agentScopeId(req);
@@ -33,7 +29,7 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     if (scopeId && scopeId !== String(req.params.id)) return res.status(403).json({ error: 'forbidden' });
@@ -87,7 +83,7 @@ router.post('/create-with-user', authenticateToken, requireRole('admin'), async 
   }
 });
 
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     if (scopeId && scopeId !== String(req.params.id)) return res.status(403).json({ error: 'forbidden' });
@@ -151,6 +147,11 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
       // Generate a consistent color based on agent name
       const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
       const colorIndex = agente.nombre ? agente.nombre.charCodeAt(0) % colors.length : 0;
+
+      const latestMetrics = await AgentMetrics.findOne({ agenteId: agente._id }).sort({ periodStart: -1 }).lean().catch(() => null);
+      const avgRating = Number(latestMetrics?.avgRating || 0);
+      const rating = Number(avgRating.toFixed(1));
+      const satisfaccion = Math.round(avgRating * 20);
       
       return {
         ...agente,
@@ -162,9 +163,8 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
           visitas,
           llamadas,
           emails,
-          // Simulated performance data (can be enhanced with real data later)
-          rating: agente.metadata?.rating || (4 + Math.random()).toFixed(1),
-          satisfaccion: agente.metadata?.satisfaccion || Math.floor(80 + Math.random() * 20),
+          rating,
+          satisfaccion,
         },
         color: agente.metadata?.color || colors[colorIndex],
       };
@@ -178,7 +178,7 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
 });
 
 // Get single agent with detailed metrics
-router.get('/metrics/:id', authenticateToken, async (req, res) => {
+router.get('/metrics/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const Cliente = require('../models/Cliente');
     const Propiedad = require('../models/Propiedad');
@@ -226,6 +226,11 @@ router.get('/metrics/:id', authenticateToken, async (req, res) => {
     // Generate color
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
     const colorIndex = agente.nombre ? agente.nombre.charCodeAt(0) % colors.length : 0;
+
+    const latestMetrics = await AgentMetrics.findOne({ agenteId: agente._id }).sort({ periodStart: -1 }).lean().catch(() => null);
+    const avgRating = Number(latestMetrics?.avgRating || 0);
+    const rating = Number(avgRating.toFixed(1));
+    const satisfaccion = Math.round(avgRating * 20);
     
     res.json({
       ...agente,
@@ -234,8 +239,8 @@ router.get('/metrics/:id', authenticateToken, async (req, res) => {
         clientes: clientes.length,
         propiedades: propiedades.length,
         actividades: actividades.length,
-        rating: agente.metadata?.rating || (4 + Math.random()).toFixed(1),
-        satisfaccion: agente.metadata?.satisfaccion || Math.floor(80 + Math.random() * 20),
+        rating,
+        satisfaccion,
       },
       detalle: {
         clientes,

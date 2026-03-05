@@ -1,6 +1,11 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const PDFDocument = require('pdfkit');
 const ReportConfig = require('../models/ReportConfig');
+const ReceivedReport = require('../models/ReceivedReport');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const Propiedad = require('../models/Propiedad');
 const Cliente = require('../models/Cliente');
 const Agente = require('../models/Agente');
@@ -8,14 +13,10 @@ const Operacion = require('../models/Operacion');
 const Cita = require('../models/Cita');
 const Activity = require('../models/Activity');
 const PropertyView = require('../models/PropertyView');
-const { authenticateToken } = require('../auth');
+const AgentMetrics = require('../models/AgentMetrics');
+const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
-
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
 
 // Definición de tipos de reportes
 const REPORT_TYPES = [
@@ -42,12 +43,12 @@ const REPORT_TYPES = [
 ];
 
 // GET /crm/reports/types - Lista de tipos de reportes disponibles
-router.get('/types', authenticateToken, (req, res) => {
+router.get('/types', authenticateToken, requireCRMUser, (req, res) => {
   res.json(REPORT_TYPES);
 });
 
 // GET /crm/reports/config - Obtener configuración de reportes del agente
-router.get('/config', authenticateToken, async (req, res) => {
+router.get('/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req) || req.user.id;
     let config = await ReportConfig.findOne({ agenteId }).lean();
@@ -64,7 +65,7 @@ router.get('/config', authenticateToken, async (req, res) => {
 });
 
 // PUT /crm/reports/config - Actualizar configuración de reportes
-router.put('/config', authenticateToken, async (req, res) => {
+router.put('/config', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req) || req.user.id;
     const { annualReportSelections, autoSendEnabled, autoSendDay } = req.body;
@@ -86,7 +87,7 @@ router.put('/config', authenticateToken, async (req, res) => {
 });
 
 // GET /crm/reports/data/:reportId - Obtener datos para un reporte específico
-router.get('/data/:reportId', authenticateToken, async (req, res) => {
+router.get('/data/:reportId', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { reportId } = req.params;
     const { period = 'month', year, month } = req.query;
@@ -160,7 +161,7 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
 
       case 'clientesActivosAgente': {
         // Clientes activos por agente
-        const agentes = await Agente.find({}).lean();
+        const agentes = await Agente.find(scopeId ? { _id: scopeId } : {}).lean();
         const chartData = await Promise.all(agentes.map(async (a) => {
           const count = await Cliente.countDocuments({ agenteId: a._id.toString() });
           return { agente: a.nombre || a.email, clientes: count };
@@ -223,7 +224,7 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
 
       case 'ingresosComparativaAgente': {
         // Ingresos por agente
-        const agentes = await Agente.find({}).lean();
+        const agentes = await Agente.find(scopeId ? { _id: scopeId } : {}).lean();
         const chartData = await Promise.all(agentes.map(async (a) => {
           const ops = await Operacion.find({
             agenteId: a._id.toString(),
@@ -287,27 +288,73 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
 
       case 'satisfaccionCliente': {
         // Métricas de satisfacción (simuladas basadas en actividades positivas)
+        const ratingFilter = {
+          type: 'rating',
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+        };
+        if (scopeId) ratingFilter.agenteId = scopeId;
+
+        const ratings = await Activity.find(ratingFilter).lean();
+        let totalRatings = ratings.length;
+        let avgRating = totalRatings > 0
+          ? ratings.reduce((sum, r) => sum + Number(r.metadata?.rating || 0), 0) / totalRatings
+          : 0;
+
+        if (totalRatings === 0) {
+          const metricsFilter = {
+            period: 'monthly',
+            periodStart: { $gte: startOfMonth, $lte: endOfMonth },
+          };
+          if (scopeId) metricsFilter.agenteId = scopeId;
+
+          const metricsDocs = await AgentMetrics.find(metricsFilter).lean();
+          if (metricsDocs.length > 0) {
+            if (scopeId) {
+              avgRating = metricsDocs[0].avgRating || 0;
+              totalRatings = metricsDocs[0].totalRatings || 0;
+            } else {
+              avgRating = metricsDocs.reduce((s, m) => s + (m.avgRating || 0), 0) / metricsDocs.length;
+              totalRatings = metricsDocs.reduce((s, m) => s + (m.totalRatings || 0), 0);
+            }
+          }
+        }
+
+        const promedio = Math.round(Math.max(0, Math.min(100, (avgRating || 0) * 20)));
         const metrics = {
-          'Atención': Math.floor(Math.random() * 20) + 80,
-          'Rapidez': Math.floor(Math.random() * 20) + 75,
-          'Profesionalismo': Math.floor(Math.random() * 15) + 85,
-          'Comunicación': Math.floor(Math.random() * 20) + 78,
-          'Resultados': Math.floor(Math.random() * 25) + 75,
+          'Atención': promedio,
+          'Rapidez': promedio,
+          'Profesionalismo': promedio,
+          'Comunicación': promedio,
+          'Resultados': promedio,
         };
         const chartData = Object.entries(metrics).map(([metric, value]) => ({ metric, value }));
-        data = { chartData, promedio: Math.round(Object.values(metrics).reduce((a, b) => a + b, 0) / 5), title: 'Satisfacción del Cliente' };
+        data = { chartData, promedio, totalRatings, title: 'Satisfacción del Cliente' };
         break;
       }
 
       case 'visitasPropiedades': {
         // Visitas a propiedades por mes
+        let scopedPropertyIds = null;
+        if (scopeId) {
+          const propsForAgent = await Propiedad.find(propFilter).select('_id').lean();
+          scopedPropertyIds = propsForAgent.map(p => p._id.toString());
+        }
         const months = [];
         for (let i = 5; i >= 0; i--) {
           const d = new Date(targetYear, targetMonth - i, 1);
           const endD = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-          const count = await PropertyView.countDocuments({
-            createdAt: { $gte: d, $lte: endD }
-          });
+          const viewFilter = { createdAt: { $gte: d, $lte: endD } };
+          if (scopeId) {
+            if (!scopedPropertyIds || scopedPropertyIds.length === 0) {
+              months.push({
+                mes: d.toLocaleDateString('es', { month: 'short' }),
+                visitas: 0
+              });
+              continue;
+            }
+            viewFilter.propertyId = { $in: scopedPropertyIds };
+          }
+          const count = await PropertyView.countDocuments(viewFilter);
           months.push({
             mes: d.toLocaleDateString('es', { month: 'short' }),
             visitas: count
@@ -319,7 +366,7 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
 
       case 'rankingAgentes': {
         // Ranking de agentes por operaciones cerradas
-        const agentes = await Agente.find({}).lean();
+        const agentes = await Agente.find(scopeId ? { _id: scopeId } : {}).lean();
         const chartData = await Promise.all(agentes.map(async (a) => {
           const ops = await Operacion.countDocuments({
             agenteId: a._id.toString(),
@@ -370,27 +417,82 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
       case 'gastosOperativos': {
         // Gastos operativos (simulados por ahora)
         const categorias = ['Marketing', 'Personal', 'Oficina', 'Tecnología', 'Legales', 'Otros'];
+        const dateFilter = period === 'year'
+          ? { $gte: startOfYear, $lte: endOfYear }
+          : { $gte: startOfMonth, $lte: endOfMonth };
+
+        const ops = await Operacion.find({
+          ...opFilter,
+          createdAt: dateFilter,
+          monto: { $lt: 0 },
+        }).lean();
+
+        const totalGastos = ops.reduce((sum, o) => sum + Math.abs(Number(o.monto || 0)), 0);
+
         const chartData = categorias.map(cat => ({
           categoria: cat,
-          monto: Math.floor(Math.random() * 50000) + 10000
+          monto: cat === 'Otros' ? Math.round(totalGastos) : 0,
         }));
+
         data = { chartData, total: chartData.reduce((sum, c) => sum + c.monto, 0), title: 'Gastos Operativos' };
         break;
       }
 
       case 'rentabilidadTipoPropiedad': {
         // Rentabilidad por tipo de propiedad
-        const tipos = ['Casa', 'Departamento', 'Local', 'Oficina', 'Terreno'];
-        const chartData = await Promise.all(tipos.map(async (tipo) => {
-          const ops = await Operacion.find({
-            ...opFilter,
-            estado: { $in: ['Cerrada', 'Completada', 'Finalizada'] }
-          }).lean();
-          // Simular datos por tipo
-          const ingresos = Math.floor(Math.random() * 500000) + 100000;
-          const costos = Math.floor(ingresos * (0.3 + Math.random() * 0.3));
-          return { tipo, ingresos, costos, rentabilidad: ingresos - costos };
-        }));
+        const tiposBase = ['Casa', 'Departamento', 'Local', 'Oficina', 'Terreno'];
+        const tipos = [...tiposBase, 'Otros'];
+        const dateFilter = period === 'year'
+          ? { $gte: startOfYear, $lte: endOfYear }
+          : { $gte: startOfMonth, $lte: endOfMonth };
+
+        const ops = await Operacion.find({
+          ...opFilter,
+          createdAt: dateFilter,
+        }).lean();
+
+        const propertyIds = Array.from(new Set(
+          ops.map(o => (o.propiedadId ? String(o.propiedadId) : null)).filter(Boolean)
+        ));
+        const validPropertyIds = propertyIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+        const props = validPropertyIds.length > 0
+          ? await Propiedad.find({ ...propFilter, _id: { $in: validPropertyIds } }).select('_id metadata').lean()
+          : [];
+
+        const tipoByPropId = {};
+        props.forEach(p => { tipoByPropId[p._id.toString()] = p.metadata?.tipo || 'Otros'; });
+
+        const closedStatuses = ['Cerrada', 'Completada', 'Finalizada'];
+        const totals = {};
+        tipos.forEach(t => { totals[t] = { ingresos: 0, costos: 0 }; });
+
+        for (const o of ops) {
+          const propId = o.propiedadId ? String(o.propiedadId) : null;
+          const rawTipo = propId && tipoByPropId[propId] ? String(tipoByPropId[propId]) : 'Otros';
+          const tipo = tiposBase.includes(rawTipo) ? rawTipo : 'Otros';
+          const monto = Number(o.monto || 0);
+
+          if (monto < 0) {
+            totals[tipo].costos += Math.abs(monto);
+            continue;
+          }
+
+          if (closedStatuses.includes(o.estado)) {
+            totals[tipo].ingresos += monto;
+          }
+        }
+
+        const chartData = tipos.map((tipo) => {
+          const ingresos = totals[tipo]?.ingresos || 0;
+          const costos = totals[tipo]?.costos || 0;
+          return {
+            tipo,
+            rentabilidad: Math.round(ingresos - costos),
+            ingresos: Math.round(ingresos),
+            costos: Math.round(costos),
+          };
+        });
+
         data = { chartData, title: 'Rentabilidad por Tipo de Propiedad' };
         break;
       }
@@ -402,6 +504,7 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
           const d = new Date(targetYear, targetMonth - i, 1);
           const endD = new Date(d.getFullYear(), d.getMonth() + 1, 0);
           const props = await Propiedad.find({
+            ...propFilter,
             createdAt: { $gte: d, $lte: endD }
           }).lean();
           const avgPrice = props.length > 0 
@@ -472,15 +575,39 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
       case 'analisisCompetencia': {
         // Análisis de competencia (datos simulados de mercado)
         const months = [];
+        const clienteFilter = scopeId ? { agenteId: scopeId } : {};
+        const closedStatuses = ['Cerrada', 'Completada', 'Finalizada'];
+
         for (let i = 5; i >= 0; i--) {
           const d = new Date(targetYear, targetMonth - i, 1);
+          const start = new Date(d.getFullYear(), d.getMonth(), 1);
+          const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+
+          const nosotros = await Operacion.countDocuments({
+            ...opFilter,
+            estado: { $in: closedStatuses },
+            createdAt: { $gte: start, $lte: end },
+          });
+
+          const competencia = await Cliente.countDocuments({
+            ...clienteFilter,
+            'metadata.estado': 'Perdido',
+            updatedAt: { $gte: start, $lte: end },
+          });
+
+          const mercado = await Cliente.countDocuments({
+            ...clienteFilter,
+            createdAt: { $gte: start, $lte: end },
+          });
+
           months.push({
             mes: d.toLocaleDateString('es', { month: 'short' }),
-            nosotros: Math.floor(Math.random() * 30) + 20,
-            competencia: Math.floor(Math.random() * 25) + 15,
-            mercado: Math.floor(Math.random() * 100) + 50
+            nosotros,
+            competencia,
+            mercado,
           });
         }
+
         data = { chartData: months, title: 'Análisis de Competencia' };
         break;
       }
@@ -516,7 +643,7 @@ router.get('/data/:reportId', authenticateToken, async (req, res) => {
 });
 
 // GET /crm/reports/all-data - Obtener datos de todos los reportes para generación de PDF
-router.get('/all-data', authenticateToken, async (req, res) => {
+router.get('/all-data', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { year, month } = req.query;
     const reportTypes = REPORT_TYPES.map(r => r.id);
@@ -544,8 +671,208 @@ router.get('/all-data', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /crm/reports/generate-pdf - Generar PDF descargable con datos de reportes
+router.post('/generate-pdf', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const agenteId = agentScopeId(req) || req.user.id;
+    const { selectedReports = [], reportData = {}, period = '', type = 'manual' } = req.body;
+
+    const COLUMN_LABELS = {
+      mes: 'Mes', total: 'Total', vendidas: 'Vendidas', tipo: 'Tipo', cantidad: 'Cantidad',
+      agente: 'Agente', clientes: 'Clientes', tasa: 'Tasa (%)', ingresos: 'Ingresos ($)',
+      dias: 'Días', zona: 'Zona', metric: 'Métrica', value: 'Valor', visitas: 'Visitas',
+      operaciones: 'Operaciones', score: 'Puntaje', rango: 'Rango', disponibles: 'Disponibles',
+      categoria: 'Categoría', monto: 'Monto ($)', rentabilidad: 'Rentabilidad ($)',
+      costos: 'Costos ($)', precioPromedio: 'Precio Prom. ($)', titulo: 'Título',
+      precio: 'Precio ($)', diasEnMercado: 'Días en Mercado', estado: 'Estado',
+      dia: 'Día', nosotros: 'Nosotros', competencia: 'Competencia', mercado: 'Mercado',
+      promedio: 'Promedio',
+    };
+
+    const colLabel = (key) => COLUMN_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+
+    const fmtVal = (val) => {
+      if (val == null) return '';
+      if (typeof val === 'number') return val.toLocaleString('es-AR');
+      return String(val);
+    };
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: 50,
+      bufferPages: true,
+      info: { Title: `Reporte Inmobiliario - ${period}`, Author: 'Sistema ERP' },
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="reporte-${period || 'general'}.pdf"`);
+    doc.pipe(res);
+
+    const PRIMARY = '#3B82F6';
+    const DARK = '#1E293B';
+    const GRAY = '#94A3B8';
+    const LIGHT_BG = '#F1F5F9';
+    const PAGE_W = doc.page.width;
+    const MARGIN = 50;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+
+    // ---- Helper: draw a data table ----
+    const drawTable = (headers, rows, startY) => {
+      const colCount = headers.length;
+      const colW = Math.floor(CONTENT_W / colCount);
+      let y = startY;
+
+      // Header row
+      doc.rect(MARGIN, y, CONTENT_W, 22).fill('#E2E8F0');
+      doc.fill(DARK).fontSize(9).font('Helvetica-Bold');
+      headers.forEach((h, i) => {
+        doc.text(h, MARGIN + 4 + i * colW, y + 6, { width: colW - 8, align: 'left' });
+      });
+      y += 22;
+      doc.font('Helvetica');
+
+      rows.forEach((row, ri) => {
+        if (y > doc.page.height - 60) {
+          doc.addPage();
+          y = MARGIN;
+        }
+        if (ri % 2 === 0) {
+          doc.rect(MARGIN, y, CONTENT_W, 18).fill(LIGHT_BG);
+        }
+        doc.fill(DARK).fontSize(8);
+        row.forEach((cell, ci) => {
+          doc.text(cell, MARGIN + 4 + ci * colW, y + 4, { width: colW - 8, align: 'left' });
+        });
+        y += 18;
+      });
+      return y + 6;
+    };
+
+    // ===== COVER PAGE =====
+    doc.rect(0, 0, PAGE_W, 180).fill(PRIMARY);
+    doc.fill('#FFFFFF').fontSize(26).font('Helvetica-Bold')
+      .text('Reporte Inmobiliario', MARGIN, 50, { align: 'center', width: CONTENT_W });
+    doc.fontSize(14).font('Helvetica')
+      .text(`Período: ${period || 'General'}`, MARGIN, 90, { align: 'center', width: CONTENT_W });
+    doc.fontSize(11)
+      .text(`Generado: ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}`, MARGIN, 115, { align: 'center', width: CONTENT_W });
+    doc.fontSize(11)
+      .text(`Reportes incluidos: ${selectedReports.length}`, MARGIN, 140, { align: 'center', width: CONTENT_W });
+
+    // Table of contents
+    doc.fill(DARK).fontSize(14).font('Helvetica-Bold').text('Índice de Reportes', MARGIN, 220);
+    doc.font('Helvetica').fontSize(11).fill(DARK);
+    selectedReports.forEach((reportId, i) => {
+      const def = REPORT_TYPES.find(r => r.id === reportId);
+      doc.text(`${i + 1}. ${def?.name || reportId}`, MARGIN + 10, 250 + i * 20);
+    });
+
+    // ===== REPORT SECTIONS =====
+    for (const reportId of selectedReports) {
+      doc.addPage();
+      const def = REPORT_TYPES.find(r => r.id === reportId);
+      const data = reportData[reportId];
+
+      // Section header bar
+      doc.rect(0, 0, PAGE_W, 50).fill(PRIMARY);
+      doc.fill('#FFFFFF').fontSize(16).font('Helvetica-Bold')
+        .text(`${def?.icon || ''} ${def?.name || reportId}`, MARGIN, 16, { width: CONTENT_W });
+
+      doc.fill(DARK).font('Helvetica');
+      let y = 70;
+
+      if (!data || data.error) {
+        doc.fontSize(12).fill(GRAY).text('Sin datos disponibles para este período.', MARGIN, y);
+        continue;
+      }
+
+      // Key metrics
+      const metrics = [];
+      if (data.current !== undefined) metrics.push(['Valor actual', `${data.current}%`]);
+      if (data.promedio !== undefined) metrics.push(['Promedio', `${data.promedio}`]);
+      if (data.total !== undefined) metrics.push(['Total', `${data.total}`]);
+      if (data.totalRatings !== undefined) metrics.push(['Calificaciones', `${data.totalRatings}`]);
+      if (data.tasaCobro !== undefined) metrics.push(['Tasa de cobro', `${data.tasaCobro}%`]);
+
+      if (metrics.length > 0) {
+        doc.fontSize(11).font('Helvetica-Bold').fill(DARK);
+        metrics.forEach(([label, val]) => {
+          doc.text(`${label}: ${val}`, MARGIN, y);
+          y += 18;
+        });
+        y += 8;
+        doc.font('Helvetica');
+      }
+
+      // Main chartData table
+      const chartData = Array.isArray(data.chartData) ? data.chartData : [];
+      if (chartData.length > 0) {
+        const keys = Object.keys(chartData[0]).filter(k => k !== 'id' && k !== '_id');
+        const headers = keys.map(colLabel);
+        const rows = chartData.map(row => keys.map(k => fmtVal(row[k])));
+        y = drawTable(headers, rows, y);
+      }
+
+      // Extra tables for resumenCitasReuniones
+      if (reportId === 'resumenCitasReuniones') {
+        if (Array.isArray(data.porEstado) && data.porEstado.length) {
+          doc.fontSize(11).font('Helvetica-Bold').fill(DARK).text('Por Estado', MARGIN, y + 4);
+          y += 22;
+          const rows = data.porEstado.map(r => [fmtVal(r.estado), fmtVal(r.cantidad)]);
+          y = drawTable(['Estado', 'Cantidad'], rows, y);
+        }
+        if (Array.isArray(data.porDia) && data.porDia.length) {
+          doc.fontSize(11).font('Helvetica-Bold').fill(DARK).text('Por Día de la Semana', MARGIN, y + 4);
+          y += 22;
+          const rows = data.porDia.map(r => [fmtVal(r.dia), fmtVal(r.cantidad)]);
+          y = drawTable(['Día', 'Cantidad'], rows, y);
+        }
+      }
+
+      // Extra for estadoPagosFacturacion
+      if (reportId === 'estadoPagosFacturacion' && data.estados) {
+        doc.fontSize(11).font('Helvetica-Bold').fill(DARK).text('Desglose de Estados', MARGIN, y + 4);
+        y += 22;
+        const rows = Object.entries(data.estados).map(([k, v]) => [colLabel(k), fmtVal(v)]);
+        y = drawTable(['Estado', 'Cantidad'], rows, y);
+      }
+    }
+
+    // ===== FOOTER on every page =====
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(8).fill(GRAY)
+        .text(`Página ${i + 1} de ${pageCount}`, MARGIN, doc.page.height - 30, { align: 'center', width: CONTENT_W });
+    }
+
+    // Register in history
+    await ReportConfig.findOneAndUpdate(
+      { agenteId },
+      {
+        $push: {
+          generatedReports: {
+            type,
+            period: period || new Date().toISOString().slice(0, 7),
+            generatedAt: new Date(),
+            sentToERP: false,
+          }
+        }
+      },
+      { new: true, upsert: true }
+    );
+
+    doc.end();
+  } catch (err) {
+    console.error('Error generating PDF:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
 // POST /crm/reports/generate - Generar y registrar un reporte
-router.post('/generate', authenticateToken, async (req, res) => {
+router.post('/generate', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req) || req.user.id;
     const { type = 'manual', period, selectedReports } = req.body;
@@ -576,7 +903,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 });
 
 // POST /crm/reports/send-to-erp - Enviar reporte al ERP
-router.post('/send-to-erp', authenticateToken, async (req, res) => {
+router.post('/send-to-erp', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req) || req.user.id;
     const { reportId } = req.body;
@@ -600,12 +927,90 @@ router.post('/send-to-erp', authenticateToken, async (req, res) => {
 });
 
 // GET /crm/reports/history - Historial de reportes generados
-router.get('/history', authenticateToken, async (req, res) => {
+router.get('/history', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const agenteId = agentScopeId(req) || req.user.id;
     const config = await ReportConfig.findOne({ agenteId }).lean();
     
     res.json(config?.generatedReports || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /crm/reports/send-pdf - Agent uploads a generated PDF to the ERP
+router.post('/send-pdf', authenticateToken, requireCRMUser, upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió archivo PDF' });
+
+    const agentId = agentScopeId(req) || req.user.id;
+    const { type = 'manual', period = '', agentName = 'Agente' } = req.body;
+
+    const received = await ReceivedReport.create({
+      agentId,
+      agentName,
+      type,
+      period,
+      filename: req.file.originalname || `reporte-${period || 'general'}.pdf`,
+      pdfData: req.file.buffer,
+      fileSize: req.file.size,
+    });
+
+    // Mark the latest matching history entry as sent
+    const config = await ReportConfig.findOne({ agenteId: agentId });
+    if (config) {
+      const pending = config.generatedReports
+        .filter(r => !r.sentToERP)
+        .sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
+      if (pending.length > 0) {
+        pending[0].sentToERP = true;
+        pending[0].sentAt = new Date();
+        await config.save();
+      }
+    }
+
+    res.json({ success: true, message: 'Reporte enviado al ERP', id: received._id });
+  } catch (err) {
+    console.error('Error uploading PDF:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /crm/reports/received - Admin lists all received reports (without PDF binary)
+router.get('/received', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
+
+    const reports = await ReceivedReport.find()
+      .select('-pdfData')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(reports);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /crm/reports/received/:id/download - Admin downloads a received report PDF
+router.get('/received/:id/download', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
+
+    const report = await ReceivedReport.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Reporte no encontrado' });
+
+    // Mark as downloaded
+    if (!report.downloadedByAdmin) {
+      report.downloadedByAdmin = true;
+      report.downloadedAt = new Date();
+      await report.save();
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${report.filename}"`);
+    res.setHeader('Content-Length', report.pdfData.length);
+    res.send(report.pdfData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

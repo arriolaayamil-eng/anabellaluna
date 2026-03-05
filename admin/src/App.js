@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { FiSettings, FiEye, FiEyeOff } from 'react-icons/fi';
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
-import { Navbar, Footer, Sidebar, ThemeSettings } from './components';
+import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
 import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria } from './pages';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { authService } from './services/authService';
 
 import { useStateContext } from './contexts/ContextProvider';
@@ -213,10 +215,10 @@ const App = () => {
           <div
             className="bg-main-bg dark:bg-main-dark-bg min-h-screen w-full transition-all duration-300 ease-in-out"
           >
-            <div className="fixed md:static bg-main-bg dark:bg-main-dark-bg navbar w-full z-40">
+            <div className="bg-main-bg dark:bg-main-dark-bg navbar w-full">
               <Navbar />
             </div>
-            <div>
+            <div className="pt-16 md:pt-0 pb-20 md:pb-0">
               {themeSettings && (<ThemeSettings />)}
 
               <Routes>
@@ -299,6 +301,8 @@ const App = () => {
             <Footer />
           </div>
         </div>
+        <OnboardingTutorial />
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover theme={currentMode === 'Dark' ? 'dark' : 'light'} />
       </BrowserRouter>
     </div>
   );

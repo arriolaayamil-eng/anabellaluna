@@ -1,12 +1,61 @@
-import { Link } from "react-router";
-import {
-  Keyword,
-  Property_Type,
-} from "../../../../../core/common/selectOption";
-import CommonSelect from "../../../../../core/common/common-select/commonSelect";
+import { useNavigate } from "react-router";
+import { useState, useEffect, useRef } from "react";
 import { all_routes } from "../../../../routes/all_routes";
+import publicService from "../../../../../services/publicService";
 
 const BannerSections = () => {
+  const navigate = useNavigate();
+  const [propertyCount, setPropertyCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<"buy" | "rent">("buy");
+
+  // Buy form state
+  const buySearchRef = useRef<HTMLInputElement>(null);
+  const buyTypeRef = useRef<HTMLInputElement>(null);
+  const buyMinRef = useRef<HTMLInputElement>(null);
+  const buyMaxRef = useRef<HTMLInputElement>(null);
+
+  // Rent form state
+  const rentSearchRef = useRef<HTMLInputElement>(null);
+  const rentTypeRef = useRef<HTMLInputElement>(null);
+  const rentMinRef = useRef<HTMLInputElement>(null);
+  const rentMaxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let m = true;
+    (async () => {
+      try {
+        const res = await publicService.getStats();
+        if (m) setPropertyCount(res.properties || 0);
+      } catch { /* keep 0 */ }
+    })();
+    return () => { m = false; };
+  }, []);
+
+  const buildSearchUrl = (operation: "buy" | "rent") => {
+    const isBuy = operation === "buy";
+    const search = (isBuy ? buySearchRef : rentSearchRef).current?.value?.trim() || "";
+    const type = (isBuy ? buyTypeRef : rentTypeRef).current?.value?.trim() || "";
+    const minPrice = (isBuy ? buyMinRef : rentMinRef).current?.value?.trim() || "";
+    const maxPrice = (isBuy ? buyMaxRef : rentMaxRef).current?.value?.trim() || "";
+
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (type) params.set("type", type);
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+
+    const basePath = isBuy
+      ? all_routes.buyPropertyGridSidebar
+      : all_routes.rentPropertyGridSidebar;
+
+    const qs = params.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  };
+
+  const handleSearch = (operation: "buy" | "rent") => {
+    navigate(buildSearchUrl(operation));
+  };
+
   return (
     <>
       {/* start banner section */}
@@ -18,8 +67,10 @@ const BannerSections = () => {
               <div className="banner-content aos" data-aos="fade-up">
                 <h1 className="mb-2">Tu casa en la playa</h1>
                 <p className="mb-0">
-                  Propiedades para comprar o alquilar en tu zona. Tenemos más de
-                  3000 publicaciones para vos.
+                  Propiedades para comprar o alquilar en tu zona.
+                  {propertyCount > 0
+                    ? ` Tenemos más de ${propertyCount} publicaciones para vos.`
+                    : " Explorá nuestras publicaciones."}
                 </p>
               </div>
             </div>
@@ -33,30 +84,26 @@ const BannerSections = () => {
               role="tablist"
             >
               <li className="nav-item" role="presentation">
-                <Link
-                  className="nav-link active"
-                  data-bs-toggle="tab"
-                  to="#buy_property"
+                <a
+                  className={`nav-link ${activeTab === "buy" ? "active" : ""}`}
+                  href="#buy_property"
                   role="tab"
-                  aria-controls="buy_property"
-                  aria-selected="true"
+                  onClick={(e) => { e.preventDefault(); setActiveTab("buy"); }}
                 >
                   <i className="material-icons-outlined me-2">shopping_basket</i>
                   Comprar propiedad
-                </Link>
+                </a>
               </li>
               <li className="nav-item" role="presentation">
-                <Link
-                  className="nav-link"
-                  data-bs-toggle="tab"
-                  to="#rent_property"
+                <a
+                  className={`nav-link ${activeTab === "rent" ? "active" : ""}`}
+                  href="#rent_property"
                   role="tab"
-                  aria-controls="rent_property"
-                  aria-selected="false"
+                  onClick={(e) => { e.preventDefault(); setActiveTab("rent"); }}
                 >
                   <i className="material-icons-outlined me-2">king_bed</i>
                   Alquilar propiedad
-                </Link>
+                </a>
               </li>
             </ul>
             <div
@@ -64,39 +111,38 @@ const BannerSections = () => {
               data-aos="fade-down"
               data-aos-duration={1000}
             >
-              {/* Item-1 */}
+              {/* Buy Tab */}
               <div
-                className="tab-pane fade show active"
+                className={`tab-pane fade ${activeTab === "buy" ? "show active" : ""}`}
                 id="buy_property"
                 role="tabpanel"
               >
                 <div className="search-item">
-                  <form>
+                  <form onSubmit={(e) => { e.preventDefault(); handleSearch("buy"); }}>
                     <div className="d-flex align-items-bottom flex-wrap flex-lg-nowrap gap-3">
                       <div className="flex-fill select-field w-100">
-                        <label className="form-label">Palabra clave</label>
-                        <CommonSelect
-                          options={Keyword}
-                          className="select"
-                          defaultValue={Keyword[0]}
+                        <label className="form-label">Búsqueda</label>
+                        <input
+                          ref={buySearchRef}
+                          type="text"
+                          className="form-control"
+                          placeholder="Nombre, barrio, dirección..."
                         />
                       </div>
                       <div className="flex-fill select-field w-100">
                         <label className="form-label">Tipo de propiedad</label>
-                        <CommonSelect
-                          options={Property_Type}
-                          className="select"
-                          defaultValue={Property_Type[0]}
+                        <input
+                          ref={buyTypeRef}
+                          type="text"
+                          className="form-control"
+                          placeholder="Casa, Depto, Oficina..."
                         />
-                      </div>
-                      <div className="flex-fill select-field w-100">
-                        <label className="form-label">Dirección</label>
-                        <input type="text" className="form-control" />
                       </div>
                       <div className="flex-fill select-field w-100">
                         <label className="form-label">Precio mínimo</label>
                         <input
-                          type="text"
+                          ref={buyMinRef}
+                          type="number"
                           className="form-control"
                           placeholder="$"
                         />
@@ -104,52 +150,53 @@ const BannerSections = () => {
                       <div className="flex-fill select-field w-100">
                         <label className="form-label">Precio máximo</label>
                         <input
-                          type="text"
+                          ref={buyMaxRef}
+                          type="number"
                           className="form-control"
                           placeholder="$"
                         />
                       </div>
                       <div className="custom-search-item d-flex align-items-end">
-                        <Link
-                          to={all_routes.buyPropertyGridSidebar}
-                          className="btn btn-primary home-btn"
-                        >
+                        <button type="submit" className="btn btn-primary home-btn">
                           <i className="material-icons-outlined">search</i>
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </form>
                 </div>
               </div>
-              {/* Item-2 */}
-              <div className="tab-pane fade" id="rent_property" role="tabpanel">
+              {/* Rent Tab */}
+              <div
+                className={`tab-pane fade ${activeTab === "rent" ? "show active" : ""}`}
+                id="rent_property"
+                role="tabpanel"
+              >
                 <div className="search-item">
-                  <form>
+                  <form onSubmit={(e) => { e.preventDefault(); handleSearch("rent"); }}>
                     <div className="d-flex align-items-bottom flex-wrap flex-lg-nowrap gap-3">
-                      <div className="flex-fill select-field  w-100">
-                        <label className="form-label">Palabra clave</label>
-                        <CommonSelect
-                          options={Keyword}
-                          className="select"
-                          defaultValue={Keyword[0]}
+                      <div className="flex-fill select-field w-100">
+                        <label className="form-label">Búsqueda</label>
+                        <input
+                          ref={rentSearchRef}
+                          type="text"
+                          className="form-control"
+                          placeholder="Nombre, barrio, dirección..."
                         />
                       </div>
                       <div className="flex-fill select-field w-100">
                         <label className="form-label">Tipo de propiedad</label>
-                        <CommonSelect
-                          options={Property_Type}
-                          className="select"
-                          defaultValue={Property_Type[0]}
+                        <input
+                          ref={rentTypeRef}
+                          type="text"
+                          className="form-control"
+                          placeholder="Casa, Depto, Oficina..."
                         />
-                      </div>
-                      <div className="flex-fill select-field w-100">
-                        <label className="form-label">Dirección</label>
-                        <input type="text" className="form-control" />
                       </div>
                       <div className="flex-fill select-field w-100">
                         <label className="form-label">Precio mínimo</label>
                         <input
-                          type="text"
+                          ref={rentMinRef}
+                          type="number"
                           className="form-control"
                           placeholder="$"
                         />
@@ -157,18 +204,16 @@ const BannerSections = () => {
                       <div className="flex-fill select-field w-100">
                         <label className="form-label">Precio máximo</label>
                         <input
-                          type="text"
+                          ref={rentMaxRef}
+                          type="number"
                           className="form-control"
                           placeholder="$"
                         />
                       </div>
                       <div className="custom-search-item d-flex align-items-end">
-                        <Link
-                          to={all_routes.rentPropertyGridSidebar}
-                          className="btn btn-primary home-btn"
-                        >
+                        <button type="submit" className="btn btn-primary home-btn">
                           <i className="material-icons-outlined">search</i>
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </form>

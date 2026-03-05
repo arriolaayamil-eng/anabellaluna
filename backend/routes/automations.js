@@ -3,15 +3,10 @@ const AutomationRule = require('../models/AutomationRule');
 const Notification = require('../models/Notification');
 const Cliente = require('../models/Cliente');
 const Agente = require('../models/Agente');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const googleCalendar = require('../services/googleCalendar');
 
 const router = express.Router();
-
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
 
 // Default automation templates
 const defaultTemplates = {
@@ -153,7 +148,7 @@ const defaultTemplates = {
 };
 
 // Get all automation rules
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const { activo } = req.query;
@@ -170,12 +165,12 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get default templates for creating new rules
-router.get('/templates', authenticateToken, (req, res) => {
+router.get('/templates', authenticateToken, requireCRMUser, (req, res) => {
   res.json(defaultTemplates);
 });
 
 // Get statistics
-router.get('/stats', authenticateToken, async (req, res) => {
+router.get('/stats', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = {};
@@ -207,7 +202,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 });
 
 // Get single rule
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const item = await AutomationRule.findById(req.params.id).lean();
@@ -222,7 +217,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create rule (optionally from template)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const { template, ...body } = req.body || {};
@@ -249,7 +244,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update rule
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -268,7 +263,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Toggle rule active status
-router.put('/:id/toggle', authenticateToken, async (req, res) => {
+router.put('/:id/toggle', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -286,7 +281,7 @@ router.put('/:id/toggle', authenticateToken, async (req, res) => {
 });
 
 // Delete rule
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -301,7 +296,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Execute automation manually (for testing)
-router.post('/:id/execute', authenticateToken, async (req, res) => {
+router.post('/:id/execute', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -335,7 +330,7 @@ router.post('/:id/execute', authenticateToken, async (req, res) => {
 });
 
 // Initialize default automations for an agent
-router.post('/initialize-defaults', authenticateToken, async (req, res) => {
+router.post('/initialize-defaults', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     if (!scopeId) {

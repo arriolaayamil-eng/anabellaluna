@@ -1,967 +1,713 @@
-import React, { useState, useRef } from 'react';
-import { FaFile, FaFilePdf, FaFileWord, FaFileImage, FaUpload, FaEye, FaDownload, FaFolder, FaShieldAlt, FaCloud, FaSearch, FaTimes, FaCheckCircle } from 'react-icons/fa';
-import { Header } from '../components';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { toast } from 'react-toastify';
+import { confirmToast } from '../utils/confirmToast';
+import { documentService } from '../services/documentService';
 import { useStateContext } from '../contexts/ContextProvider';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+/* ═══════════════════ iOS-style SVG Icons ═══════════════════ */
+const SFIcon = ({ children, size = 22, className = '', viewBox = '0 0 24 24', ...rest }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox={viewBox}
+    fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+    className={className} {...rest}>{children}</svg>
+);
+const FolderFill = ({ size = 22, color = '#007AFF' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    <path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z" fill={color} />
+  </svg>
+);
+const DocFill = ({ size = 22, color = '#007AFF' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill={color} opacity="0.85"/>
+    <polyline points="14 2 14 8 20 8" fill="none" stroke="#fff" strokeWidth="1.5"/>
+  </svg>
+);
+const ImgFill = ({ size = 22, color = '#34C759' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    <rect x="3" y="3" width="18" height="18" rx="3" fill={color} opacity="0.85"/>
+    <circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/>
+    <path d="M21 15l-5-5L5 21" stroke="#fff" strokeWidth="1.5" fill="none"/>
+  </svg>
+);
+const StarFill = ({ size = 22, filled = false, color }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+    fill={filled ? (color || '#FF9500') : 'none'} stroke={filled ? (color || '#FF9500') : 'currentColor'}
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+const ISearch = (p) => <SFIcon {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></SFIcon>;
+const IGrid = (p) => <SFIcon {...p}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></SFIcon>;
+const IList = (p) => <SFIcon {...p}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></SFIcon>;
+const IUpload = (p) => <SFIcon {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></SFIcon>;
+const IDownload = (p) => <SFIcon {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></SFIcon>;
+const ITrash = (p) => <SFIcon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></SFIcon>;
+const IMore = (p) => <SFIcon {...p}><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none"/></SFIcon>;
+const IClose = (p) => <SFIcon {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></SFIcon>;
+const IChevron = (p) => <SFIcon size={16} {...p}><polyline points="9 18 15 12 9 6"/></SFIcon>;
+const IClock = (p) => <SFIcon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></SFIcon>;
+const IEdit = (p) => <SFIcon {...p}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></SFIcon>;
+const IMove = (p) => <SFIcon {...p}><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></SFIcon>;
+const IEye = (p) => <SFIcon {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></SFIcon>;
+const ICloud = (p) => <SFIcon {...p}><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></SFIcon>;
+const IPlus = (p) => <SFIcon {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SFIcon>;
+const IFolderPlus = (p) => <SFIcon {...p}><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></SFIcon>;
 
+/* ═══════════════════ iOS System Colors & Helpers ═══════════════════ */
+const API = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const DOMAIN = 'erp';
+const IOS_LIGHT = {
+  blue: '#007AFF', green: '#34C759', orange: '#FF9500', red: '#FF3B30',
+  purple: '#AF52DE', teal: '#5AC8FA', pink: '#FF2D55', indigo: '#5856D6',
+  gray: '#8E8E93', gray2: '#AEAEB2', gray3: '#C7C7CC', gray4: '#D1D1D6',
+  gray5: '#E5E5EA', gray6: '#F2F2F7', bgGrouped: '#F2F2F7', bgCard: '#FFFFFF',
+  separator: 'rgba(60,60,67,0.12)', label: '#000000', label2: '#3C3C43', label3: '#8E8E93',
+};
+const IOS_DARK = {
+  blue: '#0A84FF', green: '#30D158', orange: '#FF9F0A', red: '#FF453A',
+  purple: '#BF5AF2', teal: '#64D2FF', pink: '#FF375F', indigo: '#5E5CE6',
+  gray: '#98989D', gray2: '#636366', gray3: '#48484A', gray4: '#3A3A3C',
+  gray5: '#333336', gray6: '#2C2C2E', bgGrouped: '#202124', bgCard: '#292A2D',
+  separator: 'rgba(255,255,255,0.08)', label: '#E8EAED', label2: '#BDC1C6', label3: '#9AA0A6',
+};
+
+function formatSize(mb) {
+  if (!mb) return '';
+  if (mb < 1) return `${Math.round(mb * 1024)} KB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const date = new Date(d);
+  const now = new Date();
+  const diff = now - date;
+  if (diff < 60000) return 'Ahora';
+  if (diff < 3600000) return `Hace ${Math.floor(diff / 60000)} min`;
+  if (diff < 86400000) return `Hace ${Math.floor(diff / 3600000)} h`;
+  if (date.getFullYear() === now.getFullYear()) return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+  return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getFileLabel(tipo) {
+  if (tipo === 'PDF') return 'PDF';
+  if (tipo === 'Word') return 'DOC';
+  if (tipo === 'Imagen') return 'IMG';
+  if (tipo === 'ZIP') return 'ZIP';
+  return 'FILE';
+}
+
+/* ═══════════════════ Main Component ═══════════════════ */
 const Documentos = () => {
-  const { currentMode, currentColor } = useStateContext();
-  
-  // Estados para modales
-  const [showModalTotal, setShowModalTotal] = useState(false);
-  const [showModalEspacio, setShowModalEspacio] = useState(false);
-  const [showModalAccesos, setShowModalAccesos] = useState(false);
-  const [showModalSeguridad, setShowModalSeguridad] = useState(false);
+  const { currentMode } = useStateContext();
+  const dark = currentMode === 'Dark';
+  const IOS = dark ? IOS_DARK : IOS_LIGHT;
 
-  const [documentos, setDocumentos] = useState([
-    { id: 1, nombre: 'Escritura_Palermo_2amb.pdf', tipo: 'PDF', categoria: 'Propiedad', tamaño: 2.4, fecha: '2025-10-10', relacionado: 'Depto Palermo', accesos: 15 },
-    { id: 2, nombre: 'Contrato_Juan_Perez.docx', tipo: 'Word', categoria: 'Cliente', tamaño: 0.156, fecha: '2025-10-09', relacionado: 'Juan Pérez', accesos: 8 },
-    { id: 3, nombre: 'Plano_Casa_Belgrano.pdf', tipo: 'PDF', categoria: 'Propiedad', tamaño: 3.1, fecha: '2025-10-08', relacionado: 'Casa Belgrano', accesos: 22 },
-    { id: 4, nombre: 'Comprobante_Venta.pdf', tipo: 'PDF', categoria: 'Operación', tamaño: 0.89, fecha: '2025-10-05', relacionado: 'Venta #1234', accesos: 5 },
-    { id: 5, nombre: 'Fotos_Propiedad.zip', tipo: 'ZIP', categoria: 'Propiedad', tamaño: 15.2, fecha: '2025-10-03', relacionado: 'PH Colegiales', accesos: 31 },
-    { id: 6, nombre: 'DNI_Cliente.pdf', tipo: 'PDF', categoria: 'Cliente', tamaño: 1.2, fecha: '2025-10-02', relacionado: 'María González', accesos: 3 },
-  ]);
+  const CATEGORIES = [
+    { key: 'docs', label: 'Documentos', color: IOS.blue, icon: (s) => <DocFill size={s} color={IOS.blue} />, filter: (d) => d.tipo === 'PDF' || d.tipo === 'Word' },
+    { key: 'images', label: 'Imagenes', color: IOS.green, icon: (s) => <ImgFill size={s} color={IOS.green} />, filter: (d) => d.tipo === 'Imagen' },
+    { key: 'archives', label: 'Archivos ZIP', color: IOS.orange, icon: (s) => <DocFill size={s} color={IOS.orange} />, filter: (d) => d.tipo === 'ZIP' },
+    { key: 'starred', label: 'Favoritos', color: IOS.orange, icon: (s) => <StarFill size={s} filled color={IOS.orange} /> },
+  ];
 
-  // UI state para upload / preview / búsqueda
-  const fileInputRef = useRef(null);
-  const [showSearch, setShowSearch] = useState(false);
+  const getFileColor = (tipo) => {
+    if (tipo === 'PDF') return IOS.red;
+    if (tipo === 'Word') return IOS.blue;
+    if (tipo === 'Imagen') return IOS.green;
+    if (tipo === 'ZIP') return IOS.orange;
+    return IOS.gray;
+  };
+
+  const [view, setView] = useState('grid');
+  const [tab, setTab] = useState('browse');
+  const [categoryFilter, setCategoryFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [folders, setFolders] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [storageInfo, setStorageInfo] = useState(null);
+
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [actionSheet, setActionSheet] = useState(null);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [newFolderMode, setNewFolderMode] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [moveTarget, setMoveTarget] = useState(null);
+  const [moveFolders, setMoveFolders] = useState([]);
+  const [moveParent, setMoveParent] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showModalNuevaCarpeta, setShowModalNuevaCarpeta] = useState(false);
-  const [nombreCarpeta, setNombreCarpeta] = useState('');
-  const [categoriaCarpeta, setCategoriaCarpeta] = useState('General');
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Handlers básicos (mock): subir archivos, crear carpeta, ver, descargar, eliminar
-  const handleUploadClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
+  const fileInputRef = useRef(null);
+
+  /* ═══════ Data Loading ═══════ */
+  const loadBrowse = useCallback(async (folderId = null) => {
+    try { setLoading(true); setError('');
+      const data = await documentService.browse(folderId);
+      setFolders(data.folders || []); setDocuments(data.documents || []);
+      if (folderId) { const path = await documentService.folderPath(folderId); setBreadcrumb(path); }
+      else setBreadcrumb([]);
+    } catch (e) { setError('Error al cargar archivos'); console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  const loadRecent = useCallback(async () => {
+    try { setLoading(true); setError('');
+      const data = await documentService.recent();
+      setFolders([]); setDocuments(Array.isArray(data) ? data : []);
+    } catch { setError('Error al cargar recientes'); }
+    finally { setLoading(false); }
+  }, []);
+
+  const loadStarred = useCallback(async () => {
+    try { setLoading(true); setError('');
+      const data = await documentService.starred();
+      setFolders(data.folders || []); setDocuments(data.documents || []);
+    } catch { setError('Error al cargar favoritos'); }
+    finally { setLoading(false); }
+  }, []);
+
+  const doSearch = useCallback(async (q) => {
+    if (!q.trim()) return;
+    try { setLoading(true); setError('');
+      const data = await documentService.search(q);
+      setFolders(data.folders || []); setDocuments(data.documents || []);
+    } catch { setError('Sin resultados'); }
+    finally { setLoading(false); }
+  }, []);
+
+  const loadStorage = useCallback(async () => {
+    try { const data = await documentService.storage(); setStorageInfo(data); } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'browse') loadBrowse(currentFolder);
+    else if (tab === 'recent') loadRecent();
+    else if (tab === 'starred') loadStarred();
+    else if (tab === 'category') { loadBrowse(null); }
+  }, [tab, currentFolder, loadBrowse, loadRecent, loadStarred]);
+
+  useEffect(() => { loadStorage(); }, [loadStorage]);
+  useEffect(() => { const h = () => setActionSheet(null); document.addEventListener('click', h); return () => document.removeEventListener('click', h); }, []);
+
+  const navigateToFolder = (id) => { setTab('browse'); setCurrentFolder(id); setCategoryFilter(null); };
+
+  const refresh = () => {
+    if (tab === 'browse') loadBrowse(currentFolder);
+    else if (tab === 'recent') loadRecent();
+    else if (tab === 'starred') loadStarred();
+    else if (tab === 'search') doSearch(searchQuery);
+    else if (tab === 'category') loadBrowse(null);
   };
 
-  const handleFilesSelected = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    const nuevos = files.map((f) => {
-      const ext = f.name.split('.').pop().toUpperCase();
-      const tipo = ext === 'PDF' ? 'PDF' : ext === 'DOCX' || ext === 'DOC' ? 'Word' : ext === 'ZIP' ? 'ZIP' : 'Imagen';
-      return {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        nombre: f.name,
-        tipo,
-        categoria: 'Sin clasificar',
-        tamaño: Math.max(0.01, +(f.size / (1024 * 1024)).toFixed(2)),
-        fecha: new Date().toISOString().slice(0, 10),
-        relacionado: '',
-        accesos: 0,
-        file: f,
-      };
-    });
-    setDocumentos((d) => [...nuevos, ...d]);
-    // limpiar input
-    e.target.value = null;
+  const filteredDocs = tab === 'category' && categoryFilter
+    ? documents.filter(categoryFilter.filter || (() => true))
+    : documents;
+
+  /* ═══════ File Actions ═══════ */
+  const handleUpload = async (e) => {
+    const files = Array.from(e.target.files || []); if (!files.length) return;
+    try {
+      setUploadProgress(`Subiendo ${files.length} archivo(s)...`); setError('');
+      await documentService.upload(files, { headers: { 'x-domain': DOMAIN }, fields: currentFolder ? { folder: currentFolder } : {} });
+      setUploadProgress(null); if (fileInputRef.current) fileInputRef.current.value = '';
+      if (tab === 'browse') loadBrowse(currentFolder); else if (tab === 'recent') loadRecent(); loadStorage();
+    } catch (err) { setError('Error al subir: ' + (err.message || err)); setUploadProgress(null); }
   };
 
-  const handleNewFolder = () => {
-    setShowModalNuevaCarpeta(true);
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try { await documentService.createFolder(newFolderName.trim(), currentFolder); setNewFolderMode(false); setNewFolderName(''); loadBrowse(currentFolder); }
+    catch (err) { setError('Error al crear carpeta: ' + (err.message || err)); }
   };
 
-  const crearCarpeta = () => {
-    if (!nombreCarpeta.trim()) {
-      alert('Por favor ingresa un nombre para la carpeta');
-      return;
-    }
-    const carpeta = { 
-      id: Date.now(), 
-      nombre: `📁 ${nombreCarpeta}/`, 
-      tipo: 'CARPETA', 
-      categoria: categoriaCarpeta, 
-      tamaño: 0, 
-      fecha: new Date().toISOString().slice(0,10), 
-      relacionado: '', 
-      accesos: 0 
-    };
-    setDocumentos((d) => [carpeta, ...d]);
-    setShowModalNuevaCarpeta(false);
-    setNombreCarpeta('');
-    setCategoriaCarpeta('General');
+  const handleDelete = async (type, item) => {
+    const label = type === 'folder' ? `la carpeta "${item.name}"` : `"${item.nombre}"`;
+    if (!(await confirmToast(`¿Eliminar ${label}?`))) return;
+    try { if (type === 'folder') await documentService.deleteFolder(item._id); else await documentService.delete(item._id); refresh(); loadStorage(); }
+    catch (err) { setError('Error al eliminar: ' + (err.message || err)); }
   };
 
-  const handleToggleSearch = () => setShowSearch((s) => !s);
-
-  const handleView = (doc) => {
-    // aumenta contador de accesos (mock)
-    setDocumentos((prev) => prev.map((d) => d.id === doc.id ? { ...d, accesos: (d.accesos || 0) + 1 } : d));
-    setPreviewDoc(doc);
-    setShowPreview(true);
+  const handleStar = async (type, item) => {
+    try { if (type === 'folder') await documentService.starFolder(item._id); else await documentService.starDoc(item._id); refresh(); }
+    catch { setError('Error al marcar favorito'); }
   };
 
-  const handleDownload = (doc) => {
-    // simulamos descarga: creamos blob con texto y disparamos descarga
-    const content = `Descarga simulada para: ${doc.nombre}`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.nombre;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    // aumentar accesos como registro de descarga
-    setDocumentos((prev) => prev.map((d) => d.id === doc.id ? { ...d, accesos: (d.accesos || 0) + 1 } : d));
+  const handleRenameSubmit = async () => {
+    if (!renameValue.trim() || !renameTarget) return;
+    try {
+      if (renameTarget.type === 'folder') await documentService.renameFolder(renameTarget.item._id, renameValue.trim());
+      else await documentService.renameDoc(renameTarget.item._id, renameValue.trim());
+      setRenameTarget(null); setRenameValue(''); refresh();
+    } catch { setError('Error al renombrar'); }
   };
 
-  const handleDelete = (doc) => {
-    const ok = window.confirm(`¿Eliminar ${doc.nombre}? Esta acción no se puede deshacer en este entorno de prueba.`);
-    if (!ok) return;
-    setDocumentos((prev) => prev.filter((d) => d.id !== doc.id));
+  const handleDownload = async (doc) => {
+    try {
+      const url = doc.object_key ? `${API}/documents/${doc._id}/download` : doc.url;
+      const token = localStorage.getItem('authToken');
+      const resp = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!resp.ok) throw new Error('Error'); const blob = await resp.blob();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = doc.nombre || 'archivo';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    } catch (err) { setError('Error al descargar: ' + (err.message || err)); }
   };
 
-  // KPIs de Documentos
-  const kpisDocumentos = [
-    { title: 'Total Documentos', value: documentos.length + 241, desc: '42 este mes', icon: <FaFile />, color: 'from-blue-500 to-blue-600' },
-    { title: 'Espacio Usado', value: `${(documentos.reduce((sum, d) => sum + d.tamaño, 0) + 3200).toFixed(1)} MB`, desc: '46.8 GB libres', icon: <FaCloud />, color: 'from-green-500 to-green-600' },
-    { title: 'Accesos Hoy', value: documentos.reduce((sum, d) => sum + d.accesos, 0), desc: 'Vista previa activa', icon: <FaEye />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Seguridad', value: '100%', desc: 'Control por roles', icon: <FaShieldAlt />, color: 'from-orange-500 to-orange-600' },
-  ];
-
-  // Datos para gráficos
-  const tiposDocumentosData = [
-    { tipo: 'PDF', cantidad: documentos.filter(d => d.tipo === 'PDF').length, fill: '#DC2626' },
-    { tipo: 'Word', cantidad: documentos.filter(d => d.tipo === 'Word').length, fill: '#2563EB' },
-    { tipo: 'ZIP', cantidad: documentos.filter(d => d.tipo === 'ZIP').length, fill: '#059669' },
-    { tipo: 'Imagen', cantidad: 12, fill: '#7C3AED' },
-  ];
-
-  const categoriasData = [
-    { categoria: 'Propiedad', cantidad: documentos.filter(d => d.categoria === 'Propiedad').length },
-    { categoria: 'Cliente', cantidad: documentos.filter(d => d.categoria === 'Cliente').length },
-    { categoria: 'Operación', cantidad: documentos.filter(d => d.categoria === 'Operación').length },
-  ];
-
-  const getIconByType = (tipo) => {
-    switch(tipo) {
-      case 'PDF': return <FaFilePdf className="text-red-500 text-2xl" />;
-      case 'Word': return <FaFileWord className="text-blue-500 text-2xl" />;
-      case 'Imagen': return <FaFileImage className="text-green-500 text-2xl" />;
-      default: return <FaFile className="text-gray-500 text-2xl" />;
-    }
+  const handlePreview = async (doc) => {
+    try {
+      const url = doc.object_key ? `${API}/documents/${doc._id}/download` : doc.url;
+      const token = localStorage.getItem('authToken');
+      const resp = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!resp.ok) throw new Error('Error'); const blob = await resp.blob();
+      setPreviewUrl(URL.createObjectURL(blob)); setPreviewDoc(doc);
+    } catch { setError('Error al previsualizar'); }
   };
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition transform hover:scale-105';
+  const startMove = async (type, item) => {
+    setMoveTarget({ type, item }); setMoveParent(null);
+    try { const data = await documentService.browse(null); setMoveFolders(data.folders || []); } catch { setMoveFolders([]); }
+  };
 
-  return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-main-bg dark:bg-main-dark-bg rounded-3xl">
-      <Header category="Archivos" title="📁 Gestión Documental" />
-      
-      {/* Botones de Acción */}
-      <div className="flex gap-3 mb-6">
-        <button onClick={handleUploadClick} className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md">
-          <FaUpload /> Subir Documentos
-        </button>
-        <button onClick={handleNewFolder} className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md">
-          <FaFolder /> Nueva Carpeta
-        </button>
-        <button onClick={handleToggleSearch} className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors">
-          <FaSearch /> Búsqueda Avanzada
-        </button>
-      </div>
+  const handleMoveConfirm = async () => {
+    if (!moveTarget) return;
+    try {
+      if (moveTarget.type === 'folder') await documentService.moveFolder(moveTarget.item._id, moveParent);
+      else await documentService.moveDoc(moveTarget.item._id, moveParent);
+      setMoveTarget(null); refresh();
+    } catch { setError('Error al mover'); }
+  };
 
-      {showSearch && (
-        <div className="mb-6">
-          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full p-3 rounded-lg border" placeholder="Buscar por nombre, categoría o relacionado..." />
-        </div>
-      )}
+  const handleMoveBrowse = async (fId) => {
+    setMoveParent(fId);
+    try { const data = await documentService.browse(fId); setMoveFolders(data.folders || []); } catch { setMoveFolders([]); }
+  };
 
-      {/* input file oculto para subir archivos */}
-      <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFilesSelected} />
+  const handleSearchSubmit = (e) => { e.preventDefault(); if (!searchQuery.trim()) return; setTab('search'); doSearch(searchQuery.trim()); };
+  const clearSearch = () => { setSearchQuery(''); setTab('browse'); };
 
-      {/* KPIs de Documentos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-        {kpisDocumentos.map((kpi, i) => (
-          <div 
-            key={i} 
-            onClick={() => {
-              if (i === 0) setShowModalTotal(true);
-              else if (i === 1) setShowModalEspacio(true);
-              else if (i === 2) setShowModalAccesos(true);
-              else if (i === 3) setShowModalSeguridad(true);
-            }}
-            className={`${cardBase} overflow-hidden cursor-pointer`}
-          >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
-              </div>
-            </div>
-          </div>
+  const openActionSheet = (e, type, item) => { e.preventDefault(); e.stopPropagation(); setActionSheet({ type, item }); };
+
+  /* ═══════════════════ iOS STYLES (inline) ═══════════════════ */
+  const S = {
+    page: { fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif', background: IOS.bgGrouped, minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', borderRadius: 20, overflow: 'hidden', margin: '8px', marginTop: 72 },
+    searchWrap: { padding: '12px 16px 8px', position: 'sticky', top: 0, zIndex: 10, background: IOS.bgGrouped },
+    searchBar: { display: 'flex', alignItems: 'center', gap: 8, background: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)', borderRadius: 10, padding: '8px 12px' },
+    searchInput: { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 16, color: IOS.label, fontFamily: 'inherit' },
+    largeTitle: { fontSize: 34, fontWeight: 700, color: IOS.label, padding: '4px 20px 4px', letterSpacing: -0.4 },
+    sectionHeader: { fontSize: 13, fontWeight: 600, color: IOS.label3, textTransform: 'uppercase', letterSpacing: 0.5, padding: '16px 20px 6px' },
+    card: { background: IOS.bgCard, borderRadius: 12, overflow: 'hidden' },
+    cardMargin: { margin: '0 16px', background: IOS.bgCard, borderRadius: 12, overflow: 'hidden' },
+    listRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: `0.5px solid ${IOS.separator}`, cursor: 'pointer', transition: 'background 0.15s' },
+    listRowLast: { borderBottom: 'none' },
+    bottomBar: { display: 'flex', borderTop: `0.5px solid ${IOS.separator}`, background: dark ? 'rgba(41,42,45,0.94)' : 'rgba(249,249,249,0.94)', backdropFilter: 'blur(20px)', padding: '6px 0 env(safe-area-inset-bottom, 8px)' },
+    bottomTab: (active) => ({ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '4px 0', border: 'none', background: 'transparent', cursor: 'pointer', color: active ? IOS.blue : IOS.gray, fontSize: 10, fontWeight: 500, fontFamily: 'inherit' }),
+    fab: { position: 'fixed', bottom: 80, right: 24, width: 56, height: 56, borderRadius: '50%', background: IOS.blue, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(0,122,255,0.4)', zIndex: 20 },
+    catGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, padding: '8px 16px' },
+    catCard: (color) => ({ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 12, background: IOS.bgCard, cursor: 'pointer', border: 'none', width: '100%', fontFamily: 'inherit', textAlign: 'left' }),
+    fileThumb: (color) => ({ width: 40, height: 40, borderRadius: 8, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+    fileThumbGrid: (color) => ({ width: '100%', height: 100, borderRadius: '12px 12px 0 0', background: color + '10', display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+    gridItem: { background: IOS.bgCard, borderRadius: 12, overflow: 'hidden', cursor: 'pointer', position: 'relative', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
+    gridWrap: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, padding: '8px 16px 16px' },
+    breadcrumb: { display: 'flex', alignItems: 'center', gap: 4, padding: '4px 20px', fontSize: 13, overflowX: 'auto', flexWrap: 'nowrap' },
+    toolRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 4px 20px' },
+    overlay: { position: 'fixed', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.4)' },
+    sheet: { background: IOS.bgCard, borderRadius: '14px 14px 0 0', maxHeight: '70vh', overflow: 'auto' },
+    sheetAction: (danger) => ({ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: `0.5px solid ${IOS.separator}`, width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 17, color: danger ? IOS.red : IOS.blue, fontFamily: 'inherit', textAlign: 'left' }),
+    sheetCancel: { margin: '8px 16px', borderRadius: 14, background: IOS.bgCard, overflow: 'hidden' },
+  };
+
+  const renderSearch = () => (
+    <div style={S.searchWrap}>
+      <form onSubmit={handleSearchSubmit} style={S.searchBar}>
+        <ISearch size={18} style={{ color: IOS.gray2, flexShrink: 0 }} />
+        <input style={S.searchInput} placeholder="Buscar" value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)} />
+        {searchQuery && <button type="button" onClick={clearSearch} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: IOS.gray2, padding: 0 }}><IClose size={16} /></button>}
+      </form>
+    </div>
+  );
+
+  const renderBreadcrumb = () => {
+    if (tab !== 'browse' || breadcrumb.length === 0) return null;
+    return (
+      <div style={S.breadcrumb}>
+        <button onClick={() => navigateToFolder(null)} style={{ border: 'none', background: 'transparent', color: IOS.blue, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: 0, flexShrink: 0 }}>Todos los Archivos</button>
+        {breadcrumb.map((b, i) => (
+          <React.Fragment key={b._id}>
+            <IChevron style={{ color: IOS.gray3, flexShrink: 0 }} />
+            {i === breadcrumb.length - 1
+              ? <span style={{ color: IOS.label, fontWeight: 600, flexShrink: 0 }}>{b.name}</span>
+              : <button onClick={() => navigateToFolder(b._id)} style={{ border: 'none', background: 'transparent', color: IOS.blue, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: 0, flexShrink: 0 }}>{b.name}</button>
+            }
+          </React.Fragment>
         ))}
       </div>
+    );
+  };
 
-      {/* Zona de Subida y Gráficos */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Zona de Subida */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">☁️ Subida y Almacenamiento</h3>
-          <div className="border-2 border-dashed dark:border-gray-600 rounded-lg p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-            <FaUpload className="text-4xl text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 dark:text-gray-400 mb-2">Subida automática a VPS</p>
-            <p className="text-sm text-gray-500 mb-4">Arrastra archivos aquí o haz clic para seleccionar</p>
-            <button className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-              Seleccionar Archivos
+  const renderCategories = () => (
+    <div>
+      <div style={S.sectionHeader}>Categorias</div>
+      <div style={S.catGrid}>
+        {CATEGORIES.map((cat) => (
+          <button key={cat.key} style={S.catCard(cat.color)}
+            onClick={() => { if (cat.key === 'starred') { setTab('starred'); setCategoryFilter(null); }
+              else { setCategoryFilter(cat); setTab('category'); } }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: cat.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {cat.icon(20)}
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 500, color: IOS.label }}>{cat.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderStorageCard = () => {
+    if (!storageInfo) return null;
+    const maxGB = 15; const usedGB = (storageInfo.totalMB || 0) / 1024;
+    const pct = Math.min((usedGB / maxGB) * 100, 100);
+    return (
+      <div style={{ ...S.cardMargin, padding: '16px', marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <ICloud size={20} style={{ color: IOS.blue }} />
+          <span style={{ fontSize: 15, fontWeight: 600, color: IOS.label }}>Almacenamiento</span>
+        </div>
+        <div style={{ height: 6, borderRadius: 3, background: IOS.gray5, overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pct > 80 ? IOS.red : pct > 50 ? IOS.orange : IOS.blue, transition: 'width 0.4s' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+          <span style={{ fontSize: 12, color: IOS.gray }}>{formatSize(storageInfo.totalMB)} de {maxGB} GB</span>
+          <span style={{ fontSize: 12, color: IOS.gray }}>{storageInfo.totalFiles} archivos</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLocations = () => (
+    <div>
+      <div style={S.sectionHeader}>Ubicaciones</div>
+      <div style={S.cardMargin}>
+        <div style={S.listRow} onClick={() => { setTab('browse'); setCurrentFolder(null); setCategoryFilter(null); }}>
+          <ICloud size={22} style={{ color: IOS.blue }} />
+          <span style={{ flex: 1, fontSize: 17, color: IOS.label }}>Todos los Archivos</span>
+          <IChevron style={{ color: IOS.gray3 }} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderNewFolder = () => {
+    if (!newFolderMode) return null;
+    return (
+      <div style={{ ...S.cardMargin, marginTop: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <FolderFill size={24} color={IOS.blue} />
+        <input autoFocus value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setNewFolderMode(false); }}
+          placeholder="Nombre de carpeta" style={{ flex: 1, border: 'none', outline: 'none', fontSize: 17, fontFamily: 'inherit', color: IOS.label, background: 'transparent' }} />
+        <button onClick={handleCreateFolder} style={{ border: 'none', background: IOS.blue, color: '#fff', borderRadius: 8, padding: '6px 14px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Crear</button>
+        <button onClick={() => setNewFolderMode(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}><IClose size={18} style={{ color: IOS.gray }} /></button>
+      </div>
+    );
+  };
+
+  const renderFolderRow = (folder, idx, arr) => {
+    const isRenaming = renameTarget && renameTarget.type === 'folder' && renameTarget.item._id === folder._id;
+    return (
+      <div key={folder._id} style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}) }}
+        onClick={() => navigateToFolder(folder._id)} onContextMenu={(e) => openActionSheet(e, 'folder', folder)}>
+        <FolderFill size={28} color={folder.color || IOS.blue} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {isRenaming
+            ? <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setRenameTarget(null); }}
+                onBlur={handleRenameSubmit} onClick={(e) => e.stopPropagation()}
+                style={{ fontSize: 17, border: 'none', borderBottom: `2px solid ${IOS.blue}`, outline: 'none', width: '100%', fontFamily: 'inherit', color: IOS.label, background: 'transparent' }} />
+            : <div style={{ fontSize: 17, color: IOS.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{folder.name}</div>
+          }
+          <div style={{ fontSize: 13, color: IOS.gray, marginTop: 1 }}>{formatDate(folder.createdAt)}</div>
+        </div>
+        {folder.starred && <StarFill size={14} filled />}
+        <button onClick={(e) => { e.stopPropagation(); openActionSheet(e, 'folder', folder); }}
+          style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}><IMore size={18} style={{ color: IOS.gray }} /></button>
+        <IChevron style={{ color: IOS.gray3 }} />
+      </div>
+    );
+  };
+
+  const renderDocRow = (doc, idx, arr) => {
+    const isRenaming = renameTarget && renameTarget.type === 'doc' && renameTarget.item._id === doc._id;
+    const color = getFileColor(doc.tipo);
+    return (
+      <div key={doc._id} style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}) }}
+        onClick={() => handlePreview(doc)} onContextMenu={(e) => openActionSheet(e, 'doc', doc)}>
+        <div style={S.fileThumb(color)}>
+          <span style={{ fontSize: 11, fontWeight: 700, color }}>{getFileLabel(doc.tipo)}</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {isRenaming
+            ? <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setRenameTarget(null); }}
+                onBlur={handleRenameSubmit} onClick={(e) => e.stopPropagation()}
+                style={{ fontSize: 17, border: 'none', borderBottom: `2px solid ${IOS.blue}`, outline: 'none', width: '100%', fontFamily: 'inherit', color: IOS.label, background: 'transparent' }} />
+            : <div style={{ fontSize: 17, color: IOS.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</div>
+          }
+          <div style={{ fontSize: 13, color: IOS.gray, marginTop: 1 }}>{formatDate(doc.fecha)}{doc.tamano ? ` · ${formatSize(doc.tamano)}` : ''}</div>
+        </div>
+        {doc.starred && <StarFill size={14} filled />}
+        <button onClick={(e) => { e.stopPropagation(); openActionSheet(e, 'doc', doc); }}
+          style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}><IMore size={18} style={{ color: IOS.gray }} /></button>
+      </div>
+    );
+  };
+
+  const renderDocGrid = (doc) => {
+    const color = getFileColor(doc.tipo);
+    return (
+      <div key={doc._id} style={S.gridItem} onClick={() => handlePreview(doc)} onContextMenu={(e) => openActionSheet(e, 'doc', doc)}>
+        <div style={S.fileThumbGrid(color)}>
+          <div style={{ width: 44, height: 44, borderRadius: 10, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{getFileLabel(doc.tipo)}</span>
+          </div>
+        </div>
+        {doc.starred && <StarFill size={14} filled style={{ position: 'absolute', top: 8, left: 8 }} />}
+        <div style={{ padding: '8px 10px' }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: IOS.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</div>
+          <div style={{ fontSize: 11, color: IOS.gray, marginTop: 2 }}>{formatDate(doc.fecha)}</div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFolderGrid = (folder) => (
+    <div key={folder._id} style={S.gridItem} onClick={() => navigateToFolder(folder._id)} onContextMenu={(e) => openActionSheet(e, 'folder', folder)}>
+      <div style={{ ...S.fileThumbGrid(IOS.blue), height: 80 }}>
+        <FolderFill size={40} color={folder.color || IOS.blue} />
+      </div>
+      {folder.starred && <StarFill size={14} filled style={{ position: 'absolute', top: 8, left: 8 }} />}
+      <div style={{ padding: '8px 10px' }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: IOS.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{folder.name}</div>
+      </div>
+    </div>
+  );
+
+  const renderActionSheet = () => {
+    if (!actionSheet) return null;
+    const { type, item } = actionSheet;
+    const isFolder = type === 'folder';
+    const actions = [
+      ...(isFolder ? [] : [
+        { label: 'Vista Rapida', icon: <IEye size={20} style={{ color: IOS.blue }} />, fn: () => handlePreview(item) },
+        { label: 'Descargar', icon: <IDownload size={20} style={{ color: IOS.blue }} />, fn: () => handleDownload(item) },
+      ]),
+      { label: item.starred ? 'Quitar de Favoritos' : 'Favorito', icon: <StarFill size={20} filled={item.starred} color={IOS.orange} />, fn: () => handleStar(type, item) },
+      { label: 'Renombrar', icon: <IEdit size={20} style={{ color: IOS.blue }} />, fn: () => { setRenameTarget({ type, item }); setRenameValue(isFolder ? item.name : item.nombre); } },
+      { label: 'Mover', icon: <IMove size={20} style={{ color: IOS.blue }} />, fn: () => startMove(type, item) },
+      { label: 'Eliminar', icon: <ITrash size={20} style={{ color: IOS.red }} />, fn: () => handleDelete(type, item), danger: true },
+    ];
+    return (
+      <div style={S.overlay} onClick={() => setActionSheet(null)}>
+        <div style={S.sheet} onClick={(e) => e.stopPropagation()}>
+          <div style={{ padding: '14px 20px', borderBottom: `0.5px solid ${IOS.separator}`, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, color: IOS.gray, fontWeight: 600 }}>{isFolder ? item.name : item.nombre}</div>
+          </div>
+          {actions.map((a, i) => (
+            <button key={i} onClick={() => { a.fn(); setActionSheet(null); }} style={S.sheetAction(a.danger)}>
+              {a.icon}<span>{a.label}</span>
+            </button>
+          ))}
+        </div>
+        <div style={S.sheetCancel}>
+          <button onClick={() => setActionSheet(null)}
+            style={{ ...S.sheetAction(false), justifyContent: 'center', fontWeight: 600, borderBottom: 'none' }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMoveSheet = () => {
+    if (!moveTarget) return null;
+    return (
+      <div style={S.overlay} onClick={() => setMoveTarget(null)}>
+        <div style={{ ...S.sheet, maxHeight: '60vh' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `0.5px solid ${IOS.separator}` }}>
+            <button onClick={() => setMoveTarget(null)} style={{ border: 'none', background: 'transparent', color: IOS.blue, fontSize: 17, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+            <span style={{ fontSize: 17, fontWeight: 600, color: IOS.label }}>Mover</span>
+            <button onClick={handleMoveConfirm} style={{ border: 'none', background: 'transparent', color: IOS.blue, fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Mover</button>
+          </div>
+          <div style={{ padding: 8, maxHeight: 300, overflowY: 'auto' }}>
+            {moveParent && (
+              <button onClick={() => handleMoveBrowse(null)} style={{ ...S.sheetAction(false), fontSize: 15 }}>← Todos los Archivos</button>
+            )}
+            <div style={{ ...S.listRow, background: !moveParent ? IOS.blue + '12' : 'transparent' }} onClick={() => setMoveParent(null)}>
+              <ICloud size={20} style={{ color: IOS.blue }} /><span style={{ flex: 1, fontSize: 17, color: IOS.label }}>Todos los Archivos</span>
+            </div>
+            {moveFolders.filter(f => f._id !== moveTarget?.item?._id).map((f) => (
+              <div key={f._id} style={{ ...S.listRow, background: moveParent === f._id ? IOS.blue + '12' : 'transparent' }}>
+                <FolderFill size={20} color={f.color || IOS.blue} />
+                <span style={{ flex: 1, fontSize: 17, color: IOS.label, cursor: 'pointer' }} onClick={() => setMoveParent(f._id)}>{f.name}</span>
+                <button onClick={() => handleMoveBrowse(f._id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}><IChevron style={{ color: IOS.gray3 }} /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPreview = () => {
+    if (!previewDoc || !previewUrl) return null;
+    const isImage = previewDoc.tipo === 'Imagen' || (previewDoc.mimetype && previewDoc.mimetype.startsWith('image/'));
+    const isPdf = previewDoc.tipo === 'PDF' || (previewDoc.mimetype && previewDoc.mimetype === 'application/pdf');
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', flexDirection: 'column', background: '#000' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(30,30,30,0.95)' }}>
+          <button onClick={() => { setPreviewDoc(null); setPreviewUrl(null); }}
+            style={{ border: 'none', background: 'transparent', color: IOS.blue, fontSize: 17, cursor: 'pointer', fontFamily: 'inherit' }}>Cerrar</button>
+          <span style={{ fontSize: 15, color: '#fff', fontWeight: 600, maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{previewDoc.nombre}</span>
+          <button onClick={() => handleDownload(previewDoc)}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}><IDownload size={22} style={{ color: IOS.blue }} /></button>
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: 16 }}>
+          {isImage ? <img src={previewUrl} alt={previewDoc.nombre} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
+          : isPdf ? <iframe src={previewUrl} title={previewDoc.nombre} style={{ width: '100%', maxWidth: 900, height: '100%', borderRadius: 8, border: 'none', background: '#fff' }} />
+          : <div style={{ textAlign: 'center', color: '#fff' }}>
+              <DocFill size={64} color={IOS.gray} />
+              <p style={{ fontSize: 17, marginTop: 16 }}>Vista previa no disponible</p>
+              <button onClick={() => handleDownload(previewDoc)}
+                style={{ marginTop: 12, border: 'none', background: IOS.blue, color: '#fff', borderRadius: 22, padding: '10px 28px', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Descargar</button>
+            </div>}
+        </div>
+      </div>
+    );
+  };
+
+  const renderEmpty = () => {
+    let icon, title, sub;
+    if (tab === 'starred') { icon = <StarFill size={48} filled={false} />; title = 'Sin favoritos'; sub = 'Marca archivos como favoritos para verlos aqui'; }
+    else if (tab === 'recent') { icon = <IClock size={48} style={{ color: IOS.gray3 }} />; title = 'Sin recientes'; sub = 'Los archivos abiertos apareceran aqui'; }
+    else if (tab === 'search') { icon = <ISearch size={48} style={{ color: IOS.gray3 }} />; title = 'Sin resultados'; sub = ''; }
+    else if (tab === 'category') { icon = (categoryFilter?.icon(48)); title = `Sin ${categoryFilter?.label?.toLowerCase() || 'archivos'}`; sub = ''; }
+    else { icon = <FolderFill size={48} color={IOS.gray3} />; title = 'Sin contenido'; sub = 'Sube archivos o crea carpetas'; }
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', color: IOS.gray }}>
+        {icon}
+        <div style={{ fontSize: 20, fontWeight: 600, marginTop: 12, color: IOS.label2 }}>{title}</div>
+        {sub && <div style={{ fontSize: 15, marginTop: 4, color: IOS.gray }}>{sub}</div>}
+      </div>
+    );
+  };
+
+  const hasContent = folders.length > 0 || filteredDocs.length > 0;
+  const showCategories = tab === 'browse' && !currentFolder;
+  const pageTitle = tab === 'browse' ? (currentFolder && breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].name : 'Explorar')
+    : tab === 'recent' ? 'Recientes' : tab === 'starred' ? 'Favoritos'
+    : tab === 'search' ? 'Busqueda' : tab === 'category' ? (categoryFilter?.label || 'Categoria') : 'Archivos';
+
+  return (
+    <div style={S.page}>
+      {renderSearch()}
+      <div style={S.largeTitle}>{pageTitle}</div>
+
+      {error && (
+        <div style={{ margin: '0 16px 8px', padding: '10px 16px', borderRadius: 10, background: IOS.red + '14', color: IOS.red, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {error}
+          <button onClick={() => setError('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 2 }}><IClose size={16} style={{ color: IOS.red }} /></button>
+        </div>
+      )}
+      {uploadProgress && (
+        <div style={{ margin: '0 16px 8px', padding: '10px 16px', borderRadius: 10, background: IOS.blue + '14', color: IOS.blue, fontSize: 15, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 16, height: 16, border: `2px solid ${IOS.blue}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          {uploadProgress}
+        </div>
+      )}
+
+      {renderBreadcrumb()}
+
+      {tab === 'browse' && (
+        <div style={S.toolRow}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => { setNewFolderMode(true); setNewFolderName(''); }}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: IOS.blue, fontSize: 15, fontWeight: 500, fontFamily: 'inherit' }}>
+              <IFolderPlus size={20} style={{ color: IOS.blue }} /> Nueva carpeta
             </button>
           </div>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Tipos soportados: PDF, Word, Excel, Imágenes, ZIP</p>
-            <p className="text-xs text-gray-500 mt-1">Tamaño máximo: 50MB por archivo</p>
-          </div>
+          <button onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+            {view === 'grid' ? <IList size={20} style={{ color: IOS.blue }} /> : <IGrid size={20} style={{ color: IOS.blue }} />}
+          </button>
         </div>
+      )}
 
-        {/* Gráfico de Tipos */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Tipos de Documentos</h3>
-          <AccumulationChartComponent
-            id="tipos-documentos-chart"
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="300px"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={tiposDocumentosData}
-                xName="tipo"
-                yName="cantidad"
-                name="Documentos"
-                dataLabel={{ visible: true, name: 'tipo', position: 'Outside' }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
-        </div>
+      {renderNewFolder()}
+
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+        {showCategories && renderCategories()}
+        {showCategories && renderLocations()}
+        {showCategories && renderStorageCard()}
+
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+            <div style={{ width: 28, height: 28, border: `3px solid ${IOS.gray5}`, borderTopColor: IOS.blue, borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+          </div>
+        ) : (!showCategories && !hasContent) ? renderEmpty() : (
+          <>
+            {folders.length > 0 && (
+              <div>
+                <div style={S.sectionHeader}>Carpetas</div>
+                {view === 'list' ? (
+                  <div style={S.cardMargin}>{folders.map((f, i, a) => renderFolderRow(f, i, a))}</div>
+                ) : (
+                  <div style={S.gridWrap}>{folders.map(renderFolderGrid)}</div>
+                )}
+              </div>
+            )}
+            {filteredDocs.length > 0 && (
+              <div>
+                <div style={S.sectionHeader}>Archivos</div>
+                {view === 'list' ? (
+                  <div style={S.cardMargin}>{filteredDocs.map((d, i, a) => renderDocRow(d, i, a))}</div>
+                ) : (
+                  <div style={S.gridWrap}>{filteredDocs.map(renderDocGrid)}</div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Grid de Documentos y Panel de Organización */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        {/* Grid Principal */}
-        <div className={`xl:col-span-2 ${cardBase}`}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📄 Documentos Recientes</h3>
-          <GridComponent
-            dataSource={documentos}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-            allowFiltering
-          >
-            <GridInject services={[Page, Sort, Filter]} />
-            <ColumnsDirective>
-              <ColumnDirective field="nombre" headerText="Archivo" width="250" />
-              <ColumnDirective field="tipo" headerText="Tipo" width="80" />
-              <ColumnDirective field="categoria" headerText="Categoría" width="120" />
-              <ColumnDirective field="tamaño" headerText="Tamaño (MB)" textAlign="Right" width="120" />
-              <ColumnDirective field="relacionado" headerText="Relacionado" width="150" />
-              <ColumnDirective field="accesos" headerText="Accesos" textAlign="Center" width="100" />
-            </ColumnsDirective>
-          </GridComponent>
-        </div>
-
-        {/* Panel de Organización */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📁 Organización</h3>
-          <div className="space-y-4">
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaFolder className="text-blue-500" />
-                <h4 className="font-bold dark:text-gray-200">Por Propiedad</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Escrituras, planos, fotos</p>
-              <p className="text-xs text-blue-600 mt-1">{categoriasData.find(c => c.categoria === 'Propiedad')?.cantidad || 0} documentos</p>
-            </div>
-
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaFolder className="text-green-500" />
-                <h4 className="font-bold dark:text-gray-200">Por Cliente</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">DNI, contratos, documentación</p>
-              <p className="text-xs text-green-600 mt-1">{categoriasData.find(c => c.categoria === 'Cliente')?.cantidad || 0} documentos</p>
-            </div>
-
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FaFolder className="text-purple-500" />
-                <h4 className="font-bold dark:text-gray-200">Por Operación</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Comprobantes, contratos finales</p>
-              <p className="text-xs text-purple-600 mt-1">{categoriasData.find(c => c.categoria === 'Operación')?.cantidad || 0} documentos</p>
-            </div>
-          </div>
-        </div>
+      <div style={S.bottomBar}>
+        <button style={S.bottomTab(tab === 'recent')} onClick={() => { setTab('recent'); setCategoryFilter(null); }}>
+          <IClock size={22} />
+          <span>Recientes</span>
+        </button>
+        <button style={S.bottomTab(tab === 'browse' || tab === 'category')} onClick={() => { setTab('browse'); setCurrentFolder(null); setCategoryFilter(null); }}>
+          <FolderFill size={22} color={tab === 'browse' || tab === 'category' ? IOS.blue : IOS.gray} />
+          <span>Explorar</span>
+        </button>
+        <button style={S.bottomTab(tab === 'starred')} onClick={() => { setTab('starred'); setCategoryFilter(null); }}>
+          <StarFill size={22} filled={tab === 'starred'} color={tab === 'starred' ? IOS.blue : IOS.gray} />
+          <span>Favoritos</span>
+        </button>
       </div>
 
-      {/* Control de Acceso y Vista Previa */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Control de Acceso */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🔒 Control de Acceso por Roles</h3>
-          <div className="space-y-4">
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <FaShieldAlt className="text-red-500" />
-                  <h4 className="font-bold dark:text-gray-200">Admin</h4>
-                </div>
-                <span className="text-sm text-green-600 dark:text-green-400">Acceso completo</span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Ver, descargar, subir, eliminar</p>
-            </div>
+      <label style={S.fab}>
+        <IPlus size={28} style={{ color: '#fff' }} />
+        <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload} />
+      </label>
 
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <FaShieldAlt className="text-blue-500" />
-                  <h4 className="font-bold dark:text-gray-200">Supervisor</h4>
-                </div>
-                <span className="text-sm text-blue-600 dark:text-blue-400">Ver y descargar</span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Acceso a todos los documentos</p>
-            </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <FaShieldAlt className="text-gray-500" />
-                  <h4 className="font-bold dark:text-gray-200">Agente</h4>
-                </div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Solo sus documentos</span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Documentos de sus operaciones</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Vista Previa Integrada */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">👁️ Vista Previa Integrada</h3>
-          <div className="border dark:border-gray-700 rounded-lg p-6 text-center">
-            <FaEye className="text-4xl text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 dark:text-gray-400 mb-2">Visualización sin descargar</p>
-            <p className="text-sm text-gray-500 mb-4">PDF, imágenes y documentos de Office</p>
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded text-center">
-                <FaFilePdf className="text-red-500 mx-auto mb-1" />
-                <p className="text-xs">PDF</p>
-              </div>
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded text-center">
-                <FaFileWord className="text-blue-500 mx-auto mb-1" />
-                <p className="text-xs">Word</p>
-              </div>
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded text-center">
-                <FaFileImage className="text-green-500 mx-auto mb-1" />
-                <p className="text-xs">Imagen</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Modal Total Documentos */}
-      {showModalTotal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaFile /> Total Documentos
-                </h2>
-                <p className="text-blue-100 text-sm mt-1">{documentos.length + 241} documentos totales (42 este mes)</p>
-              </div>
-              <button onClick={() => setShowModalTotal(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-3">
-                {documentos.map((doc) => (
-                  <div key={doc.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-lg transition-shadow`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        {getIconByType(doc.tipo)}
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg dark:text-gray-100">{doc.nombre}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">📁 {doc.categoria} • 🔗 {doc.relacionado}</p>
-                          <div className="flex gap-3 mt-2 text-xs text-gray-600 dark:text-gray-400">
-                            <span>📅 {doc.fecha}</span>
-                            <span>•</span>
-                            <span>💾 {doc.tamaño} MB</span>
-                            <span>•</span>
-                            <span>👁️ {doc.accesos} accesos</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleView(doc)} className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors" title="Ver">
-                          <FaEye />
-                        </button>
-                        <button onClick={() => handleDownload(doc)} className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors" title="Descargar">
-                          <FaDownload />
-                        </button>
-                        <button onClick={() => handleDelete(doc)} className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors" title="Eliminar">
-                          <FaTimes />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-blue-900/20' : 'bg-blue-50'} rounded-lg border-2 border-blue-500`}>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{documentos.length + 241}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Este mes</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">42</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">PDFs</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">156</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Imágenes</p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">78</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Espacio Usado */}
-      {showModalEspacio && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            <div className="sticky top-0 bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaCloud /> Espacio de Almacenamiento
-                </h2>
-                <p className="text-green-100 text-sm mt-1">{(documentos.reduce((sum, d) => sum + d.tamaño, 0) + 3200).toFixed(1)} MB usados (46.8 GB libres)</p>
-              </div>
-              <button onClick={() => setShowModalEspacio(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
-                <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
-                  <h3 className="font-bold text-lg mb-4 dark:text-gray-100">Uso por Categoría</h3>
-                  <div className="space-y-3">
-                    {[
-                      { categoria: 'Propiedades', espacio: 1250, porcentaje: 38, color: 'blue' },
-                      { categoria: 'Clientes', espacio: 890, porcentaje: 27, color: 'indigo' },
-                      { categoria: 'Operaciones', espacio: 645, porcentaje: 20, color: 'purple' },
-                      { categoria: 'Otros', espacio: 437, porcentaje: 15, color: 'gray' },
-                    ].map((item, idx) => (
-                      <div key={idx}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium dark:text-gray-200">{item.categoria}</span>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">{item.espacio} MB ({item.porcentaje}%)</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className={`bg-${item.color}-500 h-2 rounded-full transition-all`}
-                            style={{ width: `${item.porcentaje}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
-                  <h3 className="font-bold text-lg mb-4 dark:text-gray-100">Archivos Más Grandes</h3>
-                  <div className="space-y-2">
-                    {documentos
-                      .sort((a, b) => b.tamaño - a.tamaño)
-                      .slice(0, 5)
-                      .map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            {getIconByType(doc.tipo)}
-                            <span className="text-sm dark:text-gray-200">{doc.nombre}</span>
-                          </div>
-                          <span className="text-sm font-bold text-green-600 dark:text-green-400">{doc.tamaño} MB</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Accesos Hoy */}
-      {showModalAccesos && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaEye /> Accesos y Visualizaciones
-                </h2>
-                <p className="text-purple-100 text-sm mt-1">{documentos.reduce((sum, d) => sum + d.accesos, 0)} accesos totales hoy</p>
-              </div>
-              <button onClick={() => setShowModalAccesos(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-3">
-                <h3 className="font-bold text-lg mb-4 dark:text-gray-100">Documentos Más Vistos</h3>
-                {documentos
-                  .sort((a, b) => b.accesos - a.accesos)
-                  .map((doc, idx) => (
-                    <div key={doc.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                            idx === 0 ? 'bg-yellow-400 text-yellow-900' :
-                            idx === 1 ? 'bg-gray-300 text-gray-700' :
-                            idx === 2 ? 'bg-orange-400 text-orange-900' :
-                            'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                          }`}>
-                            #{idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-lg dark:text-gray-100">{doc.nombre}</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">📁 {doc.categoria} • 📅 {doc.fecha}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{doc.accesos}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">vistas</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Seguridad */}
-      {showModalSeguridad && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaShieldAlt /> Seguridad y Control de Acceso
-                </h2>
-                <p className="text-orange-100 text-sm mt-1">100% de documentos protegidos</p>
-              </div>
-              <button onClick={() => setShowModalSeguridad(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
-                <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
-                  <h3 className="font-bold text-lg mb-4 dark:text-gray-100">Niveles de Acceso</h3>
-                  <div className="space-y-3">
-                    {[
-                      { rol: 'Administrador', permisos: 'Control total', usuarios: 2, color: 'red' },
-                      { rol: 'Gerente', permisos: 'Lectura y escritura', usuarios: 5, color: 'orange' },
-                      { rol: 'Agente', permisos: 'Solo lectura', usuarios: 12, color: 'yellow' },
-                      { rol: 'Invitado', permisos: 'Acceso limitado', usuarios: 3, color: 'green' },
-                    ].map((nivel, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-orange-500">
-                        <div>
-                          <h4 className="font-bold dark:text-gray-100">{nivel.rol}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{nivel.permisos}</p>
-                        </div>
-                        <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-sm font-medium">
-                          {nivel.usuarios} usuarios
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6`}>
-                  <h3 className="font-bold text-lg mb-4 dark:text-gray-100">Actividad Reciente</h3>
-                  <div className="space-y-2">
-                    {[
-                      { usuario: 'Ana López', accion: 'Descargó', archivo: 'Escritura_Palermo_2amb.pdf', tiempo: 'Hace 5 min' },
-                      { usuario: 'Carlos Ruiz', accion: 'Visualizó', archivo: 'Contrato_Juan_Perez.docx', tiempo: 'Hace 12 min' },
-                      { usuario: 'Laura Fernández', accion: 'Subió', archivo: 'Plano_Nuevo.pdf', tiempo: 'Hace 23 min' },
-                      { usuario: 'Sofía Torres', accion: 'Compartió', archivo: 'Fotos_Propiedad.zip', tiempo: 'Hace 1 hora' },
-                    ].map((actividad, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
-                        <div className="flex-1">
-                          <p className="text-sm dark:text-gray-200">
-                            <span className="font-bold">{actividad.usuario}</span> {actividad.accion.toLowerCase()} <span className="text-orange-600 dark:text-orange-400">{actividad.archivo}</span>
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{actividad.tiempo}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Vista Previa Mejorado */}
-      {showPreview && previewDoc && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
-            {/* Header del Modal */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-t-2xl">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-4">
-                  {getIconByType(previewDoc.tipo)}
-                  <div>
-                    <h3 className="text-2xl font-bold">{previewDoc.nombre}</h3>
-                    <div className="flex gap-4 mt-2 text-sm text-blue-100">
-                      <span>📁 {previewDoc.categoria}</span>
-                      <span>•</span>
-                      <span>💾 {previewDoc.tamaño} MB</span>
-                      <span>•</span>
-                      <span>📅 {previewDoc.fecha}</span>
-                      <span>•</span>
-                      <span>👁️ {previewDoc.accesos} vistas</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowPreview(false)} 
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-                >
-                  <FaTimes className="text-2xl" />
-                </button>
-              </div>
-
-              {/* Botones de Acción */}
-              <div className="flex gap-3 mt-4">
-                <button 
-                  onClick={() => handleDownload(previewDoc)} 
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
-                >
-                  <FaDownload /> Descargar
-                </button>
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(previewDoc.nombre);
-                    alert('Nombre copiado al portapapeles');
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-colors"
-                >
-                  📋 Copiar nombre
-                </button>
-                <button 
-                  onClick={() => {
-                    if (window.confirm(`¿Compartir ${previewDoc.nombre}?`)) {
-                      alert('Función de compartir (mock) - En producción se generaría un enlace compartible');
-                    }
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-colors"
-                >
-                  🔗 Compartir
-                </button>
-              </div>
-            </div>
-
-            {/* Contenido del Modal */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Vista Previa Principal */}
-                <div className="lg:col-span-2">
-                  <h4 className="font-bold text-lg mb-4 dark:text-gray-100">📄 Vista Previa</h4>
-                  <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-6 border-2 ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                    {previewDoc.tipo === 'PDF' && (
-                      <div className="space-y-4">
-                        <div className="h-96 bg-white dark:bg-gray-900 rounded-lg shadow-inner flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
-                          <div className="text-center">
-                            <FaFilePdf className="text-6xl text-red-500 mx-auto mb-4" />
-                            <p className="text-gray-600 dark:text-gray-400 font-medium">Documento PDF</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Vista previa simulada</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-600 mt-4">En producción se mostraría el PDF real usando un visor integrado</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-center">
-                          <button className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded text-sm">Página 1 de 5</button>
-                          <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">← Anterior</button>
-                          <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Siguiente →</button>
-                        </div>
-                      </div>
-                    )}
-                    {previewDoc.tipo === 'Word' && (
-                      <div className="h-96 bg-white dark:bg-gray-900 rounded-lg shadow-inner flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
-                        <div className="text-center">
-                          <FaFileWord className="text-6xl text-blue-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-gray-400 font-medium">Documento Word</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Vista previa simulada</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-600 mt-4">En producción se convertiría a HTML o PDF para visualización</p>
-                        </div>
-                      </div>
-                    )}
-                    {previewDoc.tipo === 'Imagen' && (
-                      <div className="h-96 bg-white dark:bg-gray-900 rounded-lg shadow-inner flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
-                        <div className="text-center">
-                          <FaFileImage className="text-6xl text-green-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-gray-400 font-medium">Imagen</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Vista previa simulada</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-600 mt-4">En producción se mostraría la imagen real</p>
-                        </div>
-                      </div>
-                    )}
-                    {previewDoc.tipo === 'ZIP' && (
-                      <div className="h-96 bg-white dark:bg-gray-900 rounded-lg shadow-inner flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
-                        <div className="text-center">
-                          <FaFolder className="text-6xl text-yellow-500 mx-auto mb-4" />
-                          <p className="text-gray-600 dark:text-gray-400 font-medium">Archivo Comprimido</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Contenido: {Math.floor(Math.random() * 20) + 5} archivos</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-600 mt-4">Descarga el archivo para ver su contenido</p>
-                          <button 
-                            onClick={() => handleDownload(previewDoc)}
-                            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                          >
-                            Descargar ZIP
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Panel de Información */}
-                <div className="space-y-4">
-                  <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                    <h4 className="font-bold mb-3 dark:text-gray-100">ℹ️ Información</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
-                        <span className="font-medium dark:text-gray-200">{previewDoc.tipo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Tamaño:</span>
-                        <span className="font-medium dark:text-gray-200">{previewDoc.tamaño} MB</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Categoría:</span>
-                        <span className="font-medium dark:text-gray-200">{previewDoc.categoria}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Fecha:</span>
-                        <span className="font-medium dark:text-gray-200">{previewDoc.fecha}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Accesos:</span>
-                        <span className="font-medium dark:text-gray-200">{previewDoc.accesos}</span>
-                      </div>
-                      {previewDoc.relacionado && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Relacionado:</span>
-                          <span className="font-medium dark:text-gray-200">{previewDoc.relacionado}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                    <h4 className="font-bold mb-3 dark:text-gray-100">🔒 Seguridad</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <FaCheckCircle className="text-green-500" />
-                        <span className="dark:text-gray-300">Archivo verificado</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FaShieldAlt className="text-blue-500" />
-                        <span className="dark:text-gray-300">Almacenado en VPS seguro</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FaCloud className="text-purple-500" />
-                        <span className="dark:text-gray-300">Backup automático</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                    <h4 className="font-bold mb-3 dark:text-gray-100">⚙️ Acciones</h4>
-                    <div className="space-y-2">
-                      <button 
-                        onClick={() => {
-                          const newName = window.prompt('Nuevo nombre:', previewDoc.nombre);
-                          if (newName && newName !== previewDoc.nombre) {
-                            setDocumentos(prev => prev.map(d => 
-                              d.id === previewDoc.id ? { ...d, nombre: newName } : d
-                            ));
-                            setPreviewDoc({ ...previewDoc, nombre: newName });
-                            alert('Nombre actualizado');
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm"
-                      >
-                        ✏️ Renombrar
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (window.confirm('¿Mover a otra categoría?')) {
-                            const newCat = window.prompt('Nueva categoría:', previewDoc.categoria);
-                            if (newCat) {
-                              setDocumentos(prev => prev.map(d => 
-                                d.id === previewDoc.id ? { ...d, categoria: newCat } : d
-                              ));
-                              setPreviewDoc({ ...previewDoc, categoria: newCat });
-                              alert('Categoría actualizada');
-                            }
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm"
-                      >
-                        📁 Mover
-                      </button>
-                      <button 
-                        onClick={() => {
-                          handleDelete(previewDoc);
-                          setShowPreview(false);
-                        }}
-                        className="w-full px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm"
-                      >
-                        🗑️ Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nueva Carpeta */}
-      {showModalNuevaCarpeta && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-md w-full overflow-hidden`}>
-            {/* Header del Modal */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
-              <div className="flex items-center gap-3">
-                <FaFolder className="text-3xl" />
-                <div>
-                  <h3 className="text-2xl font-bold">Nueva Carpeta</h3>
-                  <p className="text-green-100 text-sm mt-1">Organiza tus documentos</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Contenido del Modal */}
-            <div className="p-6">
-              <div className="space-y-4">
-                {/* Nombre de la Carpeta */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                    📝 Nombre de la Carpeta *
-                  </label>
-                  <input
-                    type="text"
-                    value={nombreCarpeta}
-                    onChange={(e) => setNombreCarpeta(e.target.value)}
-                    placeholder="Ej: Contratos 2025"
-                    className={`w-full px-4 py-3 rounded-lg border-2 ${
-                      currentMode === 'Dark' 
-                        ? 'bg-gray-800 border-gray-700 text-gray-100 focus:border-green-500' 
-                        : 'bg-white border-gray-300 focus:border-green-500'
-                    } focus:outline-none transition-colors`}
-                    autoFocus
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') crearCarpeta();
-                    }}
-                  />
-                </div>
-
-                {/* Categoría */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                    📁 Categoría
-                  </label>
-                  <select
-                    value={categoriaCarpeta}
-                    onChange={(e) => setCategoriaCarpeta(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 ${
-                      currentMode === 'Dark' 
-                        ? 'bg-gray-800 border-gray-700 text-gray-100 focus:border-green-500' 
-                        : 'bg-white border-gray-300 focus:border-green-500'
-                    } focus:outline-none transition-colors`}
-                  >
-                    <option value="General">General</option>
-                    <option value="Propiedad">Propiedad</option>
-                    <option value="Cliente">Cliente</option>
-                    <option value="Operación">Operación</option>
-                    <option value="Contable">Contable</option>
-                    <option value="Legal">Legal</option>
-                  </select>
-                </div>
-
-                {/* Información */}
-                <div className={`${currentMode === 'Dark' ? 'bg-green-900/20' : 'bg-green-50'} border-2 border-green-500 rounded-lg p-4`}>
-                  <div className="flex items-start gap-3">
-                    <div className="text-green-600 dark:text-green-400 text-xl">💡</div>
-                    <div>
-                      <p className="text-sm font-medium text-green-800 dark:text-green-300">Tip:</p>
-                      <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                        Las carpetas te ayudan a organizar documentos relacionados. Puedes arrastrar archivos dentro de ellas.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Botones */}
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowModalNuevaCarpeta(false);
-                    setNombreCarpeta('');
-                    setCategoriaCarpeta('General');
-                  }}
-                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    currentMode === 'Dark'
-                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={crearCarpeta}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                >
-                  <FaFolder /> Crear Carpeta
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderActionSheet()}
+      {renderMoveSheet()}
+      {renderPreview()}
     </div>
   );
 };

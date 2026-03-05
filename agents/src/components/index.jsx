@@ -14,6 +14,7 @@ export { default as ChatInterno } from './ChatInterno';
 export { default as UserProfile } from './UserProfile';
 export { default as RewardsPanel } from './RewardsPanel';
 export { default as Celebration, triggerTestCelebration } from './Celebration';
+export { default as OnboardingTutorial } from './OnboardingTutorial';
 export { default as SparkLine } from './Charts/SparkLine';
 export { default as LineChart } from './Charts/LineChart';
 export { default as Stacked } from './Charts/Stacked';

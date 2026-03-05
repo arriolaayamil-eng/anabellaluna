@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   FaUserFriends,
   FaRegCalendarAlt,
@@ -18,67 +18,87 @@ import {
 } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
 import Chart from 'react-apexcharts';
 
 const AgentDashboard = () => {
   const { currentColor, currentMode } = useStateContext();
 
-  // Vista inicial del agente: resumen simple de su actividad
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await crmService.stats.getDashboard();
+      setData(result);
+    } catch (err) {
+      console.error('Error loading dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboard();
+    const interval = setInterval(loadDashboard, 60000);
+    return () => clearInterval(interval);
+  }, [loadDashboard]);
+
+  // Safely extract values with fallbacks
+  const k = data?.kpis || {};
+  const leads = data?.leadsEstado || {};
+  const funnel = data?.funnel || {};
+  const meta = data?.metaMensual || {};
+  const com = data?.comisiones || {};
+  const seg = data?.seguimientoCitas || {};
+  const rend = data?.rendimiento || {};
+
   const kpis = [
     {
       title: 'Leads activos',
-      value: 12,
+      value: k.leadsActivos ?? 0,
       desc: 'En seguimiento',
       icon: <FaUserFriends />,
       color: 'from-blue-500 to-blue-600',
-      trend: '+8%',
+      trend: k.leadsActivosTrend || '+0%',
     },
     {
       title: 'Visitas hoy',
-      value: 3,
+      value: k.visitasHoy ?? 0,
       desc: 'Agendadas en tu calendario',
       icon: <FaRegCalendarAlt />,
       color: 'from-emerald-500 to-emerald-600',
-      trend: '+12%',
+      trend: k.visitasTrend || '+0%',
     },
     {
       title: 'Propiedades asignadas',
-      value: 18,
+      value: k.propiedadesAsignadas ?? 0,
       desc: 'Activas en tu cartera',
       icon: <FaHome />,
       color: 'from-indigo-500 to-indigo-600',
-      trend: '+5%',
+      trend: '',
     },
     {
       title: 'Tareas pendientes',
-      value: 7,
-      desc: 'Por completar hoy',
+      value: k.tareasPendientes ?? 0,
+      desc: 'Por completar',
       icon: <FaTasks />,
       color: 'from-orange-500 to-orange-600',
-      trend: '+3%',
+      trend: k.tareasTrend || '+0%',
     },
   ];
 
-  const proximasCitas = [
-    {
-      hora: '10:00',
-      cliente: 'Juan Pérez',
-      propiedad: 'Depto 2 ambientes - Palermo',
-      estado: 'Confirmada',
-    },
-    {
-      hora: '14:30',
-      cliente: 'María Gómez',
-      propiedad: 'Casa 3 dormitorios - Belgrano',
-      estado: 'Pendiente de confirmación',
-    },
-  ];
+  const proximasCitas = data?.proximasCitas || [];
+  const tareasRapidas = data?.tareasRapidas || [];
+  const totalLeads = (leads.cerrados || 0) + (leads.enNegociacion || 0) + (leads.perdidos || 0) + (leads.nuevos || 0);
+  const conversionRate = data?.conversionRate ?? 0;
 
-  const tareas = [
-    'Llamar a leads nuevos de ayer',
-    'Actualizar estado de oferta en Propiedad #1243',
-    'Enviar resumen de visitas al cliente López',
-  ];
+  // Comisiones chart data
+  const comMensual = com.mensual || [];
+  const comMeses = comMensual.map(m => m.mes);
+  const comData = comMensual.map(m => m.comisiones);
+  const comObjetivo = comMensual.map(m => m.objetivo);
 
   // ApexCharts - Progreso Meta Mensual (Radial)
   const metaOptions = {
@@ -98,7 +118,7 @@ const AgentDashboard = () => {
     stroke: { lineCap: 'round' },
     labels: ['Meta Mensual'],
   };
-  const metaSeries = [60];
+  const metaSeries = [meta.porcentaje || 0];
 
   // ApexCharts - Estado de Leads (Donut)
   const leadsDonutOptions = {
@@ -113,7 +133,7 @@ const AgentDashboard = () => {
             show: true,
             name: { show: true, fontSize: '12px', fontWeight: 600, color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
             value: { show: true, fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' },
-            total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => '48' },
+            total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => `${totalLeads}` },
           },
         },
       },
@@ -123,7 +143,7 @@ const AgentDashboard = () => {
     stroke: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
-  const leadsDonutSeries = [12, 8, 4, 24];
+  const leadsDonutSeries = [leads.cerrados || 0, leads.enNegociacion || 0, leads.perdidos || 0, leads.nuevos || 0];
 
   // ApexCharts - Ingresos por Comisiones (Area)
   const ingresosOptions = {
@@ -133,7 +153,7 @@ const AgentDashboard = () => {
     stroke: { curve: 'smooth', width: 2.5 },
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
     xaxis: {
-      categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+      categories: comMeses.length > 0 ? comMeses : ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
       labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
       axisBorder: { show: false }, axisTicks: { show: false },
     },
@@ -143,8 +163,8 @@ const AgentDashboard = () => {
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val}K` } },
   };
   const ingresosSeries = [
-    { name: 'Comisiones', data: [8, 6, 12, 15, 11, 18, 14, 20, 22, 25, 28, 32] },
-    { name: 'Objetivo', data: [10, 10, 15, 15, 15, 20, 20, 20, 25, 25, 30, 30] },
+    { name: 'Comisiones', data: comData.length > 0 ? comData : [0] },
+    { name: 'Objetivo', data: comObjetivo.length > 0 ? comObjetivo : [0] },
   ];
 
   // ApexCharts - Funnel Conversión
@@ -159,7 +179,7 @@ const AgentDashboard = () => {
     legend: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `${val} leads` } },
   };
-  const funnelSeries = [{ name: 'Leads', data: [48, 36, 18, 12] }];
+  const funnelSeries = [{ name: 'Leads', data: [funnel.captados || 0, funnel.contactados || 0, funnel.negociacion || 0, funnel.cerrados || 0] }];
 
   // ApexCharts - Tasa de Conversión (Gauge)
   const conversionOptions = {
@@ -179,54 +199,41 @@ const AgentDashboard = () => {
     stroke: { lineCap: 'round' },
     labels: ['Conversión'],
   };
-  const conversionSeries = [25];
+  const conversionSeries = [conversionRate || 0];
 
-  const cardBase = 'rounded-xl shadow-md p-6 bg-white dark:bg-secondary-dark-bg transition-all duration-300 hover:scale-[1.01] hover:shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   return (
-    <div className="p-6 bg-main-bg dark:bg-main-dark-bg min-h-screen">
-      <Header category="Agente" title="Panel del Agente" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaHome className="text-blue-500" /> Panel del Agente
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Resumen de tu actividad</p>
+      </div>
 
       {/* KPIs principales del agente (misma estructura que DashboardEjecutivo) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.title}
-            className={`${cardBase} overflow-hidden relative cursor-pointer`}
-          >
-            {/* Barra de color superior */}
-            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${kpi.color}`} />
-
-            {/* Contenido principal */}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`text-2xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color} shadow-lg`}>
-                    {kpi.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                      {kpi.title}
-                    </p>
-                    <p className="text-3xl font-bold dark:text-gray-100 mt-1">
-                      {kpi.value}
-                    </p>
-                  </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {kpis.map((kpi) => {
+          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6', 'from-amber-500 to-amber-600': '#f59e0b', 'from-green-500 to-green-600': '#10b981', 'from-red-500 to-red-600': '#ef4444', 'from-purple-500 to-purple-600': '#8b5cf6', 'from-orange-500 to-orange-600': '#f59e0b' };
+          const accentColor = colorMap[kpi.color] || '#6366f1';
+          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20', 'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20' };
+          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+          return (
+            <div key={kpi.title} className={`rounded-2xl p-6 border shadow-sm transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`} style={{ borderLeft: `4px solid ${accentColor}` }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
                 </div>
-
-                {/* Descripción y tendencia */}
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {kpi.desc}
-                  </p>
-                  <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                    {kpi.trend}
-                  </span>
-                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30">{kpi.trend}</span>
               </div>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Gráficos Financieros y Conversión - ApexCharts */}
@@ -241,11 +248,11 @@ const AgentDashboard = () => {
           <Chart options={metaOptions} series={metaSeries} type="radialBar" height={200} />
           <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
             <div className="text-center">
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">12</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{meta.actual ?? 0}</p>
               <p className="text-xs text-gray-500">Actual</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-gray-500">20</p>
+              <p className="text-lg font-bold text-gray-500">{meta.meta ?? 20}</p>
               <p className="text-xs text-gray-500">Meta</p>
             </div>
           </div>
@@ -271,11 +278,11 @@ const AgentDashboard = () => {
           <Chart options={funnelOptions} series={funnelSeries} type="bar" height={180} />
           <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
             <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
-              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">25%</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{funnel.captados > 0 ? Math.round((funnel.cerrados / funnel.captados) * 100) : 0}%</p>
               <p className="text-xs text-gray-500">Cierre</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
-              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">75%</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{funnel.captados > 0 ? Math.round((funnel.contactados / funnel.captados) * 100) : 0}%</p>
               <p className="text-xs text-gray-500">Contacto</p>
             </div>
           </div>
@@ -296,14 +303,14 @@ const AgentDashboard = () => {
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600 dark:text-gray-400">Tu rendimiento</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <FaArrowUp className="text-xs" /> +7%
+              <span className={`font-bold flex items-center gap-1 ${conversionRate >= 18 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                {conversionRate >= 18 ? <FaArrowUp className="text-xs" /> : <FaArrowDown className="text-xs" />} {conversionRate > 18 ? '+' : ''}{conversionRate - 18}%
               </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: '82%' }}></div>
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, conversionRate * 4)}%` }}></div>
             </div>
-            <p className="text-xs text-center text-gray-500">Top 18% de agentes</p>
+            <p className="text-xs text-center text-gray-500">{conversionRate >= 18 ? 'Por encima del promedio' : 'Por debajo del promedio'}</p>
           </div>
         </div>
       </div>
@@ -333,20 +340,20 @@ const AgentDashboard = () => {
           <Chart options={ingresosOptions} series={ingresosSeries} type="area" height={260} />
           <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
             <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">$211K</p>
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">${com.totalAnual ?? 0}K</p>
               <p className="text-xs text-gray-500">Total Ganado</p>
             </div>
             <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">$32K</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${com.esteMes ?? 0}K</p>
               <p className="text-xs text-gray-500">Este Mes</p>
             </div>
             <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">$17.6K</p>
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">${com.promedio ?? 0}K</p>
               <p className="text-xs text-gray-500">Promedio</p>
             </div>
             <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">+28%</p>
-              <p className="text-xs text-gray-500">vs Año Ant.</p>
+              <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{rend.totalOpsAllTime ?? 0}</p>
+              <p className="text-xs text-gray-500">Ops. Totales</p>
             </div>
           </div>
         </div>
@@ -362,25 +369,25 @@ const AgentDashboard = () => {
             <div className="text-center p-4 border-2 border-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaCheckCircle className="text-3xl text-green-500 mx-auto mb-2" />
               <h4 className="font-bold dark:text-gray-200 text-sm">Completadas</h4>
-              <p className="text-2xl font-bold text-green-600 mt-1">18</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{seg.completadas ?? 0}</p>
               <p className="text-xs text-gray-500">Esta semana</p>
             </div>
             <div className="text-center p-4 border-2 border-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaUsers className="text-3xl text-blue-500 mx-auto mb-2" />
               <h4 className="font-bold dark:text-gray-200 text-sm">Interesados</h4>
-              <p className="text-2xl font-bold text-blue-600 mt-1">12</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{seg.interesados ?? 0}</p>
               <p className="text-xs text-gray-500">Seguimiento</p>
             </div>
             <div className="text-center p-4 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaClock className="text-3xl text-yellow-500 mx-auto mb-2" />
               <h4 className="font-bold dark:text-gray-200 text-sm">Reagendar</h4>
-              <p className="text-2xl font-bold text-yellow-600 mt-1">3</p>
+              <p className="text-2xl font-bold text-yellow-600 mt-1">{seg.reagendar ?? 0}</p>
               <p className="text-xs text-gray-500">Pendientes</p>
             </div>
             <div className="text-center p-4 border-2 border-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaPhoneAlt className="text-3xl text-red-500 mx-auto mb-2" />
-              <h4 className="font-bold dark:text-gray-200 text-sm">No Contactados</h4>
-              <p className="text-2xl font-bold text-red-600 mt-1">2</p>
+              <h4 className="font-bold dark:text-gray-200 text-sm">Canceladas</h4>
+              <p className="text-2xl font-bold text-red-600 mt-1">{seg.noContactados ?? 0}</p>
               <p className="text-xs text-gray-500">Atención</p>
             </div>
           </div>
@@ -435,14 +442,23 @@ const AgentDashboard = () => {
               Tareas rápidas
             </h2>
             <ul className="space-y-2">
-              {tareas.map((tarea) => (
+              {tareasRapidas.length > 0 ? tareasRapidas.map((tarea) => (
                 <li
-                  key={tarea}
-                  className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700"
+                  key={tarea.id}
+                  className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 flex items-center justify-between"
                 >
-                  {tarea}
+                  <span>{tarea.title}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    tarea.priority === 'Alta' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                    tarea.priority === 'Media' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}>{tarea.priority}</span>
                 </li>
-              ))}
+              )) : (
+                <li className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-center">
+                  Sin tareas pendientes
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -464,18 +480,18 @@ const AgentDashboard = () => {
           <div className="space-y-3 text-sm text-gray-700 dark:text-gray-200">
             <div className="flex items-center justify-between">
               <span>Objetivo de operaciones</span>
-              <span className="font-semibold">12 / 20</span>
+              <span className="font-semibold">{rend.operacionesActual ?? 0} / {rend.operacionesMeta ?? 20}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full" style={{ width: '60%' }} />
+              <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full" style={{ width: `${meta.porcentaje ?? 0}%` }} />
             </div>
 
             <div className="flex items-center justify-between mt-4">
               <span>Conversión de leads</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">24%</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{conversionRate}%</span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Mantén una tasa de conversión por encima del 20% para cumplir tus metas mensuales.
+              {conversionRate >= 20 ? 'Excelente tasa de conversión. ¡Seguí así!' : 'Mantén una tasa de conversión por encima del 20% para cumplir tus metas mensuales.'}
             </p>
           </div>
         </div>

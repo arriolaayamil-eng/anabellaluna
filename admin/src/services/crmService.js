@@ -60,11 +60,31 @@ export const crmService = {
     create: (data) => api.post('/crm/tareas', data),
     update: (id, data) => api.put(`/crm/tareas/${id}`, data),
     delete: (id) => api.delete(`/crm/tareas/${id}`),
+    // Kanban endpoints
+    getKanban: () => api.get('/crm/tareas/kanban'),
+    getKanbanColumns: () => api.get('/crm/tareas/kanban/columns'),
+    saveKanbanColumns: (columns) => api.put('/crm/tareas/kanban/columns', { columns }),
+    moveTask: (id, kanbanColumn, position) => api.put(`/crm/tareas/kanban/move/${id}`, { kanbanColumn, position }),
+  },
+
+  // ============ NAVBAR ============
+  navbar: {
+    getSummary: () => api.get('/admin/notifications/navbar-summary'),
+  },
+
+  // ============ ACTIVIDADES ============
+  activities: {
+    getAll: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return api.get(`/crm/activities${qs ? `?${qs}` : ''}`);
+    },
   },
 
   // ============ ESTADÍSTICAS ============
   stats: {
     getDashboard: () => api.get('/crm/stats/dashboard'),
+    getAdminDashboard: () => api.get('/admin/stats/dashboard'),
+    getOperacionesStats: () => api.get('/crm/stats/operaciones'),
     getPropiedadesStats: () => api.get('/crm/stats/propiedades'),
     getVentasStats: () => api.get('/crm/stats/ventas'),
     getAgentesStats: () => api.get('/crm/stats/agentes'),
@@ -74,6 +94,26 @@ export const crmService = {
   rewards: {
     getSummary: () => api.get('/crm/rewards/summary'),
     getAgentRewards: (agenteId) => api.get(`/crm/rewards/agent/${agenteId}`),
+  },
+
+  // ============ REPORTES ============
+  reports: {
+    getTypes: () => api.get('/crm/reports/types'),
+    getConfig: () => api.get('/crm/reports/config'),
+    updateConfig: (data) => api.put('/crm/reports/config', data),
+    getData: (reportId, params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return api.get(`/crm/reports/data/${reportId}${qs ? `?${qs}` : ''}`);
+    },
+    getAllData: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return api.get(`/crm/reports/all-data${qs ? `?${qs}` : ''}`);
+    },
+    generate: (data) => api.post('/crm/reports/generate', data),
+    generatePdf: (data) => api.postForBlob('/crm/reports/generate-pdf', data),
+    sendToERP: (reportId) => api.post('/crm/reports/send-to-erp', { reportId }),
+    getHistory: () => api.get('/crm/reports/history'),
+    getReceived: () => api.get('/crm/reports/received'),
   },
 };
 

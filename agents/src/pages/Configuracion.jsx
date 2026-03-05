@@ -1,15 +1,23 @@
 import React from 'react';
 import { FiSettings, FiUser, FiBell, FiLock, FiDatabase } from 'react-icons/fi';
 import { Header } from '../components';
+import { useStateContext } from '../contexts/ContextProvider';
 
 const Configuracion = () => {
+  const { currentMode } = useStateContext();
+  const isDark = currentMode === 'Dark';
   return (
-    <div className="m-2 md:m-10 mt-24 p-2 md:p-10 bg-white dark:bg-secondary-dark-bg rounded-3xl">
-      <Header category="Sistema" title="Configuración" />
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FiSettings className="text-indigo-500" /> Configuración
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ajustes del sistema</p>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Perfil */}
-        <div className="border dark:border-gray-700 rounded-lg p-6">
+        <div className={`rounded-2xl p-6 border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <div className="flex items-center gap-3 mb-4">
             <FiUser className="text-2xl text-blue-500" />
             <h3 className="text-lg font-bold dark:text-gray-200">Perfil de Usuario</h3>
@@ -28,7 +36,7 @@ const Configuracion = () => {
         </div>
 
         {/* Notificaciones */}
-        <div className="border dark:border-gray-700 rounded-lg p-6">
+        <div className={`rounded-2xl p-6 border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <div className="flex items-center gap-3 mb-4">
             <FiBell className="text-2xl text-yellow-500" />
             <h3 className="text-lg font-bold dark:text-gray-200">Notificaciones</h3>
@@ -50,7 +58,7 @@ const Configuracion = () => {
         </div>
 
         {/* Seguridad */}
-        <div className="border dark:border-gray-700 rounded-lg p-6">
+        <div className={`rounded-2xl p-6 border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <div className="flex items-center gap-3 mb-4">
             <FiLock className="text-2xl text-red-500" />
             <h3 className="text-lg font-bold dark:text-gray-200">Seguridad</h3>
@@ -61,7 +69,7 @@ const Configuracion = () => {
         </div>
 
         {/* Base de datos */}
-        <div className="border dark:border-gray-700 rounded-lg p-6">
+        <div className={`rounded-2xl p-6 border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <div className="flex items-center gap-3 mb-4">
             <FiDatabase className="text-2xl text-green-500" />
             <h3 className="text-lg font-bold dark:text-gray-200">Datos</h3>

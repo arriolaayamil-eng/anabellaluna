@@ -1,231 +1,219 @@
-import { Link } from "react-router";
-import ImageWithBasePath from "../../../../core/imageWithBasePath";
+import { useState, useEffect } from "react";
 import Breadcrumb from "../../../../core/common/Breadcrumb/breadcrumb";
-import { Country } from "../../../../core/common/selectOption";
-import CommonSelect from "../../../../core/common/common-select/commonSelect";
-import { all_routes } from "../../../routes/all_routes";
-import { useState } from "react";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
+import publicService from "../../../../services/publicService";
 
 const ContactUs = () => {
-  const [phone, setPhone] = useState<string | undefined>();
+  const [config, setConfig] = useState<{
+    name: string; phone: string; email: string; address: string; whatsapp: string;
+  }>({ name: "", phone: "", email: "", address: "", whatsapp: "" });
+
+  const [form, setForm] = useState({ nombre: "", email: "", telefono: "", asunto: "", mensaje: "" });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let m = true;
+    (async () => {
+      try {
+        const res = await publicService.getSiteConfig();
+        if (m) setConfig(res);
+      } catch { /* keep defaults */ }
+    })();
+    return () => { m = false; };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.nombre.trim() || !form.mensaje.trim()) {
+      setError("Nombre y mensaje son obligatorios.");
+      return;
+    }
+    try {
+      setSending(true);
+      setError("");
+      await publicService.sendContactMessage(form);
+      setSent(true);
+      setForm({ nombre: "", email: "", telefono: "", asunto: "", mensaje: "" });
+    } catch {
+      setError("No se pudo enviar el mensaje. Intentá de nuevo.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <>
-      {/* ========================
-			Start Page Content
-		========================= */}
       <div className="page-wrapper">
-        {/* Start Breadscrumb */}
         <Breadcrumb
-          title="Contactanos"
-          paths={[{ label: "Contactanos", active: true }]}
+          title="Contacto"
+          paths={[{ label: "Contacto", active: true }]}
         />
-        {/* End Breadscrumb */}
-        <div className="contact-us-wrap-01">
+        <div className="content">
           <div className="container">
-            {/* start row */}
-            <div className="row align-items-center row-gap-3">
-              <div className="col-lg-6">
-                <div className="card border-0">
-                  <div className="card-body p-4">
-                    <h4 className="mb-2">Hablá con un miembro del equipo de ventas</h4>
-                    <p className="mb-3">
-                      Conectate con nuestro equipo experto de ventas para recibir
-                      guía personalizada, insights sobre propiedades y soporte
-                      adaptado a tus necesidades inmobiliarias.
-                    </p>
-                    <p className="fw-semibold mb-0">Llamada gratuita: 888 634-5891</p>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-                <div className="card border-0 mb-0">
-                  <div className="card-body p-4">
-                    <h4 className="mb-2">Soporte de Producto y Cuenta</h4>
-                    <p className="mb-3">
-                      Recibí ayuda dedicada con tu cuenta, características y
-                      servicios a través de nuestro equipo experto de Soporte de
-                      Producto y Cuenta.
-                    </p>
-                    <Link to={all_routes.faq} className="btn btn-dark">
-                      Ir a FAQ
-                    </Link>
-                  </div>
-                  {/* end card body */}
-                </div>
-                {/* end card */}
-              </div>
-              {/* end col */}
-              <div className="col-lg-6">
-                <div className="ms-0 ms-lg-4">
-                  <ImageWithBasePath
-                    src="assets/img/contact-us/contact-us-img-01.jpg"
-                    alt="img"
-                    className="img-fluid"
-                  />
-                </div>
-              </div>
-              {/* end col */}
-            </div>
-            {/* end row */}
-          </div>
-        </div>
-        <div className="contact-us-wrap-02">
-          <div className="container">
-            {/* start row */}
-            <div className="row">
-              <div className="col-lg-12 mx-auto">
-                {/* start row */}
-                <div className="row align-items-center justify-content-center mb-3">
-                  <div className="col-md-6 col-lg-4">
-                    <div className="contact-us-item-01">
-                      <div className="d-flex align-items-center">
-                        <span className="material-icons-outlined">mail</span>
+            <div className="row row-gap-4">
+              {/* Contact Info */}
+              <div className="col-lg-4">
+                <div className="card mb-4">
+                  <div className="card-body">
+                    <h5 className="mb-3">Información de Contacto</h5>
+                    {config.address && (
+                      <div className="d-flex align-items-start mb-3">
+                        <i className="material-icons-outlined text-primary me-3 mt-1">location_on</i>
                         <div>
-                          <h6 className="mb-2">Dirección de Email</h6>
-                          <p className="mb-0">info@example.com</p>
-                          <p className="mb-0">corporate@example.com</p>
+                          <h6 className="mb-1">Dirección</h6>
+                          <p className="text-muted mb-0">{config.address}</p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                  {/* end col */}
-                  <div className="col-md-6 col-lg-4">
-                    <div className="contact-us-item-01">
-                      <div className="d-flex align-items-center">
-                        <span className="material-icons-outlined">call</span>
+                    )}
+                    {config.phone && (
+                      <div className="d-flex align-items-start mb-3">
+                        <i className="material-icons-outlined text-primary me-3 mt-1">phone</i>
                         <div>
-                          <h6 className="mb-2">Número de Teléfono</h6>
-                          <p className="mb-0">+81649 48103</p>
-                          <p className="mb-0">+78301 71940</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* end col */}
-                  <div className="col-md-6 col-lg-4">
-                    <div className="contact-us-item-01">
-                      <div className="d-flex align-items-center">
-                        <span className="material-icons-outlined">
-                          location_on
-                        </span>
-                        <div>
-                          <h6 className="mb-2">Dirección</h6>
-                          <p className="mb-0">
-                            Av. Del Mar 1500, Pinamar, Buenos Aires, Argentina
+                          <h6 className="mb-1">Teléfono</h6>
+                          <p className="text-muted mb-0">
+                            <a href={`tel:${config.phone}`}>{config.phone}</a>
                           </p>
                         </div>
                       </div>
-                    </div>
+                    )}
+                    {config.email && (
+                      <div className="d-flex align-items-start mb-3">
+                        <i className="material-icons-outlined text-primary me-3 mt-1">email</i>
+                        <div>
+                          <h6 className="mb-1">Email</h6>
+                          <p className="text-muted mb-0">
+                            <a href={`mailto:${config.email}`}>{config.email}</a>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {config.whatsapp && (
+                      <div className="d-flex align-items-start">
+                        <i className="material-icons-outlined text-success me-3 mt-1">chat</i>
+                        <div>
+                          <h6 className="mb-1">WhatsApp</h6>
+                          <p className="text-muted mb-0">
+                            <a
+                              href={`https://wa.me/${config.whatsapp.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {config.whatsapp}
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {!config.phone && !config.email && !config.address && (
+                      <p className="text-muted mb-0">
+                        Información de contacto no disponible en este momento.
+                      </p>
+                    )}
                   </div>
-                  {/* end col */}
-                </div>
-                {/* end row */}
-              </div>
-              {/* end col */}
-            </div>
-            {/* end row */}
-            {/* start row */}
-            <div className="row align-items-center row-gap-3">
-              <div className="col-lg-6">
-                <ImageWithBasePath
-                  src="assets/img/contact-us/contact-us-img-02.jpg"
-                  alt="img"
-                  className="img-fluid"
-                />
-              </div>
-              {/* end col */}
-              <div className="col-lg-6">
-                <div className="contact-us-item-02">
-                  <h2>Contactanos</h2>
-                  {/* start row */}
-                  <div className="row">
-                    <div className="col-md-12">
-                      <div className="mb-3">
-                        <label className="form-label">Tu Nombre</label>
-                        <input type="text" className="form-control" />
-                      </div>
-                    </div>
-                    {/* end col */}
-                    <div className="col-md-6">
-                      <div className="mb-3">
-                        <label className="form-label">Número de Teléfono</label>
-                        <PhoneInput
-                          defaultCountry="AR"
-                          value={phone}
-                          onChange={setPhone}
-                        />
-                      </div>
-                    </div>
-                    {/* end col */}
-                    <div className="col-md-6">
-                      <div className="mb-3">
-                        <label className="form-label">Email</label>
-                        <input type="text" className="form-control" />
-                      </div>
-                    </div>
-                    {/* end col */}
-                    <div className="col-md-6">
-                      <div className="mb-3">
-                        <label className="form-label">País</label>
-                        <CommonSelect
-                          options={Country}
-                          className="select"
-                          defaultValue={Country[0]}
-                        />
-                      </div>
-                    </div>
-                    {/* end col */}
-                    <div className="col-md-6">
-                      <div className="mb-3">
-                        <label className="form-label">Asunto</label>
-                        <input type="text" className="form-control" />
-                      </div>
-                    </div>
-                    {/* end col */}
-                    <div className="col-md-12">
-                      <div className="mb-3">
-                        <label className="form-label">Descripción</label>
-                        <textarea
-                          className="form-control"
-                          rows={3}
-                          placeholder="Comentarios"
-                          defaultValue={""}
-                        />
-                      </div>
-                    </div>
-                    {/* end col */}
-                    <div className="col-md-12">
-                      <Link
-                        to="#"
-                        className="btn btn-lg btn-dark"
-                      >
-                        Enviar Consulta
-                      </Link>
-                    </div>
-                    {/* end col */}
-                  </div>
-                  {/* end row */}
                 </div>
               </div>
+              {/* Contact Form */}
+              <div className="col-lg-8">
+                <div className="card">
+                  <div className="card-body">
+                    <h5 className="mb-3">Envianos un mensaje</h5>
+                    {sent ? (
+                      <div className="text-center py-4">
+                        <i
+                          className="material-icons-outlined text-success"
+                          style={{ fontSize: 64 }}
+                        >
+                          check_circle
+                        </i>
+                        <h5 className="mt-3">¡Mensaje enviado!</h5>
+                        <p className="text-muted">
+                          Nos pondremos en contacto a la brevedad.
+                        </p>
+                        <button
+                          className="btn btn-dark"
+                          onClick={() => setSent(false)}
+                        >
+                          Enviar otro mensaje
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmit}>
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Nombre *</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={form.nombre}
+                              onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Email</label>
+                            <input
+                              type="email"
+                              className="form-control"
+                              value={form.email}
+                              onChange={(e) => setForm({ ...form, email: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Teléfono</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={form.telefono}
+                              onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Asunto</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={form.asunto}
+                              onChange={(e) => setForm({ ...form, asunto: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-12 mb-3">
+                            <label className="form-label">Mensaje *</label>
+                            <textarea
+                              className="form-control"
+                              rows={5}
+                              value={form.mensaje}
+                              onChange={(e) => setForm({ ...form, mensaje: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </div>
+                        {error && (
+                          <div className="alert alert-danger py-2">{error}</div>
+                        )}
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          disabled={sending}
+                        >
+                          {sending ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2" />
+                              Enviando...
+                            </>
+                          ) : (
+                            "Enviar Mensaje"
+                          )}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            {/* end row */}
           </div>
         </div>
-        <div className="google-map">
-          <iframe
-            className="rounded-0"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2967.8862835683544!2d-73.98256668525309!3d41.93829486962529!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89dd0ee3286615b7%3A0x42bfa96cc2ce4381!2s132%20Kingston%20St%2C%20Kingston%2C%20NY%2012401%2C%20USA!5e0!3m2!1sen!2sin!4v1670922579281!5m2!1sen!2sin"
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
       </div>
-      {/* ========================
-			End Page Content
-		========================= */}
     </>
   );
 };

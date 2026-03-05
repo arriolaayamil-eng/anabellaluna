@@ -1,14 +1,9 @@
 const express = require('express');
 const Tarea = require('../models/Tarea');
 const Agente = require('../models/Agente');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
-
-function agentScopeId(req) {
-  if (req.user && req.user.role === 'admin') return null;
-  return req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-}
 
 // Default kanban columns
 const DEFAULT_KANBAN_COLUMNS = [
@@ -20,7 +15,7 @@ const DEFAULT_KANBAN_COLUMNS = [
 // ============ KANBAN COLUMNS CONFIG ============
 
 // Get kanban columns for current agent
-router.get('/kanban/columns', authenticateToken, async (req, res) => {
+router.get('/kanban/columns', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     if (!scopeId) {
@@ -35,7 +30,7 @@ router.get('/kanban/columns', authenticateToken, async (req, res) => {
 });
 
 // Save kanban columns for current agent
-router.put('/kanban/columns', authenticateToken, async (req, res) => {
+router.put('/kanban/columns', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const columns = req.body.columns || [];
     
@@ -60,7 +55,7 @@ router.put('/kanban/columns', authenticateToken, async (req, res) => {
 });
 
 // Move task to different column (auto-save)
-router.put('/kanban/move/:id', authenticateToken, async (req, res) => {
+router.put('/kanban/move/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { kanbanColumn, position } = req.body;
     const scopeId = agentScopeId(req);
@@ -80,7 +75,7 @@ router.put('/kanban/move/:id', authenticateToken, async (req, res) => {
 });
 
 // Get all tasks grouped by kanban column
-router.get('/kanban', authenticateToken, async (req, res) => {
+router.get('/kanban', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = {};
@@ -105,7 +100,7 @@ router.get('/kanban', authenticateToken, async (req, res) => {
 // ============ STANDARD CRUD ============
 
 // Listar tareas con filtros opcionales ?status=Open&priority=Alta
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { status, priority, q } = req.query;
     const filter = {};
@@ -125,7 +120,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Obtener una tarea
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const tarea = await Tarea.findById(req.params.id).lean();
     if (!tarea) return res.status(404).json({ error: 'Not found' });
@@ -138,7 +133,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Crear tarea
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const body = req.body || {};
     const scopeId = agentScopeId(req);
@@ -151,7 +146,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Actualizar tarea
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
@@ -167,7 +162,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Eliminar tarea
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
