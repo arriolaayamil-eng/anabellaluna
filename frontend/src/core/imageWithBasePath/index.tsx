@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { img_path } from '../../environment';
 import { API_BASE_URL } from '../../config/api';
 
@@ -10,6 +11,7 @@ interface Image {
   height?: number;
   width?: number;
   id?:string;
+  style?: React.CSSProperties;
 }
 
 const ImageWithBasePath = (props: Image) => {
@@ -38,6 +40,7 @@ const ImageWithBasePath = (props: Image) => {
       alt={props.alt}
       width={props.width}
       id={props.id}
+      style={props.style}
     />
   );
 };
