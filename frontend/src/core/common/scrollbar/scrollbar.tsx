@@ -2,16 +2,15 @@ import { useEffect } from "react";
 import Scrollbar from 'smooth-scrollbar';
 
 
+const SCROLLBAR_OPTIONS = {
+    damping: 0.7,
+};
+
 const CustomScrollbar = () => {
 
-    const options ={
-        damping:0.7,
-    }
-
-    useEffect(()=>{
-      Scrollbar.init(document.querySelector('.customScrollbar')!, options);
-
-    },[])
+    useEffect(() => {
+      Scrollbar.init(document.querySelector('.customScrollbar')!, SCROLLBAR_OPTIONS);
+    }, [])
  return null;
 }
 
