@@ -1,5 +1,5 @@
 // Configuración de la API para el ERP
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const getAuthToken = () => localStorage.getItem('authToken');
 

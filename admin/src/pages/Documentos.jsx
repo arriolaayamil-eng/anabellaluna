@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import { documentService } from '../services/documentService';
 import { useStateContext } from '../contexts/ContextProvider';
+import API_CONFIG from '../config/api';
 
 /* ═══════════════════ iOS-style SVG Icons ═══════════════════ */
 const SFIcon = ({ children, size = 22, className = '', viewBox = '0 0 24 24', ...rest }) => (
@@ -53,7 +54,7 @@ const IPlus = (p) => <SFIcon {...p}><line x1="12" y1="5" x2="12" y2="19"/><line 
 const IFolderPlus = (p) => <SFIcon {...p}><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></SFIcon>;
 
 /* ═══════════════════ iOS System Colors & Helpers ═══════════════════ */
-const API = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const API = API_CONFIG.baseURL;
 const DOMAIN = 'erp';
 const IOS_LIGHT = {
   blue: '#007AFF', green: '#34C759', orange: '#FF9500', red: '#FF3B30',
