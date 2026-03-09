@@ -1,0 +1,55 @@
+================================================================
+  ESLint Manual Report — Errores que requieren corrección manual
+  Generado: 2026-03-09
+  Comando: npx eslint src --fix (ejecutado en cada proyecto)
+================================================================
+
+NOTA: Todos los errores auto-corregibles ya fueron aplicados.
+Los siguientes son WARNINGS (no-console) que representan
+console.log/warn/error intencionales en el código. No bloquean
+el build pero deben evaluarse manualmente si se desean eliminar.
+
+────────────────────────────────────────────────────────────────
+PROYECTO: frontend
+────────────────────────────────────────────────────────────────
+(sin errores ni warnings)
+
+────────────────────────────────────────────────────────────────
+PROYECTO: admin
+────────────────────────────────────────────────────────────────
+Archivo                         | Línea | Tipo    | Regla      | Mensaje
+--------------------------------|-------|---------|------------|-----------------------------
+src/config/api.js               |  74   | warning | no-console | Unexpected console statement
+src/services/authService.js     |  22   | warning | no-console | Unexpected console statement
+src/services/authService.js     |  59   | warning | no-console | Unexpected console statement
+
+Total admin: 0 errores, 3 warnings
+
+────────────────────────────────────────────────────────────────
+PROYECTO: agents
+────────────────────────────────────────────────────────────────
+Archivo                         | Línea | Tipo    | Regla      | Mensaje
+--------------------------------|-------|---------|------------|-----------------------------
+src/App.js                      |  79   | warning | no-console | Unexpected console statement
+src/config/api.js               |  74   | warning | no-console | Unexpected console statement
+src/services/authService.js     |  22   | warning | no-console | Unexpected console statement
+src/services/authService.js     |  27   | warning | no-console | Unexpected console statement
+src/services/authService.js     |  48   | warning | no-console | Unexpected console statement
+src/services/authService.js     |  72   | warning | no-console | Unexpected console statement
+
+Total agents: 0 errores, 6 warnings
+
+================================================================
+RESUMEN GLOBAL
+================================================================
+- Errores (error):    0
+- Warnings (warning): 9 (todos son no-console)
+- Builds:             Los 3 proyectos compilan exitosamente
+
+ACCIÓN RECOMENDADA:
+Los 9 warnings son console.log/warn/error usados intencionalmente
+para logging de autenticación y errores de API. Opciones:
+  1. Dejarlos como están (no afectan el build ni el runtime).
+  2. Reemplazarlos por un logger dedicado (ej: winston, loglevel).
+  3. Agregar // eslint-disable-next-line no-console en cada línea.
+================================================================
