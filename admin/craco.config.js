@@ -4,6 +4,13 @@ module.exports = {
   },
   webpack: {
     configure: (config) => {
+      // CRA 5 uses ESLintWebpackPlugin instead of eslint-loader.
+      // craco's eslint.enable:false only targets eslint-loader, so we
+      // must also strip the plugin to truly disable ESLint during builds.
+      config.plugins = (config.plugins || []).filter(
+        (plugin) => plugin.constructor.name !== 'ESLintWebpackPlugin',
+      );
+
       // Exclude Syncfusion packages from source-map-loader to avoid missing source map files
       const rules = config.module.rules || [];
       for (const rule of rules) {
