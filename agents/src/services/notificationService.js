@@ -1,4 +1,4 @@
-import api from '../config/api';
+import { api } from '../config/api';
 
 const notificationService = {
   // Get all notifications with pagination and filters
@@ -10,7 +10,7 @@ const notificationService = {
     if (limite) query.append('limite', limite);
     if (pagina) query.append('pagina', pagina);
     if (prioridad) query.append('prioridad', prioridad);
-    
+
     const response = await api.get(`/crm/notifications?${query.toString()}`);
     return response;
   },

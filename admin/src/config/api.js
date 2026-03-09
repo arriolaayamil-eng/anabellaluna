@@ -12,7 +12,7 @@ export const getAuthToken = () => {
   const raw = localStorage.getItem('authToken');
   if (!raw) return null;
 
-  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^\'|\'$/g, '');
+  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
   return token.replace(/^Bearer\s+/i, '');
 };
 
@@ -46,7 +46,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({ message: 'Error en la petición' }));
       const message = errorBody?.error || errorBody?.message || `HTTP error! status: ${response.status}`;
@@ -68,7 +68,7 @@ export const apiRequest = async (endpoint, options = {}) => {
       }
       throw new Error(message);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error(`API Error [${endpoint}]:`, error);
@@ -79,24 +79,24 @@ export const apiRequest = async (endpoint, options = {}) => {
 // Métodos HTTP específicos
 export const api = {
   get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
-  
+
   post: (endpoint, data) => apiRequest(endpoint, {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  
+
   put: (endpoint, data) => apiRequest(endpoint, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  
+
   delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
 
   patch: (endpoint, data) => apiRequest(endpoint, {
     method: 'PATCH',
     body: data ? JSON.stringify(data) : undefined,
   }),
-  
+
   // POST that returns a Blob (for PDF downloads, etc.)
   postForBlob: async (endpoint, data) => {
     const url = `${API_CONFIG.baseURL}${endpoint}`;

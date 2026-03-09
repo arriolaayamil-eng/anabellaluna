@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus, no-await-in-loop, no-use-before-define, no-promise-executor-return, new-cap */
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -9,13 +10,13 @@ const CONTENT_W = A4_W - MARGIN * 2;
 const USABLE_H = A4_H - MARGIN * 2 - 30; // leave room for footer
 
 /* ── Brand colours ────────────────────────────────────────────────── */
-const PRIMARY   = [59, 130, 246];
+const PRIMARY = [59, 130, 246];
 const PRIMARY_D = [37, 99, 235];
-const DARK      = [30, 41, 59];
-const GRAY      = [148, 163, 184];
-const LIGHT_BG  = [241, 245, 249];
-const WHITE     = [255, 255, 255];
-const ACCENT    = [16, 185, 129];
+const DARK = [30, 41, 59];
+const GRAY = [148, 163, 184];
+const LIGHT_BG = [241, 245, 249];
+const WHITE = [255, 255, 255];
+const ACCENT = [16, 185, 129];
 
 const MONTHS_ES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -26,7 +27,7 @@ const MONTHS_ES = [
 
 function uid() {
   const ts = Date.now().toString(36).toUpperCase();
-  const r  = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const r = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `RPT-${ts}-${r}`;
 }
 
@@ -37,8 +38,12 @@ function fmtNum(v) {
 
 function nowStr() {
   return new Date().toLocaleString('es-AR', {
-    day: '2-digit', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   });
 }
 
@@ -130,7 +135,9 @@ function drawCover(doc, cfg) {
   doc.setFont('helvetica', 'normal');
   doc.text(
     `Generado el ${new Date().toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}`,
-    A4_W / 2, 165, { align: 'center' },
+    A4_W / 2,
+    165,
+    { align: 'center' },
   );
 
   doc.setFontSize(9);
@@ -183,7 +190,8 @@ function drawCover(doc, cfg) {
   doc.setTextColor(100, 116, 139);
   doc.text(
     'Este documento refleja el estado exacto del dashboard al momento de la exportación.',
-    MARGIN + 16, y + 34,
+    MARGIN + 16,
+    y + 34,
   );
 
   // Index
@@ -288,7 +296,8 @@ function drawSummary(doc, reportDefinitions, selectedReports, reportData) {
   doc.text(`Total de reportes analizados: ${summaryRows.length}`, MARGIN + 16, y + 22);
   doc.text(
     `Exportado: ${nowStr()}`,
-    A4_W - MARGIN - 16, y + 22,
+    A4_W - MARGIN - 16,
+    y + 22,
     { align: 'right' },
   );
 }
@@ -395,7 +404,10 @@ export async function exportDashboardToPDF(config) {
     .map(([id]) => id);
 
   drawCover(doc, {
-    year, month, type, reportId,
+    year,
+    month,
+    type,
+    reportId,
     selectedCount: selectedIds.length,
     totalCount: reportDefinitions.length,
     userName,

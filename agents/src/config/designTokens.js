@@ -54,16 +54,14 @@ export function useDesignTokens() {
   };
 
   // ── Badge / Trend chip ──
-  const trendBadge = (positive = true) =>
-    `inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${positive ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'}`;
+  const trendBadge = (positive = true) => `inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${positive ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'}`;
 
   // ── Form input ──
   const inputClass = `w-full px-4 py-2.5 rounded-xl border text-sm transition-colors ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500 focus:border-indigo-500' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-indigo-500'} focus:outline-none focus:ring-2 focus:ring-indigo-500/20`;
 
   // ── Modal overlay & container ──
   const modalOverlay = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-  const modalContainer = (maxWidth = 'max-w-3xl') =>
-    `${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl ${maxWidth} w-full max-h-[90vh] overflow-hidden flex flex-col`;
+  const modalContainer = (maxWidth = 'max-w-3xl') => `${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl ${maxWidth} w-full max-h-[90vh] overflow-hidden flex flex-col`;
 
   // ── Tooltip for charts ──
   const chartTooltipTheme = isDark ? 'dark' : 'light';

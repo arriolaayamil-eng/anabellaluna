@@ -13,7 +13,7 @@ export const authService = {
           localStorage.setItem('user', JSON.stringify(me.user));
           // Dispatch custom event to notify components of user update
           window.dispatchEvent(new CustomEvent('userUpdated', { detail: me.user }));
-          
+
           // Set agent online status
           if (me.user.role === 'agent') {
             try {
@@ -47,7 +47,7 @@ export const authService = {
     } catch (err) {
       console.error('Error setting offline status:', err);
     }
-    
+
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
   },
@@ -83,7 +83,5 @@ export const authService = {
   },
 
   // Check if user is authenticated
-  isAuthenticated: () => {
-    return !!localStorage.getItem('authToken');
-  },
+  isAuthenticated: () => !!localStorage.getItem('authToken'),
 };

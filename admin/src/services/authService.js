@@ -85,7 +85,5 @@ export const authService = {
   },
 
   // Check if user is authenticated
-  isAuthenticated: () => {
-    return !!localStorage.getItem('authToken');
-  },
+  isAuthenticated: () => !!localStorage.getItem('authToken'),
 };

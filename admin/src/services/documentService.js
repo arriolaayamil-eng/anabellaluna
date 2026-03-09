@@ -26,8 +26,7 @@ export const documentService = {
   uploadVersion: (documentId, file, options = {}) => api.uploadFiles(`/documents/${documentId}/versions`, [file], options),
 
   // Restaurar versión
-  restoreVersion: (documentId, versionId) => 
-    api.post(`/documents/${documentId}/versions/${versionId}/restore`),
+  restoreVersion: (documentId, versionId) => api.post(`/documents/${documentId}/versions/${versionId}/restore`),
 
   // ---- File Manager (Google Files) ----
   browse: (folderId = null, q = '') => {
@@ -42,8 +41,7 @@ export const documentService = {
   storage: () => api.get('/files/storage'),
 
   // Folders
-  createFolder: (name, parent = null, color = '') =>
-    api.post('/files', { name, parent, color }),
+  createFolder: (name, parent = null, color = '') => api.post('/files', { name, parent, color }),
   renameFolder: (id, name) => api.patch(`/files/${id}/rename`, { name }),
   moveFolder: (id, parent) => api.patch(`/files/${id}/move`, { parent }),
   starFolder: (id) => api.patch(`/files/${id}/star`),

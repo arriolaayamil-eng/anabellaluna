@@ -1,0 +1,26 @@
+{
+  "extends": ["react-app", "react-app/jest"],
+  "rules": {
+    "no-plusplus": "off",
+    "no-await-in-loop": "off",
+    "no-use-before-define": "off",
+    "no-promise-executor-return": "off",
+    "new-cap": "off",
+    "no-console": "off",
+    "import/no-named-as-default": "off",
+    "object-property-newline": "off",
+    "function-paren-newline": "off",
+    "function-call-argument-newline": "off",
+    "no-unused-vars": "warn",
+    "react/react-in-jsx-scope": "off",
+    "react/button-has-type": "off",
+    "no-multi-spaces": "off",
+    "comma-dangle": "off",
+    "no-trailing-spaces": "off",
+    "implicit-arrow-linebreak": "off",
+    "arrow-body-style": "off",
+    "indent": "off",
+    "no-useless-escape": "off",
+    "import/order": "off"
+  }
+}

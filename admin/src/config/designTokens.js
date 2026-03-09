@@ -54,18 +54,17 @@ export function useDesignTokens() {
   };
 
   // ── Badge / Trend chip ──
-  const trendBadge = (positive = true) =>
-    `inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${positive ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'}`;
+  const trendBadge = (positive = true) => `inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${positive ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'}`;
 
   // ── Status badge ──
   const statusBadge = (variant = 'default') => {
     const map = {
-      success: `text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-900/30`,
-      warning: `text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/30`,
-      danger: `text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-900/30`,
-      info: `text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30`,
-      purple: `text-purple-700 bg-purple-50 dark:text-purple-300 dark:bg-purple-900/30`,
-      default: `text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-700`,
+      success: 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-900/30',
+      warning: 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/30',
+      danger: 'text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-900/30',
+      info: 'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30',
+      purple: 'text-purple-700 bg-purple-50 dark:text-purple-300 dark:bg-purple-900/30',
+      default: 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-700',
     };
     return `px-2.5 py-0.5 rounded-full text-xs font-medium ${map[variant] || map.default}`;
   };
@@ -81,12 +80,10 @@ export function useDesignTokens() {
 
   // ── Modal overlay & container ──
   const modalOverlay = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-  const modalContainer = (maxWidth = 'max-w-3xl') =>
-    `${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl ${maxWidth} w-full max-h-[90vh] overflow-hidden flex flex-col`;
+  const modalContainer = (maxWidth = 'max-w-3xl') => `${isDark ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl ${maxWidth} w-full max-h-[90vh] overflow-hidden flex flex-col`;
 
   // ── Modal header (gradient) ──
-  const modalHeader = (gradientFrom, gradientTo) =>
-    `sticky top-0 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white p-6 rounded-t-2xl flex justify-between items-center`;
+  const modalHeader = (gradientFrom, gradientTo) => `sticky top-0 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white p-6 rounded-t-2xl flex justify-between items-center`;
 
   // ── Tooltip for charts ──
   const chartTooltipTheme = isDark ? 'dark' : 'light';

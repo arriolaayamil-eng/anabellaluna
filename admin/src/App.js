@@ -1,19 +1,19 @@
+/* eslint-disable no-promise-executor-return, jsx-a11y/label-has-associated-control, no-nested-ternary */
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { FiSettings, FiEye, FiEyeOff } from 'react-icons/fi';
-import { TooltipComponent } from '@syncfusion/ej2-react-popups';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
 import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria } from './pages';
 import './App.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { authService } from './services/authService';
 
 import { useStateContext } from './contexts/ContextProvider';
 
 const App = () => {
-  const { setCurrentColor, setCurrentMode, currentMode, activeMenu, currentColor, themeSettings, setThemeSettings } = useStateContext();
+  const { setCurrentColor, setCurrentMode, currentMode, themeSettings } = useStateContext();
 
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken'));
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -132,7 +132,7 @@ const App = () => {
                       type="text"
                       value={loginForm.username}
                       onChange={(e) => {
-                        setLoginForm(prev => ({ ...prev, username: e.target.value }));
+                        setLoginForm((prev) => ({ ...prev, username: e.target.value }));
                         if (loginError) setLoginError('');
                       }}
                       className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 ${
@@ -152,7 +152,7 @@ const App = () => {
                         type={showPassword ? 'text' : 'password'}
                         value={loginForm.password}
                         onChange={(e) => {
-                          setLoginForm(prev => ({ ...prev, password: e.target.value }));
+                          setLoginForm((prev) => ({ ...prev, password: e.target.value }));
                           if (loginError) setLoginError('');
                         }}
                         className={`w-full px-4 py-2.5 pr-12 rounded-xl border focus:outline-none focus:ring-2 ${
@@ -234,7 +234,7 @@ const App = () => {
                 <Route path="/citas" element={<Citas />} />
                 <Route path="/documentos" element={<Documentos />} />
                 <Route path="/reportes" element={<Reportes />} />
-                
+
                 {/* Otras páginas */}
                 <Route path="/tareas" element={<Tareas />} />
                 <Route path="/integraciones" element={<Integraciones />} />

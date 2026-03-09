@@ -8,12 +8,12 @@ import {
   useLocation,
 } from 'react-router-dom';
 
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
 import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes } from './pages';
 import LoginAgente from './pages/LoginAgente';
 import './App.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 import { useStateContext } from './contexts/ContextProvider';
 import { authService } from './services/authService';

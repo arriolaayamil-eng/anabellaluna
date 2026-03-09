@@ -36,12 +36,6 @@
     "eject": "react-scripts eject",
     "clean": "rimraf node_modules build .cache"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",

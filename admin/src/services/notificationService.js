@@ -10,7 +10,7 @@ const notificationService = {
     if (limite) query.append('limite', limite);
     if (pagina) query.append('pagina', pagina);
     if (prioridad) query.append('prioridad', prioridad);
-    
+
     const response = await api.get(`/admin/notifications?${query.toString()}`);
     return response;
   },
