@@ -8,7 +8,7 @@ import { crmService } from '../services/crmService';
 import defaultAvatar from '../data/avatar.png';
 
 const MiPerfil = () => {
-  const { currentColor } = useStateContext();
+  const { currentColor, currentMode } = useStateContext();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
