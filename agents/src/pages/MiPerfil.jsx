@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaArrowLeft, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { authService } from '../services/authService';
 import { crmService } from '../services/crmService';
+import { apiRequest } from '../config/api';
 import defaultAvatar from '../data/avatar.png';
 
 const MiPerfil = () => {
@@ -18,6 +19,14 @@ const MiPerfil = () => {
   const [success, setSuccess] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  
+  // Change password state
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -158,6 +167,39 @@ const MiPerfil = () => {
       setError(e?.message || 'Error al guardar perfil');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('La nueva contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await apiRequest('/auth/change-password', {
+        method: 'PUT',
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+      setPasswordSuccess('Contraseña actualizada correctamente');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setPasswordSuccess(''), 4000);
+    } catch (err) {
+      setPasswordError(err?.message || 'Error al cambiar la contraseña');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -416,6 +458,103 @@ const MiPerfil = () => {
               </>
             )}
           </button>
+        </div>
+      </form>
+
+      {/* Cambiar Contraseña */}
+      <form onSubmit={handleChangePassword} className="mt-8 space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+          <h3 className="text-lg font-semibold mb-2 dark:text-gray-100 flex items-center gap-2">
+            <FaLock style={{ color: currentColor }} /> Cambiar Contraseña
+          </h3>
+          <p className={`text-sm mb-4 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            Podés cambiar la contraseña que te asignó el administrador por una propia y privada.
+          </p>
+
+          {passwordError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+              {passwordError}
+            </div>
+          )}
+          {passwordSuccess && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-400 text-sm">
+              {passwordSuccess}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Contraseña Actual *
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPw ? 'text' : 'password'}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => { setPasswordData(prev => ({ ...prev, currentPassword: e.target.value })); if (passwordError) setPasswordError(''); }}
+                  required
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  placeholder="Tu contraseña actual"
+                />
+                <button type="button" onClick={() => setShowCurrentPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  {showCurrentPw ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Nueva Contraseña *
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={(e) => { setPasswordData(prev => ({ ...prev, newPassword: e.target.value })); if (passwordError) setPasswordError(''); }}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <button type="button" onClick={() => setShowNewPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  {showNewPw ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                Confirmar Contraseña *
+              </label>
+              <input
+                type={showNewPw ? 'text' : 'password'}
+                value={passwordData.confirmPassword}
+                onChange={(e) => { setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value })); if (passwordError) setPasswordError(''); }}
+                required
+                minLength={6}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="Repetir nueva contraseña"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <button
+              type="submit"
+              disabled={changingPassword}
+              className="flex items-center gap-2 px-8 py-3 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+              style={{ backgroundColor: currentColor }}
+            >
+              {changingPassword ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Cambiando...
+                </>
+              ) : (
+                <>
+                  <FaLock /> Cambiar Contraseña
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>

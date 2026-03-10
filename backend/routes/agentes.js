@@ -83,6 +83,27 @@ router.post('/create-with-user', authenticateToken, requireRole('admin'), async 
   }
 });
 
+// Reset agent password (admin only)
+router.post('/:id/reset-password', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findOne({ agenteId: req.params.id });
+    if (!user) return res.status(404).json({ error: 'User account not found for this agent' });
+
+    const newPassword = req.body.password && String(req.body.password).trim()
+      ? String(req.body.password)
+      : crypto.randomBytes(9).toString('base64url');
+
+    if (newPassword.length < 6) return res.status(400).json({ error: 'password too short (min 6 chars)' });
+
+    user.password_hash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.json({ username: user.username, password: newPassword });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaExclamationTriangle, FaKey, FaCopy } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { api } from '../config/api';
@@ -46,6 +46,13 @@ const Agentes = () => {
   
   // Estado para confirmación de cierre del formulario
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  
+  // Estados para resetear contraseña
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetPasswordResult, setResetPasswordResult] = useState(null);
+  const [resetPasswordError, setResetPasswordError] = useState('');
+  const [copiedField, setCopiedField] = useState('');
   
   // Estado para el formulario de nuevo agente
   const [nuevoAgente, setNuevoAgente] = useState({
@@ -363,6 +370,30 @@ const Agentes = () => {
   const volverAlDashboard = () => {
     setVistaActual('dashboard');
     setAgenteSeleccionado(null);
+  };
+
+  // Función para resetear contraseña del agente
+  const handleResetPassword = async () => {
+    if (!agenteSeleccionado?._id && !agenteSeleccionado?.id) return;
+    setResettingPassword(true);
+    setResetPasswordError('');
+    setResetPasswordResult(null);
+    try {
+      const resp = await api.post(`/crm/agentes/${agenteSeleccionado._id || agenteSeleccionado.id}/reset-password`, {});
+      setResetPasswordResult({ username: resp.username, password: resp.password });
+    } catch (err) {
+      setResetPasswordError(err?.message || 'Error al resetear la contraseña');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  // Copiar al portapapeles
+  const copyToClipboard = (text, field) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(''), 2000);
+    });
   };
 
   // Función para abrir modal de edición
@@ -951,6 +982,12 @@ const Agentes = () => {
                   className="px-4 py-2 bg-white text-gray-800 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold"
                 >
                   <FaEdit /> Editar
+                </button>
+                <button 
+                  onClick={() => { setShowResetPasswordModal(true); setResetPasswordResult(null); setResetPasswordError(''); }}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors flex items-center gap-2 font-semibold"
+                >
+                  <FaKey /> Resetear Clave
                 </button>
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
@@ -1971,6 +2008,98 @@ const Agentes = () => {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Resetear Contraseña */}
+      {showResetPasswordModal && agenteSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-md w-full p-6`}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaKey className="text-3xl text-amber-500" />
+              </div>
+              {!resetPasswordResult ? (
+                <>
+                  <h3 className="text-xl font-bold dark:text-gray-100 mb-2">Resetear Contraseña</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Se generará una nueva contraseña para <strong>{agenteSeleccionado.nombre}</strong>.
+                    La contraseña actual dejará de funcionar.
+                  </p>
+                  {resetPasswordError && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                      {resetPasswordError}
+                    </div>
+                  )}
+                  <div className="flex justify-center gap-3">
+                    <button
+                      onClick={() => setShowResetPasswordModal(false)}
+                      className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleResetPassword}
+                      disabled={resettingPassword}
+                      className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {resettingPassword ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Reseteando...
+                        </>
+                      ) : (
+                        <>
+                          <FaKey /> Confirmar Reset
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl font-bold dark:text-gray-100 mb-2">Nueva Contraseña Generada</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Guardá estas credenciales. La contraseña se muestra <strong>una sola vez</strong>.
+                  </p>
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left space-y-3 mb-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Usuario</p>
+                        <p className="font-mono font-bold dark:text-gray-100">{resetPasswordResult.username}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(resetPasswordResult.username, 'user')}
+                        className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        title="Copiar usuario"
+                      >
+                        <FaCopy className={copiedField === 'user' ? 'text-green-500' : 'text-gray-400'} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Nueva Contraseña</p>
+                        <p className="font-mono font-bold text-amber-600 dark:text-amber-400">{resetPasswordResult.password}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(resetPasswordResult.password, 'pass')}
+                        className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        title="Copiar contraseña"
+                      >
+                        <FaCopy className={copiedField === 'pass' ? 'text-green-500' : 'text-gray-400'} />
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowResetPasswordModal(false)}
+                    className="px-8 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors font-medium"
+                  >
+                    Cerrar
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

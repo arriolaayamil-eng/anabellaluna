@@ -156,6 +156,28 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// Change own password (authenticated user)
+router.put('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) return res.status(400).json({ error: 'currentPassword and newPassword required' });
+    if (typeof newPassword === 'string' && newPassword.length < 6) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+
+    const user = await User.findById(req.user.sub);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const ok = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!ok) return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+
+    user.password_hash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Update current user profile
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
