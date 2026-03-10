@@ -38,6 +38,7 @@ const LoginAgente = () => {
 
     try {
       await authService.login(username, password);
+      sessionStorage.removeItem('crm_onboarding_completed');
       setLoginStatus('success');
       setShowLoginOverlay(true);
       await new Promise((resolve) => setTimeout(resolve, 2500));

@@ -162,15 +162,14 @@ const OnboardingTutorial = () => {
   useEffect(() => {
     const never = localStorage.getItem(ONBOARDING_NEVER_KEY);
     if (never === 'true') return;
-    const completed = localStorage.getItem(ONBOARDING_KEY);
-    if (!completed) {
-      const timer = setTimeout(() => {
-        setVisible(true);
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
+    const shownThisSession = sessionStorage.getItem(ONBOARDING_KEY);
+    if (shownThisSession) return;
+    const timer = setTimeout(() => {
+      setVisible(true);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+    }, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   const goToStep = useCallback((idx) => {
@@ -205,7 +204,7 @@ const OnboardingTutorial = () => {
   };
 
   const finishOnboarding = () => {
-    localStorage.setItem(ONBOARDING_KEY, 'true');
+    sessionStorage.setItem(ONBOARDING_KEY, 'true');
     if (neverShow) {
       localStorage.setItem(ONBOARDING_NEVER_KEY, 'true');
     }

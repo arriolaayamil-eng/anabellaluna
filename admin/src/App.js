@@ -41,6 +41,7 @@ const App = () => {
       const resp = await authService.login(loginForm.username, loginForm.password);
       const token = resp?.token;
       if (!token) throw new Error('invalid credentials');
+      sessionStorage.removeItem('erp_onboarding_completed');
       setLoginStatus('success');
       setShowLoginOverlay(true);
       await new Promise((resolve) => setTimeout(resolve, 2500));
