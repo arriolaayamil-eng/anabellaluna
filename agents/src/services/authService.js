@@ -1,4 +1,4 @@
-import { api } from '../config/api';
+import { api, isApiUnavailableError } from '../config/api';
 
 export const authService = {
   // Login
@@ -19,11 +19,13 @@ export const authService = {
             try {
               await api.put('/crm/messages/status/online', { online: true });
             } catch (err) {
+              if (isApiUnavailableError(err)) return response;
               console.error('Error setting online status:', err);
             }
           }
         }
       } catch (e) {
+        if (isApiUnavailableError(e)) return response;
         console.error('Error fetching user profile:', e);
       }
     }
@@ -45,6 +47,11 @@ export const authService = {
         await api.put('/crm/messages/status/online', { online: false });
       }
     } catch (err) {
+      if (isApiUnavailableError(err)) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        return;
+      }
       console.error('Error setting offline status:', err);
     }
 
@@ -69,6 +76,7 @@ export const authService = {
         return me.user;
       }
     } catch (e) {
+      if (isApiUnavailableError(e)) return null;
       console.error('Error refreshing user data:', e);
     }
     return null;

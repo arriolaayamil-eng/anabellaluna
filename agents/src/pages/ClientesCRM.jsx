@@ -1156,6 +1156,7 @@ const ClientesCRM = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold dark:text-gray-100 truncate">{cliente.nombre}</h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">ID: {cliente.id}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{cliente.tipo}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -1248,7 +1249,8 @@ const ClientesCRM = () => {
                   {clienteSeleccionado.nombre.charAt(0)}{clienteSeleccionado.nombre.split(' ')[1]?.charAt(0) || ''}
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{clienteSeleccionado.nombre}</h1>
+                  <h1 className="text-3xl font-bold mb-1">{clienteSeleccionado.nombre}</h1>
+                  <p className="text-sm opacity-80 font-mono select-all mb-1">ID: {clienteSeleccionado.id}</p>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="flex items-center gap-2">
                       <FaUser /> {clienteSeleccionado.tipo}

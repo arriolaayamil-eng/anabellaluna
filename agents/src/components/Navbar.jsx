@@ -12,6 +12,7 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { authService } from '../services/authService';
 import notificationService from '../services/notificationService';
+import { isApiUnavailableError } from '../config/api';
 
 const NavButton = ({ title, customFunc, icon, color, dotColor, badgeCount, isActive }) => (
   <TooltipComponent content={title} position="BottomCenter">
@@ -64,6 +65,7 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [rewardCount, setRewardCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
+  const [apiOffline, setApiOffline] = useState(false);
   
   // Navbar summary counts
   const [navbarStats, setNavbarStats] = useState({
@@ -95,11 +97,16 @@ const Navbar = () => {
   const loadNavbarStats = useCallback(async () => {
     try {
       const summary = await crmService.navbar.getSummary();
+      setApiOffline(false);
       if (summary) {
         setNavbarStats(summary);
         setUnreadCount(summary.mensajes?.total || 0);
       }
     } catch (e) {
+      if (isApiUnavailableError(e)) {
+        setApiOffline(true);
+        return;
+      }
       console.error('Error loading navbar stats:', e);
     }
   }, []);
@@ -121,9 +128,12 @@ const Navbar = () => {
   const loadRewardCount = useCallback(async () => {
     try {
       const unseen = await crmService.rewards.getUnseen();
+      setApiOffline(false);
       setRewardCount(Array.isArray(unseen) ? unseen.length : 0);
     } catch (e) {
-      // ignore
+      if (isApiUnavailableError(e)) {
+        setApiOffline(true);
+      }
     }
   }, []);
 
@@ -251,6 +261,12 @@ const Navbar = () => {
         )}
 
         <div className="flex-1" />
+
+        {apiOffline && (
+          <div className="mr-2 rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
+            API sin conexión
+          </div>
+        )}
 
         {/* Desktop: Full nav group */}
         {!isMobile && (

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { MdSpaceDashboard, MdOutlineCancel } from 'react-icons/md';
-import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaCheckSquare, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaHome, FaBuilding, FaRobot } from 'react-icons/fa';
+import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaHome, FaBuilding, FaRobot, FaFileAlt, FaMagic } from 'react-icons/fa';
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import { useStateContext } from '../contexts/ContextProvider';
@@ -16,7 +16,8 @@ const menuItems = [
   { name: 'Automatización', path: '/crm/automatizacion', icon: <FaRobot /> },
   { name: 'Recompensas', path: '/crm/recompensas', icon: <FaTrophy /> },
   { name: 'Integraciones', path: '/crm/integraciones', icon: <FaPlug /> },
-  { name: 'Documentos', path: '/crm/documentos', icon: <FaCheckSquare /> },
+  { name: 'Archivos', path: '/crm/archivos', icon: <FaFileAlt /> },
+  { name: 'Plantillas', path: '/crm/plantillas', icon: <FaMagic /> },
   { name: 'Reportes', path: '/crm/reportes', icon: <FaChartBar /> },
 ];
 

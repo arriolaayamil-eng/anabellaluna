@@ -1460,6 +1460,7 @@ const Propiedades = () => {
               <div className="space-y-3">
                 <div>
                   <h3 className="text-lg font-bold dark:text-gray-100">{propiedad.titulo}</h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">ID: {propiedad.id}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                     <FaMapMarkerAlt className="text-red-500" /> {propiedad.barrio}, {propiedad.ciudad}
                   </p>
@@ -1533,6 +1534,7 @@ const Propiedades = () => {
             </div>
             <div className="absolute bottom-6 left-6 text-white">
               <h1 className="text-4xl font-bold mb-2">{propiedadSeleccionada.titulo}</h1>
+              <p className="text-sm opacity-80 font-mono select-all mb-1">ID: {propiedadSeleccionada.id}</p>
               <p className="text-xl flex items-center gap-2">
                 <FaMapMarkerAlt /> {propiedadSeleccionada.direccion}, {propiedadSeleccionada.barrio}
               </p>

@@ -1,6 +1,6 @@
 // Configuración de la API
 const API_CONFIG = {
-  baseURL: process.env.REACT_APP_API_URL || '/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -12,7 +12,7 @@ export const getAuthToken = () => {
   const raw = localStorage.getItem('authToken');
   if (!raw) return null;
 
-  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^\'|\'$/g, '');
   return token.replace(/^Bearer\s+/i, '');
 };
 

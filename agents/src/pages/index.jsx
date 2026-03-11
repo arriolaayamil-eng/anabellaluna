@@ -24,6 +24,7 @@ export { default as Agentes } from './Agentes';
 export { default as Ventas } from './Ventas';
 export { default as Citas } from './Citas';
 export { default as Documentos } from './Documentos';
+export { default as Plantillas } from './Plantillas';
 export { default as Reportes } from './Reportes';
 export { default as Tareas } from './Tareas';
 export { default as Integraciones } from './Integraciones';

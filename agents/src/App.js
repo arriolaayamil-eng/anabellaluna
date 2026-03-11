@@ -8,14 +8,15 @@ import {
   useLocation,
 } from 'react-router-dom';
 
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
-import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes } from './pages';
+import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes } from './pages';
 import LoginAgente from './pages/LoginAgente';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { useStateContext } from './contexts/ContextProvider';
+import { isApiUnavailableError } from './config/api';
 import { authService } from './services/authService';
 
 const RequireAuth = ({ children }) => {
@@ -76,6 +77,7 @@ const App = () => {
           const { api } = await import('./config/api');
           await api.put('/crm/messages/status/online', { online });
         } catch (err) {
+          if (isApiUnavailableError(err)) return;
           console.error('Error updating online status:', err);
         }
       }
@@ -120,7 +122,9 @@ const App = () => {
         <Route path="/citas" element={<Navigate to="/crm/citas" replace />} />
         <Route path="/tareas" element={<Navigate to="/crm/tareas" replace />} />
         <Route path="/operaciones" element={<Navigate to="/crm/operaciones" replace />} />
-        <Route path="/documentos" element={<Navigate to="/crm/documentos" replace />} />
+        <Route path="/documentos" element={<Navigate to="/crm/archivos" replace />} />
+        <Route path="/archivos" element={<Navigate to="/crm/archivos" replace />} />
+        <Route path="/plantillas" element={<Navigate to="/crm/plantillas" replace />} />
         <Route path="/reportes" element={<Navigate to="/crm/reportes" replace />} />
         <Route path="/consultas" element={<Navigate to="/crm/consultas" replace />} />
         <Route path="/integraciones" element={<Navigate to="/crm/integraciones" replace />} />
@@ -142,7 +146,9 @@ const App = () => {
           <Route path="citas" element={<Citas />} />
           <Route path="tareas" element={<Tareas />} />
           <Route path="operaciones" element={<Ventas />} />
-          <Route path="documentos" element={<Documentos />} />
+          <Route path="documentos" element={<Navigate to="/crm/archivos" replace />} />
+          <Route path="archivos" element={<Documentos />} />
+          <Route path="plantillas" element={<Plantillas />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="consultas" element={<Consultas />} />
           <Route path="integraciones" element={<Integraciones />} />

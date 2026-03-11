@@ -1,18 +1,31 @@
 // Configuración de la API
 const API_CONFIG = {
-  baseURL: process.env.REACT_APP_API_URL || '/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 };
 
+let lastApiUnavailableLogAt = 0;
+const API_UNAVAILABLE_LOG_WINDOW_MS = 30000;
+
+const isFailedToFetchError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return error instanceof TypeError
+    || message.includes('failed to fetch')
+    || message.includes('networkerror')
+    || message.includes('load failed');
+};
+
+export const isApiUnavailableError = (error) => Boolean(error?.isApiUnavailable || error?.code === 'API_UNAVAILABLE');
+
 // Helper para obtener el token de autenticación
 export const getAuthToken = () => {
   const raw = localStorage.getItem('authToken');
   if (!raw) return null;
 
-  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^\'|\'$/g, '');
   return token.replace(/^Bearer\s+/i, '');
 };
 
@@ -71,6 +84,22 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
+    if (isFailedToFetchError(error)) {
+      const apiError = new Error(`No se pudo conectar con la API en ${API_CONFIG.baseURL}`);
+      apiError.code = 'API_UNAVAILABLE';
+      apiError.isApiUnavailable = true;
+      apiError.endpoint = endpoint;
+      apiError.originalError = error;
+
+      const now = Date.now();
+      if ((now - lastApiUnavailableLogAt) > API_UNAVAILABLE_LOG_WINDOW_MS) {
+        console.error(`[API unavailable] ${API_CONFIG.baseURL}`, error);
+        lastApiUnavailableLogAt = now;
+      }
+
+      throw apiError;
+    }
+
     console.error(`API Error [${endpoint}]:`, error);
     throw error;
   }

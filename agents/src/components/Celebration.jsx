@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { crmService } from '../services/crmService';
+import { isApiUnavailableError } from '../config/api';
 
 // Global trigger function for testing
 let triggerCelebrationFn = null;
@@ -26,6 +27,7 @@ const Celebration = () => {
         setIsTestMode(false);
       }
     } catch (e) {
+      if (isApiUnavailableError(e)) return;
       console.error('Error checking rewards:', e);
     }
   }, []);

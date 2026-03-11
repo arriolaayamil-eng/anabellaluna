@@ -6,7 +6,7 @@ import {
 } from 'react-icons/md';
 import {
   FaBuilding, FaUsers, FaDollarSign, FaRegCalendarAlt,
-  FaEnvelope, FaRobot, FaTrophy, FaPlug, FaCheckSquare,
+  FaEnvelope, FaRobot, FaTrophy, FaPlug, FaFileAlt,
   FaChartBar, FaRocket, FaHandshake,
 } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -128,10 +128,10 @@ const tutorialSteps = [
     icon: <FaPlug />,
     title: 'Y mucho más...',
     subtitle: 'Herramientas complementarias',
-    description: 'El CRM también incluye gestión de documentos, reportes de rendimiento e integraciones con Google Calendar y otras herramientas para potenciar tu trabajo.',
+    description: 'El CRM también incluye gestión de archivos, plantillas compartidas, reportes de rendimiento e integraciones con Google Calendar y otras herramientas para potenciar tu trabajo.',
     extraItems: [
       { icon: <FaPlug />, name: 'Integraciones', desc: 'Google Calendar y más' },
-      { icon: <FaCheckSquare />, name: 'Documentos', desc: 'Gestión documental' },
+      { icon: <FaFileAlt />, name: 'Archivos', desc: 'Gestión documental' },
       { icon: <FaChartBar />, name: 'Reportes', desc: 'Métricas y rendimiento' },
     ],
     color: '#64748b',
@@ -162,14 +162,15 @@ const OnboardingTutorial = () => {
   useEffect(() => {
     const never = localStorage.getItem(ONBOARDING_NEVER_KEY);
     if (never === 'true') return;
-    const shownThisSession = sessionStorage.getItem(ONBOARDING_KEY);
-    if (shownThisSession) return;
-    const timer = setTimeout(() => {
-      setVisible(true);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
-    }, 1500);
-    return () => clearTimeout(timer);
+    const completed = localStorage.getItem(ONBOARDING_KEY);
+    if (!completed) {
+      const timer = setTimeout(() => {
+        setVisible(true);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const goToStep = useCallback((idx) => {
@@ -204,7 +205,7 @@ const OnboardingTutorial = () => {
   };
 
   const finishOnboarding = () => {
-    sessionStorage.setItem(ONBOARDING_KEY, 'true');
+    localStorage.setItem(ONBOARDING_KEY, 'true');
     if (neverShow) {
       localStorage.setItem(ONBOARDING_NEVER_KEY, 'true');
     }

@@ -1,19 +1,19 @@
-/* eslint-disable no-promise-executor-return, jsx-a11y/label-has-associated-control, no-nested-ternary */
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { FiSettings, FiEye, FiEyeOff } from 'react-icons/fi';
+import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
-import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria } from './pages';
+import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria } from './pages';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { authService } from './services/authService';
 
 import { useStateContext } from './contexts/ContextProvider';
 
 const App = () => {
-  const { setCurrentColor, setCurrentMode, currentMode, themeSettings } = useStateContext();
+  const { setCurrentColor, setCurrentMode, currentMode, activeMenu, currentColor, themeSettings, setThemeSettings } = useStateContext();
 
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken'));
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -41,7 +41,6 @@ const App = () => {
       const resp = await authService.login(loginForm.username, loginForm.password);
       const token = resp?.token;
       if (!token) throw new Error('invalid credentials');
-      sessionStorage.removeItem('erp_onboarding_completed');
       setLoginStatus('success');
       setShowLoginOverlay(true);
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -233,7 +232,9 @@ const App = () => {
                 <Route path="/agentes" element={<Agentes />} />
                 <Route path="/operaciones" element={<Ventas />} />
                 <Route path="/citas" element={<Citas />} />
-                <Route path="/documentos" element={<Documentos />} />
+                <Route path="/documentos" element={<Navigate to="/archivos" replace />} />
+                <Route path="/archivos" element={<Documentos />} />
+                <Route path="/plantillas" element={<Plantillas />} />
                 <Route path="/reportes" element={<Reportes />} />
 
                 {/* Otras páginas */}

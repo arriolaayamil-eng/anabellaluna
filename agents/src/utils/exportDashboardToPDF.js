@@ -1,4 +1,3 @@
-/* eslint-disable no-plusplus, no-await-in-loop, no-use-before-define, no-promise-executor-return, new-cap */
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 

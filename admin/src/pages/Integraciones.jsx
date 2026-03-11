@@ -4,9 +4,8 @@ import { confirmToast } from '../utils/confirmToast';
 import { FaGoogle, FaCheck, FaTimes, FaCopy, FaEye, FaEyeSlash, FaSave, FaTrash, FaExternalLinkAlt } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
-import API_CONFIG from '../config/api';
 
-const API_URL = API_CONFIG.baseURL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 const getAuthToken = () => localStorage.getItem('authToken');
 
 const Integraciones = () => {

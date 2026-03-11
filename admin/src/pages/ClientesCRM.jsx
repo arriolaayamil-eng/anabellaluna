@@ -586,6 +586,7 @@ const ClientesCRM = () => {
           >
             <GridInject services={[Page, Sort, Filter]} />
             <ColumnsDirective>
+              <ColumnDirective field="id" headerText="ID" width="220" />
               <ColumnDirective field="nombre" headerText="Cliente" width="150" />
               <ColumnDirective field="tipo" headerText="Tipo" width="120" />
               <ColumnDirective field="estado" headerText="Estado" width="120" />
@@ -790,7 +791,8 @@ const ClientesCRM = () => {
                   {clienteSeleccionado.nombre.charAt(0)}{clienteSeleccionado.nombre.split(' ')[1]?.charAt(0) || ''}
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{clienteSeleccionado.nombre}</h1>
+                  <h1 className="text-3xl font-bold mb-1">{clienteSeleccionado.nombre}</h1>
+                  <p className="text-sm opacity-80 font-mono select-all mb-1">ID: {clienteSeleccionado.id}</p>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="flex items-center gap-2">
                       <FaUser /> {clienteSeleccionado.tipo}

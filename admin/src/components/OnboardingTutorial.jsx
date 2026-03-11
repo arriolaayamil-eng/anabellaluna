@@ -7,7 +7,7 @@ import {
 } from 'react-icons/md';
 import {
   FaBuilding, FaUsers, FaUserTie, FaDollarSign, FaRegCalendarAlt,
-  FaComments, FaCheckSquare, FaChartBar, FaTrophy,
+  FaComments, FaChartBar, FaTrophy, FaFileAlt,
   FaRocket, FaHandshake, FaCrown,
 } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -113,14 +113,14 @@ const tutorialSteps = [
   {
     id: 'documentos',
     phase: 'guide',
-    sidebarItem: 'Documentos',
-    icon: <FaCheckSquare />,
-    title: 'Documentos',
+    sidebarItem: 'Archivos',
+    icon: <FaFileAlt />,
+    title: 'Archivos',
     subtitle: 'Gestión documental centralizada',
-    description: 'Almacena y organiza todos los documentos de la inmobiliaria: contratos, escrituras, planos, certificados. Sistema de carpetas con control de acceso y versionado.',
+    description: 'Almacena y organiza todos los archivos de la inmobiliaria: contratos, escrituras, planos, certificados y documentos generados desde plantillas. Sistema de carpetas con control de acceso y versionado.',
     features: ['Repositorio centralizado', 'Organización por carpetas', 'Subida y descarga de archivos', 'Asociación a propiedades y clientes'],
     color: '#64748b',
-    path: '/documentos',
+    path: '/archivos',
   },
   {
     id: 'reportes',
@@ -174,14 +174,15 @@ const OnboardingTutorial = () => {
   useEffect(() => {
     const never = localStorage.getItem(ONBOARDING_NEVER_KEY);
     if (never === 'true') return;
-    const shownThisSession = sessionStorage.getItem(ONBOARDING_KEY);
-    if (shownThisSession) return;
-    const timer = setTimeout(() => {
-      setVisible(true);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
-    }, 1500);
-    return () => clearTimeout(timer);
+    const completed = localStorage.getItem(ONBOARDING_KEY);
+    if (!completed) {
+      const timer = setTimeout(() => {
+        setVisible(true);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const goToStep = useCallback((idx) => {
@@ -215,7 +216,7 @@ const OnboardingTutorial = () => {
   };
 
   const finishOnboarding = () => {
-    sessionStorage.setItem(ONBOARDING_KEY, 'true');
+    localStorage.setItem(ONBOARDING_KEY, 'true');
     if (neverShow) {
       localStorage.setItem(ONBOARDING_NEVER_KEY, 'true');
     }
@@ -458,7 +459,7 @@ const OnboardingTutorial = () => {
                       { name: 'Operaciones', icon: <FaDollarSign /> },
                       { name: 'Agenda', icon: <FaRegCalendarAlt /> },
                       { name: 'Mensajería', icon: <FaComments /> },
-                      { name: 'Documentos', icon: <FaCheckSquare /> },
+                      { name: 'Archivos', icon: <FaFileAlt /> },
                       { name: 'Reportes', icon: <FaChartBar /> },
                     ].map((m) => {
                       const isHighlighted = m.name === step.sidebarItem;
