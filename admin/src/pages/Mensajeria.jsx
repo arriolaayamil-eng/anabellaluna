@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
-import { FaComments, FaPaperPlane, FaSearch, FaSync, FaUsers, FaBroadcastTower, FaCheck, FaCheckDouble, FaCircle, FaUserTie, FaTimes, FaChevronLeft, FaTrashAlt } from 'react-icons/fa';
+import { FaComments, FaPaperPlane, FaSearch, FaSync, FaUsers, FaBroadcastTower, FaCheck, FaCheckDouble, FaCircle, FaUserTie, FaTimes, FaChevronLeft } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import chatService from '../services/chatService';
 
@@ -18,8 +18,6 @@ const Mensajeria = () => {
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
-  const [showClearModal, setShowClearModal] = useState(false);
-  const [clearingChats, setClearingChats] = useState(false);
   const [view, setView] = useState('conversations'); // 'conversations' | 'agents'
   const messagesContainerRef = useRef(null);
   const pollIntervalRef = useRef(null);
@@ -168,23 +166,6 @@ const Mensajeria = () => {
     }
   };
 
-  const handleClearAllChats = async () => {
-    setClearingChats(true);
-    try {
-      const result = await chatService.clearAll();
-      toast.success(result.message || 'Todos los chats fueron eliminados');
-      setShowClearModal(false);
-      setSelectedChat(null);
-      setMessages([]);
-      setConversations([]);
-      await loadData();
-    } catch (err) {
-      console.error('Error clearing chats:', err);
-      toast.error('Error al borrar los chats');
-    } finally {
-      setClearingChats(false);
-    }
-  };
 
   const handleSendBroadcast = async () => {
     if (!broadcastMessage.trim() || sendingBroadcast) return;
@@ -246,12 +227,6 @@ const Mensajeria = () => {
           </p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowClearModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md bg-red-500 hover:bg-red-600"
-          >
-            <FaTrashAlt /> Borrar Chats
-          </button>
           <button
             onClick={() => setShowBroadcastModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md"
@@ -540,52 +515,6 @@ const Mensajeria = () => {
       </div>
 
       {/* Broadcast Modal */}
-      {/* Clear All Chats Confirmation Modal */}
-      {showClearModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`${cardBase} max-w-md w-full p-6`}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold dark:text-white flex items-center gap-2">
-                <FaTrashAlt className="text-red-500" />
-                Borrar Todos los Chats
-              </h2>
-              <button
-                onClick={() => setShowClearModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <FaTimes className="text-xl" />
-              </button>
-            </div>
-
-            <p className={`text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              Esta acción eliminará <strong>todos los mensajes</strong> del sistema de chat interno.
-            </p>
-            <p className={`text-sm mb-6 ${isDark ? 'text-red-400' : 'text-red-600'} font-medium`}>
-              Esta acción no se puede deshacer.
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowClearModal(false)}
-                className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all hover:shadow-md ${isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleClearAllChats}
-                disabled={clearingChats}
-                className="flex-1 py-3 rounded-xl text-white font-medium transition-all hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600"
-              >
-                {clearingChats ? (
-                  <><FaSync className="animate-spin" /> Borrando...</>
-                ) : (
-                  <><FaTrashAlt /> Borrar Todo</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showBroadcastModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
