@@ -174,10 +174,14 @@ const Plantillas = () => {
     setSaving(true);
     try {
       const payload = { ...form, tags: form.tags };
-      const saved = creatingNew ? await templateService.create(payload) : await templateService.update(selectedId, payload);
-      toast.success(creatingNew ? 'Plantilla creada' : 'Plantilla actualizada');
+      const targetTemplateId = String(selectedTemplate?._id || selectedId || '').trim();
+      const shouldCreate = creatingNew || !targetTemplateId;
+      const saved = shouldCreate
+        ? await templateService.create(payload)
+        : await templateService.update(targetTemplateId, payload);
+      toast.success(shouldCreate ? 'Plantilla creada' : 'Plantilla actualizada');
       setCreatingNew(false);
-      await fetchTemplates(saved?._id || selectedId, { forceSelect: true });
+      await fetchTemplates(saved?._id || targetTemplateId, { forceSelect: true });
     } catch (error) {
       toast.error(error.message || 'No se pudo guardar la plantilla');
     } finally {
