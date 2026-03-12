@@ -401,6 +401,30 @@ router.get('/unread', authenticateToken, requireCRMUser, async (req, res) => {
   }
 });
 
+// ==================== CLEAR ALL MESSAGES (Admin only) ====================
+
+// Delete all messages in the system (admin only)
+router.delete('/clear-all', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const currentUser = await getUserFromToken(req);
+
+    if (currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Solo administradores pueden borrar todos los chats' });
+    }
+
+    const result = await Message.deleteMany({});
+
+    res.json({
+      success: true,
+      deleted: result.deletedCount,
+      message: `Se eliminaron ${result.deletedCount} mensajes`,
+    });
+  } catch (error) {
+    console.error('Error clearing all messages:', error);
+    res.status(500).json({ error: 'Error al borrar los mensajes' });
+  }
+});
+
 // ==================== DELETE MESSAGE ====================
 
 // Delete a message (only sender can delete)

@@ -40,6 +40,9 @@ const chatService = {
   // Search messages
   search: (query, limit = 20) => api.get(`/crm/messages/search?q=${encodeURIComponent(query)}&limit=${limit}`),
 
+  // Clear all messages (admin only)
+  clearAll: () => api.delete('/crm/messages/clear-all'),
+
   // Broadcast message to all agents (admin only)
   broadcast: (content, contentType = 'text') => api.post('/crm/messages/broadcast', { content, contentType }),
 
