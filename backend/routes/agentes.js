@@ -188,6 +188,34 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
 
 
 
+// Reset agent password (admin only)
+router.post('/:id/reset-password', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const agente = await Agente.findById(req.params.id).lean();
+    if (!agente) return res.status(404).json({ error: 'Agente no encontrado' });
+
+    const user = await User.findOne({ agenteId: agente._id });
+    if (!user) return res.status(404).json({ error: 'No se encontró usuario vinculado a este agente' });
+
+    const newPassword = req.body.password && String(req.body.password).trim().length >= 6
+      ? String(req.body.password).trim()
+      : crypto.randomBytes(9).toString('base64url');
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    user.password_hash = hash;
+    await user.save();
+
+    return res.json({
+      success: true,
+      username: user.username,
+      password: newPassword,
+      agente: agente.nombre,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
 
   try {

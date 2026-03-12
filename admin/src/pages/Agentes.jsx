@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaExclamationTriangle, FaKey, FaCopy } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { api } from '../config/api';
@@ -46,6 +46,10 @@ const Agentes = () => {
   
   // Estado para confirmación de cierre del formulario
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetCredentials, setResetCredentials] = useState(null);
+  const [customResetPassword, setCustomResetPassword] = useState('');
   
   // Estado para el formulario de nuevo agente
   const [nuevoAgente, setNuevoAgente] = useState({
@@ -458,6 +462,24 @@ const Agentes = () => {
   };
 
   // Handler para cambios en el formulario de edición
+  const handleResetPassword = async (useCustom = false) => {
+    const agenteId = agenteSeleccionado?._id || agenteSeleccionado?.id;
+    if (!agenteId) return;
+    setResettingPassword(true);
+    try {
+      const body = useCustom && customResetPassword.trim().length >= 6
+        ? { password: customResetPassword.trim() }
+        : {};
+      const result = await api.post(`/crm/agentes/${agenteId}/reset-password`, body);
+      setResetCredentials({ username: result.username, password: result.password });
+      toast.success('Contraseña reseteada correctamente');
+    } catch (err) {
+      toast.error(err?.message || 'Error al resetear la contraseña');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
     setEditingAgente(prev => ({ ...prev, [name]: value }));
@@ -951,6 +973,12 @@ const Agentes = () => {
                   className="px-4 py-2 bg-white text-gray-800 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold"
                 >
                   <FaEdit /> Editar
+                </button>
+                <button
+                  onClick={() => { setShowResetPasswordModal(true); setResetCredentials(null); setCustomResetPassword(''); }}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors flex items-center gap-2 font-semibold"
+                >
+                  <FaKey /> Resetear Clave
                 </button>
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
@@ -1972,6 +2000,85 @@ const Agentes = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Resetear Contraseña */}
+      {showResetPasswordModal && agenteSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-md w-full p-6`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold dark:text-gray-100 flex items-center gap-2">
+                <FaKey className="text-amber-500" /> Resetear Contraseña
+              </h3>
+              <button onClick={() => setShowResetPasswordModal(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+
+            <p className={`text-sm mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Resetear la contraseña de <strong>{agenteSeleccionado.nombre}</strong>
+            </p>
+
+            {!resetCredentials ? (
+              <>
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Nueva contraseña (opcional, mín. 6 caracteres)</label>
+                  <input
+                    type="text"
+                    value={customResetPassword}
+                    onChange={(e) => setCustomResetPassword(e.target.value)}
+                    placeholder="Dejar vacío para generar automáticamente"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowResetPasswordModal(false)}
+                    className={`flex-1 py-2.5 rounded-xl border-2 font-medium ${isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleResetPassword(customResetPassword.trim().length >= 6)}
+                    disabled={resettingPassword || (customResetPassword.trim().length > 0 && customResetPassword.trim().length < 6)}
+                    className="flex-1 py-2.5 rounded-xl text-white font-medium bg-amber-500 hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {resettingPassword ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Reseteando...</> : <><FaKey /> Resetear</>}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={`p-4 rounded-xl border-2 border-dashed mb-4 ${isDark ? 'border-amber-500/50 bg-amber-900/20' : 'border-amber-300 bg-amber-50'}`}>
+                  <p className={`text-xs font-medium mb-3 ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>Nuevas credenciales (se muestran una sola vez)</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Usuario:</span>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-sm font-bold px-2 py-1 rounded ${isDark ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'}`}>{resetCredentials.username}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(resetCredentials.username); toast.info('Usuario copiado'); }} className="text-gray-400 hover:text-gray-600"><FaCopy /></button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Contraseña:</span>
+                      <div className="flex items-center gap-2">
+                        <code className={`text-sm font-bold px-2 py-1 rounded ${isDark ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'}`}>{resetCredentials.password}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(resetCredentials.password); toast.info('Contraseña copiada'); }} className="text-gray-400 hover:text-gray-600"><FaCopy /></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowResetPasswordModal(false)}
+                  className="w-full py-2.5 rounded-xl text-white font-medium transition-all"
+                  style={{ backgroundColor: currentColor }}
+                >
+                  Cerrar
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
