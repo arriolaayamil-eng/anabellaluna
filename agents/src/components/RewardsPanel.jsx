@@ -58,10 +58,10 @@ const RewardsPanel = ({ onClose }) => {
     });
   };
 
-  const stars = rewards.filter(r => r.category === 'star');
-  const medals = rewards.filter(r => r.category === 'medal');
-  const badges = rewards.filter(r => r.category === 'badge');
-  const levels = rewards.filter(r => r.category === 'level');
+  const stars = rewards.filter((r) => r.category === 'star');
+  const medals = rewards.filter((r) => r.category === 'medal');
+  const badges = rewards.filter((r) => r.category === 'badge');
+  const levels = rewards.filter((r) => r.category === 'level');
 
   return (
     <div className="nav-item absolute right-5 md:right-40 top-16 bg-white dark:bg-[#42464D] p-6 rounded-lg w-96 max-h-[80vh] overflow-hidden shadow-xl z-50">
@@ -73,6 +73,7 @@ const RewardsPanel = ({ onClose }) => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleCalculate}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
             title="Actualizar recompensas"
@@ -80,6 +81,7 @@ const RewardsPanel = ({ onClose }) => {
             <FaSync className="text-gray-500 dark:text-gray-400" />
           </button>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
@@ -111,6 +113,7 @@ const RewardsPanel = ({ onClose }) => {
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-600 mb-4">
         <button
+          type="button"
           onClick={() => setActiveTab('rewards')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${
             activeTab === 'rewards'
@@ -122,6 +125,7 @@ const RewardsPanel = ({ onClose }) => {
           Recompensas
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('metrics')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${
             activeTab === 'metrics'
@@ -138,7 +142,7 @@ const RewardsPanel = ({ onClose }) => {
       <div className="overflow-y-auto max-h-80">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }}></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }} />
           </div>
         ) : activeTab === 'rewards' ? (
           <div className="space-y-3">

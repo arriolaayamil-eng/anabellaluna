@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
 import { FaChartLine, FaUsers, FaEnvelope, FaMousePointer, FaDollarSign, FaTrophy, FaCalendarAlt, FaFilter } from 'react-icons/fa';
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, DateTime, Legend, Tooltip } from '@syncfusion/ej2-react-charts';
+import { useStateContext } from '../contexts/ContextProvider';
 
 const AnalyticsMarketing = () => {
   const { currentMode, currentColor } = useStateContext();
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('30dias');
+  const [periodoSeleccionado] = useState('30dias');
 
   // Datos para gráficos
   const datosRendimiento = [
@@ -16,31 +15,31 @@ const AnalyticsMarketing = () => {
     { fecha: new Date(2025, 9, 15), enviados: 590, abiertos: 325, clicks: 118 },
     { fecha: new Date(2025, 9, 20), enviados: 720, abiertos: 396, clicks: 144 },
     { fecha: new Date(2025, 9, 25), enviados: 650, abiertos: 358, clicks: 130 },
-    { fecha: new Date(2025, 9, 30), enviados: 740, abiertos: 407, clicks: 148 }
+    { fecha: new Date(2025, 9, 30), enviados: 740, abiertos: 407, clicks: 148 },
   ];
 
   const topCampanas = [
     { nombre: 'Nuevas Propiedades Palermo', conversiones: 45, roi: 320, inversion: 450 },
     { nombre: 'Promoción Fin de Mes', conversiones: 32, roi: 280, inversion: 380 },
     { nombre: 'Newsletter Octubre', conversiones: 67, roi: 245, inversion: 890 },
-    { nombre: 'Reactivación Clientes', conversiones: 23, roi: 190, inversion: 320 }
+    { nombre: 'Reactivación Clientes', conversiones: 23, roi: 190, inversion: 320 },
   ];
 
   const segmentosAudiencia = [
     { segmento: 'Compradores Activos', cantidad: 1250, engagement: 68, conversiones: 89 },
     { segmento: 'Inversores', cantidad: 890, engagement: 72, conversiones: 67 },
     { segmento: 'Primeros Compradores', cantidad: 456, engagement: 55, conversiones: 34 },
-    { segmento: 'Clientes VIP', cantidad: 234, engagement: 85, conversiones: 78 }
+    { segmento: 'Clientes VIP', cantidad: 234, engagement: 85, conversiones: 78 },
   ];
 
   const canalesRendimiento = [
     { canal: 'Email', impresiones: 45000, clicks: 2340, conversiones: 234, costo: 1200 },
     { canal: 'Redes Sociales', impresiones: 89000, clicks: 3560, conversiones: 178, costo: 2400 },
     { canal: 'Google Ads', impresiones: 125000, clicks: 5000, conversiones: 312, costo: 4500 },
-    { canal: 'SEO Orgánico', impresiones: 67000, clicks: 4020, conversiones: 289, costo: 0 }
+    { canal: 'SEO Orgánico', impresiones: 67000, clicks: 4020, conversiones: 289, costo: 0 },
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -52,10 +51,10 @@ const AnalyticsMarketing = () => {
           <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Métricas y rendimiento</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
+          <button type="button" className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
             <FaFilter /> Filtros
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
+          <button type="button" className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
             <FaCalendarAlt /> {periodoSeleccionado === '30dias' ? 'Últimos 30 días' : 'Este mes'}
           </button>
         </div>
@@ -114,15 +113,15 @@ const AnalyticsMarketing = () => {
           <h3 className="text-xl font-bold dark:text-gray-200">📈 Rendimiento de Campañas</h3>
           <div className="flex gap-2">
             <span className="flex items-center gap-2 text-sm">
-              <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+              <span className="w-3 h-3 rounded-full bg-blue-500" />
               Enviados
             </span>
             <span className="flex items-center gap-2 text-sm">
-              <span className="w-3 h-3 rounded-full bg-green-500"></span>
+              <span className="w-3 h-3 rounded-full bg-green-500" />
               Abiertos
             </span>
             <span className="flex items-center gap-2 text-sm">
-              <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+              <span className="w-3 h-3 rounded-full bg-purple-500" />
               Clicks
             </span>
           </div>
@@ -133,11 +132,11 @@ const AnalyticsMarketing = () => {
             valueType: 'DateTime',
             labelFormat: 'dd/MM',
             intervalType: 'Days',
-            edgeLabelPlacement: 'Shift'
+            edgeLabelPlacement: 'Shift',
           }}
           primaryYAxis={{
             labelFormat: '{value}',
-            title: 'Cantidad'
+            title: 'Cantidad',
           }}
           tooltip={{ enable: true }}
           height="350px"
@@ -192,7 +191,8 @@ const AnalyticsMarketing = () => {
                   <div className="flex items-center gap-2">
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white ${
                       index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-600' : 'bg-blue-500'
-                    }`}>
+                    }`}
+                    >
                       {index + 1}
                     </span>
                     <span className="font-medium dark:text-gray-200">{campana.nombre}</span>
@@ -237,7 +237,7 @@ const AnalyticsMarketing = () => {
                         <div
                           className="bg-blue-500 h-2 rounded-full"
                           style={{ width: `${segmento.engagement}%` }}
-                        ></div>
+                        />
                       </div>
                       <span className="text-xs font-bold">{segmento.engagement}%</span>
                     </div>
@@ -249,7 +249,7 @@ const AnalyticsMarketing = () => {
                         <div
                           className="bg-green-500 h-2 rounded-full"
                           style={{ width: `${segmento.conversiones}%` }}
-                        ></div>
+                        />
                       </div>
                       <span className="text-xs font-bold">{segmento.conversiones}%</span>
                     </div>
@@ -326,7 +326,7 @@ const AnalyticsMarketing = () => {
               <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                 <h4 className="font-bold mb-2 text-orange-600 dark:text-orange-400">⚠️ Área de Mejora</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  El segmento "Primeros Compradores" tiene baja conversión. Considera personalizar contenido
+                  El segmento &ldquo;Primeros Compradores&rdquo; tiene baja conversión. Considera personalizar contenido
                 </p>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">

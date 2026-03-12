@@ -22,7 +22,7 @@ const ChatInterno = () => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `${diffMins}m`;
     if (diffHours < 24) return `${diffHours}h`;
@@ -37,13 +37,13 @@ const ChatInterno = () => {
       // Load both enquiries and agent conversations in parallel
       const [items, agentConversations] = await Promise.all([
         crmService.activities.getAll(),
-        crmService.chat.getConversations().catch(() => [])
+        crmService.chat.getConversations().catch(() => []),
       ]);
 
       // Process website enquiries
       const enquiries = (Array.isArray(items) ? items : [])
-        .filter(item => item.type === 'enquiry' || item.type === 'visit_scheduled')
-        .map(item => {
+        .filter((item) => item.type === 'enquiry' || item.type === 'visit_scheduled')
+        .map((item) => {
           const meta = item.metadata || {};
           const contact = meta.contact || {};
           const property = meta.property || {};
@@ -71,7 +71,7 @@ const ChatInterno = () => {
 
       // Process agent conversations
       const agentChatsData = (Array.isArray(agentConversations) ? agentConversations : [])
-        .map(conv => {
+        .map((conv) => {
           const partner = conv.partner || {};
           const lastMsg = conv.lastMessage || {};
           const createdAt = lastMsg.createdAt ? new Date(lastMsg.createdAt) : new Date();
@@ -120,21 +120,19 @@ const ChatInterno = () => {
     } else {
       items = conversaciones;
     }
-    
+
     // Sort by date
     items.sort((a, b) => b.createdAt - a.createdAt);
-    
+
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      items = items.filter(conv =>
-        conv.nombre.toLowerCase().includes(term) ||
-        conv.email.toLowerCase().includes(term) ||
-        (conv.propiedad && conv.propiedad.toLowerCase().includes(term)) ||
-        conv.ultimoMensaje.toLowerCase().includes(term)
-      );
+      items = items.filter((conv) => conv.nombre.toLowerCase().includes(term)
+        || conv.email.toLowerCase().includes(term)
+        || (conv.propiedad && conv.propiedad.toLowerCase().includes(term))
+        || conv.ultimoMensaje.toLowerCase().includes(term));
     }
-    
+
     return items;
   };
 
@@ -176,16 +174,12 @@ const ChatInterno = () => {
       if (conv.source === 'agent' && conv.partnerId) {
         // Mark agent messages as read
         await crmService.chat.markAsRead(conv.partnerId);
-        setAgentChats(prev => prev.map(c => 
-          c.id === conv.id ? { ...c, noLeidos: 0 } : c
-        ));
+        setAgentChats((prev) => prev.map((c) => (c.id === conv.id ? { ...c, noLeidos: 0 } : c)));
       } else if (conv.source === 'web' && conv.raw) {
         // Mark web enquiry as read
         const updatedMeta = { ...(conv.raw.metadata || {}), read: true };
         await crmService.activities.update(conv.id, { metadata: updatedMeta });
-        setConversaciones(prev => prev.map(c => 
-          c.id === conv.id ? { ...c, noLeidos: 0 } : c
-        ));
+        setConversaciones((prev) => prev.map((c) => (c.id === conv.id ? { ...c, noLeidos: 0 } : c)));
       }
     } catch (e) {
       console.error('Error marking as read:', e);
@@ -328,14 +322,14 @@ const ChatInterno = () => {
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">
               <FaComments className="text-4xl mx-auto mb-2 opacity-50" />
               <p className="text-sm">
-                {activeTab === 'agents' ? 'No hay conversaciones con agentes' : 
-                 activeTab === 'web' ? 'No hay consultas del sitio web' : 
-                 'No hay mensajes'}
+                {activeTab === 'agents' ? 'No hay conversaciones con agentes'
+                  : activeTab === 'web' ? 'No hay consultas del sitio web'
+                    : 'No hay mensajes'}
               </p>
               <p className="text-xs mt-1">
-                {activeTab === 'agents' ? 'Inicia una conversación desde el chat interno' :
-                 activeTab === 'web' ? 'Las consultas del sitio web aparecerán aquí' :
-                 'Los mensajes aparecerán aquí'}
+                {activeTab === 'agents' ? 'Inicia una conversación desde el chat interno'
+                  : activeTab === 'web' ? 'Las consultas del sitio web aparecerán aquí'
+                    : 'Los mensajes aparecerán aquí'}
               </p>
             </div>
           )}
@@ -373,10 +367,11 @@ const ChatInterno = () => {
                     <span className={`px-1.5 py-0.5 rounded text-xs ${
                       conv.source === 'agent'
                         ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                        : conv.tipo === 'visit_scheduled' 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : conv.tipo === 'visit_scheduled'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                           : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    }`}>
+                    }`}
+                    >
                       {conv.source === 'agent' ? (conv.online ? '● En línea' : conv.rol) : conv.rol}
                     </span>
                   </p>
@@ -447,10 +442,11 @@ const ChatInterno = () => {
                     return (
                       <div key={msg._id || idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
-                          isOwn 
-                            ? 'bg-blue-500 text-white rounded-br-none' 
+                          isOwn
+                            ? 'bg-blue-500 text-white rounded-br-none'
                             : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none shadow-sm'
-                        }`}>
+                        }`}
+                        >
                           <p>{msg.content}</p>
                           <p className={`text-xs mt-1 ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}>
                             {msg.createdAt ? formatTimeLabel(new Date(msg.createdAt)) : ''}
@@ -496,13 +492,13 @@ const ChatInterno = () => {
                     </p>
                     {chatActivo.email && (
                       <p className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                        <FaEnvelope className="text-gray-400" /> 
+                        <FaEnvelope className="text-gray-400" />
                         <a href={`mailto:${chatActivo.email}`} className="text-blue-500 hover:underline">{chatActivo.email}</a>
                       </p>
                     )}
                     {chatActivo.phone && (
                       <p className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                        <FaPhone className="text-gray-400" /> 
+                        <FaPhone className="text-gray-400" />
                         <a href={`tel:${chatActivo.phone}`} className="text-blue-500 hover:underline">{chatActivo.phone}</a>
                       </p>
                     )}

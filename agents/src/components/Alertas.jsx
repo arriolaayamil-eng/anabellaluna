@@ -38,12 +38,12 @@ const Alertas = () => {
       meta_cumplida: { icon: <FaCheckCircle />, color: 'bg-green-50 dark:bg-green-900/20', borderColor: 'border-green-500', textColor: 'text-green-600 dark:text-green-400' },
       reporte_diario: { icon: <FaClipboardList />, color: 'bg-slate-50 dark:bg-slate-900/20', borderColor: 'border-slate-500', textColor: 'text-slate-600 dark:text-slate-400' },
     };
-    
+
     // Override colors for urgent priority
     if (prioridad === 'urgente') {
       return { ...styles[tipo] || styles.sistema, color: 'bg-red-50 dark:bg-red-900/20', borderColor: 'border-red-500', textColor: 'text-red-600 dark:text-red-400' };
     }
-    
+
     return styles[tipo] || styles.sistema;
   };
 
@@ -55,7 +55,7 @@ const Alertas = () => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
@@ -69,7 +69,7 @@ const Alertas = () => {
       setLoading(true);
       const [response, countResponse] = await Promise.all([
         notificationService.getNotifications({ limite: 20 }),
-        notificationService.getUnreadCount()
+        notificationService.getUnreadCount(),
       ]);
       setAlertas(response?.items || []);
       setUnreadCount(countResponse?.count || 0);
@@ -87,8 +87,8 @@ const Alertas = () => {
   const handleMarkAsRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
-      setAlertas(prev => prev.map(a => a._id === id ? { ...a, leida: true } : a));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setAlertas((prev) => prev.map((a) => (a._id === id ? { ...a, leida: true } : a)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Error marking as read:', err);
     }
@@ -97,7 +97,7 @@ const Alertas = () => {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
-      setAlertas(prev => prev.map(a => ({ ...a, leida: true })));
+      setAlertas((prev) => prev.map((a) => ({ ...a, leida: true })));
       setUnreadCount(0);
     } catch (err) {
       console.error('Error marking all as read:', err);
@@ -138,7 +138,7 @@ const Alertas = () => {
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }}></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }} />
           </div>
         ) : alertas.length === 0 ? (
           <div className="text-center py-8">
@@ -166,7 +166,7 @@ const Alertas = () => {
                         {alerta.titulo}
                       </h4>
                       {!alerta.leida && (
-                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                       )}
                     </div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
@@ -178,6 +178,7 @@ const Alertas = () => {
                       </span>
                       {alerta.accionUrl && (
                         <button
+                          type="button"
                           className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${style.textColor} hover:bg-opacity-20`}
                           style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
                           onClick={(e) => {
@@ -205,15 +206,17 @@ const Alertas = () => {
 
       <div className="mt-4 pt-4 border-t dark:border-gray-600 space-y-2">
         <div className="flex items-center justify-between">
-          <button 
+          <button
+            type="button"
             onClick={handleMarkAllAsRead}
             disabled={alertasNoLeidas === 0}
             className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
           >
             Marcar todas como leídas
           </button>
-          <button 
-            className="text-sm font-medium" 
+          <button
+            type="button"
+            className="text-sm font-medium"
             style={{ color: currentColor }}
             onClick={() => {
               setIsClicked(initialState);
@@ -224,6 +227,7 @@ const Alertas = () => {
           </button>
         </div>
         <button
+          type="button"
           className="w-full py-2 rounded-lg font-medium transition-colors"
           style={{ backgroundColor: currentColor, color: 'white' }}
           onClick={() => {

@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
 import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
-import { 
-  FaChartBar, FaDownload, FaCalendarAlt, FaFilter, FaArrowUp, FaDollarSign, FaUsers, FaHome,
-  FaChartLine, FaChartPie, FaMapMarkedAlt, FaStar, FaEye, FaTrophy, FaMoneyBillWave,
-  FaClock, FaExclamationTriangle, FaFileAlt, FaBalanceScale, FaCog, FaPaperPlane, FaCheck,
-  FaBuilding, FaPercent, FaClipboardList, FaHistory, FaSync
-} from 'react-icons/fa';
+import { FaChartBar, FaDownload, FaCalendarAlt, FaDollarSign, FaUsers, FaHome, FaChartLine, FaChartPie, FaMapMarkedAlt, FaStar, FaEye, FaTrophy, FaMoneyBillWave, FaClock, FaExclamationTriangle, FaFileAlt, FaBalanceScale, FaCog, FaPaperPlane, FaCheck, FaBuilding, FaPercent, FaClipboardList, FaHistory, FaSync } from 'react-icons/fa';
+
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
@@ -60,16 +57,16 @@ const Reportes = () => {
         crmService.reports.getConfig(),
         crmService.reports.getHistory(),
       ]);
-      
+
       setReportConfig(configRes.data);
       setHistory(historyRes.data || []);
-      
+
       // Inicializar selecciones desde la configuración
       if (configRes.data?.annualReportSelections) {
         setSelectedReports(configRes.data.annualReportSelections);
       } else {
         const defaultSelections = {};
-        REPORT_DEFINITIONS.forEach(r => { defaultSelections[r.id] = true; });
+        REPORT_DEFINITIONS.forEach((r) => { defaultSelections[r.id] = true; });
         setSelectedReports(defaultSelections);
       }
 
@@ -82,10 +79,10 @@ const Reportes = () => {
           return { id: report.id, data: { error: e.message } };
         }
       });
-      
+
       const results = await Promise.all(dataPromises);
       const dataMap = {};
-      results.forEach(r => { dataMap[r.id] = r.data; });
+      results.forEach((r) => { dataMap[r.id] = r.data; });
       setReportData(dataMap);
     } catch (err) {
       console.error('Error loading report data:', err);
@@ -102,7 +99,7 @@ const Reportes = () => {
   const toggleReportSelection = async (reportId) => {
     const newSelections = { ...selectedReports, [reportId]: !selectedReports[reportId] };
     setSelectedReports(newSelections);
-    
+
     try {
       await crmService.reports.updateConfig({ annualReportSelections: newSelections });
     } catch (err) {
@@ -113,9 +110,9 @@ const Reportes = () => {
   // Seleccionar/deseleccionar todos
   const toggleAll = async (select) => {
     const newSelections = {};
-    REPORT_DEFINITIONS.forEach(r => { newSelections[r.id] = select; });
+    REPORT_DEFINITIONS.forEach((r) => { newSelections[r.id] = select; });
     setSelectedReports(newSelections);
-    
+
     try {
       await crmService.reports.updateConfig({ annualReportSelections: newSelections });
     } catch (err) {
@@ -132,7 +129,7 @@ const Reportes = () => {
       const prevTab = activeTab;
       if (activeTab !== 'dashboard') {
         setActiveTab('dashboard');
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => { setTimeout(r, 1500); });
       }
 
       const selectedIds = Object.entries(selectedReports)
@@ -144,7 +141,7 @@ const Reportes = () => {
         .filter(Boolean);
 
       // Wait for ApexCharts SVGs to finish rendering
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => { setTimeout(r, 500); });
 
       const { blob, period } = await exportDashboardToPDF({
         chartElements,
@@ -191,7 +188,6 @@ const Reportes = () => {
       setHistory(historyRes.data || []);
 
       if (prevTab !== 'dashboard') setActiveTab(prevTab);
-
     } catch (err) {
       console.error('Error generating report:', err);
       toast.error('Error al generar el reporte');
@@ -206,10 +202,10 @@ const Reportes = () => {
     setSending(true);
     try {
       await crmService.reports.sendToERP(reportId);
-      
+
       const historyRes = await crmService.reports.getHistory();
       setHistory(historyRes.data || []);
-      
+
       toast.success('Reporte enviado al ERP correctamente');
     } catch (err) {
       console.error('Error sending to ERP:', err);
@@ -224,7 +220,7 @@ const Reportes = () => {
     try {
       const newConfig = { autoSendEnabled: !reportConfig?.autoSendEnabled };
       await crmService.reports.updateConfig(newConfig);
-      setReportConfig(prev => ({ ...prev, ...newConfig }));
+      setReportConfig((prev) => ({ ...prev, ...newConfig }));
     } catch (err) {
       console.error('Error updating auto send:', err);
     }
@@ -264,7 +260,8 @@ const Reportes = () => {
               xaxis: {
                 categories,
                 labels: { style: { colors: axisLabelColor, fontSize: '10px' }, rotate: -45 },
-                axisBorder: { show: false }, axisTicks: { show: false },
+                axisBorder: { show: false },
+                axisTicks: { show: false },
               },
               yaxis: { labels: { style: { colors: axisLabelColor, fontSize: '10px' } } },
               grid: { borderColor: gridColor, strokeDashArray: 4 },
@@ -295,7 +292,8 @@ const Reportes = () => {
               xaxis: {
                 categories,
                 labels: { style: { colors: axisLabelColor, fontSize: '10px' } },
-                axisBorder: { show: false }, axisTicks: { show: false },
+                axisBorder: { show: false },
+                axisTicks: { show: false },
               },
               yaxis: { labels: { style: { colors: axisLabelColor, fontSize: '10px' } } },
               grid: { borderColor: gridColor, strokeDashArray: 4 },
@@ -359,7 +357,8 @@ const Reportes = () => {
               xaxis: {
                 categories,
                 labels: { style: { colors: axisLabelColor, fontSize: '10px' } },
-                axisBorder: { show: false }, axisTicks: { show: false },
+                axisBorder: { show: false },
+                axisTicks: { show: false },
               },
               yaxis: { labels: { style: { colors: axisLabelColor, fontSize: '10px' } } },
               grid: { borderColor: gridColor, strokeDashArray: 4 },
@@ -386,7 +385,8 @@ const Reportes = () => {
                 chart: { type: 'radialBar', height: 220, background: 'transparent' },
                 plotOptions: {
                   radialBar: {
-                    startAngle: -135, endAngle: 135,
+                    startAngle: -135,
+                    endAngle: 135,
                     hollow: { size: '65%', background: 'transparent' },
                     track: { background: isDark ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
                     dataLabels: {
@@ -510,7 +510,6 @@ const Reportes = () => {
     }
   };
 
-
   if (loading) {
     return (
       <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -550,7 +549,7 @@ const Reportes = () => {
         </div>
       )}
       <Header category="Analítica" title="📊 Reportes y Estadísticas" />
-      
+
       {/* Tabs de navegación */}
       <div className="flex flex-wrap gap-2 mb-6 border-b dark:border-gray-700 pb-4">
         {[
@@ -558,13 +557,14 @@ const Reportes = () => {
           { id: 'selection', label: 'Selección de Reportes', icon: <FaClipboardList /> },
           { id: 'config', label: 'Configuración', icon: <FaCog /> },
           { id: 'history', label: 'Historial', icon: <FaHistory /> },
-        ].map(tab => (
+        ].map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              activeTab === tab.id 
-                ? 'text-white' 
+              activeTab === tab.id
+                ? 'text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
             style={activeTab === tab.id ? { backgroundColor: currentColor } : {}}
@@ -577,22 +577,24 @@ const Reportes = () => {
       {/* Filtros de período */}
       <div className="flex flex-wrap gap-4 mb-6 items-center">
         <div className="flex items-center gap-2">
-          <label className="text-sm dark:text-gray-300">Año:</label>
+          <label htmlFor="field-125" className="text-sm dark:text-gray-300">Año:</label>
           <select
+            id="field-125"
             value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
             className="px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
           >
-            {[2023, 2024, 2025, 2026].map(y => (
+            {[2023, 2024, 2025, 2026].map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm dark:text-gray-300">Mes:</label>
+          <label htmlFor="field-126" className="text-sm dark:text-gray-300">Mes:</label>
           <select
+            id="field-126"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+            onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
             className="px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
           >
             {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((m, i) => (
@@ -601,6 +603,7 @@ const Reportes = () => {
           </select>
         </div>
         <button
+          type="button"
           onClick={loadData}
           className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-200"
         >
@@ -608,6 +611,7 @@ const Reportes = () => {
         </button>
         <div className="flex-1" />
         <button
+          type="button"
           onClick={() => generateReport('manual', 'download')}
           disabled={generating}
           className="flex items-center gap-2 px-6 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
@@ -617,6 +621,7 @@ const Reportes = () => {
           Descargar PDF
         </button>
         <button
+          type="button"
           onClick={() => generateReport('manual', 'send')}
           disabled={generating}
           className="flex items-center gap-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
@@ -628,8 +633,8 @@ const Reportes = () => {
 
       {activeTab === 'dashboard' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {REPORT_DEFINITIONS.filter(r => selectedReports[r.id]).map((report) => (
-            <div 
+          {REPORT_DEFINITIONS.filter((r) => selectedReports[r.id]).map((report) => (
+            <div
               key={report.id}
               ref={(el) => { chartRefs.current[report.id] = el; }}
               data-report-id={report.id}
@@ -664,12 +669,14 @@ const Reportes = () => {
             </h3>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => toggleAll(true)}
                 className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600"
               >
                 Seleccionar todos
               </button>
               <button
+                type="button"
                 onClick={() => toggleAll(false)}
                 className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600"
               >
@@ -677,19 +684,21 @@ const Reportes = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {REPORT_DEFINITIONS.map((report) => (
               <label
+                htmlFor="field-127"
                 key={report.id}
                 className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedReports[report.id] 
-                    ? 'border-2 bg-blue-50 dark:bg-blue-900/20' 
+                  selectedReports[report.id]
+                    ? 'border-2 bg-blue-50 dark:bg-blue-900/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                 }`}
                 style={selectedReports[report.id] ? { borderColor: currentColor } : {}}
               >
                 <input
+                  id="field-127"
                   type="checkbox"
                   checked={selectedReports[report.id] || false}
                   onChange={() => toggleReportSelection(report.id)}
@@ -711,7 +720,7 @@ const Reportes = () => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className={cardBase}>
             <h3 className="text-lg font-semibold mb-6 dark:text-gray-100">⚙️ Configuración de Envío Automático</h3>
-            
+
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div>
@@ -719,10 +728,11 @@ const Reportes = () => {
                   <p className="text-sm text-gray-500">Los reportes se enviarán automáticamente al ERP cada mes</p>
                 </div>
                 <button
+                  type="button"
                   onClick={toggleAutoSend}
                   className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                    reportConfig?.autoSendEnabled 
-                      ? 'bg-green-500 text-white' 
+                    reportConfig?.autoSendEnabled
+                      ? 'bg-green-500 text-white'
                       : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
                   }`}
                 >
@@ -738,13 +748,13 @@ const Reportes = () => {
                 <select
                   value={reportConfig?.autoSendDay || 1}
                   onChange={async (e) => {
-                    const day = parseInt(e.target.value);
+                    const day = parseInt(e.target.value, 10);
                     await crmService.reports.updateConfig({ autoSendDay: day });
-                    setReportConfig(prev => ({ ...prev, autoSendDay: day }));
+                    setReportConfig((prev) => ({ ...prev, autoSendDay: day }));
                   }}
                   className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                 >
-                  {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                     <option key={d} value={d}>Día {d}</option>
                   ))}
                 </select>
@@ -752,7 +762,7 @@ const Reportes = () => {
 
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>ℹ️ Información:</strong> Los reportes mensuales se generan automáticamente 
+                  <strong>ℹ️ Información:</strong> Los reportes mensuales se generan automáticamente
                   el día {reportConfig?.autoSendDay || 1} de cada mes y se envían al ERP en formato PDF.
                   También puedes generar reportes manualmente en cualquier momento.
                 </p>
@@ -762,10 +772,10 @@ const Reportes = () => {
 
           <div className={cardBase}>
             <h3 className="text-lg font-semibold mb-6 dark:text-gray-100">📊 Reportes Incluidos</h3>
-            
+
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {REPORT_DEFINITIONS.map((report) => (
-                <div 
+                <div
                   key={report.id}
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
                 >
@@ -788,7 +798,7 @@ const Reportes = () => {
       {activeTab === 'history' && (
         <div className={cardBase}>
           <h3 className="text-lg font-semibold mb-6 dark:text-gray-100">📜 Historial de Reportes Generados</h3>
-          
+
           {history.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <FaFileAlt className="text-6xl mx-auto mb-4 opacity-30" />
@@ -811,10 +821,11 @@ const Reportes = () => {
                     <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="p-3 dark:text-gray-300">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          report.type === 'annual' ? 'bg-purple-100 text-purple-700' :
-                          report.type === 'monthly' ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
+                          report.type === 'annual' ? 'bg-purple-100 text-purple-700'
+                            : report.type === 'monthly' ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700'
+                        }`}
+                        >
                           {report.type === 'annual' ? 'Anual' : report.type === 'monthly' ? 'Mensual' : 'Manual'}
                         </span>
                       </td>
@@ -834,6 +845,7 @@ const Reportes = () => {
                       <td className="p-3 text-center">
                         {!report.sentToERP && (
                           <button
+                            type="button"
                             onClick={() => sendToERP(report._id)}
                             disabled={sending}
                             className="px-3 py-1 text-sm text-white rounded hover:opacity-90 disabled:opacity-50"

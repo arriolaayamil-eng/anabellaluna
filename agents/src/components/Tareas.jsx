@@ -42,7 +42,7 @@ const Tareas = () => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today.getTime() + 86400000);
     const itemDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    
+
     if (itemDate.getTime() === today.getTime()) {
       return `Hoy ${d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
     }
@@ -62,7 +62,7 @@ const Tareas = () => {
         crmService.tareas.getAll(),
         crmService.citas.getAll(),
         crmService.activities.getAll({ type: 'visit_scheduled' }),
-        crmService.navbar.getSummary()
+        crmService.navbar.getSummary(),
       ]);
 
       const now = new Date();
@@ -70,8 +70,8 @@ const Tareas = () => {
 
       // Add kanban tasks (pending only)
       (Array.isArray(tareas) ? tareas : [])
-        .filter(t => t.kanbanColumn !== 'done')
-        .forEach(t => {
+        .filter((t) => t.kanbanColumn !== 'done')
+        .forEach((t) => {
           allItems.push({
             id: t._id,
             titulo: t.titulo || t.nombre || 'Sin título',
@@ -87,8 +87,8 @@ const Tareas = () => {
 
       // Add upcoming citas
       (Array.isArray(citas) ? citas : [])
-        .filter(c => new Date(c.fecha) >= now && c.estado !== 'cancelada')
-        .forEach(c => {
+        .filter((c) => new Date(c.fecha) >= now && c.estado !== 'cancelada')
+        .forEach((c) => {
           allItems.push({
             id: c._id,
             titulo: c.titulo || 'Cita',
@@ -104,8 +104,8 @@ const Tareas = () => {
 
       // Add visit requests from website
       (Array.isArray(activities) ? activities : [])
-        .filter(a => a.type === 'visit_scheduled' && !a.metadata?.read)
-        .forEach(a => {
+        .filter((a) => a.type === 'visit_scheduled' && !a.metadata?.read)
+        .forEach((a) => {
           const contact = a.metadata?.contact || {};
           const property = a.metadata?.property || {};
           allItems.push({
@@ -147,7 +147,7 @@ const Tareas = () => {
   }, [loadTareas]);
 
   const totalPendientes = stats.pendientes + stats.citas;
-  const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+  const capitalize = (str) => (str ? str.charAt(0).toUpperCase() + str.slice(1) : '');
 
   return (
     <div className="nav-item absolute right-5 md:right-40 top-16 bg-white dark:bg-[#42464D] p-6 rounded-lg w-96 shadow-xl z-50">
@@ -170,6 +170,7 @@ const Tareas = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={loadTareas}
             disabled={loading}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -207,7 +208,7 @@ const Tareas = () => {
       <div className="space-y-3 max-h-80 overflow-y-auto">
         {loading && items.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }}></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }} />
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-8">
@@ -274,6 +275,7 @@ const Tareas = () => {
       <div className="mt-4 pt-4 border-t dark:border-gray-600 space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <button
+            type="button"
             className="py-2 px-3 rounded-lg font-medium transition-colors text-sm border"
             style={{ borderColor: currentColor, color: currentColor }}
             onClick={() => {
@@ -284,6 +286,7 @@ const Tareas = () => {
             📋 Kanban
           </button>
           <button
+            type="button"
             className="py-2 px-3 rounded-lg font-medium transition-colors text-sm border"
             style={{ borderColor: currentColor, color: currentColor }}
             onClick={() => {
@@ -295,6 +298,7 @@ const Tareas = () => {
           </button>
         </div>
         <button
+          type="button"
           className="w-full py-2 rounded-lg font-medium transition-colors"
           style={{ backgroundColor: currentColor, color: 'white' }}
           onClick={() => {

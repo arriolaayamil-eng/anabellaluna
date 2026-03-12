@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
-import { FaPlus, FaPlay, FaPause, FaEdit, FaTrash, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaPlus, FaPlay, FaPause, FaEdit, FaTrash, FaClock, FaCheckCircle, FaProjectDiagram } from 'react-icons/fa';
 import { RiFlowChart } from 'react-icons/ri';
+import { useStateContext } from '../contexts/ContextProvider';
 
 const Workflows = () => {
   const { currentMode, currentColor } = useStateContext();
-  const [showModal, setShowModal] = useState(false);
+  const [, setShowModal] = useState(false);
 
   const workflows = [
     {
@@ -17,7 +16,7 @@ const Workflows = () => {
       disparador: 'Nuevo lead registrado',
       acciones: 3,
       ejecuciones: 145,
-      ultimaEjecucion: 'Hace 2 horas'
+      ultimaEjecucion: 'Hace 2 horas',
     },
     {
       id: 2,
@@ -27,7 +26,7 @@ const Workflows = () => {
       disparador: 'Visita programada',
       acciones: 2,
       ejecuciones: 89,
-      ultimaEjecucion: 'Hace 30 min'
+      ultimaEjecucion: 'Hace 30 min',
     },
     {
       id: 3,
@@ -37,7 +36,7 @@ const Workflows = () => {
       disparador: 'Venta confirmada',
       acciones: 4,
       ejecuciones: 56,
-      ultimaEjecucion: 'Hace 1 día'
+      ultimaEjecucion: 'Hace 1 día',
     },
     {
       id: 4,
@@ -47,11 +46,11 @@ const Workflows = () => {
       disparador: 'Fecha de vencimiento',
       acciones: 2,
       ejecuciones: 23,
-      ultimaEjecucion: 'Hace 5 horas'
-    }
+      ultimaEjecucion: 'Hace 5 horas',
+    },
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -63,6 +62,7 @@ const Workflows = () => {
           <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Flujos de trabajo automatizados</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
           style={{ backgroundColor: currentColor }}
@@ -127,12 +127,13 @@ const Workflows = () => {
                     workflow.estado === 'activo'
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
                       : 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300'
-                  }`}>
+                  }`}
+                  >
                     {workflow.estado === 'activo' ? '● Activo' : '⏸ Pausado'}
                   </span>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">{workflow.descripcion}</p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Disparador</p>
@@ -155,6 +156,7 @@ const Workflows = () => {
 
               <div className="flex flex-col gap-2 ml-4">
                 <button
+                  type="button"
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title={workflow.estado === 'activo' ? 'Pausar' : 'Activar'}
                 >
@@ -165,12 +167,14 @@ const Workflows = () => {
                   )}
                 </button>
                 <button
+                  type="button"
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Editar"
                 >
                   <FaEdit className="text-blue-500" />
                 </button>
                 <button
+                  type="button"
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Eliminar"
                 >
@@ -191,6 +195,7 @@ const Workflows = () => {
             Próximamente: Editor drag-and-drop para crear workflows personalizados
           </p>
           <button
+            type="button"
             className="px-6 py-2 rounded-lg text-white font-medium"
             style={{ backgroundColor: currentColor }}
           >

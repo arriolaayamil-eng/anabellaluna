@@ -18,7 +18,7 @@ const DropDown = ({ currentMode }) => (
 
 const Ecommerce = () => {
   const { currentColor, currentMode } = useStateContext();
-  
+
   // Estados para modales de estadísticas
   const [showModalCustomers, setShowModalCustomers] = useState(false);
   const [showModalProducts, setShowModalProducts] = useState(false);
@@ -37,7 +37,7 @@ const Ecommerce = () => {
             <button
               type="button"
               style={{ backgroundColor: currentColor }}
-              className="text-2xl opacity-0.9 text-white hover:drop-shadow-xl rounded-full  p-4"
+              className="text-2xl opacity-0.9 text-white hover:drop-shadow-xl rounded-full p-4"
             >
               <BsCurrencyDollar />
             </button>
@@ -57,7 +57,7 @@ const Ecommerce = () => {
               e.preventDefault();
               e.stopPropagation();
               console.log('KPI Clicked:', item.title, 'Index:', index);
-              switch(index) {
+              switch (index) {
                 case 0:
                   console.log('Setting showModalCustomers to true');
                   setShowModalCustomers(true);
@@ -80,8 +80,8 @@ const Ecommerce = () => {
             };
 
             return (
-              <div 
-                key={item.title} 
+              <div
+                key={item.title}
                 onClick={handleClick}
                 onMouseDown={handleClick}
                 role="button"
@@ -318,8 +318,8 @@ const Ecommerce = () => {
           <div className="mt-2">
             <p className="text-md font-semibold mb-2">Leaders</p>
             <div className="flex gap-4">
-              {medicalproBranding.leaders.map((item, index) => (
-                <img key={index} className="rounded-full w-8 h-8" src={item.image} alt="" />
+              {medicalproBranding.leaders.map((item) => (
+                <img key={item.image} className="rounded-full w-8 h-8" src={item.image} alt="" />
               ))}
             </div>
           </div>
@@ -380,7 +380,7 @@ const Ecommerce = () => {
                 </h2>
                 <p className="text-cyan-100 text-sm mt-1">39,354 clientes registrados</p>
               </div>
-              <button onClick={() => setShowModalCustomers(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalCustomers(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -398,16 +398,17 @@ const Ecommerce = () => {
                   <div key={customer.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-lg transition-shadow`}>
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-bold text-lg">
-                        {customer.name.split(' ').map(n => n.charAt(0)).join('')}
+                        {customer.name.split(' ').map((n) => n.charAt(0)).join('')}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold dark:text-gray-100">{customer.name}</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{customer.email}</p>
                         <span className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${
-                          customer.status === 'VIP' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-                          customer.status === 'Regular' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                          'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                        }`}>
+                          customer.status === 'VIP' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                            : customer.status === 'Regular' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                        }`}
+                        >
                           {customer.status}
                         </span>
                       </div>
@@ -441,7 +442,7 @@ const Ecommerce = () => {
                 </h2>
                 <p className="text-yellow-100 text-sm mt-1">4,396 productos activos</p>
               </div>
-              <button onClick={() => setShowModalProducts(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalProducts(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -453,7 +454,7 @@ const Ecommerce = () => {
                   { id: 2, name: 'Casa Palermo', price: '$180,000', stock: 'Disponible', views: 890 },
                   { id: 3, name: 'Oficina Microcentro', price: '$1,500/mes', stock: 'Reservado', views: 650 },
                   { id: 4, name: 'Loft Belgrano', price: '$320,000', stock: 'Disponible', views: 1580 },
-                ].map((product, index) => (
+                ].map((product) => (
                   <div key={product.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -484,7 +485,7 @@ const Ecommerce = () => {
                 </h2>
                 <p className="text-pink-100 text-sm mt-1">$423,390 en ventas</p>
               </div>
-              <button onClick={() => setShowModalSales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalSales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -526,7 +527,7 @@ const Ecommerce = () => {
                 </h2>
                 <p className="text-red-100 text-sm mt-1">$235 en devoluciones</p>
               </div>
-              <button onClick={() => setShowModalRefunds(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalRefunds(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>

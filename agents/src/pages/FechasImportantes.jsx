@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
+
 import { useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaToggleOn, FaToggleOff, FaEdit, FaSave, FaTimes, FaPlus, FaBell, FaUsers, FaFilter, FaSearch, FaSyncAlt, FaBirthdayCake, FaHeart, FaFlag, FaGift, FaBriefcase, FaChild, FaLeaf, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
+import { FaCalendarAlt, FaToggleOn, FaToggleOff, FaEdit, FaSave, FaTimes, FaBell, FaUsers, FaSearch, FaSyncAlt, FaHeart, FaFlag, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
+
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { api } from '../config/api';
@@ -12,7 +14,7 @@ const FechasImportantes = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('todos');
-  const [editingFecha, setEditingFecha] = useState(null);
+  // editingFecha state removed — not currently used
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedFecha, setSelectedFecha] = useState(null);
   const [automationConfig, setAutomationConfig] = useState({
@@ -103,9 +105,9 @@ const FechasImportantes = () => {
     }
   };
 
-  const filteredFechas = fechas.filter(f => {
-    const matchesSearch = f.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredFechas = fechas.filter((f) => {
+    const matchesSearch = f.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+      || f.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTipo = filterTipo === 'todos' || f.tipo === filterTipo;
     return matchesSearch && matchesTipo;
   });
@@ -126,6 +128,7 @@ const FechasImportantes = () => {
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex items-center gap-4 mb-4">
         <button
+          type="button"
           onClick={() => navigate('/crm/automatizacion')}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-medium transition-all hover:shadow-md"
           style={{ borderColor: currentColor, color: currentColor }}
@@ -153,7 +156,7 @@ const FechasImportantes = () => {
             <FaToggleOn className="text-2xl text-green-500" />
           </div>
           <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.filter(f => f.activo).length}</p>
+            <p className="text-2xl font-bold dark:text-white">{fechas.filter((f) => f.activo).length}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Activas</p>
           </div>
         </div>
@@ -162,7 +165,7 @@ const FechasImportantes = () => {
             <FaFlag className="text-2xl text-purple-500" />
           </div>
           <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.filter(f => f.tipo === 'feriado_nacional').length}</p>
+            <p className="text-2xl font-bold dark:text-white">{fechas.filter((f) => f.tipo === 'feriado_nacional').length}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Feriados</p>
           </div>
         </div>
@@ -171,7 +174,7 @@ const FechasImportantes = () => {
             <FaHeart className="text-2xl text-pink-500" />
           </div>
           <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.filter(f => f.tipo === 'dia_especial').length}</p>
+            <p className="text-2xl font-bold dark:text-white">{fechas.filter((f) => f.tipo === 'dia_especial').length}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Días Especiales</p>
           </div>
         </div>
@@ -204,6 +207,7 @@ const FechasImportantes = () => {
             </select>
           </div>
           <button
+            type="button"
             onClick={handleSeedFechas}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity"
           >
@@ -215,7 +219,7 @@ const FechasImportantes = () => {
       {/* Fechas Grid */}
       {loading ? (
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -234,6 +238,7 @@ const FechasImportantes = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleToggleActivo(fecha)}
                   className={`text-2xl ${fecha.activo ? 'text-green-500' : 'text-gray-400'}`}
                 >
@@ -247,11 +252,12 @@ const FechasImportantes = () => {
 
               <div className="flex flex-wrap gap-1 mb-3">
                 <span className={`text-xs px-2 py-1 rounded-full ${
-                  fecha.tipo === 'feriado_nacional' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                  fecha.tipo === 'dia_especial' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300' :
-                  fecha.tipo === 'comercial' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                  'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                }`}>
+                  fecha.tipo === 'feriado_nacional' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                    : fecha.tipo === 'dia_especial' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300'
+                      : fecha.tipo === 'comercial' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                        : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                }`}
+                >
                   {tipoLabels[fecha.tipo]}
                 </span>
                 {getSegmentacionBadges(fecha.segmentacion).map((badge, idx) => (
@@ -263,13 +269,15 @@ const FechasImportantes = () => {
 
               <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
                 <span className={`text-xs px-2 py-1 rounded-full ${
-                  fecha.prioridad === 'alta' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                  fecha.prioridad === 'media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }`}>
+                  fecha.prioridad === 'alta' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                    : fecha.prioridad === 'media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+                >
                   Prioridad: {fecha.prioridad}
                 </span>
                 <button
+                  type="button"
                   onClick={() => handleOpenConfig(fecha)}
                   className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700"
                 >
@@ -293,6 +301,7 @@ const FechasImportantes = () => {
                 <p className="text-blue-100 text-sm mt-1">{selectedFecha.nombre}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowConfigModal(false)}
                 className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2"
               >
@@ -302,10 +311,11 @@ const FechasImportantes = () => {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                <label htmlFor="field-63" className="block text-sm font-medium mb-2 dark:text-gray-200">
                   Título del Mensaje
                 </label>
                 <input
+                  id="field-63"
                   type="text"
                   value={automationConfig.plantillaTitulo}
                   onChange={(e) => setAutomationConfig({ ...automationConfig, plantillaTitulo: e.target.value })}
@@ -316,10 +326,11 @@ const FechasImportantes = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                <label htmlFor="field-64" className="block text-sm font-medium mb-2 dark:text-gray-200">
                   Mensaje
                 </label>
                 <textarea
+                  id="field-64"
                   value={automationConfig.plantillaMensaje}
                   onChange={(e) => setAutomationConfig({ ...automationConfig, plantillaMensaje: e.target.value })}
                   rows={4}
@@ -330,10 +341,11 @@ const FechasImportantes = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  <label htmlFor="field-65" className="block text-sm font-medium mb-2 dark:text-gray-200">
                     Prioridad
                   </label>
                   <select
+                    id="field-65"
                     value={automationConfig.prioridad}
                     onChange={(e) => setAutomationConfig({ ...automationConfig, prioridad: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
@@ -346,10 +358,11 @@ const FechasImportantes = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                  <label htmlFor="field-66" className="block text-sm font-medium mb-2 dark:text-gray-200">
                     Canal de Comunicación
                   </label>
                   <select
+                    id="field-66"
                     value={automationConfig.canalCliente}
                     onChange={(e) => setAutomationConfig({ ...automationConfig, canalCliente: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
@@ -363,8 +376,9 @@ const FechasImportantes = () => {
               </div>
 
               <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label htmlFor="field-67" className="flex items-center gap-3 cursor-pointer">
                   <input
+                    id="field-67"
                     type="checkbox"
                     checked={automationConfig.sincronizarCalendar}
                     onChange={(e) => setAutomationConfig({ ...automationConfig, sincronizarCalendar: e.target.checked })}
@@ -373,8 +387,9 @@ const FechasImportantes = () => {
                   <span className="dark:text-gray-200">Sincronizar con Google Calendar</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label htmlFor="field-68" className="flex items-center gap-3 cursor-pointer">
                   <input
+                    id="field-68"
                     type="checkbox"
                     checked={automationConfig.enviarAlCliente}
                     onChange={(e) => setAutomationConfig({ ...automationConfig, enviarAlCliente: e.target.checked })}
@@ -412,14 +427,14 @@ const FechasImportantes = () => {
                       Con Hijos
                     </span>
                   )}
-                  {(!selectedFecha.segmentacion || 
-                    (selectedFecha.segmentacion.genero === 'todos' && 
-                     !selectedFecha.segmentacion.requierePadre && 
-                     !selectedFecha.segmentacion.requiereMadre && 
-                     !selectedFecha.segmentacion.requiereHijos)) && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                      Todos los clientes
-                    </span>
+                  {(!selectedFecha.segmentacion
+                    || (selectedFecha.segmentacion.genero === 'todos'
+                     && !selectedFecha.segmentacion.requierePadre
+                     && !selectedFecha.segmentacion.requiereMadre
+                     && !selectedFecha.segmentacion.requiereHijos)) && (
+                     <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                       Todos los clientes
+                     </span>
                   )}
                 </div>
               </div>
@@ -427,12 +442,14 @@ const FechasImportantes = () => {
 
             <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 p-4 border-t dark:border-gray-700 flex justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setShowConfigModal(false)}
                 className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleSaveConfig}
                 className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:opacity-90"
               >

@@ -1,30 +1,29 @@
 import React, { useState } from 'react';
-import { toast } from 'react-toastify';
-import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaArrowUp, FaArrowDown, FaPercentage } from 'react-icons/fa';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
-import Chart from 'react-apexcharts';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, DataLabel, ColumnSeries } from '@syncfusion/ej2-react-charts';
+import { toast } from 'react-toastify';
+import Chart from 'react-apexcharts';
+import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaArrowUp } from 'react-icons/fa';
+import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, DataLabel } from '@syncfusion/ej2-react-charts';
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+
+import { useStateContext } from '../contexts/ContextProvider';
 
 const Agentes = () => {
   const { currentMode, currentColor } = useStateContext();
-  
+
   // Estado para el modal
   const [showModal, setShowModal] = useState(false);
-  
+
   // Estados para modales de estadísticas
   const [showModalTotalAgentes, setShowModalTotalAgentes] = useState(false);
   const [showModalPropiedadesGestionadas, setShowModalPropiedadesGestionadas] = useState(false);
   const [showModalComisionesTotales, setShowModalComisionesTotales] = useState(false);
   const [showModalRatingPromedio, setShowModalRatingPromedio] = useState(false);
-  
+
   // Estados para las vistas
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
   const [agenteSeleccionado, setAgenteSeleccionado] = useState(null);
-  
+
   // Estado para el formulario de nuevo agente
   const [nuevoAgente, setNuevoAgente] = useState({
     nombre: '',
@@ -47,17 +46,17 @@ const Agentes = () => {
   });
 
   const agentes = [
-    { 
-      id: 1, 
-      nombre: 'Ana López', 
-      rol: 'Agente Senior', 
+    {
+      id: 1,
+      nombre: 'Ana López',
+      rol: 'Agente Senior',
       especialidad: 'Ventas',
-      propiedades: 12, 
-      clientes: 28, 
-      ventas: 8, 
-      comisiones: 15400, 
-      rating: 4.8, 
-      zona: 'Palermo, Belgrano', 
+      propiedades: 12,
+      clientes: 28,
+      ventas: 8,
+      comisiones: 15400,
+      rating: 4.8,
+      zona: 'Palermo, Belgrano',
       color: '#FF6B6B',
       email: 'ana.lopez@inmobiliaria.com',
       telefono: '+54 11 1234-5678',
@@ -73,19 +72,19 @@ const Agentes = () => {
       metaMensual: 10,
       citas: 45,
       propiedadesVendidas: 8,
-      satisfaccionCliente: 95
+      satisfaccionCliente: 95,
     },
-    { 
-      id: 2, 
-      nombre: 'Carlos Ruiz', 
-      rol: 'Agente', 
+    {
+      id: 2,
+      nombre: 'Carlos Ruiz',
+      rol: 'Agente',
       especialidad: 'Alquileres',
-      propiedades: 8, 
-      clientes: 15, 
-      ventas: 5, 
-      comisiones: 9200, 
-      rating: 4.5, 
-      zona: 'Recoleta', 
+      propiedades: 8,
+      clientes: 15,
+      ventas: 5,
+      comisiones: 9200,
+      rating: 4.5,
+      zona: 'Recoleta',
       color: '#4ECDC4',
       email: 'carlos.ruiz@inmobiliaria.com',
       telefono: '+54 11 8765-4321',
@@ -101,19 +100,19 @@ const Agentes = () => {
       metaMensual: 6,
       citas: 32,
       propiedadesVendidas: 5,
-      satisfaccionCliente: 88
+      satisfaccionCliente: 88,
     },
-    { 
-      id: 3, 
-      nombre: 'Laura Fernández', 
-      rol: 'Supervisor', 
+    {
+      id: 3,
+      nombre: 'Laura Fernández',
+      rol: 'Supervisor',
       especialidad: 'Comercial',
-      propiedades: 15, 
-      clientes: 42, 
-      ventas: 12, 
-      comisiones: 22100, 
-      rating: 4.9, 
-      zona: 'Microcentro, Puerto Madero', 
+      propiedades: 15,
+      clientes: 42,
+      ventas: 12,
+      comisiones: 22100,
+      rating: 4.9,
+      zona: 'Microcentro, Puerto Madero',
       color: '#45B7D1',
       email: 'laura.fernandez@inmobiliaria.com',
       telefono: '+54 11 5555-1234',
@@ -129,19 +128,19 @@ const Agentes = () => {
       metaMensual: 15,
       citas: 68,
       propiedadesVendidas: 12,
-      satisfaccionCliente: 98
+      satisfaccionCliente: 98,
     },
-    { 
-      id: 4, 
-      nombre: 'Marcos Silva', 
-      rol: 'Agente', 
+    {
+      id: 4,
+      nombre: 'Marcos Silva',
+      rol: 'Agente',
       especialidad: 'Ventas',
-      propiedades: 6, 
-      clientes: 18, 
-      ventas: 4, 
-      comisiones: 7800, 
-      rating: 4.2, 
-      zona: 'Colegiales', 
+      propiedades: 6,
+      clientes: 18,
+      ventas: 4,
+      comisiones: 7800,
+      rating: 4.2,
+      zona: 'Colegiales',
       color: '#96CEB4',
       email: 'marcos.silva@inmobiliaria.com',
       telefono: '+54 11 7777-6666',
@@ -157,19 +156,19 @@ const Agentes = () => {
       metaMensual: 5,
       citas: 28,
       propiedadesVendidas: 4,
-      satisfaccionCliente: 82
+      satisfaccionCliente: 82,
     },
-    { 
-      id: 5, 
-      nombre: 'Sofía Torres', 
-      rol: 'Agente Senior', 
+    {
+      id: 5,
+      nombre: 'Sofía Torres',
+      rol: 'Agente Senior',
       especialidad: 'Ventas',
-      propiedades: 10, 
-      clientes: 25, 
-      ventas: 7, 
-      comisiones: 13200, 
-      rating: 4.7, 
-      zona: 'Villa Crespo', 
+      propiedades: 10,
+      clientes: 25,
+      ventas: 7,
+      comisiones: 13200,
+      rating: 4.7,
+      zona: 'Villa Crespo',
       color: '#FFEAA7',
       email: 'sofia.torres@inmobiliaria.com',
       telefono: '+54 11 9999-8888',
@@ -185,7 +184,7 @@ const Agentes = () => {
       metaMensual: 8,
       citas: 38,
       propiedadesVendidas: 7,
-      satisfaccionCliente: 92
+      satisfaccionCliente: 92,
     },
   ];
 
@@ -206,18 +205,18 @@ const Agentes = () => {
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth', width: 2 },
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
-    xaxis: { categories: rendimientoData.map(r => r.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    xaxis: { categories: rendimientoData.map((r) => r.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
     yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
     grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
     legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
   const rendimientoEquipoSeries = [
-    { name: 'Ana', data: rendimientoData.map(r => r.Ana) },
-    { name: 'Carlos', data: rendimientoData.map(r => r.Carlos) },
-    { name: 'Laura', data: rendimientoData.map(r => r.Laura) },
-    { name: 'Marcos', data: rendimientoData.map(r => r.Marcos) },
-    { name: 'Sofía', data: rendimientoData.map(r => r.Sofia) },
+    { name: 'Ana', data: rendimientoData.map((r) => r.Ana) },
+    { name: 'Carlos', data: rendimientoData.map((r) => r.Carlos) },
+    { name: 'Laura', data: rendimientoData.map((r) => r.Laura) },
+    { name: 'Marcos', data: rendimientoData.map((r) => r.Marcos) },
+    { name: 'Sofía', data: rendimientoData.map((r) => r.Sofia) },
   ];
 
   // ApexCharts - Distribución por Especialidad (Donut)
@@ -232,31 +231,32 @@ const Agentes = () => {
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
   const especialidadDonutSeries = [
-    agentes.filter(a => a.especialidad === 'Ventas').length,
-    agentes.filter(a => a.especialidad === 'Alquileres').length,
-    agentes.filter(a => a.especialidad === 'Comercial').length,
+    agentes.filter((a) => a.especialidad === 'Ventas').length,
+    agentes.filter((a) => a.especialidad === 'Alquileres').length,
+    agentes.filter((a) => a.especialidad === 'Comercial').length,
   ];
 
   // ApexCharts - Comisiones por Agente (Bar)
   const comisionesBarOptions = {
     chart: { type: 'bar', height: 200, background: 'transparent', toolbar: { show: false } },
     plotOptions: { bar: { borderRadius: 6, horizontal: true, distributed: true, barHeight: '60%' } },
-    colors: agentes.map(a => a.color),
-    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 }, formatter: (val) => `$${(val/1000).toFixed(1)}K`, offsetX: 5 },
-    xaxis: { categories: agentes.map(a => a.nombre.split(' ')[0]), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    colors: agentes.map((a) => a.color),
+    dataLabels: { enabled: true, textAnchor: 'start', style: { colors: ['#fff'], fontSize: '10px', fontWeight: 600 }, formatter: (val) => `$${(val / 1000).toFixed(1)}K`, offsetX: 5 },
+    xaxis: { categories: agentes.map((a) => a.nombre.split(' ')[0]), labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
     yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
     grid: { show: false },
     legend: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (val) => `$${val.toLocaleString()}` } },
   };
-  const comisionesBarSeries = [{ name: 'Comisiones', data: agentes.map(a => a.comisiones) }];
+  const comisionesBarSeries = [{ name: 'Comisiones', data: agentes.map((a) => a.comisiones) }];
 
   // ApexCharts - Satisfacción Promedio (Gauge)
   const satisfaccionOptions = {
     chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
     plotOptions: {
       radialBar: {
-        startAngle: -90, endAngle: 90,
+        startAngle: -90,
+        endAngle: 90,
         hollow: { size: '55%' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -285,9 +285,9 @@ const Agentes = () => {
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNuevoAgente(prev => ({
+    setNuevoAgente((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -331,15 +331,6 @@ const Agentes = () => {
     setAgenteSeleccionado(null);
   };
 
-  // Zonas disponibles
-  const zonasDisponibles = [
-    'Palermo', 'Belgrano', 'Recoleta', 'Puerto Madero', 'Microcentro',
-    'Villa Crespo', 'Colegiales', 'Caballito', 'Núñez', 'Almagro'
-  ];
-
-  // Idiomas disponibles
-  const idiomasDisponibles = ['Español', 'Inglés', 'Portugués', 'Francés', 'Italiano', 'Alemán'];
-
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="mb-6">
@@ -348,25 +339,28 @@ const Agentes = () => {
         </h2>
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Equipo comercial y rendimiento</p>
       </div>
-      
+
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
         {vistaActual !== 'dashboard' && (
-          <button 
+          <button
+            type="button"
             onClick={volverAlDashboard}
             className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
           >
             <FaArrowLeft /> Volver
           </button>
         )}
-        <button 
+        <button
+          type="button"
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaUserPlus /> Nuevo Agente
         </button>
         {vistaActual === 'dashboard' && (
-          <button 
+          <button
+            type="button"
             onClick={() => setVistaActual('lista')}
             className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
           >
@@ -378,305 +372,305 @@ const Agentes = () => {
       {/* Vista Dashboard */}
       {vistaActual === 'dashboard' && (
         <>
-      {/* KPIs del Equipo - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-        {kpisEquipo.map((kpi, i) => (
-          <div 
-            key={i} 
-            onClick={() => {
-              if (i === 0) setShowModalTotalAgentes(true);
-              else if (i === 1) setShowModalPropiedadesGestionadas(true);
-              else if (i === 2) setShowModalComisionesTotales(true);
-              else if (i === 3) setShowModalRatingPromedio(true);
-            }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
-          >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Gráficos ApexCharts - Métricas del Equipo */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
-        <div className={cardBase}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaStar className="text-yellow-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Satisfacción</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Promedio del equipo</p>
-          <Chart options={satisfaccionOptions} series={satisfaccionSeries} type="radialBar" height={160} />
-          <div className="space-y-2 mt-2">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-600 dark:text-gray-400">Promedio sector</span>
-              <span className="font-bold text-gray-500">85%</span>
-            </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-600 dark:text-gray-400">Tu equipo</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <FaArrowUp className="text-xs" /> +6%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className={cardBase}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaUsers className="text-blue-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Especialidades</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución del equipo</p>
-          <Chart options={especialidadDonutOptions} series={especialidadDonutSeries} type="donut" height={200} />
-        </div>
-
-        <div className={`${cardBase} xl:col-span-2`}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaDollarSign className="text-emerald-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Comisiones por Agente</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Ranking de este mes</p>
-          <Chart options={comisionesBarOptions} series={comisionesBarSeries} type="bar" height={180} />
-        </div>
-      </div>
-
-      {/* Gráfico de Rendimiento Amplio */}
-      <div className="mb-6">
-        <div className={cardBase}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <FaChartLine className="text-purple-500" />
-                <h3 className="font-semibold dark:text-gray-100">Rendimiento del Equipo</h3>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Operaciones por agente - últimos 6 meses</p>
-            </div>
-          </div>
-          <Chart options={rendimientoEquipoOptions} series={rendimientoEquipoSeries} type="area" height={240} />
-          <div className="grid grid-cols-5 gap-3 mt-4 pt-4 border-t dark:border-gray-700">
-            {agentes.map((a, i) => (
-              <div key={a.id} className="text-center p-2 rounded-lg" style={{ backgroundColor: `${a.color}20` }}>
-                <p className="text-sm font-bold" style={{ color: a.color }}>{a.ventas}</p>
-                <p className="text-xs text-gray-500">{a.nombre.split(' ')[0]}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Gráfico de Rendimiento y Listado de Agentes */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Gráfico de Rendimiento por Agente */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📈 Rendimiento por Agente (Últimos 6 meses)</h3>
-          <ChartComponent
-            id="rendimiento-chart"
-            primaryXAxis={{ valueType: 'Category', title: 'Meses' }}
-            primaryYAxis={{ title: 'Ventas' }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="350px"
-          >
-            <Inject services={[LineSeries, Category, Tooltip, Legend, DataLabel]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Ana"
-                name="Ana"
-                marker={{ visible: true }}
-                fill="#FF6B6B"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Carlos"
-                name="Carlos"
-                marker={{ visible: true }}
-                fill="#4ECDC4"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Laura"
-                name="Laura"
-                marker={{ visible: true }}
-                fill="#45B7D1"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Marcos"
-                name="Marcos"
-                marker={{ visible: true }}
-                fill="#96CEB4"
-              />
-              <SeriesDirective
-                type="Line"
-                dataSource={rendimientoData}
-                xName="mes"
-                yName="Sofia"
-                name="Sofía"
-                marker={{ visible: true }}
-                fill="#FFEAA7"
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
-        </div>
-
-        {/* Listado de Agentes */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">👥 Equipo de Agentes</h3>
-          <div className="space-y-4">
-            {agentes.map((agente) => (
-              <div key={agente.id} className="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold"
-                    style={{ backgroundColor: agente.color }}
-                  >
-                    {agente.nombre.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold dark:text-gray-200">{agente.nombre}</h4>
-                      <div className="flex items-center gap-1">
-                        <FaStar className="text-yellow-500 text-sm" />
-                        <span className="text-sm font-bold dark:text-gray-200">{agente.rating}</span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{agente.rol}</p>
-                    <div className="grid grid-cols-3 gap-4 text-xs">
-                      <div className="text-center">
-                        <p className="font-bold text-blue-600 dark:text-blue-400">{agente.propiedades}</p>
-                        <p className="text-gray-500">Propiedades</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-green-600 dark:text-green-400">{agente.ventas}</p>
-                        <p className="text-gray-500">Ventas</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-purple-600 dark:text-purple-400">${(agente.comisiones/1000).toFixed(0)}K</p>
-                        <p className="text-gray-500">Comisiones</p>
-                      </div>
-                    </div>
+          {/* KPIs del Equipo - Clickeables */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+            {kpisEquipo.map((kpi, i) => (
+              <div
+                key={i}
+                onClick={() => {
+                  if (i === 0) setShowModalTotalAgentes(true);
+                  else if (i === 1) setShowModalPropiedadesGestionadas(true);
+                  else if (i === 2) setShowModalComisionesTotales(true);
+                  else if (i === 3) setShowModalRatingPromedio(true);
+                }}
+                className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
+              >
+                <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
+                <div className="flex items-center gap-4 mt-3">
+                  <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
+                    <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Tabla de Comisiones y Zonas Asignadas */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        {/* Tabla de Comisiones */}
-        <div className={`xl:col-span-2 ${cardBase}`}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">💰 Comisiones y Asignaciones</h3>
-          <GridComponent
-            dataSource={agentes}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-          >
-            <GridInject services={[Page, Sort]} />
-            <ColumnsDirective>
-              <ColumnDirective field="nombre" headerText="Agente" width="150" />
-              <ColumnDirective field="propiedades" headerText="Propiedades" textAlign="Center" width="100" />
-              <ColumnDirective field="clientes" headerText="Clientes" textAlign="Center" width="100" />
-              <ColumnDirective field="ventas" headerText="Ventas" textAlign="Center" width="80" />
-              <ColumnDirective field="comisiones" headerText="Comisiones" textAlign="Right" width="120" format="C0" />
-              <ColumnDirective field="zona" headerText="Zonas" width="200" />
-            </ColumnsDirective>
-          </GridComponent>
-        </div>
-
-        {/* Roles y Permisos */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🛡️ Roles y Permisos</h3>
-          <div className="space-y-4">
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <FaShieldAlt className="text-red-500" />
-                <h4 className="font-bold dark:text-gray-200">Admin</h4>
+          {/* Gráficos ApexCharts - Métricas del Equipo */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+            <div className={cardBase}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaStar className="text-yellow-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Satisfacción</h3>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Acceso completo al sistema</p>
-              <div className="flex flex-wrap gap-1">
-                {['Todas las propiedades', 'Todos los clientes', 'Reportes', 'Configuración'].map((perm, i) => (
-                  <span key={i} className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs">
-                    {perm}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Promedio del equipo</p>
+              <Chart options={satisfaccionOptions} series={satisfaccionSeries} type="radialBar" height={160} />
+              <div className="space-y-2 mt-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-600 dark:text-gray-400">Promedio sector</span>
+                  <span className="font-bold text-gray-500">85%</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-600 dark:text-gray-400">Tu equipo</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <FaArrowUp className="text-xs" /> +6%
                   </span>
-                ))}
+                </div>
               </div>
             </div>
 
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <FaShieldAlt className="text-blue-500" />
-                <h4 className="font-bold dark:text-gray-200">Supervisor</h4>
+            <div className={cardBase}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaUsers className="text-blue-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Especialidades</h3>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Gestión de equipo</p>
-              <div className="flex flex-wrap gap-1">
-                {['Ver equipo', 'Asignar propiedades', 'Reportes de equipo'].map((perm, i) => (
-                  <span key={i} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
-                    {perm}
-                  </span>
-                ))}
-              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución del equipo</p>
+              <Chart options={especialidadDonutOptions} series={especialidadDonutSeries} type="donut" height={200} />
             </div>
 
-            <div className="border dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <FaShieldAlt className="text-green-500" />
-                <h4 className="font-bold dark:text-gray-200">Agente</h4>
+            <div className={`${cardBase} xl:col-span-2`}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaDollarSign className="text-emerald-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Comisiones por Agente</h3>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Acceso limitado</p>
-              <div className="flex flex-wrap gap-1">
-                {['Propiedades asignadas', 'Clientes asignados', 'Agenda personal'].map((perm, i) => (
-                  <span key={i} className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs">
-                    {perm}
-                  </span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Ranking de este mes</p>
+              <Chart options={comisionesBarOptions} series={comisionesBarSeries} type="bar" height={180} />
+            </div>
+          </div>
+
+          {/* Gráfico de Rendimiento Amplio */}
+          <div className="mb-6">
+            <div className={cardBase}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <FaChartLine className="text-purple-500" />
+                    <h3 className="font-semibold dark:text-gray-100">Rendimiento del Equipo</h3>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Operaciones por agente - últimos 6 meses</p>
+                </div>
+              </div>
+              <Chart options={rendimientoEquipoOptions} series={rendimientoEquipoSeries} type="area" height={240} />
+              <div className="grid grid-cols-5 gap-3 mt-4 pt-4 border-t dark:border-gray-700">
+                {agentes.map((a) => (
+                  <div key={a.id} className="text-center p-2 rounded-lg" style={{ backgroundColor: `${a.color}20` }}>
+                    <p className="text-sm font-bold" style={{ color: a.color }}>{a.ventas}</p>
+                    <p className="text-xs text-gray-500">{a.nombre.split(' ')[0]}</p>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Mapa de Zonas */}
-      <div className={cardBase}>
-        <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🗺️ Distribución por Zonas</h3>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {agentes.map((agente) => (
-            <div key={agente.id} className="text-center">
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-2"
-                style={{ backgroundColor: agente.color }}
+          {/* Gráfico de Rendimiento y Listado de Agentes */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            {/* Gráfico de Rendimiento por Agente */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📈 Rendimiento por Agente (Últimos 6 meses)</h3>
+              <ChartComponent
+                id="rendimiento-chart"
+                primaryXAxis={{ valueType: 'Category', title: 'Meses' }}
+                primaryYAxis={{ title: 'Ventas' }}
+                tooltip={{ enable: true }}
+                legendSettings={{ visible: true }}
+                height="350px"
               >
-                {agente.nombre.charAt(0)}
-              </div>
-              <h4 className="font-bold text-sm dark:text-gray-200">{agente.nombre.split(' ')[0]}</h4>
-              <div className="flex flex-wrap justify-center gap-1 mt-2">
-                {agente.zona.split(', ').map((zona, i) => (
-                  <span key={i} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-xs">
-                    <FaMapMarkerAlt className="inline mr-1" />{zona}
-                  </span>
+                <Inject services={[LineSeries, Category, Tooltip, Legend, DataLabel]} />
+                <SeriesCollectionDirective>
+                  <SeriesDirective
+                    type="Line"
+                    dataSource={rendimientoData}
+                    xName="mes"
+                    yName="Ana"
+                    name="Ana"
+                    marker={{ visible: true }}
+                    fill="#FF6B6B"
+                  />
+                  <SeriesDirective
+                    type="Line"
+                    dataSource={rendimientoData}
+                    xName="mes"
+                    yName="Carlos"
+                    name="Carlos"
+                    marker={{ visible: true }}
+                    fill="#4ECDC4"
+                  />
+                  <SeriesDirective
+                    type="Line"
+                    dataSource={rendimientoData}
+                    xName="mes"
+                    yName="Laura"
+                    name="Laura"
+                    marker={{ visible: true }}
+                    fill="#45B7D1"
+                  />
+                  <SeriesDirective
+                    type="Line"
+                    dataSource={rendimientoData}
+                    xName="mes"
+                    yName="Marcos"
+                    name="Marcos"
+                    marker={{ visible: true }}
+                    fill="#96CEB4"
+                  />
+                  <SeriesDirective
+                    type="Line"
+                    dataSource={rendimientoData}
+                    xName="mes"
+                    yName="Sofia"
+                    name="Sofía"
+                    marker={{ visible: true }}
+                    fill="#FFEAA7"
+                  />
+                </SeriesCollectionDirective>
+              </ChartComponent>
+            </div>
+
+            {/* Listado de Agentes */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">👥 Equipo de Agentes</h3>
+              <div className="space-y-4">
+                {agentes.map((agente) => (
+                  <div key={agente.id} className="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold"
+                        style={{ backgroundColor: agente.color }}
+                      >
+                        {agente.nombre.charAt(0)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold dark:text-gray-200">{agente.nombre}</h4>
+                          <div className="flex items-center gap-1">
+                            <FaStar className="text-yellow-500 text-sm" />
+                            <span className="text-sm font-bold dark:text-gray-200">{agente.rating}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{agente.rol}</p>
+                        <div className="grid grid-cols-3 gap-4 text-xs">
+                          <div className="text-center">
+                            <p className="font-bold text-blue-600 dark:text-blue-400">{agente.propiedades}</p>
+                            <p className="text-gray-500">Propiedades</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-bold text-green-600 dark:text-green-400">{agente.ventas}</p>
+                            <p className="text-gray-500">Ventas</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-bold text-purple-600 dark:text-purple-400">${(agente.comisiones / 1000).toFixed(0)}K</p>
+                            <p className="text-gray-500">Comisiones</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+
+          {/* Tabla de Comisiones y Zonas Asignadas */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+            {/* Tabla de Comisiones */}
+            <div className={`xl:col-span-2 ${cardBase}`}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">💰 Comisiones y Asignaciones</h3>
+              <GridComponent
+                dataSource={agentes}
+                allowPaging
+                pageSettings={{ pageSize: 10 }}
+                allowSorting
+              >
+                <GridInject services={[Page, Sort]} />
+                <ColumnsDirective>
+                  <ColumnDirective field="nombre" headerText="Agente" width="150" />
+                  <ColumnDirective field="propiedades" headerText="Propiedades" textAlign="Center" width="100" />
+                  <ColumnDirective field="clientes" headerText="Clientes" textAlign="Center" width="100" />
+                  <ColumnDirective field="ventas" headerText="Ventas" textAlign="Center" width="80" />
+                  <ColumnDirective field="comisiones" headerText="Comisiones" textAlign="Right" width="120" format="C0" />
+                  <ColumnDirective field="zona" headerText="Zonas" width="200" />
+                </ColumnsDirective>
+              </GridComponent>
+            </div>
+
+            {/* Roles y Permisos */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🛡️ Roles y Permisos</h3>
+              <div className="space-y-4">
+                <div className="border dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FaShieldAlt className="text-red-500" />
+                    <h4 className="font-bold dark:text-gray-200">Admin</h4>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Acceso completo al sistema</p>
+                  <div className="flex flex-wrap gap-1">
+                    {['Todas las propiedades', 'Todos los clientes', 'Reportes', 'Configuración'].map((perm, i) => (
+                      <span key={i} className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs">
+                        {perm}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FaShieldAlt className="text-blue-500" />
+                    <h4 className="font-bold dark:text-gray-200">Supervisor</h4>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Gestión de equipo</p>
+                  <div className="flex flex-wrap gap-1">
+                    {['Ver equipo', 'Asignar propiedades', 'Reportes de equipo'].map((perm, i) => (
+                      <span key={i} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
+                        {perm}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FaShieldAlt className="text-green-500" />
+                    <h4 className="font-bold dark:text-gray-200">Agente</h4>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Acceso limitado</p>
+                  <div className="flex flex-wrap gap-1">
+                    {['Propiedades asignadas', 'Clientes asignados', 'Agenda personal'].map((perm, i) => (
+                      <span key={i} className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs">
+                        {perm}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mapa de Zonas */}
+          <div className={cardBase}>
+            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🗺️ Distribución por Zonas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {agentes.map((agente) => (
+                <div key={agente.id} className="text-center">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-2"
+                    style={{ backgroundColor: agente.color }}
+                  >
+                    {agente.nombre.charAt(0)}
+                  </div>
+                  <h4 className="font-bold text-sm dark:text-gray-200">{agente.nombre.split(' ')[0]}</h4>
+                  <div className="flex flex-wrap justify-center gap-1 mt-2">
+                    {agente.zona.split(', ').map((zona, i) => (
+                      <span key={i} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-xs">
+                        <FaMapMarkerAlt className="inline mr-1" />{zona}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       )}
 
@@ -687,7 +681,7 @@ const Agentes = () => {
             <div key={agente.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(agente)}>
               {/* Header con avatar y rating */}
               <div className="flex items-center gap-4 mb-4 pb-4 border-b dark:border-gray-700">
-                <div 
+                <div
                   className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
                   style={{ backgroundColor: agente.color }}
                 >
@@ -739,7 +733,7 @@ const Agentes = () => {
                 </div>
                 <div className="text-center">
                   <FaDollarSign className="text-purple-500 mx-auto mb-1 text-sm" />
-                  <p className="text-xs font-semibold dark:text-gray-200">${(agente.comisiones/1000).toFixed(0)}K</p>
+                  <p className="text-xs font-semibold dark:text-gray-200">${(agente.comisiones / 1000).toFixed(0)}K</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Comisiones</p>
                 </div>
               </div>
@@ -777,10 +771,10 @@ const Agentes = () => {
                 </div>
               </div>
               <div className="flex gap-3">
-                <button className="px-4 py-2 bg-white text-gray-800 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
+                <button type="button" className="px-4 py-2 bg-white text-gray-800 rounded-full hover:bg-opacity-90 transition-colors flex items-center gap-2 font-semibold">
                   <FaEdit /> Editar
                 </button>
-                <button className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
+                <button type="button" className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2 font-semibold">
                   <FaTrash /> Eliminar
                 </button>
               </div>
@@ -854,7 +848,7 @@ const Agentes = () => {
                   <div className="text-center p-4 bg-orange-50 dark:bg-gray-800 rounded-lg">
                     <FaDollarSign className="text-3xl text-orange-500 mx-auto mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">Comisiones</p>
-                    <p className="text-2xl font-bold dark:text-gray-100">${(agenteSeleccionado.comisiones/1000).toFixed(1)}K</p>
+                    <p className="text-2xl font-bold dark:text-gray-100">${(agenteSeleccionado.comisiones / 1000).toFixed(1)}K</p>
                   </div>
                 </div>
 
@@ -867,7 +861,7 @@ const Agentes = () => {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div 
+                    <div
                       className="h-3 rounded-full bg-gradient-to-r from-green-400 to-green-600"
                       style={{ width: `${(agenteSeleccionado.ventas / agenteSeleccionado.metaMensual) * 100}%` }}
                     />
@@ -987,6 +981,7 @@ const Agentes = () => {
                 <p className="text-blue-100 text-sm mt-1">Complete los datos del agente</p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
                 className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
               >
@@ -997,199 +992,212 @@ const Agentes = () => {
             {/* Formulario con scroll */}
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Información Personal */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaUser className="text-blue-500" /> Información Personal
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre *</label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      value={nuevoAgente.nombre}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Juan"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido *</label>
-                    <input
-                      type="text"
-                      name="apellido"
-                      value={nuevoAgente.apellido}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Pérez"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={nuevoAgente.email}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="juan@inmobiliaria.com"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
-                    <input
-                      type="tel"
-                      name="telefono"
-                      value={nuevoAgente.telefono}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="+54 11 1234-5678"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono Alternativo</label>
-                    <input
-                      type="tel"
-                      name="telefonoAlternativo"
-                      value={nuevoAgente.telefonoAlternativo}
-                      onChange={handleInputChange}
-                      placeholder="+54 11 8765-4321"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
-                    <input
-                      type="text"
-                      name="direccion"
-                      value={nuevoAgente.direccion}
-                      onChange={handleInputChange}
-                      placeholder="Av. Corrientes 1234"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Información Profesional */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaBriefcase className="text-purple-500" /> Información Profesional
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Rol *</label>
-                    <select
-                      name="rol"
-                      value={nuevoAgente.rol}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                      <option value="Agente">Agente</option>
-                      <option value="Agente Senior">Agente Senior</option>
-                      <option value="Supervisor">Supervisor</option>
-                      <option value="Admin">Admin</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Especialidad *</label>
-                    <select
-                      name="especialidad"
-                      value={nuevoAgente.especialidad}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                      <option value="Ventas">Ventas</option>
-                      <option value="Alquileres">Alquileres</option>
-                      <option value="Comercial">Comercial</option>
-                      <option value="Tasaciones">Tasaciones</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Licencia</label>
-                    <input
-                      type="text"
-                      name="licencia"
-                      value={nuevoAgente.licencia}
-                      onChange={handleInputChange}
-                      placeholder="CPI-12345"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Experiencia</label>
-                    <input
-                      type="text"
-                      name="experiencia"
-                      value={nuevoAgente.experiencia}
-                      onChange={handleInputChange}
-                      placeholder="5 años"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Ingreso</label>
-                    <input
-                      type="date"
-                      name="fechaIngreso"
-                      value={nuevoAgente.fechaIngreso}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
-                    <input
-                      type="number"
-                      name="comision"
-                      value={nuevoAgente.comision}
-                      onChange={handleInputChange}
-                      placeholder="3"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
+                {/* Información Personal */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaUser className="text-blue-500" /> Información Personal
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-1" className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre *</label>
+                      <input
+                        id="field-1"
+                        type="text"
+                        name="nombre"
+                        value={nuevoAgente.nombre}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Juan"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-2" className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido *</label>
+                      <input
+                        id="field-2"
+                        type="text"
+                        name="apellido"
+                        value={nuevoAgente.apellido}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Pérez"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-3" className="block text-sm font-medium mb-2 dark:text-gray-200">Email *</label>
+                      <input
+                        id="field-3"
+                        type="email"
+                        name="email"
+                        value={nuevoAgente.email}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="juan@inmobiliaria.com"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-4" className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
+                      <input
+                        id="field-4"
+                        type="tel"
+                        name="telefono"
+                        value={nuevoAgente.telefono}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="+54 11 1234-5678"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-5" className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono Alternativo</label>
+                      <input
+                        id="field-5"
+                        type="tel"
+                        name="telefonoAlternativo"
+                        value={nuevoAgente.telefonoAlternativo}
+                        onChange={handleInputChange}
+                        placeholder="+54 11 8765-4321"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-6" className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
+                      <input
+                        id="field-6"
+                        type="text"
+                        name="direccion"
+                        value={nuevoAgente.direccion}
+                        onChange={handleInputChange}
+                        placeholder="Av. Corrientes 1234"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Notas */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📝 Notas Adicionales</h3>
-                <textarea
-                  name="notas"
-                  value={nuevoAgente.notas}
-                  onChange={handleInputChange}
-                  rows="4"
-                  placeholder="Observaciones, especialidades, preferencias..."
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                />
-              </div>
+                {/* Información Profesional */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaBriefcase className="text-purple-500" /> Información Profesional
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-7" className="block text-sm font-medium mb-2 dark:text-gray-200">Rol *</label>
+                      <select
+                        id="field-7"
+                        name="rol"
+                        value={nuevoAgente.rol}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="Agente">Agente</option>
+                        <option value="Agente Senior">Agente Senior</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Admin">Admin</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-8" className="block text-sm font-medium mb-2 dark:text-gray-200">Especialidad *</label>
+                      <select
+                        id="field-8"
+                        name="especialidad"
+                        value={nuevoAgente.especialidad}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="Ventas">Ventas</option>
+                        <option value="Alquileres">Alquileres</option>
+                        <option value="Comercial">Comercial</option>
+                        <option value="Tasaciones">Tasaciones</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-9" className="block text-sm font-medium mb-2 dark:text-gray-200">Licencia</label>
+                      <input
+                        id="field-9"
+                        type="text"
+                        name="licencia"
+                        value={nuevoAgente.licencia}
+                        onChange={handleInputChange}
+                        placeholder="CPI-12345"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-10" className="block text-sm font-medium mb-2 dark:text-gray-200">Experiencia</label>
+                      <input
+                        id="field-10"
+                        type="text"
+                        name="experiencia"
+                        value={nuevoAgente.experiencia}
+                        onChange={handleInputChange}
+                        placeholder="5 años"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-11" className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Ingreso</label>
+                      <input
+                        id="field-11"
+                        type="date"
+                        name="fechaIngreso"
+                        value={nuevoAgente.fechaIngreso}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-12" className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
+                      <input
+                        id="field-12"
+                        type="number"
+                        name="comision"
+                        value={nuevoAgente.comision}
+                        onChange={handleInputChange}
+                        placeholder="3"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-              {/* Botones */}
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2"
-                >
-                  <FaSave /> Guardar Agente
-                </button>
-              </div>              </form>
+                {/* Notas */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📝 Notas Adicionales</h3>
+                  <textarea
+                    name="notas"
+                    value={nuevoAgente.notas}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Observaciones, especialidades, preferencias..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <FaSave /> Guardar Agente
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -1206,7 +1214,7 @@ const Agentes = () => {
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">{agentes.length} agentes en el equipo</p>
               </div>
-              <button onClick={() => setShowModalTotalAgentes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalTotalAgentes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1217,7 +1225,7 @@ const Agentes = () => {
                   <div key={agente.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-lg transition-shadow`}>
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                        {agente.nombre.split(' ').map(n => n.charAt(0)).join('').substring(0, 2)}
+                        {agente.nombre.split(' ').map((n) => n.charAt(0)).join('').substring(0, 2)}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg dark:text-gray-100">{agente.nombre}</h3>
@@ -1269,7 +1277,7 @@ const Agentes = () => {
                   {agentes.reduce((sum, a) => sum + a.propiedades, 0)} propiedades en total
                 </p>
               </div>
-              <button onClick={() => setShowModalPropiedadesGestionadas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalPropiedadesGestionadas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1280,15 +1288,16 @@ const Agentes = () => {
                   <div key={agente.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center gap-4">
                       <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                        index === 1 ? 'bg-gray-300 text-gray-700' :
-                        index === 2 ? 'bg-orange-400 text-orange-900' :
-                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                      }`}>
+                        index === 0 ? 'bg-yellow-400 text-yellow-900'
+                          : index === 1 ? 'bg-gray-300 text-gray-700'
+                            : index === 2 ? 'bg-orange-400 text-orange-900'
+                              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                      }`}
+                      >
                         #{index + 1}
                       </div>
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xl">
-                        {agente.nombre.split(' ').map(n => n.charAt(0)).join('').substring(0, 2)}
+                        {agente.nombre.split(' ').map((n) => n.charAt(0)).join('').substring(0, 2)}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg dark:text-gray-100">{agente.nombre}</h3>
@@ -1308,9 +1317,9 @@ const Agentes = () => {
                         <p className="text-3xl font-bold text-green-600 dark:text-green-400">{agente.propiedades}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">propiedades</p>
                         <div className="mt-2 w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${(agente.propiedades / Math.max(...agentes.map(a => a.propiedades))) * 100}%` }}
+                          <div
+                            className="bg-green-600 h-2 rounded-full"
+                            style={{ width: `${(agente.propiedades / Math.max(...agentes.map((a) => a.propiedades))) * 100}%` }}
                           />
                         </div>
                       </div>
@@ -1318,7 +1327,7 @@ const Agentes = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-green-900/20' : 'bg-green-50'} rounded-lg border-2 border-green-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                   <div>
@@ -1336,7 +1345,7 @@ const Agentes = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Agente Top</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {Math.max(...agentes.map(a => a.propiedades))}
+                      {Math.max(...agentes.map((a) => a.propiedades))}
                     </p>
                   </div>
                 </div>
@@ -1359,7 +1368,7 @@ const Agentes = () => {
                   ${agentes.reduce((sum, a) => sum + a.comisiones, 0).toLocaleString()} este mes
                 </p>
               </div>
-              <button onClick={() => setShowModalComisionesTotales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalComisionesTotales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1371,15 +1380,16 @@ const Agentes = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
                         <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' :
-                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' :
-                          index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
-                          'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                        }`}>
+                          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
+                            : index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700'
+                              : index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
+                                : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                        }`}
+                        >
                           #{index + 1}
                         </div>
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                          {agente.nombre.split(' ').map(n => n.charAt(0)).join('').substring(0, 2)}
+                          {agente.nombre.split(' ').map((n) => n.charAt(0)).join('').substring(0, 2)}
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-lg dark:text-gray-100">{agente.nombre}</h3>
@@ -1401,9 +1411,9 @@ const Agentes = () => {
                           ${Math.round(agente.comisiones / agente.propiedades).toLocaleString()} por propiedad
                         </p>
                         <div className="mt-2 w-40 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full" 
-                            style={{ width: `${(agente.comisiones / Math.max(...agentes.map(a => a.comisiones))) * 100}%` }}
+                          <div
+                            className="bg-purple-600 h-2 rounded-full"
+                            style={{ width: `${(agente.comisiones / Math.max(...agentes.map((a) => a.comisiones))) * 100}%` }}
                           />
                         </div>
                       </div>
@@ -1411,7 +1421,7 @@ const Agentes = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-purple-900/20' : 'bg-purple-50'} rounded-lg border-2 border-purple-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                   <div>
@@ -1429,7 +1439,7 @@ const Agentes = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Top Performer</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      ${Math.max(...agentes.map(a => a.comisiones)).toLocaleString()}
+                      ${Math.max(...agentes.map((a) => a.comisiones)).toLocaleString()}
                     </p>
                   </div>
                   <div>
@@ -1458,25 +1468,26 @@ const Agentes = () => {
                   {(agentes.reduce((sum, a) => sum + a.rating, 0) / agentes.length).toFixed(1)} ⭐ promedio
                 </p>
               </div>
-              <button onClick={() => setShowModalRatingPromedio(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalRatingPromedio(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
-                {agentes.sort((a, b) => b.rating - a.rating).map((agente, index) => (
+                {agentes.sort((a, b) => b.rating - a.rating).map((agente) => (
                   <div key={agente.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center gap-4">
                       <div className={`flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl ${
-                        agente.rating === 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' :
-                        agente.rating >= 4.5 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
-                        'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-                      }`}>
+                        agente.rating === 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
+                          : agente.rating >= 4.5 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white'
+                            : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                      }`}
+                      >
                         {agente.rating}
                       </div>
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-xl">
-                        {agente.nombre.split(' ').map(n => n.charAt(0)).join('').substring(0, 2)}
+                        {agente.nombre.split(' ').map((n) => n.charAt(0)).join('').substring(0, 2)}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -1511,7 +1522,7 @@ const Agentes = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-orange-900/20' : 'bg-orange-50'} rounded-lg border-2 border-orange-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                   <div>
@@ -1523,19 +1534,19 @@ const Agentes = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Agentes 5 Estrellas</p>
                     <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                      {agentes.filter(a => a.rating === 5).length}
+                      {agentes.filter((a) => a.rating === 5).length}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Rating Más Alto</p>
                     <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                      {Math.max(...agentes.map(a => a.rating))} ⭐
+                      {Math.max(...agentes.map((a) => a.rating))} ⭐
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Agentes +4.5</p>
                     <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                      {agentes.filter(a => a.rating >= 4.5).length}
+                      {agentes.filter((a) => a.rating >= 4.5).length}
                     </p>
                   </div>
                 </div>

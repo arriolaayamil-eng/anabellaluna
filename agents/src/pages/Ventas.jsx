@@ -1,29 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
 import { toast } from 'react-toastify';
-import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaArrowDown, FaCalendarAlt, FaTimes, FaSave, FaHome, FaUser, FaMapMarkerAlt, FaClock, FaCheckCircle, FaFunnelDollar } from 'react-icons/fa';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
 import Chart from 'react-apexcharts';
+import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaCalendarAlt, FaTimes, FaSave, FaHome, FaClock, FaCheckCircle, FaFunnelDollar } from 'react-icons/fa';
+import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
+
+import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 // Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Ventas = () => {
-  const { currentMode, currentColor } = useStateContext();
-  
+  const { currentMode } = useStateContext();
+
   // Estados para los modales
   const [showModalVenta, setShowModalVenta] = useState(false);
   const [showModalAlquiler, setShowModalAlquiler] = useState(false);
   const [showModalSeguimiento, setShowModalSeguimiento] = useState(false);
-  
+
   // Estados para modales de estadísticas
   const [showModalVentasMes, setShowModalVentasMes] = useState(false);
   const [showModalOperacionesActivas, setShowModalOperacionesActivas] = useState(false);
   const [showModalComisiones, setShowModalComisiones] = useState(false);
   const [showModalTasaCierre, setShowModalTasaCierre] = useState(false);
-  
+
   // Estado para nueva venta
   const [nuevaVenta, setNuevaVenta] = useState({
     propiedad: '',
@@ -36,7 +37,7 @@ const Ventas = () => {
     formaPago: 'Contado',
     observaciones: '',
   });
-  
+
   // Estado para nuevo alquiler
   const [nuevoAlquiler, setNuevoAlquiler] = useState({
     propiedad: '',
@@ -50,7 +51,7 @@ const Ventas = () => {
     comision: '1',
     observaciones: '',
   });
-  
+
   // Estado para seguimiento
   const [nuevoSeguimiento, setNuevoSeguimiento] = useState({
     operacion: '',
@@ -70,7 +71,7 @@ const Ventas = () => {
       setStatsData(result);
       setOperaciones(result.operaciones || []);
     } catch (err) {
-      console.error('Error loading operaciones stats:', err);
+      toast.error('Error cargando estadísticas de operaciones');
     }
   }, []);
 
@@ -111,7 +112,8 @@ const Ventas = () => {
     chart: { type: 'radialBar', height: 200, background: 'transparent', sparkline: { enabled: false } },
     plotOptions: {
       radialBar: {
-        startAngle: -135, endAngle: 135,
+        startAngle: -135,
+        endAngle: 135,
         hollow: { size: '60%', background: 'transparent' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -146,15 +148,15 @@ const Ventas = () => {
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth', width: 2.5 },
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
-    xaxis: { categories: ventasPorMes.map(v => v.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    xaxis: { categories: ventasPorMes.map((v) => v.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
     yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
     grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
     legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '10px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
   const ingresosTrendSeries = [
-    { name: 'Ventas', data: ventasPorMes.map(v => v.ventas) },
-    { name: 'Alquileres', data: ventasPorMes.map(v => v.alquileres) },
+    { name: 'Ventas', data: ventasPorMes.map((v) => v.ventas) },
+    { name: 'Alquileres', data: ventasPorMes.map((v) => v.alquileres) },
   ];
 
   // ApexCharts - Funnel de Conversión
@@ -176,7 +178,8 @@ const Ventas = () => {
     chart: { type: 'radialBar', height: 160, background: 'transparent', sparkline: { enabled: true } },
     plotOptions: {
       radialBar: {
-        startAngle: -90, endAngle: 90,
+        startAngle: -90,
+        endAngle: 90,
         hollow: { size: '55%' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -194,15 +197,34 @@ const Ventas = () => {
   const isDark = currentMode === 'Dark';
   const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
+  const getRankBadgeClass = (index) => {
+    if (index === 0) return 'bg-yellow-400 text-yellow-900';
+    if (index === 1) return 'bg-gray-300 text-gray-700';
+    if (index === 2) return 'bg-orange-400 text-orange-900';
+    return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+  };
+
+  const getRankBadgeGradientClass = (index) => {
+    if (index === 0) return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white';
+    if (index === 1) return 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700';
+    if (index === 2) return 'bg-gradient-to-br from-orange-400 to-orange-600 text-white';
+    return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+  };
+
+  const getEstadoClass = (estado) => {
+    if (estado === 'Reservada') return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+    if (estado === 'En Proceso') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+  };
+
   // Funciones de manejo para Venta
   const handleVentaChange = (e) => {
     const { name, value } = e.target;
-    setNuevaVenta(prev => ({ ...prev, [name]: value }));
+    setNuevaVenta((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleVentaSubmit = (e) => {
     e.preventDefault();
-    console.log('Nueva venta:', nuevaVenta);
     // Check milestones (non-blocking)
     crmService.rewards.checkMilestones('operation').catch(() => {});
     toast.success('¡Venta registrada exitosamente!');
@@ -223,12 +245,11 @@ const Ventas = () => {
   // Funciones de manejo para Alquiler
   const handleAlquilerChange = (e) => {
     const { name, value } = e.target;
-    setNuevoAlquiler(prev => ({ ...prev, [name]: value }));
+    setNuevoAlquiler((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAlquilerSubmit = (e) => {
     e.preventDefault();
-    console.log('Nuevo alquiler:', nuevoAlquiler);
     toast.success('¡Alquiler registrado exitosamente!');
     setShowModalAlquiler(false);
     setNuevoAlquiler({
@@ -248,12 +269,11 @@ const Ventas = () => {
   // Funciones de manejo para Seguimiento
   const handleSeguimientoChange = (e) => {
     const { name, value } = e.target;
-    setNuevoSeguimiento(prev => ({ ...prev, [name]: value }));
+    setNuevoSeguimiento((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSeguimientoSubmit = (e) => {
     e.preventDefault();
-    console.log('Nuevo seguimiento:', nuevoSeguimiento);
     toast.success('¡Seguimiento programado exitosamente!');
     setShowModalSeguimiento(false);
     setNuevoSeguimiento({
@@ -274,22 +294,25 @@ const Ventas = () => {
         </h2>
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ventas, alquileres y seguimiento</p>
       </div>
-      
+
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <button 
+        <button
+          type="button"
           onClick={() => setShowModalVenta(true)}
           className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
         >
           <FaPlus /> Nueva Venta
         </button>
-        <button 
+        <button
+          type="button"
           onClick={() => setShowModalAlquiler(true)}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaHandshake /> Nuevo Alquiler
         </button>
-        <button 
+        <button
+          type="button"
           onClick={() => setShowModalSeguimiento(true)}
           className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
         >
@@ -300,8 +323,8 @@ const Ventas = () => {
       {/* KPIs de Operaciones - Clickeables */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
         {kpisVentas.map((kpi, i) => (
-          <div 
-            key={i} 
+          <div
+            key={i}
             onClick={() => {
               if (i === 0) setShowModalVentasMes(true);
               else if (i === 1) setShowModalOperacionesActivas(true);
@@ -519,7 +542,7 @@ const Ventas = () => {
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">💰 Comisiones por Agente</h3>
           <div className="space-y-4">
             {(statsData?.agentComisiones || []).map((ag, i) => {
-              const maxCom = Math.max(...(statsData?.agentComisiones || []).map(a => a.comision), 1);
+              const maxCom = Math.max(...(statsData?.agentComisiones || []).map((a) => a.comision), 1);
               return (
                 <div key={i} className="border dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -529,10 +552,10 @@ const Ventas = () => {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="h-2 rounded-full bg-green-500" 
+                    <div
+                      className="h-2 rounded-full bg-green-500"
                       style={{ width: `${Math.min((ag.comision / maxCom) * 100, 100)}%` }}
-                    ></div>
+                    />
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                     {ag.operaciones} operaciones
@@ -557,7 +580,7 @@ const Ventas = () => {
               <p className="text-xs text-gray-500">Operaciones</p>
             </div>
           </div>
-          
+
           <div className="text-center">
             <div className="p-6 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaCalendarAlt className="text-4xl text-yellow-500 mx-auto mb-3" />
@@ -591,81 +614,81 @@ const Ventas = () => {
                 </h2>
                 <p className="text-green-100 text-sm mt-1">Registrar una nueva operación de venta</p>
               </div>
-              <button onClick={() => setShowModalVenta(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalVenta(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleVentaSubmit} className="p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaHome className="text-green-500" /> Información de la Operación
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
-                    <input type="text" name="propiedad" value={nuevaVenta.propiedad} onChange={handleVentaChange} required placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input type="text" name="cliente" value={nuevaVenta.cliente} onChange={handleVentaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Monto *</label>
-                    <input type="number" name="monto" value={nuevaVenta.monto} onChange={handleVentaChange} required placeholder="150000" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Moneda *</label>
-                    <select name="moneda" value={nuevaVenta.moneda} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="USD">USD - Dólares</option>
-                      <option value="ARS">ARS - Pesos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                    <select name="agente" value={nuevaVenta.agente} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Cierre *</label>
-                    <input type="date" name="fechaCierre" value={nuevaVenta.fechaCierre} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
-                    <input type="number" name="comision" value={nuevaVenta.comision} onChange={handleVentaChange} step="0.1" placeholder="3.5" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Forma de Pago</label>
-                    <select name="formaPago" value={nuevaVenta.formaPago} onChange={handleVentaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="Contado">Contado</option>
-                      <option value="Financiado">Financiado</option>
-                      <option value="Hipoteca">Hipoteca</option>
-                      <option value="Mixto">Mixto</option>
-                    </select>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaHome className="text-green-500" /> Información de la Operación
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-128" className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
+                      <input id="field-128" type="text" name="propiedad" value={nuevaVenta.propiedad} onChange={handleVentaChange} required placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-129" className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
+                      <input id="field-129" type="text" name="cliente" value={nuevaVenta.cliente} onChange={handleVentaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-130" className="block text-sm font-medium mb-2 dark:text-gray-200">Monto *</label>
+                      <input id="field-130" type="number" name="monto" value={nuevaVenta.monto} onChange={handleVentaChange} required placeholder="150000" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-131" className="block text-sm font-medium mb-2 dark:text-gray-200">Moneda *</label>
+                      <select id="field-131" name="moneda" value={nuevaVenta.moneda} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="USD">USD - Dólares</option>
+                        <option value="ARS">ARS - Pesos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-132" className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
+                      <select id="field-132" name="agente" value={nuevaVenta.agente} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar agente</option>
+                        <option value="Ana López">Ana López</option>
+                        <option value="Carlos Ruiz">Carlos Ruiz</option>
+                        <option value="Laura Fernández">Laura Fernández</option>
+                        <option value="Sofía Torres">Sofía Torres</option>
+                        <option value="Marcos Silva">Marcos Silva</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-133" className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Cierre *</label>
+                      <input id="field-133" type="date" name="fechaCierre" value={nuevaVenta.fechaCierre} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-134" className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
+                      <input id="field-134" type="number" name="comision" value={nuevaVenta.comision} onChange={handleVentaChange} step="0.1" placeholder="3.5" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-135" className="block text-sm font-medium mb-2 dark:text-gray-200">Forma de Pago</label>
+                      <select id="field-135" name="formaPago" value={nuevaVenta.formaPago} onChange={handleVentaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="Contado">Contado</option>
+                        <option value="Financiado">Financiado</option>
+                        <option value="Hipoteca">Hipoteca</option>
+                        <option value="Mixto">Mixto</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Observaciones</label>
-                <textarea name="observaciones" value={nuevaVenta.observaciones} onChange={handleVentaChange} rows="3" placeholder="Detalles adicionales de la operación..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-              </div>
+                <div>
+                  <label htmlFor="field-136" className="block text-sm font-medium mb-2 dark:text-gray-200">Observaciones</label>
+                  <textarea id="field-136" name="observaciones" value={nuevaVenta.observaciones} onChange={handleVentaChange} rows="3" placeholder="Detalles adicionales de la operación..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button type="button" onClick={() => setShowModalVenta(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
-                  Cancelar
-                </button>
-                <button type="submit" className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2">
-                  <FaSave /> Registrar Venta
-                </button>
-              </div>
+                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                  <button type="button" onClick={() => setShowModalVenta(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2">
+                    <FaSave /> Registrar Venta
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -683,80 +706,80 @@ const Ventas = () => {
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">Registrar una nueva operación de alquiler</p>
               </div>
-              <button onClick={() => setShowModalAlquiler(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalAlquiler(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleAlquilerSubmit} className="p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaHome className="text-blue-500" /> Información del Alquiler
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
-                    <input type="text" name="propiedad" value={nuevoAlquiler.propiedad} onChange={handleAlquilerChange} required placeholder="Casa 3amb Belgrano" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input type="text" name="cliente" value={nuevoAlquiler.cliente} onChange={handleAlquilerChange} required placeholder="María González" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Monto Mensual *</label>
-                    <input type="number" name="montoMensual" value={nuevoAlquiler.montoMensual} onChange={handleAlquilerChange} required placeholder="1200" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Moneda *</label>
-                    <select name="moneda" value={nuevoAlquiler.moneda} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="USD">USD - Dólares</option>
-                      <option value="ARS">ARS - Pesos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                    <select name="agente" value={nuevoAlquiler.agente} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Inicio *</label>
-                    <input type="date" name="fechaInicio" value={nuevoAlquiler.fechaInicio} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Duración (meses)</label>
-                    <input type="number" name="duracion" value={nuevoAlquiler.duracion} onChange={handleAlquilerChange} placeholder="12" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Depósito</label>
-                    <input type="number" name="deposito" value={nuevoAlquiler.deposito} onChange={handleAlquilerChange} placeholder="2400" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (meses)</label>
-                    <input type="number" name="comision" value={nuevoAlquiler.comision} onChange={handleAlquilerChange} step="0.5" placeholder="1" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaHome className="text-blue-500" /> Información del Alquiler
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-137" className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
+                      <input id="field-137" type="text" name="propiedad" value={nuevoAlquiler.propiedad} onChange={handleAlquilerChange} required placeholder="Casa 3amb Belgrano" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-138" className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
+                      <input id="field-138" type="text" name="cliente" value={nuevoAlquiler.cliente} onChange={handleAlquilerChange} required placeholder="María González" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-139" className="block text-sm font-medium mb-2 dark:text-gray-200">Monto Mensual *</label>
+                      <input id="field-139" type="number" name="montoMensual" value={nuevoAlquiler.montoMensual} onChange={handleAlquilerChange} required placeholder="1200" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-140" className="block text-sm font-medium mb-2 dark:text-gray-200">Moneda *</label>
+                      <select id="field-140" name="moneda" value={nuevoAlquiler.moneda} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="USD">USD - Dólares</option>
+                        <option value="ARS">ARS - Pesos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-141" className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
+                      <select id="field-141" name="agente" value={nuevoAlquiler.agente} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar agente</option>
+                        <option value="Ana López">Ana López</option>
+                        <option value="Carlos Ruiz">Carlos Ruiz</option>
+                        <option value="Laura Fernández">Laura Fernández</option>
+                        <option value="Sofía Torres">Sofía Torres</option>
+                        <option value="Marcos Silva">Marcos Silva</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-142" className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Inicio *</label>
+                      <input id="field-142" type="date" name="fechaInicio" value={nuevoAlquiler.fechaInicio} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-143" className="block text-sm font-medium mb-2 dark:text-gray-200">Duración (meses)</label>
+                      <input id="field-143" type="number" name="duracion" value={nuevoAlquiler.duracion} onChange={handleAlquilerChange} placeholder="12" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-144" className="block text-sm font-medium mb-2 dark:text-gray-200">Depósito</label>
+                      <input id="field-144" type="number" name="deposito" value={nuevoAlquiler.deposito} onChange={handleAlquilerChange} placeholder="2400" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-145" className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (meses)</label>
+                      <input id="field-145" type="number" name="comision" value={nuevoAlquiler.comision} onChange={handleAlquilerChange} step="0.5" placeholder="1" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Observaciones</label>
-                <textarea name="observaciones" value={nuevoAlquiler.observaciones} onChange={handleAlquilerChange} rows="3" placeholder="Detalles adicionales del alquiler..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-              </div>
+                <div>
+                  <label htmlFor="field-146" className="block text-sm font-medium mb-2 dark:text-gray-200">Observaciones</label>
+                  <textarea id="field-146" name="observaciones" value={nuevoAlquiler.observaciones} onChange={handleAlquilerChange} rows="3" placeholder="Detalles adicionales del alquiler..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button type="button" onClick={() => setShowModalAlquiler(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
-                  Cancelar
-                </button>
-                <button type="submit" className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2">
-                  <FaSave /> Registrar Alquiler
-                </button>
-              </div>
+                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                  <button type="button" onClick={() => setShowModalAlquiler(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2">
+                    <FaSave /> Registrar Alquiler
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -774,70 +797,70 @@ const Ventas = () => {
                 </h2>
                 <p className="text-purple-100 text-sm mt-1">Agendar una acción de seguimiento</p>
               </div>
-              <button onClick={() => setShowModalSeguimiento(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalSeguimiento(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleSeguimientoSubmit} className="p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaClock className="text-purple-500" /> Detalles del Seguimiento
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Operación *</label>
-                    <select name="operacion" value={nuevoSeguimiento.operacion} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="">Seleccionar operación</option>
-                      {operaciones.map(op => (
-                        <option key={op.id} value={op.id}>{op.propiedad} - {op.cliente}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Seguimiento *</label>
-                    <select name="tipo" value={nuevoSeguimiento.tipo} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="Llamada">Llamada</option>
-                      <option value="Email">Email</option>
-                      <option value="WhatsApp">WhatsApp</option>
-                      <option value="Reunión">Reunión</option>
-                      <option value="Visita">Visita</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Prioridad *</label>
-                    <select name="prioridad" value={nuevoSeguimiento.prioridad} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="Baja">Baja</option>
-                      <option value="Media">Media</option>
-                      <option value="Alta">Alta</option>
-                      <option value="Urgente">Urgente</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>
-                    <input type="date" name="fecha" value={nuevoSeguimiento.fecha} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora *</label>
-                    <input type="time" name="hora" value={nuevoSeguimiento.hora} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100" />
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaClock className="text-purple-500" /> Detalles del Seguimiento
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label htmlFor="field-147" className="block text-sm font-medium mb-2 dark:text-gray-200">Operación *</label>
+                      <select id="field-147" name="operacion" value={nuevoSeguimiento.operacion} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar operación</option>
+                        {operaciones.map((op) => (
+                          <option key={op.id} value={op.id}>{op.propiedad} - {op.cliente}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-148" className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Seguimiento *</label>
+                      <select id="field-148" name="tipo" value={nuevoSeguimiento.tipo} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="Llamada">Llamada</option>
+                        <option value="Email">Email</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Reunión">Reunión</option>
+                        <option value="Visita">Visita</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-149" className="block text-sm font-medium mb-2 dark:text-gray-200">Prioridad *</label>
+                      <select id="field-149" name="prioridad" value={nuevoSeguimiento.prioridad} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="Baja">Baja</option>
+                        <option value="Media">Media</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Urgente">Urgente</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-150" className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>
+                      <input id="field-150" type="date" name="fecha" value={nuevoSeguimiento.fecha} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-151" className="block text-sm font-medium mb-2 dark:text-gray-200">Hora *</label>
+                      <input id="field-151" type="time" name="hora" value={nuevoSeguimiento.hora} onChange={handleSeguimientoChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Descripción *</label>
-                <textarea name="descripcion" value={nuevoSeguimiento.descripcion} onChange={handleSeguimientoChange} required rows="4" placeholder="Detalles del seguimiento a realizar..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100" />
-              </div>
+                <div>
+                  <label htmlFor="field-152" className="block text-sm font-medium mb-2 dark:text-gray-200">Descripción *</label>
+                  <textarea id="field-152" name="descripcion" value={nuevoSeguimiento.descripcion} onChange={handleSeguimientoChange} required rows="4" placeholder="Detalles del seguimiento a realizar..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100" />
+                </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button type="button" onClick={() => setShowModalSeguimiento(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
-                  Cancelar
-                </button>
-                <button type="submit" className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium flex items-center gap-2">
-                  <FaCheckCircle /> Programar Seguimiento
-                </button>
-              </div>
+                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                  <button type="button" onClick={() => setShowModalSeguimiento(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium flex items-center gap-2">
+                    <FaCheckCircle /> Programar Seguimiento
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -854,10 +877,10 @@ const Ventas = () => {
                   <FaDollarSign /> Ventas del Mes
                 </h2>
                 <p className="text-green-100 text-sm mt-1">
-                  ${operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0).toLocaleString()} en ventas cerradas
+                  ${operaciones.filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0).toLocaleString()} en ventas cerradas
                 </p>
               </div>
-              <button onClick={() => setShowModalVentasMes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalVentasMes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -865,18 +888,13 @@ const Ventas = () => {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
                 {operaciones
-                  .filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada')
+                  .filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada')
                   .sort((a, b) => b.monto - a.monto)
                   .map((operacion, index) => (
                     <div key={operacion.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                            index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                            index === 1 ? 'bg-gray-300 text-gray-700' :
-                            index === 2 ? 'bg-orange-400 text-orange-900' :
-                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                          }`}>
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getRankBadgeClass(index)}`}>
                             #{index + 1}
                           </div>
                           <div className="flex-1">
@@ -904,31 +922,31 @@ const Ventas = () => {
                     </div>
                   ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-green-900/20' : 'bg-green-50'} rounded-lg border-2 border-green-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Ventas</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0).toLocaleString()}
+                      ${operaciones.filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Cantidad</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').length}
+                      {operaciones.filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada').length}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Promedio</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${Math.round(operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0) / operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').length).toLocaleString()}
+                      ${Math.round(operaciones.filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.monto, 0) / operaciones.filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada').length).toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Comisiones</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${operaciones.filter(o => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.comision, 0).toLocaleString()}
+                      ${operaciones.filter((o) => o.tipo === 'Venta' && o.estado === 'Cerrada').reduce((sum, o) => sum + o.comision, 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -948,10 +966,10 @@ const Ventas = () => {
                   <FaFileContract /> Operaciones Activas
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">
-                  {operaciones.filter(o => o.estado !== 'Cerrada').length} operaciones en proceso
+                  {operaciones.filter((o) => o.estado !== 'Cerrada').length} operaciones en proceso
                 </p>
               </div>
-              <button onClick={() => setShowModalOperacionesActivas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalOperacionesActivas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -959,9 +977,9 @@ const Ventas = () => {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
                 {operaciones
-                  .filter(o => o.estado !== 'Cerrada')
+                  .filter((o) => o.estado !== 'Cerrada')
                   .sort((a, b) => {
-                    const estadoOrder = { 'Reservada': 1, 'En Proceso': 2, 'Pendiente': 3 };
+                    const estadoOrder = { Reservada: 1, 'En Proceso': 2, Pendiente: 3 };
                     return (estadoOrder[a.estado] || 4) - (estadoOrder[b.estado] || 4);
                   })
                   .map((operacion) => (
@@ -970,11 +988,7 @@ const Ventas = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-bold text-lg dark:text-gray-100">{operacion.propiedad}</h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              operacion.estado === 'Reservada' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
-                              operacion.estado === 'En Proceso' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                              'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                            }`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoClass(operacion.estado)}`}>
                               {operacion.estado}
                             </span>
                           </div>
@@ -1008,8 +1022,8 @@ const Ventas = () => {
                     </div>
                   ))}
               </div>
-              
-              {operaciones.filter(o => o.estado !== 'Cerrada').length === 0 && (
+
+              {operaciones.filter((o) => o.estado !== 'Cerrada').length === 0 && (
                 <div className="text-center py-12">
                   <FaFileContract className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 dark:text-gray-400">No hay operaciones activas</p>
@@ -1033,7 +1047,7 @@ const Ventas = () => {
                   ${operaciones.reduce((sum, o) => sum + o.comision, 0).toLocaleString()} en comisiones
                 </p>
               </div>
-              <button onClick={() => setShowModalComisiones(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalComisiones(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1046,12 +1060,7 @@ const Ventas = () => {
                     <div key={operacion.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                            index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white' :
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' :
-                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
-                            'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                          }`}>
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getRankBadgeGradientClass(index)}`}>
                             #{index + 1}
                           </div>
                           <div className="flex-1">
@@ -1063,9 +1072,10 @@ const Ventas = () => {
                               <span>{operacion.comisionPorcentaje}% comisión</span>
                               <span>•</span>
                               <span className={`px-2 py-1 rounded ${
-                                operacion.estado === 'Cerrada' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                              }`}>
+                                operacion.estado === 'Cerrada' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}
+                              >
                                 {operacion.estado}
                               </span>
                             </div>
@@ -1081,7 +1091,7 @@ const Ventas = () => {
                     </div>
                   ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-purple-900/20' : 'bg-purple-50'} rounded-lg border-2 border-purple-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                   <div>
@@ -1093,7 +1103,7 @@ const Ventas = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Comisiones Cerradas</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      ${operaciones.filter(o => o.estado === 'Cerrada').reduce((sum, o) => sum + o.comision, 0).toLocaleString()}
+                      ${operaciones.filter((o) => o.estado === 'Cerrada').reduce((sum, o) => sum + o.comision, 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
@@ -1105,7 +1115,7 @@ const Ventas = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Mayor Comisión</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      ${Math.max(...operaciones.map(o => o.comision)).toLocaleString()}
+                      ${Math.max(...operaciones.map((o) => o.comision)).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1126,7 +1136,7 @@ const Ventas = () => {
                 </h2>
                 <p className="text-orange-100 text-sm mt-1">Análisis de efectividad de ventas</p>
               </div>
-              <button onClick={() => setShowModalTasaCierre(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalTasaCierre(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1138,9 +1148,9 @@ const Ventas = () => {
                 <div className="space-y-4">
                   {[
                     { estado: 'Total Operaciones', count: operaciones.length, color: 'blue', width: '100%' },
-                    { estado: 'En Proceso', count: operaciones.filter(o => o.estado === 'En Proceso').length, color: 'yellow', width: '75%' },
-                    { estado: 'Reservadas', count: operaciones.filter(o => o.estado === 'Reservada').length, color: 'orange', width: '50%' },
-                    { estado: 'Cerradas', count: operaciones.filter(o => o.estado === 'Cerrada').length, color: 'green', width: `${(operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length * 100).toFixed(0)}%` },
+                    { estado: 'En Proceso', count: operaciones.filter((o) => o.estado === 'En Proceso').length, color: 'yellow', width: '75%' },
+                    { estado: 'Reservadas', count: operaciones.filter((o) => o.estado === 'Reservada').length, color: 'orange', width: '50%' },
+                    { estado: 'Cerradas', count: operaciones.filter((o) => o.estado === 'Cerrada').length, color: 'green', width: `${((operaciones.filter((o) => o.estado === 'Cerrada').length / operaciones.length) * 100).toFixed(0)}%` },
                   ].map((etapa) => (
                     <div key={etapa.estado} className="relative">
                       <div className="flex items-center justify-between mb-2">
@@ -1148,7 +1158,7 @@ const Ventas = () => {
                         <span className="text-sm text-gray-600 dark:text-gray-400">{etapa.count} operaciones</span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-8 relative overflow-hidden">
-                        <div 
+                        <div
                           className={`h-8 rounded-full bg-${etapa.color}-500 flex items-center justify-center text-white font-bold transition-all duration-500`}
                           style={{ width: etapa.width }}
                         >
@@ -1167,17 +1177,17 @@ const Ventas = () => {
                   <div className="text-center">
                     <p className="text-sm text-gray-600 dark:text-gray-400">Tasa de Cierre</p>
                     <p className="text-4xl font-bold text-orange-600 dark:text-orange-400 my-2">
-                      {Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / operaciones.length) * 100)}%
+                      {Math.round((operaciones.filter((o) => o.estado === 'Cerrada').length / operaciones.length) * 100)}%
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {operaciones.filter(o => o.estado === 'Cerrada').length} de {operaciones.length} operaciones
+                      {operaciones.filter((o) => o.estado === 'Cerrada').length} de {operaciones.length} operaciones
                     </p>
                   </div>
                   <div className="text-center">
                     <p className="text-sm text-gray-600 dark:text-gray-400">En Proceso → Cerrada</p>
                     <p className="text-4xl font-bold text-orange-600 dark:text-orange-400 my-2">
-                      {operaciones.filter(o => o.estado === 'En Proceso').length > 0 
-                        ? Math.round((operaciones.filter(o => o.estado === 'Cerrada').length / (operaciones.filter(o => o.estado === 'En Proceso').length + operaciones.filter(o => o.estado === 'Cerrada').length)) * 100)
+                      {operaciones.filter((o) => o.estado === 'En Proceso').length > 0
+                        ? Math.round((operaciones.filter((o) => o.estado === 'Cerrada').length / (operaciones.filter((o) => o.estado === 'En Proceso').length + operaciones.filter((o) => o.estado === 'Cerrada').length)) * 100)
                         : 0}%
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Conversión efectiva</p>
@@ -1185,7 +1195,7 @@ const Ventas = () => {
                   <div className="text-center">
                     <p className="text-sm text-gray-600 dark:text-gray-400">Operaciones Activas</p>
                     <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 my-2">
-                      {operaciones.filter(o => o.estado !== 'Cerrada').length}
+                      {operaciones.filter((o) => o.estado !== 'Cerrada').length}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Potencial de cierre</p>
                   </div>
@@ -1195,10 +1205,10 @@ const Ventas = () => {
               {/* Operaciones por Estado */}
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { estado: 'Pendiente', color: 'yellow', icon: '📋', count: operaciones.filter(o => o.estado === 'Pendiente').length },
-                  { estado: 'En Proceso', color: 'blue', icon: '⚙️', count: operaciones.filter(o => o.estado === 'En Proceso').length },
-                  { estado: 'Reservada', color: 'orange', icon: '🔒', count: operaciones.filter(o => o.estado === 'Reservada').length },
-                  { estado: 'Cerrada', color: 'green', icon: '✅', count: operaciones.filter(o => o.estado === 'Cerrada').length },
+                  { estado: 'Pendiente', color: 'yellow', icon: '📋', count: operaciones.filter((o) => o.estado === 'Pendiente').length },
+                  { estado: 'En Proceso', color: 'blue', icon: '⚙️', count: operaciones.filter((o) => o.estado === 'En Proceso').length },
+                  { estado: 'Reservada', color: 'orange', icon: '🔒', count: operaciones.filter((o) => o.estado === 'Reservada').length },
+                  { estado: 'Cerrada', color: 'green', icon: '✅', count: operaciones.filter((o) => o.estado === 'Cerrada').length },
                 ].map((item) => (
                   <div key={item.estado} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} text-center`}>
                     <div className="text-3xl mb-2">{item.icon}</div>

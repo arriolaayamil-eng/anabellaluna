@@ -1,36 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+
+import Chart from 'react-apexcharts';
+import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter } from 'react-icons/fa';
+import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
+
 import { confirmToast } from '../utils/confirmToast';
-import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaChartPie, FaArrowUp, FaArrowDown, FaSearch, FaFilter } from 'react-icons/fa';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { documentService } from '../services/documentService';
 import API_CONFIG, { getAuthToken } from '../config/api';
-import Chart from 'react-apexcharts';
 
 // Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Propiedades = () => {
   const { currentMode, currentColor } = useStateContext();
-  
+
   // Estado para tabs internas
   const [activeTab, setActiveTab] = useState('metricas'); // 'metricas', 'propiedades'
-  
+
   // Estado para filtro de operación
   const [filtroOperacion, setFiltroOperacion] = useState('todas'); // 'venta', 'alquiler', 'todas'
-  
+
   // Estado para el modal
   const [showModal, setShowModal] = useState(false);
-  
+
   // Estados para modales de estadísticas
   const [showModalTotalPropiedades, setShowModalTotalPropiedades] = useState(false);
   const [showModalValorPortfolio, setShowModalValorPortfolio] = useState(false);
   const [showModalVisitasTotales, setShowModalVisitasTotales] = useState(false);
   const [showModalFotosSubidas, setShowModalFotosSubidas] = useState(false);
-  
+
   // Estados para las vistas
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
@@ -68,7 +68,7 @@ const Propiedades = () => {
   const [filesPlanos, setFilesPlanos] = useState([]);
 
   const [videoUrlDraft, setVideoUrlDraft] = useState('');
-  
+
   // Estado para el formulario de nueva propiedad
   const [nuevaPropiedad, setNuevaPropiedad] = useState({
     titulo: '',
@@ -336,11 +336,11 @@ const Propiedades = () => {
             codigoPostal: meta.codigoPostal || '',
             descripcion: p.description || meta.descripcion || '',
             amenities: Array.isArray(meta.amenities) ? meta.amenities : [],
-            videoUrls: Array.isArray(meta.videoUrls)
-              ? meta.videoUrls
-              : meta.videoUrl
-                ? [meta.videoUrl]
-                : [],
+            videoUrls: (() => {
+              if (Array.isArray(meta.videoUrls)) return meta.videoUrls;
+              if (meta.videoUrl) return [meta.videoUrl];
+              return [];
+            })(),
             agente: agenteNombre,
             agenteId: meta.agenteId || p.agentId || '',
             visitas: Number(meta.visitas || 0),
@@ -375,7 +375,6 @@ const Propiedades = () => {
         if (!mounted) return;
         setError(e?.message || 'Error al cargar propiedades');
       } finally {
-        if (!mounted) return;
         setLoading(false);
       }
     };
@@ -409,11 +408,11 @@ const Propiedades = () => {
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
   const tipoDonutSeries = [
-    propiedades.filter(p => p.tipo === 'Departamento').length,
-    propiedades.filter(p => p.tipo === 'Casa').length,
-    propiedades.filter(p => p.tipo === 'PH').length,
-    propiedades.filter(p => p.tipo === 'Local').length,
-    propiedades.filter(p => p.tipo === 'Oficina').length,
+    propiedades.filter((p) => p.tipo === 'Departamento').length,
+    propiedades.filter((p) => p.tipo === 'Casa').length,
+    propiedades.filter((p) => p.tipo === 'PH').length,
+    propiedades.filter((p) => p.tipo === 'Local').length,
+    propiedades.filter((p) => p.tipo === 'Oficina').length,
   ];
 
   // ApexCharts - Estado de Propiedades (Bar)
@@ -428,19 +427,21 @@ const Propiedades = () => {
     legend: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
-  const estadoBarSeries = [{ name: 'Propiedades', data: [
-    propiedades.filter(p => p.estado === 'Disponible').length,
-    propiedades.filter(p => p.estado === 'Reservada').length,
-    propiedades.filter(p => p.estado === 'En Negociación').length,
-    propiedades.filter(p => p.estado === 'Vendida').length,
-  ] }];
+  const estadoBarSeries = [{ name: 'Propiedades',
+    data: [
+      propiedades.filter((p) => p.estado === 'Disponible').length,
+      propiedades.filter((p) => p.estado === 'Reservada').length,
+      propiedades.filter((p) => p.estado === 'En Negociación').length,
+      propiedades.filter((p) => p.estado === 'Vendida').length,
+    ] }];
 
   // ApexCharts - Valor Portfolio (Radial)
   const portfolioOptions = {
     chart: { type: 'radialBar', height: 200, background: 'transparent', sparkline: { enabled: false } },
     plotOptions: {
       radialBar: {
-        startAngle: -135, endAngle: 135,
+        startAngle: -135,
+        endAngle: 135,
         hollow: { size: '60%', background: 'transparent' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -479,29 +480,68 @@ const Propiedades = () => {
 
   // Datos para gráficos
   const estadosData = [
-    { estado: 'Disponible', cantidad: propiedades.filter(p => p.estado === 'Disponible').length, fill: '#10B981' },
-    { estado: 'Reservada', cantidad: propiedades.filter(p => p.estado === 'Reservada').length, fill: '#F59E0B' },
-    { estado: 'Vendida', cantidad: propiedades.filter(p => p.estado === 'Vendida').length, fill: '#6B7280' },
-    { estado: 'Alquilada', cantidad: propiedades.filter(p => p.estado === 'Alquilada').length, fill: '#3B82F6' },
+    { estado: 'Disponible', cantidad: propiedades.filter((p) => p.estado === 'Disponible').length, fill: '#10B981' },
+    { estado: 'Reservada', cantidad: propiedades.filter((p) => p.estado === 'Reservada').length, fill: '#F59E0B' },
+    { estado: 'Vendida', cantidad: propiedades.filter((p) => p.estado === 'Vendida').length, fill: '#6B7280' },
+    { estado: 'Alquilada', cantidad: propiedades.filter((p) => p.estado === 'Alquilada').length, fill: '#3B82F6' },
   ];
 
   const tiposData = [
-    { tipo: 'Departamento', cantidad: propiedades.filter(p => p.tipo === 'Departamento').length },
-    { tipo: 'Casa', cantidad: propiedades.filter(p => p.tipo === 'Casa').length },
-    { tipo: 'Oficina', cantidad: propiedades.filter(p => p.tipo === 'Oficina').length },
-    { tipo: 'PH', cantidad: propiedades.filter(p => p.tipo === 'PH').length },
-    { tipo: 'Local', cantidad: propiedades.filter(p => p.tipo === 'Local').length },
+    { tipo: 'Departamento', cantidad: propiedades.filter((p) => p.tipo === 'Departamento').length },
+    { tipo: 'Casa', cantidad: propiedades.filter((p) => p.tipo === 'Casa').length },
+    { tipo: 'Oficina', cantidad: propiedades.filter((p) => p.tipo === 'Oficina').length },
+    { tipo: 'PH', cantidad: propiedades.filter((p) => p.tipo === 'PH').length },
+    { tipo: 'Local', cantidad: propiedades.filter((p) => p.tipo === 'Local').length },
   ];
 
   const isDark = currentMode === 'Dark';
   const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
+  const getEstadoBadgeWhite = (estado) => {
+    if (estado === 'Disponible') return 'bg-green-500 text-white';
+    if (estado === 'Reservada') return 'bg-yellow-500 text-white';
+    if (estado === 'Vendida') return 'bg-gray-500 text-white';
+    return 'bg-blue-500 text-white';
+  };
+
+  const getEstadoBadgeLight = (estado) => {
+    if (estado === 'Disponible') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+    if (estado === 'Reservada') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+    if (estado === 'Vendida') return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+    return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+  };
+
+  const getEstadoBadgeShort = (estado) => {
+    if (estado === 'Disponible') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+    if (estado === 'Reservada') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+    return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+  };
+
+  const getRankBadgeClass = (index) => {
+    if (index === 0) return 'bg-yellow-400 text-yellow-900';
+    if (index === 1) return 'bg-gray-300 text-gray-700';
+    if (index === 2) return 'bg-orange-400 text-orange-900';
+    return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+  };
+
+  const getPhotoBarColor = (fotos) => {
+    if (fotos >= 10) return 'bg-green-500';
+    if (fotos >= 6) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getPhotoLabel = (fotos) => {
+    if (fotos >= 10) return 'Completo';
+    if (fotos >= 6) return 'Bueno';
+    return 'Necesita más fotos';
+  };
+
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setNuevaPropiedad(prev => ({
+    setNuevaPropiedad((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -722,8 +762,8 @@ const Propiedades = () => {
         agente: '',
         comision: '3',
       });
-    } catch (e) {
-      setError(e?.message || 'Error al guardar propiedad');
+    } catch (saveErr) {
+      setError(saveErr?.message || 'Error al guardar propiedad');
     } finally {
       setLoading(false);
     }
@@ -751,9 +791,9 @@ const Propiedades = () => {
 
   // Amenities disponibles
   const amenitiesDisponibles = [
-    'Pileta', 'Gimnasio', 'Parrilla', 'Seguridad 24hs', 'Cochera', 
+    'Pileta', 'Gimnasio', 'Parrilla', 'Seguridad 24hs', 'Cochera',
     'Balcón', 'Terraza', 'Jardín', 'Aire Acondicionado', 'Calefacción',
-    'Laundry', 'SUM', 'Solarium', 'Sauna', 'Ascensor'
+    'Laundry', 'SUM', 'Solarium', 'Sauna', 'Ascensor',
   ];
 
   // Función para ver detalle de propiedad
@@ -772,40 +812,37 @@ const Propiedades = () => {
   const getSuggestions = () => {
     if (!searchTerm.trim()) return [];
     const term = searchTerm.toLowerCase();
-    return propiedades.filter(p => 
-      p.titulo?.toLowerCase().includes(term) ||
-      p.barrio?.toLowerCase().includes(term) ||
-      p.ciudad?.toLowerCase().includes(term) ||
-      p.direccion?.toLowerCase().includes(term) ||
-      p.tipo?.toLowerCase().includes(term)
-    ).slice(0, 8); // Máximo 8 sugerencias
+    return propiedades.filter((p) => p.titulo?.toLowerCase().includes(term)
+      || p.barrio?.toLowerCase().includes(term)
+      || p.ciudad?.toLowerCase().includes(term)
+      || p.direccion?.toLowerCase().includes(term)
+      || p.tipo?.toLowerCase().includes(term)).slice(0, 8); // Máximo 8 sugerencias
   };
 
   // Obtener barrios únicos de las propiedades
-  const barriosUnicos = [...new Set(propiedades.map(p => p.barrio).filter(Boolean))];
-  
+  const barriosUnicos = [...new Set(propiedades.map((p) => p.barrio).filter(Boolean))];
+
   // Tipos de propiedades únicos
-  const tiposUnicos = [...new Set(propiedades.map(p => p.tipo).filter(Boolean))];
+  const tiposUnicos = [...new Set(propiedades.map((p) => p.tipo).filter(Boolean))];
 
   // Aplicar búsqueda, filtros y ordenamiento
   const propiedadesFiltradas = propiedades
-    .filter(p => {
+    .filter((p) => {
       // Filtro por operación (radio buttons existentes)
       if (filtroOperacion === 'venta' && p.operacion !== 'Venta') return false;
       if (filtroOperacion === 'alquiler' && p.operacion !== 'Alquiler') return false;
-      
+
       // Búsqueda por texto
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
-        const matchSearch = 
-          p.titulo?.toLowerCase().includes(term) ||
-          p.barrio?.toLowerCase().includes(term) ||
-          p.ciudad?.toLowerCase().includes(term) ||
-          p.direccion?.toLowerCase().includes(term) ||
-          p.tipo?.toLowerCase().includes(term);
+        const matchSearch = p.titulo?.toLowerCase().includes(term)
+          || p.barrio?.toLowerCase().includes(term)
+          || p.ciudad?.toLowerCase().includes(term)
+          || p.direccion?.toLowerCase().includes(term)
+          || p.tipo?.toLowerCase().includes(term);
         if (!matchSearch) return false;
       }
-      
+
       // Filtros avanzados
       if (filtros.tipo && p.tipo !== filtros.tipo) return false;
       if (filtros.estado && p.estado !== filtros.estado) return false;
@@ -817,7 +854,7 @@ const Propiedades = () => {
       if (filtros.dormitoriosMax && Number(p.dormitorios) > Number(filtros.dormitoriosMax)) return false;
       if (filtros.m2Min && Number(p.m2) < Number(filtros.m2Min)) return false;
       if (filtros.m2Max && Number(p.m2) > Number(filtros.m2Max)) return false;
-      
+
       return true;
     })
     .sort((a, b) => {
@@ -852,10 +889,10 @@ const Propiedades = () => {
   };
 
   // Contar filtros activos
-  const filtrosActivos = Object.values(filtros).filter(v => v !== '').length + 
-    (searchTerm ? 1 : 0) + 
-    (filtroOperacion !== 'todas' ? 1 : 0) +
-    (ordenarPor !== 'recientes' ? 1 : 0);
+  const filtrosActivos = Object.values(filtros).filter((v) => v !== '').length
+    + (searchTerm ? 1 : 0)
+    + (filtroOperacion !== 'todas' ? 1 : 0)
+    + (ordenarPor !== 'recientes' ? 1 : 0);
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -871,18 +908,20 @@ const Propiedades = () => {
           {error}
         </div>
       )}
-      
+
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
         {vistaActual === 'detalle' && (
-          <button 
+          <button
+            type="button"
             onClick={volverAlDashboard}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
           >
             <FaArrowLeft /> Volver
           </button>
         )}
-        <button 
+        <button
+          type="button"
           onClick={openCreateModal}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
@@ -895,6 +934,7 @@ const Propiedades = () => {
         <div className="mb-6">
           <div className="flex items-end gap-1">
             <button
+              type="button"
               onClick={() => setActiveTab('metricas')}
               className={`px-5 py-2.5 text-sm font-medium transition-all rounded-t-xl border-t border-l border-r ${
                 activeTab === 'metricas'
@@ -905,6 +945,7 @@ const Propiedades = () => {
               📊 Métricas
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('propiedades')}
               className={`px-5 py-2.5 text-sm font-medium transition-all rounded-t-xl border-t border-l border-r ${
                 activeTab === 'propiedades'
@@ -922,242 +963,242 @@ const Propiedades = () => {
       {/* Tab: Métricas de Propiedades */}
       {vistaActual !== 'detalle' && activeTab === 'metricas' && (
         <>
-      {/* KPIs de Propiedades - Clickeables */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {kpisPropiedades.map((kpi, i) => {
-          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6', 'from-amber-500 to-amber-600': '#f59e0b' };
-          const accentColor = colorMap[kpi.color] || '#6366f1';
-          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20' };
-          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
-          return (
-          <div 
-            key={i} 
-            onClick={() => {
-              if (i === 0) setShowModalTotalPropiedades(true);
-              else if (i === 1) setShowModalValorPortfolio(true);
-              else if (i === 2) setShowModalVisitasTotales(true);
-              else if (i === 3) setShowModalFotosSubidas(true);
-            }}
-            className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
-            style={{ borderLeft: `4px solid ${accentColor}` }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
-                <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
-              </div>
-            </div>
-            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
-            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
-          </div>
-          );
-        })}
-      </div>
-
-      {/* Gráficos ApexCharts - Métricas de Propiedades */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
-        <div className={cardBase}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaDollarSign className="text-emerald-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Valor Portfolio</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Inventario total</p>
-          <Chart options={portfolioOptions} series={portfolioSeries} type="radialBar" height={180} />
-          <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
-            <div className="text-center">
-              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{propiedades.filter(p => p.operacion === 'Venta').length}</p>
-              <p className="text-xs text-gray-500">Venta</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{propiedades.filter(p => p.operacion === 'Alquiler').length}</p>
-              <p className="text-xs text-gray-500">Alquiler</p>
-            </div>
-          </div>
-        </div>
-
-        <div className={cardBase}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaBuilding className="text-blue-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Por Tipo</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución de inventario</p>
-          <Chart options={tipoDonutOptions} series={tipoDonutSeries} type="donut" height={200} />
-        </div>
-
-        <div className={cardBase}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaHome className="text-purple-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Por Estado</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Disponibilidad actual</p>
-          <Chart options={estadoBarOptions} series={estadoBarSeries} type="bar" height={160} />
-        </div>
-
-        <div className={cardBase}>
-          <div className="flex items-center gap-2 mb-1">
-            <FaChartLine className="text-orange-500" />
-            <h3 className="font-semibold dark:text-gray-100 text-sm">Tendencia Visitas</h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Últimas 4 semanas</p>
-          <Chart options={visitasAreaOptions} series={visitasAreaSeries} type="area" height={180} />
-          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded text-center">
-              <p className="text-sm font-bold text-purple-600 dark:text-purple-400">2.3K</p>
-              <p className="text-xs text-gray-500">Total Mes</p>
-            </div>
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
-              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">+24%</p>
-              <p className="text-xs text-gray-500">vs Ant.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Gráficos de Estados y Tipos */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Gráfico de Estados */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Estados de Propiedades</h3>
-          <AccumulationChartComponent
-            id="estados-chart"
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true }}
-            height="300px"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                type="Pie"
-                dataSource={estadosData}
-                xName="estado"
-                yName="cantidad"
-                name="Propiedades"
-                innerRadius="40%"
-                dataLabel={{ visible: true, name: 'estado', position: 'Outside' }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
-        </div>
-
-        {/* Gráfico de Tipos */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipos de Propiedades</h3>
-          <ChartComponent
-            id="tipos-chart"
-            primaryXAxis={{ valueType: 'Category', title: 'Tipos' }}
-            primaryYAxis={{ title: 'Cantidad' }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: false }}
-            height="300px"
-          >
-            <Inject services={[ColumnSeries, Category, Tooltip]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Column"
-                dataSource={tiposData}
-                xName="tipo"
-                yName="cantidad"
-                name="Cantidad"
-                fill={currentColor || '#3B82F6'}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
-        </div>
-      </div>
-
-      {/* Grid de Propiedades y Galería */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        {/* Grid Principal */}
-        <div className={`xl:col-span-2 ${cardBase}`}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏠 Listado de Propiedades</h3>
-          <GridComponent
-            dataSource={propiedades}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-            allowFiltering
-          >
-            <GridInject services={[Page, Sort, Filter]} />
-            <ColumnsDirective>
-              <ColumnDirective field="titulo" headerText="Propiedad" width="200" />
-              <ColumnDirective field="tipo" headerText="Tipo" width="120" />
-              <ColumnDirective field="estado" headerText="Estado" width="120" />
-              <ColumnDirective field="precio" headerText="Precio" textAlign="Right" width="120" format="C0" />
-              <ColumnDirective field="m2" headerText="M²" textAlign="Center" width="80" />
-              <ColumnDirective field="agente" headerText="Agente" width="150" />
-              <ColumnDirective field="visitas" headerText="Visitas" textAlign="Center" width="100" />
-            </ColumnsDirective>
-          </GridComponent>
-        </div>
-
-        {/* Panel de Galería */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📸 Galería y Multimedia</h3>
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="aspect-square border-2 border-dashed dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-xs">
-                  <FaCamera className="text-gray-400" />
+          {/* KPIs de Propiedades - Clickeables */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {kpisPropiedades.map((kpi, i) => {
+              const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6', 'from-amber-500 to-amber-600': '#f59e0b' };
+              const accentColor = colorMap[kpi.color] || '#6366f1';
+              const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20' };
+              const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+              return (
+                <div
+                  key={i}
+                  onClick={() => {
+                    if (i === 0) setShowModalTotalPropiedades(true);
+                    else if (i === 1) setShowModalValorPortfolio(true);
+                    else if (i === 2) setShowModalVisitasTotales(true);
+                    else if (i === 3) setShowModalFotosSubidas(true);
+                  }}
+                  className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+                  style={{ borderLeft: `4px solid ${accentColor}` }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                      <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
+                    </div>
+                  </div>
+                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+                  <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
                 </div>
-              ))}
-            </div>
-            <div className="text-center">
-              <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
-                <FaUpload className="inline mr-2" />Subir Fotos
-              </button>
-            </div>
-            <div>
-              <h4 className="font-bold mb-2 dark:text-gray-200 text-sm">Videos Integrados</h4>
-              <input 
-                type="text" 
-                placeholder="URL de YouTube/Vimeo..." 
-                className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" 
-              />
-            </div>
+              );
+            })}
           </div>
-        </div>
-      </div>
 
-      {/* Tipología y Características */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* Tipología */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipología Completa</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {['Casa', 'Departamento', 'Lote', 'Local', 'Oficina', 'Cochera'].map((tipo) => (
-              <div key={tipo} className="p-4 border dark:border-gray-700 rounded-lg text-center hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                <FaBuilding className="text-2xl mx-auto mb-2 text-blue-500" />
-                <p className="font-medium dark:text-gray-200 text-sm">{tipo}</p>
+          {/* Gráficos ApexCharts - Métricas de Propiedades */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
+            <div className={cardBase}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaDollarSign className="text-emerald-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Valor Portfolio</h3>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Características y Ubicación */}
-        <div className={cardBase}>
-          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📍 Ubicación y Características</h3>
-          <div className="space-y-4">
-            <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <FaMapMarkerAlt className="text-2xl text-gray-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Mapa Interactivo</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Inventario total</p>
+              <Chart options={portfolioOptions} series={portfolioSeries} type="radialBar" height={180} />
+              <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
+                <div className="text-center">
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{propiedades.filter((p) => p.operacion === 'Venta').length}</p>
+                  <p className="text-xs text-gray-500">Venta</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{propiedades.filter((p) => p.operacion === 'Alquiler').length}</p>
+                  <p className="text-xs text-gray-500">Alquiler</p>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" placeholder="M²" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
-              <input type="number" placeholder="Ambientes" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
+
+            <div className={cardBase}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaBuilding className="text-blue-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Por Tipo</h3>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Distribución de inventario</p>
+              <Chart options={tipoDonutOptions} series={tipoDonutSeries} type="donut" height={200} />
             </div>
-            <div className="grid grid-cols-2 gap-1">
-              {['Piscina', 'Gym', 'Seguridad', 'Parrilla'].map((amenity) => (
-                <label key={amenity} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="w-3 h-3" />
-                  <span className="dark:text-gray-200">{amenity}</span>
-                </label>
-              ))}
+
+            <div className={cardBase}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaHome className="text-purple-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Por Estado</h3>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Disponibilidad actual</p>
+              <Chart options={estadoBarOptions} series={estadoBarSeries} type="bar" height={160} />
+            </div>
+
+            <div className={cardBase}>
+              <div className="flex items-center gap-2 mb-1">
+                <FaChartLine className="text-orange-500" />
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Tendencia Visitas</h3>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Últimas 4 semanas</p>
+              <Chart options={visitasAreaOptions} series={visitasAreaSeries} type="area" height={180} />
+              <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded text-center">
+                  <p className="text-sm font-bold text-purple-600 dark:text-purple-400">2.3K</p>
+                  <p className="text-xs text-gray-500">Total Mes</p>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded text-center">
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">+24%</p>
+                  <p className="text-xs text-gray-500">vs Ant.</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+
+          {/* Gráficos de Estados y Tipos */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            {/* Gráfico de Estados */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Estados de Propiedades</h3>
+              <AccumulationChartComponent
+                id="estados-chart"
+                tooltip={{ enable: true }}
+                legendSettings={{ visible: true }}
+                height="300px"
+              >
+                <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
+                <AccumulationSeriesCollectionDirective>
+                  <AccumulationSeriesDirective
+                    type="Pie"
+                    dataSource={estadosData}
+                    xName="estado"
+                    yName="cantidad"
+                    name="Propiedades"
+                    innerRadius="40%"
+                    dataLabel={{ visible: true, name: 'estado', position: 'Outside' }}
+                  />
+                </AccumulationSeriesCollectionDirective>
+              </AccumulationChartComponent>
+            </div>
+
+            {/* Gráfico de Tipos */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipos de Propiedades</h3>
+              <ChartComponent
+                id="tipos-chart"
+                primaryXAxis={{ valueType: 'Category', title: 'Tipos' }}
+                primaryYAxis={{ title: 'Cantidad' }}
+                tooltip={{ enable: true }}
+                legendSettings={{ visible: false }}
+                height="300px"
+              >
+                <Inject services={[ColumnSeries, Category, Tooltip]} />
+                <SeriesCollectionDirective>
+                  <SeriesDirective
+                    type="Column"
+                    dataSource={tiposData}
+                    xName="tipo"
+                    yName="cantidad"
+                    name="Cantidad"
+                    fill={currentColor || '#3B82F6'}
+                  />
+                </SeriesCollectionDirective>
+              </ChartComponent>
+            </div>
+          </div>
+
+          {/* Grid de Propiedades y Galería */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+            {/* Grid Principal */}
+            <div className={`xl:col-span-2 ${cardBase}`}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏠 Listado de Propiedades</h3>
+              <GridComponent
+                dataSource={propiedades}
+                allowPaging
+                pageSettings={{ pageSize: 10 }}
+                allowSorting
+                allowFiltering
+              >
+                <GridInject services={[Page, Sort, Filter]} />
+                <ColumnsDirective>
+                  <ColumnDirective field="titulo" headerText="Propiedad" width="200" />
+                  <ColumnDirective field="tipo" headerText="Tipo" width="120" />
+                  <ColumnDirective field="estado" headerText="Estado" width="120" />
+                  <ColumnDirective field="precio" headerText="Precio" textAlign="Right" width="120" format="C0" />
+                  <ColumnDirective field="m2" headerText="M²" textAlign="Center" width="80" />
+                  <ColumnDirective field="agente" headerText="Agente" width="150" />
+                  <ColumnDirective field="visitas" headerText="Visitas" textAlign="Center" width="100" />
+                </ColumnsDirective>
+              </GridComponent>
+            </div>
+
+            {/* Panel de Galería */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📸 Galería y Multimedia</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="aspect-square border-2 border-dashed dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-xs">
+                      <FaCamera className="text-gray-400" />
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center">
+                  <button type="button" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
+                    <FaUpload className="inline mr-2" />Subir Fotos
+                  </button>
+                </div>
+                <div>
+                  <h4 className="font-bold mb-2 dark:text-gray-200 text-sm">Videos Integrados</h4>
+                  <input
+                    type="text"
+                    placeholder="URL de YouTube/Vimeo..."
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tipología y Características */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            {/* Tipología */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipología Completa</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {['Casa', 'Departamento', 'Lote', 'Local', 'Oficina', 'Cochera'].map((tipo) => (
+                  <div key={tipo} className="p-4 border dark:border-gray-700 rounded-lg text-center hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+                    <FaBuilding className="text-2xl mx-auto mb-2 text-blue-500" />
+                    <p className="font-medium dark:text-gray-200 text-sm">{tipo}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Características y Ubicación */}
+            <div className={cardBase}>
+              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📍 Ubicación y Características</h3>
+              <div className="space-y-4">
+                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <FaMapMarkerAlt className="text-2xl text-gray-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Mapa Interactivo</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="number" placeholder="M²" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
+                  <input type="number" placeholder="Ambientes" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  {['Piscina', 'Gym', 'Seguridad', 'Parrilla'].map((amenity) => (
+                    <label htmlFor="field-81" key={amenity} className="flex items-center gap-2 text-sm">
+                      <input id="field-81" type="checkbox" className="w-3 h-3" />
+                      <span className="dark:text-gray-200">{amenity}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </>
       )}
 
@@ -1183,13 +1224,14 @@ const Propiedades = () => {
               />
               {searchTerm && (
                 <button
+                  type="button"
                   onClick={() => setSearchTerm('')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <FaTimes className="text-sm" />
                 </button>
               )}
-              
+
               {/* Sugerencias de búsqueda */}
               {showSuggestions && getSuggestions().length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
@@ -1212,7 +1254,8 @@ const Propiedades = () => {
                         </div>
                         <span className={`text-xs px-1.5 py-0.5 rounded ${
                           prop.operacion === 'Venta' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                        }`}>
+                        }`}
+                        >
                           {prop.operacion}
                         </span>
                       </div>
@@ -1221,9 +1264,10 @@ const Propiedades = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Botón de filtros y ordenamiento */}
             <button
+              type="button"
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${
                 showFilters || filtrosActivos > 0
@@ -1236,20 +1280,21 @@ const Propiedades = () => {
               {filtrosActivos > 0 && (
                 <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${showFilters || filtrosActivos > 0 ? 'bg-white text-blue-500' : 'bg-blue-500 text-white'}`}>
                   {filtrosActivos}
-                  </span>
-                )}
-              </button>
-              
+                </span>
+              )}
+            </button>
+
             {/* Limpiar filtros */}
             {filtrosActivos > 0 && (
               <button
+                type="button"
                 onClick={limpiarFiltros}
                 className="flex items-center gap-1 px-2 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               >
                 <FaTimes className="text-xs" /> Limpiar
               </button>
             )}
-            
+
             {/* Contador de resultados */}
             <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
               {propiedadesFiltradas.length} de {propiedades.length}
@@ -1263,7 +1308,7 @@ const Propiedades = () => {
                 <h4 className="font-semibold dark:text-gray-100 flex items-center gap-2">
                   <FaFilter className="text-blue-500" /> Filtros y Ordenamiento
                 </h4>
-                
+
                 {/* Selector de ordenamiento */}
                 <select
                   value={ordenarPor}
@@ -1277,12 +1322,13 @@ const Propiedades = () => {
                   <option value="m2_desc">M² ↓</option>
                   <option value="nombre_asc">A-Z</option>
                 </select>
-                
+
                 {/* Filtros rápidos de operación */}
                 <div className="flex items-center gap-3 ml-auto">
-                  {['todas', 'venta', 'alquiler'].map(op => (
-                    <label key={op} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                  {['todas', 'venta', 'alquiler'].map((op) => (
+                    <label htmlFor="field-82" key={op} className="flex items-center gap-1.5 cursor-pointer text-sm">
                       <input
+                        id="field-82"
                         type="radio"
                         name="filtroOp"
                         checked={filtroOperacion === op}
@@ -1294,137 +1340,147 @@ const Propiedades = () => {
                   ))}
                 </div>
               </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Tipo de propiedad */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo</label>
-                    <select
-                      value={filtros.tipo}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, tipo: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    >
-                      <option value="">Todos los tipos</option>
-                      {tiposUnicos.map(tipo => (
-                        <option key={tipo} value={tipo}>{tipo}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Estado */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Estado</label>
-                    <select
-                      value={filtros.estado}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    >
-                      <option value="">Todos</option>
-                      <option value="Disponible">Disponible</option>
-                      <option value="Reservada">Reservada</option>
-                      <option value="Vendida">Vendida</option>
-                      <option value="Alquilada">Alquilada</option>
-                    </select>
-                  </div>
-                  
-                  {/* Barrio */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Barrio</label>
-                    <select
-                      value={filtros.barrio}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, barrio: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    >
-                      <option value="">Todos los barrios</option>
-                      {barriosUnicos.map(barrio => (
-                        <option key={barrio} value={barrio}>{barrio}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Moneda */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Moneda</label>
-                    <select
-                      value={filtros.moneda}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, moneda: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    >
-                      <option value="">Todas</option>
-                      <option value="USD">USD</option>
-                      <option value="ARS">ARS</option>
-                    </select>
-                  </div>
-                  
-                  {/* Rango de precio */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Precio mínimo</label>
-                    <input
-                      type="number"
-                      value={filtros.precioMin}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, precioMin: e.target.value }))}
-                      placeholder="Ej: 50000"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Precio máximo</label>
-                    <input
-                      type="number"
-                      value={filtros.precioMax}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, precioMax: e.target.value }))}
-                      placeholder="Ej: 500000"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    />
-                  </div>
-                  
-                  {/* Dormitorios */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Dormitorios mín.</label>
-                    <input
-                      type="number"
-                      value={filtros.dormitoriosMin}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, dormitoriosMin: e.target.value }))}
-                      placeholder="Ej: 1"
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Dormitorios máx.</label>
-                    <input
-                      type="number"
-                      value={filtros.dormitoriosMax}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, dormitoriosMax: e.target.value }))}
-                      placeholder="Ej: 5"
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    />
-                  </div>
-                  
-                  {/* M2 */}
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">M² mínimo</label>
-                    <input
-                      type="number"
-                      value={filtros.m2Min}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, m2Min: e.target.value }))}
-                      placeholder="Ej: 30"
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">M² máximo</label>
-                    <input
-                      type="number"
-                      value={filtros.m2Max}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, m2Max: e.target.value }))}
-                      placeholder="Ej: 300"
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Tipo de propiedad */}
+                <div>
+                  <label htmlFor="field-83" className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo</label>
+                  <select
+                    id="field-83"
+                    value={filtros.tipo}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, tipo: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todos los tipos</option>
+                    {tiposUnicos.map((tipo) => (
+                      <option key={tipo} value={tipo}>{tipo}</option>
+                    ))}
+                  </select>
                 </div>
+
+                {/* Estado */}
+                <div>
+                  <label htmlFor="field-84" className="block text-xs font-medium mb-1 dark:text-gray-300">Estado</label>
+                  <select
+                    id="field-84"
+                    value={filtros.estado}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, estado: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todos</option>
+                    <option value="Disponible">Disponible</option>
+                    <option value="Reservada">Reservada</option>
+                    <option value="Vendida">Vendida</option>
+                    <option value="Alquilada">Alquilada</option>
+                  </select>
+                </div>
+
+                {/* Barrio */}
+                <div>
+                  <label htmlFor="field-85" className="block text-xs font-medium mb-1 dark:text-gray-300">Barrio</label>
+                  <select
+                    id="field-85"
+                    value={filtros.barrio}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, barrio: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todos los barrios</option>
+                    {barriosUnicos.map((barrio) => (
+                      <option key={barrio} value={barrio}>{barrio}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Moneda */}
+                <div>
+                  <label htmlFor="field-86" className="block text-xs font-medium mb-1 dark:text-gray-300">Moneda</label>
+                  <select
+                    id="field-86"
+                    value={filtros.moneda}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, moneda: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todas</option>
+                    <option value="USD">USD</option>
+                    <option value="ARS">ARS</option>
+                  </select>
+                </div>
+
+                {/* Rango de precio */}
+                <div>
+                  <label htmlFor="field-87" className="block text-xs font-medium mb-1 dark:text-gray-300">Precio mínimo</label>
+                  <input
+                    id="field-87"
+                    type="number"
+                    value={filtros.precioMin}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, precioMin: e.target.value }))}
+                    placeholder="Ej: 50000"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="field-88" className="block text-xs font-medium mb-1 dark:text-gray-300">Precio máximo</label>
+                  <input
+                    id="field-88"
+                    type="number"
+                    value={filtros.precioMax}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, precioMax: e.target.value }))}
+                    placeholder="Ej: 500000"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+
+                {/* Dormitorios */}
+                <div>
+                  <label htmlFor="field-89" className="block text-xs font-medium mb-1 dark:text-gray-300">Dormitorios mín.</label>
+                  <input
+                    id="field-89"
+                    type="number"
+                    value={filtros.dormitoriosMin}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, dormitoriosMin: e.target.value }))}
+                    placeholder="Ej: 1"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="field-90" className="block text-xs font-medium mb-1 dark:text-gray-300">Dormitorios máx.</label>
+                  <input
+                    id="field-90"
+                    type="number"
+                    value={filtros.dormitoriosMax}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, dormitoriosMax: e.target.value }))}
+                    placeholder="Ej: 5"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+
+                {/* M2 */}
+                <div>
+                  <label htmlFor="field-91" className="block text-xs font-medium mb-1 dark:text-gray-300">M² mínimo</label>
+                  <input
+                    id="field-91"
+                    type="number"
+                    value={filtros.m2Min}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, m2Min: e.target.value }))}
+                    placeholder="Ej: 30"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="field-92" className="block text-xs font-medium mb-1 dark:text-gray-300">M² máximo</label>
+                  <input
+                    id="field-92"
+                    type="number"
+                    value={filtros.m2Max}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, m2Max: e.target.value }))}
+                    placeholder="Ej: 300"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -1437,73 +1493,68 @@ const Propiedades = () => {
               </div>
             ) : (
               propiedadesFiltradas.map((propiedad) => (
-            <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
-              {/* Imagen placeholder */}
-              <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                <FaHome className="text-6xl text-white opacity-30" />
-                <div className="absolute top-3 right-3 flex gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    propiedad.estado === 'Disponible' ? 'bg-green-500 text-white' :
-                    propiedad.estado === 'Reservada' ? 'bg-yellow-500 text-white' :
-                    propiedad.estado === 'Vendida' ? 'bg-gray-500 text-white' :
-                    'bg-blue-500 text-white'
-                  }`}>
-                    {propiedad.estado}
-                  </span>
-                </div>
-                <div className="absolute bottom-3 left-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1">
-                  <FaCamera /> {propiedad.fotos} fotos
-                </div>
-              </div>
+                <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
+                  {/* Imagen placeholder */}
+                  <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <FaHome className="text-6xl text-white opacity-30" />
+                    <div className="absolute top-3 right-3 flex gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeWhite(propiedad.estado)}`}>
+                        {propiedad.estado}
+                      </span>
+                    </div>
+                    <div className="absolute bottom-3 left-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1">
+                      <FaCamera /> {propiedad.fotos} fotos
+                    </div>
+                  </div>
 
-              {/* Información */}
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-lg font-bold dark:text-gray-100">{propiedad.titulo}</h3>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">ID: {propiedad.id}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                    <FaMapMarkerAlt className="text-red-500" /> {propiedad.barrio}, {propiedad.ciudad}
-                  </p>
-                </div>
+                  {/* Información */}
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-lg font-bold dark:text-gray-100">{propiedad.titulo}</h3>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">ID: {propiedad.id}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <FaMapMarkerAlt className="text-red-500" /> {propiedad.barrio}, {propiedad.ciudad}
+                      </p>
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold" style={{ color: currentColor }}>
-                    {propiedad.moneda} ${propiedad.precio.toLocaleString()}
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{propiedad.operacion}</span>
-                </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold" style={{ color: currentColor }}>
+                        {propiedad.moneda} ${propiedad.precio.toLocaleString()}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{propiedad.operacion}</span>
+                    </div>
 
-                <div className="grid grid-cols-4 gap-2 pt-3 border-t dark:border-gray-700">
-                  <div className="text-center">
-                    <FaRulerCombined className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.m2}m²</p>
-                  </div>
-                  <div className="text-center">
-                    <FaHome className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.ambientes} amb</p>
-                  </div>
-                  <div className="text-center">
-                    <FaBed className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.dormitorios} dorm</p>
-                  </div>
-                  <div className="text-center">
-                    <FaBath className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.baños} baños</p>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-4 gap-2 pt-3 border-t dark:border-gray-700">
+                      <div className="text-center">
+                        <FaRulerCombined className="text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs font-semibold dark:text-gray-200">{propiedad.m2}m²</p>
+                      </div>
+                      <div className="text-center">
+                        <FaHome className="text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs font-semibold dark:text-gray-200">{propiedad.ambientes} amb</p>
+                      </div>
+                      <div className="text-center">
+                        <FaBed className="text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs font-semibold dark:text-gray-200">{propiedad.dormitorios} dorm</p>
+                      </div>
+                      <div className="text-center">
+                        <FaBath className="text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs font-semibold dark:text-gray-200">{propiedad.baños} baños</p>
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
-                  <div className="flex items-center gap-2">
-                    <FaUser className="text-gray-400" />
-                    <span className="text-sm dark:text-gray-300">{propiedad.agente}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                    <FaEye />
-                    <span className="text-sm">{propiedad.visitas}</span>
+                    <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
+                      <div className="flex items-center gap-2">
+                        <FaUser className="text-gray-400" />
+                        <span className="text-sm dark:text-gray-300">{propiedad.agente}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <FaEye />
+                        <span className="text-sm">{propiedad.visitas}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
               ))
             )}
           </div>
@@ -1517,18 +1568,13 @@ const Propiedades = () => {
           <div className="relative h-96 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl overflow-hidden">
             <FaHome className="absolute inset-0 m-auto text-9xl text-white opacity-20" />
             <div className="absolute top-6 right-6 flex gap-3">
-              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                propiedadSeleccionada.estado === 'Disponible' ? 'bg-green-500 text-white' :
-                propiedadSeleccionada.estado === 'Reservada' ? 'bg-yellow-500 text-white' :
-                propiedadSeleccionada.estado === 'Vendida' ? 'bg-gray-500 text-white' :
-                'bg-blue-500 text-white'
-              }`}>
+              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getEstadoBadgeWhite(propiedadSeleccionada.estado)}`}>
                 {propiedadSeleccionada.estado}
               </span>
-              <button onClick={() => handleEditPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors flex items-center gap-2">
+              <button type="button" onClick={() => handleEditPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors flex items-center gap-2">
                 <FaEdit /> Editar
               </button>
-              <button onClick={() => eliminarPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2" disabled={loading}>
+              <button type="button" onClick={() => eliminarPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center gap-2" disabled={loading}>
                 <FaTrash /> Eliminar
               </button>
             </div>
@@ -1623,7 +1669,7 @@ const Propiedades = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {propiedadSeleccionada.amenities.map((amenity, index) => (
                     <div key={index} className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-gray-800 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
                       <span className="text-sm font-medium dark:text-gray-200">{amenity}</span>
                     </div>
                   ))}
@@ -1780,6 +1826,7 @@ const Propiedades = () => {
                 <p className="text-blue-100 text-sm mt-1">Complete los datos de la propiedad</p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
                 className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
               >
@@ -1790,628 +1837,659 @@ const Propiedades = () => {
             {/* Formulario con scroll */}
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Información Básica */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaBuilding className="text-blue-500" /> Información Básica
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Título de la Propiedad *
-                    </label>
-                    <input
-                      type="text"
-                      name="titulo"
-                      value={nuevaPropiedad.titulo}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Ej: Depto 2amb Palermo con balcón"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Tipo de Propiedad *
-                    </label>
-                    <select
-                      name="tipo"
-                      value={nuevaPropiedad.tipo}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                      <option value="Departamento">Departamento</option>
-                      <option value="Casa">Casa</option>
-                      <option value="PH">PH</option>
-                      <option value="Oficina">Oficina</option>
-                      <option value="Local">Local Comercial</option>
-                      <option value="Terreno">Terreno</option>
-                      <option value="Cochera">Cochera</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Categoría
-                    </label>
-                    <input
-                      type="text"
-                      name="categoria"
-                      value={nuevaPropiedad.categoria}
-                      onChange={handleInputChange}
-                      placeholder="Ej: Residencial"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Operación *
-                    </label>
-                    <select
-                      name="operacion"
-                      value={nuevaPropiedad.operacion}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                      <option value="Venta">Venta</option>
-                      <option value="Alquiler">Alquiler</option>
-                      <option value="Alquiler Temporal">Alquiler Temporal</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Precio *
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        name="moneda"
-                        value={nuevaPropiedad.moneda}
+                {/* Información Básica */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaBuilding className="text-blue-500" /> Información Básica
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label htmlFor="field-93" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Título de la Propiedad *
+                      </label>
+                      <input
+                        id="field-93"
+                        type="text"
+                        name="titulo"
+                        value={nuevaPropiedad.titulo}
                         onChange={handleInputChange}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        required
+                        placeholder="Ej: Depto 2amb Palermo con balcón"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-94" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Tipo de Propiedad *
+                      </label>
+                      <select
+                        id="field-94"
+                        name="tipo"
+                        value={nuevaPropiedad.tipo}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       >
-                        <option value="USD">USD</option>
-                        <option value="ARS">ARS</option>
+                        <option value="Departamento">Departamento</option>
+                        <option value="Casa">Casa</option>
+                        <option value="PH">PH</option>
+                        <option value="Oficina">Oficina</option>
+                        <option value="Local">Local Comercial</option>
+                        <option value="Terreno">Terreno</option>
+                        <option value="Cochera">Cochera</option>
                       </select>
-                      {String(nuevaPropiedad.operacion || '').toLowerCase().includes('alquil') ? (
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-95" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Categoría
+                      </label>
+                      <input
+                        id="field-95"
+                        type="text"
+                        name="categoria"
+                        value={nuevaPropiedad.categoria}
+                        onChange={handleInputChange}
+                        placeholder="Ej: Residencial"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-96" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Operación *
+                      </label>
+                      <select
+                        id="field-96"
+                        name="operacion"
+                        value={nuevaPropiedad.operacion}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="Venta">Venta</option>
+                        <option value="Alquiler">Alquiler</option>
+                        <option value="Alquiler Temporal">Alquiler Temporal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-97" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Precio *
+                      </label>
+                      <div className="flex gap-2">
                         <select
-                          name="unidadPrecio"
-                          value={nuevaPropiedad.unidadPrecio}
+                          id="field-97"
+                          name="moneda"
+                          value={nuevaPropiedad.moneda}
                           onChange={handleInputChange}
                           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                         >
-                          <option value="month">Mes</option>
-                          <option value="week">Semana</option>
-                          <option value="day">Día</option>
-                          <option value="night">Noche</option>
+                          <option value="USD">USD</option>
+                          <option value="ARS">ARS</option>
                         </select>
-                      ) : null}
+                        {String(nuevaPropiedad.operacion || '').toLowerCase().includes('alquil') ? (
+                          <select
+                            name="unidadPrecio"
+                            value={nuevaPropiedad.unidadPrecio}
+                            onChange={handleInputChange}
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="month">Mes</option>
+                            <option value="week">Semana</option>
+                            <option value="day">Día</option>
+                            <option value="night">Noche</option>
+                          </select>
+                        ) : null}
+                        <input
+                          type="number"
+                          name="precio"
+                          value={nuevaPropiedad.precio}
+                          onChange={handleInputChange}
+                          required
+                          placeholder="150000"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-98" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Precio de Oferta
+                      </label>
                       <input
+                        id="field-98"
                         type="number"
-                        name="precio"
-                        value={nuevaPropiedad.precio}
+                        name="precioOferta"
+                        value={nuevaPropiedad.precioOferta}
+                        onChange={handleInputChange}
+                        placeholder="140000"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-99" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Estado *
+                      </label>
+                      <select
+                        id="field-99"
+                        name="estado"
+                        value={nuevaPropiedad.estado}
                         onChange={handleInputChange}
                         required
-                        placeholder="150000"
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="Disponible">Disponible</option>
+                        <option value="Reservada">Reservada</option>
+                        <option value="Vendida">Vendida</option>
+                        <option value="Alquilada">Alquilada</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label htmlFor="field-100" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
+                        <input
+                          id="field-100"
+                          type="checkbox"
+                          name="featured"
+                          checked={!!nuevaPropiedad.featured}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        Featured
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ubicación */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-red-500" /> Ubicación
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label htmlFor="field-101" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Dirección *
+                      </label>
+                      <input
+                        id="field-101"
+                        type="text"
+                        name="direccion"
+                        value={nuevaPropiedad.direccion}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Av. Santa Fe 1234"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-102" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Barrio *
+                      </label>
+                      <input
+                        id="field-102"
+                        type="text"
+                        name="barrio"
+                        value={nuevaPropiedad.barrio}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Palermo"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-103" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Ciudad *
+                      </label>
+                      <input
+                        id="field-103"
+                        type="text"
+                        name="ciudad"
+                        value={nuevaPropiedad.ciudad}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-104" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Provincia *
+                      </label>
+                      <input
+                        id="field-104"
+                        type="text"
+                        name="provincia"
+                        value={nuevaPropiedad.provincia}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-105" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        País
+                      </label>
+                      <input
+                        id="field-105"
+                        type="text"
+                        name="pais"
+                        value={nuevaPropiedad.pais}
+                        onChange={handleInputChange}
+                        placeholder="AR"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-106" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Código Postal
+                      </label>
+                      <input
+                        id="field-106"
+                        type="text"
+                        name="codigoPostal"
+                        value={nuevaPropiedad.codigoPostal}
+                        onChange={handleInputChange}
+                        placeholder="C1425"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
                     </div>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Precio de Oferta
-                    </label>
-                    <input
-                      type="number"
-                      name="precioOferta"
-                      value={nuevaPropiedad.precioOferta}
-                      onChange={handleInputChange}
-                      placeholder="140000"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Estado *
-                    </label>
-                    <select
-                      name="estado"
-                      value={nuevaPropiedad.estado}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                      <option value="Disponible">Disponible</option>
-                      <option value="Reservada">Reservada</option>
-                      <option value="Vendida">Vendida</option>
-                      <option value="Alquilada">Alquilada</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
+                {/* Características */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaHome className="text-green-500" /> Características
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label htmlFor="field-107" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        ID de la propiedad
+                      </label>
                       <input
-                        type="checkbox"
-                        name="featured"
-                        checked={!!nuevaPropiedad.featured}
+                        id="field-107"
+                        type="text"
+                        name="idPropiedad"
+                        value={nuevaPropiedad.idPropiedad}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        placeholder="PROP-001"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
-                      Featured
-                    </label>
-                  </div>
-                </div>
-              </div>
+                    </div>
 
-              {/* Ubicación */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-red-500" /> Ubicación
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Dirección *
-                    </label>
-                    <input
-                      type="text"
-                      name="direccion"
-                      value={nuevaPropiedad.direccion}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Av. Santa Fe 1234"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Barrio *
-                    </label>
-                    <input
-                      type="text"
-                      name="barrio"
-                      value={nuevaPropiedad.barrio}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Palermo"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Ciudad *
-                    </label>
-                    <input
-                      type="text"
-                      name="ciudad"
-                      value={nuevaPropiedad.ciudad}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Provincia *
-                    </label>
-                    <input
-                      type="text"
-                      name="provincia"
-                      value={nuevaPropiedad.provincia}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      País
-                    </label>
-                    <input
-                      type="text"
-                      name="pais"
-                      value={nuevaPropiedad.pais}
-                      onChange={handleInputChange}
-                      placeholder="AR"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Código Postal
-                    </label>
-                    <input
-                      type="text"
-                      name="codigoPostal"
-                      value={nuevaPropiedad.codigoPostal}
-                      onChange={handleInputChange}
-                      placeholder="C1425"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Características */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaHome className="text-green-500" /> Características
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      ID de la propiedad
-                    </label>
-                    <input
-                      type="text"
-                      name="idPropiedad"
-                      value={nuevaPropiedad.idPropiedad}
-                      onChange={handleInputChange}
-                      placeholder="PROP-001"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Precio por m²
-                    </label>
-                    <input
-                      type="number"
-                      name="precioPorM2"
-                      value={nuevaPropiedad.precioPorM2}
-                      onChange={handleInputChange}
-                      placeholder="3500"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Tipo de estructura
-                    </label>
-                    <input
-                      type="text"
-                      name="tipoEstructura"
-                      value={nuevaPropiedad.tipoEstructura}
-                      onChange={handleInputChange}
-                      placeholder="Hormigón"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      M² Totales *
-                    </label>
-                    <input
-                      type="number"
-                      name="m2Totales"
-                      value={nuevaPropiedad.m2Totales}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="45"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      M² Cubiertos
-                    </label>
-                    <input
-                      type="number"
-                      name="m2Cubiertos"
-                      value={nuevaPropiedad.m2Cubiertos}
-                      onChange={handleInputChange}
-                      placeholder="40"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Ambientes *
-                    </label>
-                    <input
-                      type="number"
-                      name="ambientes"
-                      value={nuevaPropiedad.ambientes}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="2"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Dormitorios
-                    </label>
-                    <input
-                      type="number"
-                      name="dormitorios"
-                      value={nuevaPropiedad.dormitorios}
-                      onChange={handleInputChange}
-                      placeholder="1"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Baños
-                    </label>
-                    <input
-                      type="number"
-                      name="baños"
-                      value={nuevaPropiedad.baños}
-                      onChange={handleInputChange}
-                      placeholder="1"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Cocheras
-                    </label>
-                    <input
-                      type="number"
-                      name="cocheras"
-                      value={nuevaPropiedad.cocheras}
-                      onChange={handleInputChange}
-                      placeholder="0"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Antigüedad (años)
-                    </label>
-                    <input
-                      type="number"
-                      name="antiguedad"
-                      value={nuevaPropiedad.antiguedad}
-                      onChange={handleInputChange}
-                      placeholder="5"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                  Descripción
-                </label>
-                <textarea
-                  name="descripcion"
-                  value={nuevaPropiedad.descripcion}
-                  onChange={handleInputChange}
-                  rows="4"
-                  placeholder="Descripción detallada de la propiedad..."
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                />
-              </div>
-
-              {/* Amenities */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">
-                  Amenities
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {amenitiesDisponibles.map((amenity) => (
-                    <label key={amenity} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <div>
+                      <label htmlFor="field-108" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Precio por m²
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={nuevaPropiedad.amenities.includes(amenity)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setNuevaPropiedad(prev => ({
-                              ...prev,
-                              amenities: [...prev.amenities, amenity]
-                            }));
-                          } else {
-                            setNuevaPropiedad(prev => ({
-                              ...prev,
-                              amenities: prev.amenities.filter(a => a !== amenity)
-                            }));
-                          }
-                        }}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        id="field-108"
+                        type="number"
+                        name="precioPorM2"
+                        value={nuevaPropiedad.precioPorM2}
+                        onChange={handleInputChange}
+                        placeholder="3500"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
-                      <span className="dark:text-gray-200">{amenity}</span>
-                    </label>
-                  ))}
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-109" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Tipo de estructura
+                      </label>
+                      <input
+                        id="field-109"
+                        type="text"
+                        name="tipoEstructura"
+                        value={nuevaPropiedad.tipoEstructura}
+                        onChange={handleInputChange}
+                        placeholder="Hormigón"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-110" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        M² Totales *
+                      </label>
+                      <input
+                        id="field-110"
+                        type="number"
+                        name="m2Totales"
+                        value={nuevaPropiedad.m2Totales}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="45"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-111" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        M² Cubiertos
+                      </label>
+                      <input
+                        id="field-111"
+                        type="number"
+                        name="m2Cubiertos"
+                        value={nuevaPropiedad.m2Cubiertos}
+                        onChange={handleInputChange}
+                        placeholder="40"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-112" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Ambientes *
+                      </label>
+                      <input
+                        id="field-112"
+                        type="number"
+                        name="ambientes"
+                        value={nuevaPropiedad.ambientes}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="2"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-113" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Dormitorios
+                      </label>
+                      <input
+                        id="field-113"
+                        type="number"
+                        name="dormitorios"
+                        value={nuevaPropiedad.dormitorios}
+                        onChange={handleInputChange}
+                        placeholder="1"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-114" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Baños
+                      </label>
+                      <input
+                        id="field-114"
+                        type="number"
+                        name="baños"
+                        value={nuevaPropiedad.baños}
+                        onChange={handleInputChange}
+                        placeholder="1"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-115" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Cocheras
+                      </label>
+                      <input
+                        id="field-115"
+                        type="number"
+                        name="cocheras"
+                        value={nuevaPropiedad.cocheras}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-116" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Antigüedad (años)
+                      </label>
+                      <input
+                        id="field-116"
+                        type="number"
+                        name="antiguedad"
+                        value={nuevaPropiedad.antiguedad}
+                        onChange={handleInputChange}
+                        placeholder="5"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Multimedia</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Fotos
-                    </label>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => setFilesFotos(Array.from(e.target.files || []))}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                    />
-                    {filesFotos.length ? (
-                      <div className="mt-2 text-sm dark:text-gray-200">
-                        {filesFotos.length} archivo(s) seleccionado(s)
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Planos
-                    </label>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,.pdf"
-                      onChange={(e) => setFilesPlanos(Array.from(e.target.files || []))}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                    />
-                    {filesPlanos.length ? (
-                      <div className="mt-2 text-sm dark:text-gray-200">
-                        {filesPlanos.length} archivo(s) seleccionado(s)
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Documentos
-                    </label>
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,.pdf,.doc,.docx,.zip"
-                      onChange={(e) => setFilesDocumentos(Array.from(e.target.files || []))}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                    />
-                    {filesDocumentos.length ? (
-                      <div className="mt-2 text-sm dark:text-gray-200">
-                        {filesDocumentos.length} archivo(s) seleccionado(s)
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                    Videos (YouTube/Vimeo)
+                {/* Descripción */}
+                <div>
+                  <label htmlFor="field-117" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                    Descripción
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={videoUrlDraft}
-                      onChange={(e) => setVideoUrlDraft(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const v = String(videoUrlDraft || '').trim();
-                        if (!v) return;
-                        setNuevaPropiedad((prev) => ({
-                          ...prev,
-                          videoUrls: Array.from(new Set([...(prev.videoUrls || []), v])),
-                        }));
-                        setVideoUrlDraft('');
-                      }}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                      Agregar
-                    </button>
-                  </div>
-                  {(nuevaPropiedad.videoUrls || []).length ? (
-                    <div className="mt-3 space-y-2">
-                      {(nuevaPropiedad.videoUrls || []).map((u, idx) => (
-                        <div
-                          key={`${u}-${idx}`}
-                          className="flex items-center justify-between gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg"
-                        >
-                          <div className="text-sm dark:text-gray-200 break-all">{u}</div>
-                          <button
-                            type="button"
-                            onClick={() =>
+                  <textarea
+                    id="field-117"
+                    name="descripcion"
+                    value={nuevaPropiedad.descripcion}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Descripción detallada de la propiedad..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* Amenities */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">
+                    Amenities
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {amenitiesDisponibles.map((amenity) => (
+                      <label htmlFor="field-118" key={amenity} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          id="field-118"
+                          type="checkbox"
+                          checked={nuevaPropiedad.amenities.includes(amenity)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
                               setNuevaPropiedad((prev) => ({
                                 ...prev,
-                                videoUrls: (prev.videoUrls || []).filter((x) => x !== u),
-                              }))
+                                amenities: [...prev.amenities, amenity],
+                              }));
+                            } else {
+                              setNuevaPropiedad((prev) => ({
+                                ...prev,
+                                amenities: prev.amenities.filter((a) => a !== amenity),
+                              }));
                             }
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <FaTimes />
-                          </button>
+                          }}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="dark:text-gray-200">{amenity}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Multimedia</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="field-119" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Fotos
+                      </label>
+                      <input
+                        id="field-119"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => setFilesFotos(Array.from(e.target.files || []))}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {filesFotos.length ? (
+                        <div className="mt-2 text-sm dark:text-gray-200">
+                          {filesFotos.length} archivo(s) seleccionado(s)
                         </div>
-                      ))}
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
-              </div>
 
-              {/* Agente y Comisión */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaUser className="text-purple-500" /> Asignación
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Agente Responsable *
-                    </label>
-                    <select
-                      name="agente"
-                      value={nuevaPropiedad.agente}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    >
-                      <option value="">Seleccionar agente</option>
-                      {agentes.map((a) => (
-                        <option key={a._id} value={a._id}>{a.nombre}</option>
-                      ))}
-                    </select>
+                    <div>
+                      <label htmlFor="field-120" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Planos
+                      </label>
+                      <input
+                        id="field-120"
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        onChange={(e) => setFilesPlanos(Array.from(e.target.files || []))}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {filesPlanos.length ? (
+                        <div className="mt-2 text-sm dark:text-gray-200">
+                          {filesPlanos.length} archivo(s) seleccionado(s)
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-121" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Documentos
+                      </label>
+                      <input
+                        id="field-121"
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx,.zip"
+                        onChange={(e) => setFilesDocumentos(Array.from(e.target.files || []))}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {filesDocumentos.length ? (
+                        <div className="mt-2 text-sm dark:text-gray-200">
+                          {filesDocumentos.length} archivo(s) seleccionado(s)
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Comisión (%)
+                  <div className="mt-4">
+                    <label htmlFor="field-122" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Videos (YouTube/Vimeo)
                     </label>
-                    <input
-                      type="number"
-                      name="comision"
-                      value={nuevaPropiedad.comision}
-                      onChange={handleInputChange}
-                      step="0.5"
-                      min="0"
-                      max="10"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        id="field-122"
+                        type="text"
+                        value={videoUrlDraft}
+                        onChange={(e) => setVideoUrlDraft(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = String(videoUrlDraft || '').trim();
+                          if (!v) return;
+                          setNuevaPropiedad((prev) => ({
+                            ...prev,
+                            videoUrls: Array.from(new Set([...(prev.videoUrls || []), v])),
+                          }));
+                          setVideoUrlDraft('');
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        Agregar
+                      </button>
+                    </div>
+                    {(nuevaPropiedad.videoUrls || []).length ? (
+                      <div className="mt-3 space-y-2">
+                        {(nuevaPropiedad.videoUrls || []).map((u, idx) => (
+                          <div
+                            key={`${u}-${idx}`}
+                            className="flex items-center justify-between gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg"
+                          >
+                            <div className="text-sm dark:text-gray-200 break-all">{u}</div>
+                            <button
+                              type="button"
+                              onClick={() => setNuevaPropiedad((prev) => ({
+                                ...prev,
+                                videoUrls: (prev.videoUrls || []).filter((x) => x !== u),
+                              }))}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <FaTimes />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              </div>
 
-              {/* Botones de Acción */}
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{ backgroundColor: currentColor }}
-                  className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
-                  disabled={loading}
-                >
-                  <FaSave /> Guardar Propiedad
-                </button>
-              </div>              </form>
+                {/* Agente y Comisión */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaUser className="text-purple-500" /> Asignación
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-123" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Agente Responsable *
+                      </label>
+                      <select
+                        id="field-123"
+                        name="agente"
+                        value={nuevaPropiedad.agente}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="">Seleccionar agente</option>
+                        {agentes.map((a) => (
+                          <option key={a._id} value={a._id}>{a.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-124" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Comisión (%)
+                      </label>
+                      <input
+                        id="field-124"
+                        type="number"
+                        name="comision"
+                        value={nuevaPropiedad.comision}
+                        onChange={handleInputChange}
+                        step="0.5"
+                        min="0"
+                        max="10"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    style={{ backgroundColor: currentColor }}
+                    className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
+                    disabled={loading}
+                  >
+                    <FaSave /> Guardar Propiedad
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -2428,7 +2506,7 @@ const Propiedades = () => {
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">{propiedades.length} propiedades en el sistema</p>
               </div>
-              <button onClick={() => setShowModalTotalPropiedades(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalTotalPropiedades(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -2442,12 +2520,7 @@ const Propiedades = () => {
                         <h3 className="font-bold text-lg dark:text-gray-100">{prop.titulo}</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{prop.barrio}, {prop.ciudad}</p>
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                        prop.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                        prop.estado === 'Vendida' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' :
-                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                      }`}>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getEstadoBadgeLight(prop.estado)}`}>
                         {prop.estado}
                       </span>
                     </div>
@@ -2491,7 +2564,7 @@ const Propiedades = () => {
                   Total: ${propiedades.reduce((sum, p) => sum + p.precio, 0).toLocaleString()} USD
                 </p>
               </div>
-              <button onClick={() => setShowModalValorPortfolio(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalValorPortfolio(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -2508,11 +2581,7 @@ const Propiedades = () => {
                           <span>{prop.m2}m²</span>
                           <span>{prop.ambientes} amb</span>
                           <span>{prop.dormitorios} dorm</span>
-                          <span className={`px-2 py-1 rounded ${
-                            prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                            prop.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                          }`}>
+                          <span className={`px-2 py-1 rounded ${getEstadoBadgeShort(prop.estado)}`}>
                             {prop.estado}
                           </span>
                         </div>
@@ -2528,7 +2597,7 @@ const Propiedades = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-green-900/20' : 'bg-green-50'} rounded-lg border-2 border-green-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                   <div>
@@ -2540,7 +2609,7 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Comisión Potencial</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${propiedades.reduce((sum, p) => sum + (p.precio * p.comision / 100), 0).toLocaleString()}
+                      ${propiedades.reduce((sum, p) => sum + ((p.precio * p.comision) / 100), 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
@@ -2569,7 +2638,7 @@ const Propiedades = () => {
                   {propiedades.reduce((sum, p) => sum + p.visitas, 0).toLocaleString()} visitas totales
                 </p>
               </div>
-              <button onClick={() => setShowModalVisitasTotales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalVisitasTotales(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -2579,12 +2648,7 @@ const Propiedades = () => {
                 {[...propiedades].sort((a, b) => b.visitas - a.visitas).map((prop, index) => (
                   <div key={prop.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center gap-4">
-                      <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                        index === 1 ? 'bg-gray-300 text-gray-700' :
-                        index === 2 ? 'bg-orange-400 text-orange-900' :
-                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                      }`}>
+                      <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getRankBadgeClass(index)}`}>
                         #{index + 1}
                       </div>
                       <div className="flex-1">
@@ -2592,9 +2656,10 @@ const Propiedades = () => {
                         <p className="text-sm text-gray-500 dark:text-gray-400">{prop.tipo} • {prop.barrio} • {prop.moneda} ${prop.precio.toLocaleString()}</p>
                         <div className="flex items-center gap-3 mt-2">
                           <span className={`px-2 py-1 rounded text-xs ${
-                            prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                          }`}>
+                            prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                          }`}
+                          >
                             {prop.estado}
                           </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">Agente: {prop.agente}</span>
@@ -2604,9 +2669,9 @@ const Propiedades = () => {
                         <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{prop.visitas.toLocaleString()}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">visitas</p>
                         <div className="mt-2 w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full" 
-                            style={{ width: `${(prop.visitas / Math.max(...propiedades.map(p => p.visitas))) * 100}%` }}
+                          <div
+                            className="bg-purple-600 h-2 rounded-full"
+                            style={{ width: `${(prop.visitas / Math.max(...propiedades.map((p) => p.visitas))) * 100}%` }}
                           />
                         </div>
                       </div>
@@ -2614,7 +2679,7 @@ const Propiedades = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-purple-900/20' : 'bg-purple-50'} rounded-lg border-2 border-purple-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                   <div>
@@ -2632,7 +2697,7 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Más Visitada</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {Math.max(...propiedades.map(p => p.visitas)).toLocaleString()}
+                      {Math.max(...propiedades.map((p) => p.visitas)).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -2655,7 +2720,7 @@ const Propiedades = () => {
                   {propiedades.reduce((sum, p) => sum + p.fotos, 0)} fotos en total
                 </p>
               </div>
-              <button onClick={() => setShowModalFotosSubidas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalFotosSubidas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -2671,9 +2736,10 @@ const Propiedades = () => {
                         <div className="flex items-center gap-3 mt-2 text-xs">
                           <span className="text-gray-600 dark:text-gray-400">Publicada: {prop.fechaPublicacion}</span>
                           <span className={`px-2 py-1 rounded ${
-                            prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                          }`}>
+                            prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                          }`}
+                          >
                             {prop.estado}
                           </span>
                         </div>
@@ -2700,23 +2766,19 @@ const Propiedades = () => {
                     </div>
                     <div className="mt-3 flex items-center gap-2">
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            prop.fotos >= 10 ? 'bg-green-500' :
-                            prop.fotos >= 6 ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}
+                        <div
+                          className={`h-2 rounded-full ${getPhotoBarColor(prop.fotos)}`}
                           style={{ width: `${(prop.fotos / 15) * 100}%` }}
                         />
                       </div>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {prop.fotos >= 10 ? 'Completo' : prop.fotos >= 6 ? 'Bueno' : 'Necesita más fotos'}
+                        {getPhotoLabel(prop.fotos)}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
-              
+
               <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-orange-900/20' : 'bg-orange-50'} rounded-lg border-2 border-orange-500`}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                   <div>
@@ -2734,13 +2796,13 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Más Fotos</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {Math.max(...propiedades.map(p => p.fotos))}
+                      {Math.max(...propiedades.map((p) => p.fotos))}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Propiedades Completas</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {propiedades.filter(p => p.fotos >= 10).length}
+                      {propiedades.filter((p) => p.fotos >= 10).length}
                     </p>
                   </div>
                 </div>

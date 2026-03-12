@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { KanbanComponent, ColumnsDirective, ColumnDirective } from '@syncfusion/ej2-react-kanban';
-import { Header } from '../components';
+import { FaTasks } from 'react-icons/fa';
+import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const Tareas = () => {
+  const { currentMode } = useStateContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [tareasData, setTareasData] = useState([]);
@@ -24,8 +26,7 @@ const Tareas = () => {
         }));
         setTareasData(mapped);
       } catch (e) {
-        setError('No se pudieron cargar las tareas');
-        console.error(e);
+        setError(`No se pudieron cargar las tareas: ${e.message || e}`);
       } finally {
         setLoading(false);
       }
@@ -33,28 +34,28 @@ const Tareas = () => {
     fetchTareas();
   }, []);
 
-  const cardTemplate = (props) => {
-    return (
-      <div className="e-card-content">
-        <div className="e-card-header">
-          <div className="e-card-header-title font-bold">{props.Title}</div>
-        </div>
-        <div className="e-card-content-description text-sm mt-2">
-          {props.Summary}
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          <span className={`px-2 py-1 text-xs rounded-full ${
-            props.Priority === 'Alta' ? 'bg-red-100 text-red-800' :
-            props.Priority === 'Media' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-green-100 text-green-800'
-          }`}>
-            {props.Priority}
-          </span>
-          <span className="text-xs text-gray-500">{props.Tags}</span>
-        </div>
-      </div>
-    );
+  const getPriorityClass = (priority) => {
+    if (priority === 'Alta') return 'bg-red-100 text-red-800';
+    if (priority === 'Media') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-green-100 text-green-800';
   };
+
+  const cardTemplate = (props) => (
+    <div className="e-card-content">
+      <div className="e-card-header">
+        <div className="e-card-header-title font-bold">{props.Title}</div>
+      </div>
+      <div className="e-card-content-description text-sm mt-2">
+        {props.Summary}
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className={`px-2 py-1 text-xs rounded-full ${getPriorityClass(props.Priority)}`}>
+          {props.Priority}
+        </span>
+        <span className="text-xs text-gray-500">{props.Tags}</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -64,9 +65,9 @@ const Tareas = () => {
         </h2>
         <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Productividad y seguimiento</p>
       </div>
-      
+
       <div className="mb-4">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+        <button type="button" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
           Nueva Tarea
         </button>
       </div>
@@ -94,18 +95,18 @@ const Tareas = () => {
                 if (card.Status === 'Close') {
                   crmService.rewards.checkMilestones('task').catch(() => {});
                 }
-              } catch (error) {
-                console.error('Error updating task status:', error);
+              } catch (updateErr) {
+                setError(`Error actualizando tarea: ${updateErr.message || updateErr}`);
               }
             });
           }
         }}
       >
         <ColumnsDirective>
-          <ColumnDirective headerText="Por Hacer" keyField="Open" allowToggle={true} />
-          <ColumnDirective headerText="En Progreso" keyField="InProgress" allowToggle={true} />
-          <ColumnDirective headerText="Revisión" keyField="Testing" allowToggle={true} />
-          <ColumnDirective headerText="Completadas" keyField="Close" allowToggle={true} />
+          <ColumnDirective headerText="Por Hacer" keyField="Open" allowToggle />
+          <ColumnDirective headerText="En Progreso" keyField="InProgress" allowToggle />
+          <ColumnDirective headerText="Revisión" keyField="Testing" allowToggle />
+          <ColumnDirective headerText="Completadas" keyField="Close" allowToggle />
         </ColumnsDirective>
       </KanbanComponent>
     </div>

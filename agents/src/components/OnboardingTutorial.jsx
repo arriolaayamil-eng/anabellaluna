@@ -161,7 +161,7 @@ const OnboardingTutorial = () => {
 
   useEffect(() => {
     const never = localStorage.getItem(ONBOARDING_NEVER_KEY);
-    if (never === 'true') return;
+    if (never === 'true') return undefined;
     const completed = localStorage.getItem(ONBOARDING_KEY);
     if (!completed) {
       const timer = setTimeout(() => {
@@ -171,6 +171,7 @@ const OnboardingTutorial = () => {
       }, 1500);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, []);
 
   const goToStep = useCallback((idx) => {
@@ -194,6 +195,15 @@ const OnboardingTutorial = () => {
     }
   };
 
+  const finishOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    if (neverShow) {
+      localStorage.setItem(ONBOARDING_NEVER_KEY, 'true');
+    }
+    setVisible(false);
+    setShowConfetti(false);
+  };
+
   const handleSkip = () => {
     finishOnboarding();
   };
@@ -202,15 +212,6 @@ const OnboardingTutorial = () => {
     finishOnboarding();
     // Navigate to dashboard
     navigate('/crm');
-  };
-
-  const finishOnboarding = () => {
-    localStorage.setItem(ONBOARDING_KEY, 'true');
-    if (neverShow) {
-      localStorage.setItem(ONBOARDING_NEVER_KEY, 'true');
-    }
-    setVisible(false);
-    setShowConfetti(false);
   };
 
   const handleStepClick = (idx) => {
@@ -258,8 +259,8 @@ const OnboardingTutorial = () => {
           relative bg-white dark:bg-gray-800 shadow-2xl overflow-y-auto
           ob-card-enter
           ${isMobile
-            ? 'w-full h-full rounded-none'
-            : 'max-w-2xl w-full mx-4 max-h-[90vh] rounded-3xl'
+          ? 'w-full h-full rounded-none'
+          : 'max-w-2xl w-full mx-4 max-h-[90vh] rounded-3xl'
           }
         `}
       >
@@ -277,15 +278,16 @@ const OnboardingTutorial = () => {
             <div className="flex items-center justify-center gap-1.5">
               {tutorialSteps.map((s, i) => (
                 <button
+                  type="button"
                   key={s.id}
                   onClick={() => handleStepClick(i)}
                   className={`
                     transition-all duration-300 rounded-full
                     ${i === currentStep
-                      ? 'w-8 h-2.5'
-                      : i < currentStep
-                        ? 'w-2.5 h-2.5 hover:scale-125'
-                        : 'w-2.5 h-2.5 hover:scale-110'
+                    ? 'w-8 h-2.5'
+                    : i < currentStep
+                      ? 'w-2.5 h-2.5 hover:scale-125'
+                      : 'w-2.5 h-2.5 hover:scale-110'
                     }
                   `}
                   style={{
@@ -301,6 +303,7 @@ const OnboardingTutorial = () => {
             </div>
             <div className="flex-1 flex justify-end">
               <button
+                type="button"
                 onClick={handleSkip}
                 className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-400 dark:text-gray-500"
                 title="Omitir tutorial"
@@ -326,7 +329,7 @@ const OnboardingTutorial = () => {
                   <span className="text-5xl sm:text-6xl ob-icon-bounce">{step.emoji}</span>
                 </div>
                 {/* Orbiting particles */}
-                {[0, 1, 2, 3, 4, 5].map(i => (
+                {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div
                     key={i}
                     className="ob-orbit-particle"
@@ -450,8 +453,8 @@ const OnboardingTutorial = () => {
                           className={`
                             flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-300
                             ${isHighlighted
-                              ? 'text-white shadow-lg ob-highlight-pulse'
-                              : 'text-gray-500'
+                            ? 'text-white shadow-lg ob-highlight-pulse'
+                            : 'text-gray-500'
                             }
                           `}
                           style={isHighlighted ? {
@@ -481,13 +484,13 @@ const OnboardingTutorial = () => {
           {/* Never show checkbox */}
           <div className="flex items-center gap-2 mb-3">
             <button
-              onClick={() => setNeverShow(v => !v)}
+              type="button"
+              onClick={() => setNeverShow((v) => !v)}
               className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               {neverShow
                 ? <MdCheckBox size={18} style={{ color: currentColor }} />
-                : <MdCheckBoxOutlineBlank size={18} />
-              }
+                : <MdCheckBoxOutlineBlank size={18} />}
               <span>No volver a mostrar</span>
             </button>
             <span className="text-xs text-gray-300 dark:text-gray-600 ml-auto">
@@ -499,6 +502,7 @@ const OnboardingTutorial = () => {
           <div className="flex items-center gap-3">
             {currentStep > 0 && (
               <button
+                type="button"
                 onClick={handlePrev}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
@@ -511,6 +515,7 @@ const OnboardingTutorial = () => {
 
             {!isFinale && (
               <button
+                type="button"
                 onClick={handleSkip}
                 className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               >
@@ -520,6 +525,7 @@ const OnboardingTutorial = () => {
 
             {isFinale ? (
               <button
+                type="button"
                 onClick={handleFinish}
                 className="flex items-center gap-2 px-8 py-3 rounded-xl text-white font-bold text-sm shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all ob-finish-btn"
                 style={{ backgroundColor: step.color }}
@@ -529,6 +535,7 @@ const OnboardingTutorial = () => {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleNext}
                 className="flex items-center gap-1 px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all"
                 style={{ backgroundColor: step.color || currentColor }}

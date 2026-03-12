@@ -62,7 +62,7 @@ const Celebration = () => {
   const handleDismiss = async () => {
     if (rewards.length > 0 && !isTestMode) {
       try {
-        await crmService.rewards.markCelebrated(rewards.map(r => r._id));
+        await crmService.rewards.markCelebrated(rewards.map((r) => r._id));
       } catch (e) {
         console.error('Error marking rewards:', e);
       }
@@ -100,7 +100,7 @@ const Celebration = () => {
       </div>
 
       {/* Overlay */}
-      <div 
+      <div
         className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
         onClick={handleDismiss}
       />
@@ -127,7 +127,7 @@ const Celebration = () => {
           <h2 className="text-2xl font-extrabold text-gray-800 dark:text-gray-100 mb-1 tracking-tight">
             ¡Felicitaciones!
           </h2>
-          <h3 
+          <h3
             className="text-lg font-bold mb-3"
             style={{ color: rewardColor }}
           >
@@ -154,6 +154,7 @@ const Celebration = () => {
           )}
 
           <button
+            type="button"
             onClick={handleDismiss}
             className="px-8 py-3 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all cel-btn-glow"
             style={{
@@ -230,7 +231,8 @@ const Celebration = () => {
           0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
           50% { box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 };

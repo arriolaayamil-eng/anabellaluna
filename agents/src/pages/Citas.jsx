@@ -1,27 +1,27 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
 import { toast } from 'react-toastify';
-import { confirmToast } from '../utils/confirmToast';
 import { ScheduleComponent, Day, Week, WorkWeek, Month, Agenda, Inject } from '@syncfusion/ej2-react-schedule';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaMapMarkerAlt, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaGripVertical, FaPlus, FaEdit, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt } from 'react-icons/fa';
-import { Header } from '../components';
+import Chart from 'react-apexcharts';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaPlus, FaTrash, FaChartLine, FaArrowUp, FaPercentage, FaCalendarAlt } from 'react-icons/fa';
+
+import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
-import Chart from 'react-apexcharts';
-
 
 const Citas = () => {
-  const { currentMode, currentColor } = useStateContext();
-  
+  const { currentMode } = useStateContext();
+
   // Estados para modales
   const [showModalCita, setShowModalCita] = useState(false);
   const [showModalKanban, setShowModalKanban] = useState(false);
-  
+
   // Estados para modales de estadísticas
   const [showModalCitasHoy, setShowModalCitasHoy] = useState(false);
   const [showModalEstaSemana, setShowModalEstaSemana] = useState(false);
   const [showModalTasaAsistencia, setShowModalTasaAsistencia] = useState(false);
   const [showModalPendientes, setShowModalPendientes] = useState(false);
-  
+
   // Estado para nueva cita
   const [nuevaCita, setNuevaCita] = useState({
     tipo: 'Visita',
@@ -36,25 +36,25 @@ const Citas = () => {
     descripcion: '',
     recordatorio: '24h',
   });
-  
+
   // Estado para Kanban (Todo List) - Conectado al backend
   const [columnas, setColumnas] = useState([]);
   const [tareas, setTareas] = useState({});
   const [kanbanLoading, setKanbanLoading] = useState(false);
   const [kanbanSaving, setKanbanSaving] = useState(false);
-  
+
   const [nuevaTarea, setNuevaTarea] = useState({
     titulo: '',
     prioridad: 'Media',
     fecha: '',
     columna: 'pendiente',
   });
-  
+
   const [nuevaColumna, setNuevaColumna] = useState({
     nombre: '',
     color: '#8B5CF6',
   });
-  
+
   const [draggedTask, setDraggedTask] = useState(null);
   const [dropTargetColumn, setDropTargetColumn] = useState(null);
 
@@ -64,7 +64,7 @@ const Citas = () => {
     try {
       const [columnsData, tasksData] = await Promise.all([
         crmService.tareas.getKanbanColumns(),
-        crmService.tareas.getKanban()
+        crmService.tareas.getKanban(),
       ]);
       setColumnas(Array.isArray(columnsData) ? columnsData : [
         { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
@@ -114,41 +114,39 @@ const Citas = () => {
     reloadCitas();
   }, []);
 
-  const citasData = useMemo(() => {
-    return (Array.isArray(citasItems) ? citasItems : []).map((c) => {
-      const md = c && c.metadata ? c.metadata : {};
-      const contact = md.contact || {};
-      const start = c.fecha ? new Date(c.fecha) : new Date();
-      const end = c.fechaFin ? new Date(c.fechaFin) : new Date(start.getTime() + 60 * 60 * 1000);
-      return {
-        Id: c._id || c.id,
-        Subject: c.titulo || c.tipo || 'Cita',
-        StartTime: start,
-        EndTime: end,
-        Description: c.notas || '',
-        IsAllDay: false,
-        tipo: c.tipo || '',
-        cliente: contact.fullName || md.clienteNombre || '',
-        agente: '',
-        estado: c.estado || '',
-      };
-    });
-  }, [citasItems]);
+  const citasData = useMemo(() => (Array.isArray(citasItems) ? citasItems : []).map((c) => {
+    const md = c && c.metadata ? c.metadata : {};
+    const contact = md.contact || {};
+    const start = c.fecha ? new Date(c.fecha) : new Date();
+    const end = c.fechaFin ? new Date(c.fechaFin) : new Date(start.getTime() + 60 * 60 * 1000);
+    return {
+      Id: c._id || c.id,
+      Subject: c.titulo || c.tipo || 'Cita',
+      StartTime: start,
+      EndTime: end,
+      Description: c.notas || '',
+      IsAllDay: false,
+      tipo: c.tipo || '',
+      cliente: contact.fullName || md.clienteNombre || '',
+      agente: '',
+      estado: c.estado || '',
+    };
+  }), [citasItems]);
 
   // KPIs de Citas
   const kpisCitas = [
-    { title: 'Citas Hoy', value: citasData.filter(c => c.StartTime.toDateString() === new Date().toDateString()).length, desc: '2 confirmadas', icon: <FaClock />, color: 'from-blue-500 to-blue-600' },
+    { title: 'Citas Hoy', value: citasData.filter((c) => c.StartTime.toDateString() === new Date().toDateString()).length, desc: '2 confirmadas', icon: <FaClock />, color: 'from-blue-500 to-blue-600' },
     { title: 'Esta Semana', value: citasData.length, desc: '3 visitas programadas', icon: <FaCalendarPlus />, color: 'from-green-500 to-green-600' },
     { title: 'Tasa Asistencia', value: '85%', desc: 'Últimos 30 días', icon: <FaCheckCircle />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Pendientes', value: citasData.filter(c => c.estado === 'Programada' || c.estado === 'Pendiente').length, desc: 'Por confirmar', icon: <FaBell />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Pendientes', value: citasData.filter((c) => c.estado === 'Programada' || c.estado === 'Pendiente').length, desc: 'Por confirmar', icon: <FaBell />, color: 'from-orange-500 to-orange-600' },
   ];
 
   // Datos para gráficos
   const tiposCitasData = [
-    { tipo: 'Visita', cantidad: citasData.filter(c => c.tipo === 'Visita').length, fill: '#3B82F6' },
-    { tipo: 'Reunión', cantidad: citasData.filter(c => c.tipo === 'Reunión').length, fill: '#10B981' },
-    { tipo: 'Firma', cantidad: citasData.filter(c => c.tipo === 'Firma').length, fill: '#F59E0B' },
-    { tipo: 'Llamada', cantidad: citasData.filter(c => c.tipo === 'Llamada').length, fill: '#8B5CF6' },
+    { tipo: 'Visita', cantidad: citasData.filter((c) => c.tipo === 'Visita').length, fill: '#3B82F6' },
+    { tipo: 'Reunión', cantidad: citasData.filter((c) => c.tipo === 'Reunión').length, fill: '#10B981' },
+    { tipo: 'Firma', cantidad: citasData.filter((c) => c.tipo === 'Firma').length, fill: '#F59E0B' },
+    { tipo: 'Llamada', cantidad: citasData.filter((c) => c.tipo === 'Llamada').length, fill: '#8B5CF6' },
   ];
 
   const citasPorDia = [
@@ -172,7 +170,7 @@ const Citas = () => {
     stroke: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
-  const citasDonutSeries = tiposCitasData.map(t => t.cantidad);
+  const citasDonutSeries = tiposCitasData.map((t) => t.cantidad);
 
   // ApexCharts - Citas por Día (Bar)
   const citasDiaOptions = {
@@ -180,20 +178,21 @@ const Citas = () => {
     plotOptions: { bar: { borderRadius: 6, columnWidth: '50%', distributed: true } },
     colors: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#9CA3AF'],
     dataLabels: { enabled: false },
-    xaxis: { categories: citasPorDia.map(c => c.dia), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    xaxis: { categories: citasPorDia.map((c) => c.dia), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
     yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } } },
     grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
     legend: { show: false },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
-  const citasDiaSeries = [{ name: 'Citas', data: citasPorDia.map(c => c.cantidad) }];
+  const citasDiaSeries = [{ name: 'Citas', data: citasPorDia.map((c) => c.cantidad) }];
 
   // ApexCharts - Tasa de Asistencia (Gauge)
   const asistenciaOptions = {
     chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
     plotOptions: {
       radialBar: {
-        startAngle: -90, endAngle: 90,
+        startAngle: -90,
+        endAngle: 90,
         hollow: { size: '55%' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -228,7 +227,7 @@ const Citas = () => {
   // Funciones de manejo para Cita
   const handleCitaChange = (e) => {
     const { name, value } = e.target;
-    setNuevaCita(prev => ({ ...prev, [name]: value }));
+    setNuevaCita((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCitaSubmit = async (e) => {
@@ -282,7 +281,7 @@ const Citas = () => {
   // Funciones para Kanban - Conectadas al backend con auto-guardado
   const handleTareaChange = (e) => {
     const { name, value } = e.target;
-    setNuevaTarea(prev => ({ ...prev, [name]: value }));
+    setNuevaTarea((prev) => ({ ...prev, [name]: value }));
   };
 
   const agregarTarea = async (e) => {
@@ -296,21 +295,21 @@ const Citas = () => {
         kanbanColumn: nuevaTarea.columna,
         position: (tareas[nuevaTarea.columna]?.length || 0),
       });
-      
+
       // Actualizar estado local
-      setTareas(prev => ({
+      setTareas((prev) => ({
         ...prev,
-        [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), newTask]
+        [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), newTask],
       }));
-      
+
       setNuevaTarea({
         titulo: '',
         prioridad: 'Media',
         fecha: '',
         columna: columnas[0]?.id || 'pendiente',
       });
-    } catch (e) {
-      console.error('Error creating task:', e);
+    } catch (createErr) {
+      console.error('Error creating task:', createErr);
       toast.error('Error al crear tarea');
     } finally {
       setKanbanSaving(false);
@@ -321,9 +320,9 @@ const Citas = () => {
     setKanbanSaving(true);
     try {
       await crmService.tareas.delete(id);
-      setTareas(prev => ({
+      setTareas((prev) => ({
         ...prev,
-        [columna]: prev[columna].filter(t => (t._id || t.id) !== id)
+        [columna]: prev[columna].filter((t) => (t._id || t.id) !== id),
       }));
     } catch (e) {
       console.error('Error deleting task:', e);
@@ -364,17 +363,17 @@ const Citas = () => {
 
     const { tarea, columnaOrigen } = draggedTask;
     const tareaId = tarea._id || tarea.id;
-    
+
     if (columnaOrigen !== columnaDestino) {
       setKanbanSaving(true);
-      
+
       // Actualizar UI inmediatamente (optimistic update)
-      setTareas(prev => ({
+      setTareas((prev) => ({
         ...prev,
-        [columnaOrigen]: (prev[columnaOrigen] || []).filter(t => (t._id || t.id) !== tareaId),
-        [columnaDestino]: [...(prev[columnaDestino] || []), { ...tarea, kanbanColumn: columnaDestino }]
+        [columnaOrigen]: (prev[columnaOrigen] || []).filter((t) => (t._id || t.id) !== tareaId),
+        [columnaDestino]: [...(prev[columnaDestino] || []), { ...tarea, kanbanColumn: columnaDestino }],
       }));
-      
+
       // Guardar en backend
       try {
         await crmService.tareas.moveTask(tareaId, columnaDestino, (tareas[columnaDestino]?.length || 0));
@@ -383,16 +382,16 @@ const Citas = () => {
         console.error('Error moving task:', err);
         toast.error('Error al mover tarea. Reintentando...');
         // Revertir si hay error
-        setTareas(prev => ({
+        setTareas((prev) => ({
           ...prev,
-          [columnaDestino]: (prev[columnaDestino] || []).filter(t => (t._id || t.id) !== tareaId),
-          [columnaOrigen]: [...(prev[columnaOrigen] || []), tarea]
+          [columnaDestino]: (prev[columnaDestino] || []).filter((t) => (t._id || t.id) !== tareaId),
+          [columnaOrigen]: [...(prev[columnaOrigen] || []), tarea],
         }));
       } finally {
         setKanbanSaving(false);
       }
     }
-    
+
     setDraggedTask(null);
   };
 
@@ -410,19 +409,19 @@ const Citas = () => {
       toast.warn('Ingresa un nombre para la columna');
       return;
     }
-    
+
     setKanbanSaving(true);
     const nuevaCol = {
       id: `col_${Date.now()}`,
       nombre: nuevaColumna.nombre.trim(),
       color: nuevaColumna.color,
     };
-    
+
     const newColumnas = [...columnas, nuevaCol];
     setColumnas(newColumnas);
-    setTareas(prev => ({ ...prev, [nuevaCol.id]: [] }));
+    setTareas((prev) => ({ ...prev, [nuevaCol.id]: [] }));
     setNuevaColumna({ nombre: '', color: '#8B5CF6' });
-    
+
     // Guardar en backend
     try {
       await crmService.tareas.saveKanbanColumns(newColumnas);
@@ -442,34 +441,34 @@ const Citas = () => {
       toast.warn('Debe haber al menos una columna');
       return;
     }
-    
-    const columnaAEliminar = columnas.find(c => c.id === columnaId);
+
+    const columnaAEliminar = columnas.find((c) => c.id === columnaId);
     const tareasEnColumna = tareas[columnaId]?.length || 0;
     if (tareasEnColumna > 0) {
       if (!(await confirmToast(`La columna "${columnaAEliminar?.nombre}" tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla?`))) {
         return;
       }
     }
-    
+
     setKanbanSaving(true);
-    
+
     // Eliminar las tareas de la columna si hay
     if (tareasEnColumna > 0) {
-      for (const tarea of tareas[columnaId]) {
+      await Promise.all(tareas[columnaId].map(async (tarea) => {
         try {
           await crmService.tareas.delete(tarea._id || tarea.id);
         } catch (err) {
           console.error('Error deleting task:', err);
         }
-      }
+      }));
     }
-    
-    const newColumnas = columnas.filter(col => col.id !== columnaId);
+
+    const newColumnas = columnas.filter((col) => col.id !== columnaId);
     setColumnas(newColumnas);
     const newTareas = { ...tareas };
     delete newTareas[columnaId];
     setTareas(newTareas);
-    
+
     // Guardar en backend
     try {
       await crmService.tareas.saveKanbanColumns(newColumnas);
@@ -490,16 +489,18 @@ const Citas = () => {
         </h2>
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión de citas, calendario y tareas</p>
       </div>
-      
+
       {/* Botones de Acción */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <button 
+        <button
+          type="button"
           onClick={() => setShowModalCita(true)}
           className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
         >
           <FaCalendarPlus /> Nueva Cita
         </button>
-        <button 
+        <button
+          type="button"
           onClick={() => setShowModalKanban(true)}
           className="flex items-center gap-2 px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md"
         >
@@ -510,8 +511,8 @@ const Citas = () => {
       {/* KPIs de Citas - Clickeables */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
         {kpisCitas.map((kpi, i) => (
-          <div 
-            key={i} 
+          <div
+            key={i}
             onClick={() => {
               if (i === 0) setShowModalCitasHoy(true);
               else if (i === 1) setShowModalEstaSemana(true);
@@ -594,12 +595,12 @@ const Citas = () => {
         </div>
       </div>
 
-
       {/* Calendario Principal - Ancho completo y altura expandida */}
       <div className={`${cardBase} mb-6`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold dark:text-gray-100">📅 Calendario Completo</h3>
           <button
+            type="button"
             onClick={reloadCitas}
             disabled={citasLoading}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
@@ -620,7 +621,7 @@ const Citas = () => {
           selectedDate={new Date()}
           startHour="09:00"
           endHour="21:00"
-          showTimeIndicator={true}
+          showTimeIndicator
           timeScale={{ enable: true, interval: 60, slotCount: 2 }}
           firstDayOfWeek={1}
           workDays={[0, 1, 2, 3, 4, 5, 6]}
@@ -643,7 +644,7 @@ const Citas = () => {
               <p className="text-xs text-gray-500">Esta semana</p>
             </div>
           </div>
-          
+
           <div className="text-center">
             <div className="p-6 border-2 border-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaUsers className="text-4xl text-blue-500 mx-auto mb-3" />
@@ -653,7 +654,7 @@ const Citas = () => {
               <p className="text-xs text-gray-500">Requieren seguimiento</p>
             </div>
           </div>
-          
+
           <div className="text-center">
             <div className="p-6 border-2 border-yellow-500 rounded-lg hover:bg-yellow-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
               <FaClock className="text-4xl text-yellow-500 mx-auto mb-3" />
@@ -687,93 +688,94 @@ const Citas = () => {
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">Agendar una nueva cita o reunión</p>
               </div>
-              <button onClick={() => setShowModalCita(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalCita(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleCitaSubmit} className="p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaClock className="text-blue-500" /> Información de la Cita
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cita *</label>
-                    <select name="tipo" value={nuevaCita.tipo} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="Visita">Visita a Propiedad</option>
-                      <option value="Reunión">Reunión</option>
-                      <option value="Firma">Firma de Contrato</option>
-                      <option value="Llamada">Llamada</option>
-                      <option value="Videollamada">Videollamada</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Título *</label>
-                    <input type="text" name="titulo" value={nuevaCita.titulo} onChange={handleCitaChange} required placeholder="Ej: Visita Depto Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input type="text" name="cliente" value={nuevaCita.cliente} onChange={handleCitaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
-                    <input type="text" name="propiedad" value={nuevaCita.propiedad} onChange={handleCitaChange} placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                    <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>
-                    <input type="date" name="fecha" value={nuevaCita.fecha} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Inicio *</label>
-                    <input type="time" name="horaInicio" value={nuevaCita.horaInicio} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Fin *</label>
-                    <input type="time" name="horaFin" value={nuevaCita.horaFin} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ubicación</label>
-                    <input type="text" name="ubicacion" value={nuevaCita.ubicacion} onChange={handleCitaChange} placeholder="Av. Santa Fe 1234, Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Recordatorio</label>
-                    <select name="recordatorio" value={nuevaCita.recordatorio} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="24h">24 horas antes</option>
-                      <option value="12h">12 horas antes</option>
-                      <option value="2h">2 horas antes</option>
-                      <option value="1h">1 hora antes</option>
-                      <option value="30m">30 minutos antes</option>
-                    </select>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaClock className="text-blue-500" /> Información de la Cita
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-13" className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cita *</label>
+                      <select id="field-13" name="tipo" value={nuevaCita.tipo} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="Visita">Visita a Propiedad</option>
+                        <option value="Reunión">Reunión</option>
+                        <option value="Firma">Firma de Contrato</option>
+                        <option value="Llamada">Llamada</option>
+                        <option value="Videollamada">Videollamada</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-14" className="block text-sm font-medium mb-2 dark:text-gray-200">Título *</label>
+                      <input id="field-14" type="text" name="titulo" value={nuevaCita.titulo} onChange={handleCitaChange} required placeholder="Ej: Visita Depto Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-15" className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
+                      <input id="field-15" type="text" name="cliente" value={nuevaCita.cliente} onChange={handleCitaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-16" className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
+                      <input id="field-16" type="text" name="propiedad" value={nuevaCita.propiedad} onChange={handleCitaChange} placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-17" className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
+                      <select id="field-17" name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar agente</option>
+                        <option value="Ana López">Ana López</option>
+                        <option value="Carlos Ruiz">Carlos Ruiz</option>
+                        <option value="Laura Fernández">Laura Fernández</option>
+                        <option value="Sofía Torres">Sofía Torres</option>
+                        <option value="Marcos Silva">Marcos Silva</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="field-18" className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>
+                      <input id="field-18" type="date" name="fecha" value={nuevaCita.fecha} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-19" className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Inicio *</label>
+                      <input id="field-19" type="time" name="horaInicio" value={nuevaCita.horaInicio} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-20" className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Fin *</label>
+                      <input id="field-20" type="time" name="horaFin" value={nuevaCita.horaFin} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label htmlFor="field-21" className="block text-sm font-medium mb-2 dark:text-gray-200">Ubicación</label>
+                      <input id="field-21" type="text" name="ubicacion" value={nuevaCita.ubicacion} onChange={handleCitaChange} placeholder="Av. Santa Fe 1234, Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-22" className="block text-sm font-medium mb-2 dark:text-gray-200">Recordatorio</label>
+                      <select id="field-22" name="recordatorio" value={nuevaCita.recordatorio} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="24h">24 horas antes</option>
+                        <option value="12h">12 horas antes</option>
+                        <option value="2h">2 horas antes</option>
+                        <option value="1h">1 hora antes</option>
+                        <option value="30m">30 minutos antes</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 dark:text-gray-200">Descripción</label>
-                <textarea name="descripcion" value={nuevaCita.descripcion} onChange={handleCitaChange} rows="3" placeholder="Detalles adicionales de la cita..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-              </div>
+                <div>
+                  <label htmlFor="field-23" className="block text-sm font-medium mb-2 dark:text-gray-200">Descripción</label>
+                  <textarea id="field-23" name="descripcion" value={nuevaCita.descripcion} onChange={handleCitaChange} rows="3" placeholder="Detalles adicionales de la cita..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                <button type="button" onClick={() => setShowModalCita(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
-                  Cancelar
-                </button>
-                <button type="submit" className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2">
-                  <FaSave /> Agendar Cita
-                </button>
-              </div>              </form>
+                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                  <button type="button" onClick={() => setShowModalCita(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2">
+                    <FaSave /> Agendar Cita
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -803,15 +805,16 @@ const Citas = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={loadKanbanData} 
+                <button
+                  type="button"
+                  onClick={loadKanbanData}
                   disabled={kanbanLoading}
                   className="text-gray-400 hover:text-purple-500 transition-colors p-2"
                   title="Recargar"
                 >
                   <FaSync className={kanbanLoading ? 'animate-spin' : ''} />
                 </button>
-                <button onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                <button type="button" onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                   <FaTimes className="text-xl" />
                 </button>
               </div>
@@ -855,7 +858,7 @@ const Citas = () => {
                     className={`px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}
                   />
                   <select name="columna" value={nuevaTarea.columna} onChange={handleTareaChange} className={`px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}>
-                    {columnas.map(col => (
+                    {columnas.map((col) => (
                       <option key={col.id} value={col.id}>{col.nombre}</option>
                     ))}
                   </select>
@@ -874,7 +877,7 @@ const Citas = () => {
                   <input
                     type="text"
                     value={nuevaColumna.nombre}
-                    onChange={(e) => setNuevaColumna(prev => ({ ...prev, nombre: e.target.value }))}
+                    onChange={(e) => setNuevaColumna((prev) => ({ ...prev, nombre: e.target.value }))}
                     required
                     placeholder="Nueva columna..."
                     className={`flex-1 px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}
@@ -882,7 +885,7 @@ const Citas = () => {
                   <input
                     type="color"
                     value={nuevaColumna.color}
-                    onChange={(e) => setNuevaColumna(prev => ({ ...prev, color: e.target.value }))}
+                    onChange={(e) => setNuevaColumna((prev) => ({ ...prev, color: e.target.value }))}
                     className="w-12 h-9 rounded cursor-pointer"
                   />
                   <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm font-medium">
@@ -896,7 +899,7 @@ const Citas = () => {
               {!kanbanLoading && (
               <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '500px' }}>
                 {columnas.map((columna) => (
-                  <div 
+                  <div
                     key={columna.id}
                     onDragOver={(e) => handleDragOver(e, columna.id)}
                     onDragLeave={(e) => handleDragLeave(e, columna.id)}
@@ -905,23 +908,24 @@ const Citas = () => {
                       ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'}
                       ${dropTargetColumn === columna.id ? 'ring-2 ring-purple-500 ring-opacity-50 scale-[1.02]' : ''}
                     `}
-                    style={{ 
+                    style={{
                       borderTop: `3px solid ${columna.color}`,
-                      backgroundColor: dropTargetColumn === columna.id 
-                        ? (currentMode === 'Dark' ? '#374151' : '#f3f4f6') 
-                        : undefined
+                      backgroundColor: dropTargetColumn === columna.id
+                        ? (currentMode === 'Dark' ? '#374151' : '#f3f4f6')
+                        : undefined,
                     }}
                   >
                     {/* Header de Columna */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: columna.color }}></div>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: columna.color }} />
                         <h3 className="font-semibold dark:text-gray-100">{columna.nombre}</h3>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {(tareas[columna.id] || []).length}
                         </span>
                       </div>
                       <button
+                        type="button"
                         onClick={() => eliminarColumna(columna.id)}
                         className="text-gray-400 hover:text-red-500 transition-colors"
                         title="Eliminar columna"
@@ -947,8 +951,9 @@ const Citas = () => {
                           >
                             <div className="flex items-start justify-between mb-2">
                               <h4 className="text-sm font-medium dark:text-gray-100 flex-1">{titulo}</h4>
-                              <button 
-                                onClick={() => eliminarTarea(columna.id, tareaId)} 
+                              <button
+                                type="button"
+                                onClick={() => eliminarTarea(columna.id, tareaId)}
                                 className="text-gray-400 hover:text-red-500 transition-colors"
                               >
                                 <FaTrash className="text-xs" />
@@ -956,10 +961,11 @@ const Citas = () => {
                             </div>
                             <div className="flex items-center justify-between">
                               <span className={`text-xs px-2 py-1 rounded ${
-                                prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                                prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                              }`}>
+                                prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                  : prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                              }`}
+                              >
                                 {prioridad === 'Alta' ? '🔴' : prioridad === 'Media' ? '🟡' : '🟢'} {prioridad}
                               </span>
                               <span className="text-xs text-gray-500 dark:text-gray-400">{fecha}</span>
@@ -992,10 +998,10 @@ const Citas = () => {
                   <FaClock /> Citas de Hoy
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">
-                  {citasData.filter(c => c.StartTime.toDateString() === new Date().toDateString()).length} citas programadas
+                  {citasData.filter((c) => c.StartTime.toDateString() === new Date().toDateString()).length} citas programadas
                 </p>
               </div>
-              <button onClick={() => setShowModalCitasHoy(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalCitasHoy(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1003,7 +1009,7 @@ const Citas = () => {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
                 {citasData
-                  .filter(c => c.StartTime.toDateString() === new Date().toDateString())
+                  .filter((c) => c.StartTime.toDateString() === new Date().toDateString())
                   .sort((a, b) => a.StartTime - b.StartTime)
                   .map((cita) => (
                     <div key={cita.Id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-2 ${currentMode === 'Dark' ? 'border-blue-700' : 'border-blue-200'} hover:shadow-md transition-shadow`}>
@@ -1036,10 +1042,11 @@ const Citas = () => {
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Estado:</p>
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                cita.CategoryColor === '#10B981' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                                cita.CategoryColor === '#F59E0B' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                              }`}>
+                                cita.CategoryColor === '#10B981' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                  : cita.CategoryColor === '#F59E0B' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}
+                              >
                                 Confirmada
                               </span>
                             </div>
@@ -1049,8 +1056,8 @@ const Citas = () => {
                     </div>
                   ))}
               </div>
-              
-              {citasData.filter(c => c.StartTime.toDateString() === new Date().toDateString()).length === 0 && (
+
+              {citasData.filter((c) => c.StartTime.toDateString() === new Date().toDateString()).length === 0 && (
                 <div className="text-center py-12">
                   <FaClock className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 dark:text-gray-400">No hay citas programadas para hoy</p>
@@ -1072,7 +1079,7 @@ const Citas = () => {
                 </h2>
                 <p className="text-green-100 text-sm mt-1">{citasData.length} citas programadas</p>
               </div>
-              <button onClick={() => setShowModalEstaSemana(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalEstaSemana(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1085,7 +1092,7 @@ const Citas = () => {
                     if (!acc[dateKey]) acc[dateKey] = [];
                     acc[dateKey].push(cita);
                     return acc;
-                  }, {})
+                  }, {}),
                 ).map(([fecha, citas]) => (
                   <div key={fecha}>
                     <h3 className="font-bold text-lg mb-3 dark:text-gray-100 capitalize">{fecha}</h3>
@@ -1132,7 +1139,7 @@ const Citas = () => {
                 </h2>
                 <p className="text-purple-100 text-sm mt-1">Análisis de últimos 30 días</p>
               </div>
-              <button onClick={() => setShowModalTasaAsistencia(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalTasaAsistencia(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1176,11 +1183,11 @@ const Citas = () => {
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-6 relative overflow-hidden">
-                        <div 
+                        <div
                           className={`h-6 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                            item.porcentaje >= 90 ? 'bg-green-500' :
-                            item.porcentaje >= 75 ? 'bg-blue-500' :
-                            'bg-orange-500'
+                            item.porcentaje >= 90 ? 'bg-green-500'
+                              : item.porcentaje >= 75 ? 'bg-blue-500'
+                                : 'bg-orange-500'
                           }`}
                           style={{ width: `${item.porcentaje}%` }}
                         >
@@ -1229,7 +1236,7 @@ const Citas = () => {
                   {(tareas.pendiente || []).length + (tareas.enProgreso || []).length} tareas activas
                 </p>
               </div>
-              <button onClick={() => setShowModalPendientes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalPendientes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1238,7 +1245,7 @@ const Citas = () => {
               {/* Tareas Pendientes */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+                  <span className="w-3 h-3 rounded-full bg-yellow-500" />
                   Pendientes ({(tareas.pendiente || []).length})
                 </h3>
                 <div className="space-y-2">
@@ -1266,7 +1273,7 @@ const Citas = () => {
               {/* Tareas En Progreso */}
               <div>
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                  <span className="w-3 h-3 rounded-full bg-blue-500" />
                   En Progreso ({(tareas.enProgreso || []).length})
                 </h3>
                 <div className="space-y-2">

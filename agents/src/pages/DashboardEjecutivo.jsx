@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaHome, FaUserFriends, FaDollarSign, FaKey, FaExclamationTriangle, FaCheckCircle, FaBell, FaMapMarkerAlt, FaTasks, FaTimes, FaChartLine, FaCalendarAlt, FaTrophy, FaChartPie, FaChartBar, FaArrowUp, FaArrowDown, FaPercentage, FaFunnelDollar } from 'react-icons/fa';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
-import Chart from 'react-apexcharts';
+import React, { useState, useEffect } from 'react';
 
-// Syncfusion Components
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, LineSeries, SplineAreaSeries, SplineSeries, DateTime, DataLabel, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, PieSeries, AccumulationLegend, AccumulationTooltip, AccumulationDataLabel, StackingColumnSeries } from '@syncfusion/ej2-react-charts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+import Chart from 'react-apexcharts';
+import { FaHome, FaUserFriends, FaDollarSign, FaKey, FaExclamationTriangle, FaCheckCircle, FaBell, FaMapMarkerAlt, FaTasks, FaTimes, FaChartLine, FaCalendarAlt, FaTrophy, FaChartPie, FaChartBar, FaArrowUp, FaPercentage, FaFunnelDollar } from 'react-icons/fa';
+import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, SplineAreaSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, PieSeries, AccumulationLegend, AccumulationTooltip, AccumulationDataLabel } from '@syncfusion/ej2-react-charts';
+import { GridComponent, ColumnsDirective, ColumnDirective, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+
+import { useStateContext } from '../contexts/ContextProvider';
 
 const DashboardEjecutivo = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -16,14 +15,14 @@ const DashboardEjecutivo = () => {
   const [showModalClientes, setShowModalClientes] = useState(false);
   const [showModalVentas, setShowModalVentas] = useState(false);
   const [showModalAlquileres, setShowModalAlquileres] = useState(false);
-  
+
   // Nuevos modales informativos
   const [showModalRendimiento, setShowModalRendimiento] = useState(false);
   const [showModalActividades, setShowModalActividades] = useState(false);
   const [showModalMetas, setShowModalMetas] = useState(false);
 
   // Estado para controlar si el componente está montado
-  const [isMounted, setIsMounted] = useState(true);
+  const [, setIsMounted] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -34,37 +33,37 @@ const DashboardEjecutivo = () => {
 
   // Mock data para métricas en tiempo real
   const kpis = [
-    { 
-      title: 'Propiedades activas', 
-      value: 87, 
-      desc: '+12 esta semana', 
-      icon: <FaHome />, 
+    {
+      title: 'Propiedades activas',
+      value: 87,
+      desc: '+12 esta semana',
+      icon: <FaHome />,
       color: 'from-blue-500 to-blue-600',
-      trend: '+15%'
+      trend: '+15%',
     },
-    { 
-      title: 'Clientes registrados', 
-      value: 156, 
-      desc: '23 nuevos este mes', 
-      icon: <FaUserFriends />, 
+    {
+      title: 'Clientes registrados',
+      value: 156,
+      desc: '23 nuevos este mes',
+      icon: <FaUserFriends />,
       color: 'from-indigo-500 to-indigo-600',
-      trend: '+8%'
+      trend: '+8%',
     },
-    { 
-      title: 'Ventas del mes', 
-      value: '$850K', 
-      desc: '+15% vs anterior', 
-      icon: <FaDollarSign />, 
+    {
+      title: 'Ventas del mes',
+      value: '$850K',
+      desc: '+15% vs anterior',
+      icon: <FaDollarSign />,
       color: 'from-emerald-500 to-emerald-600',
-      trend: '+22%'
+      trend: '+22%',
     },
-    { 
-      title: 'Alquileres vigentes', 
-      value: 34, 
-      desc: 'Ingresos $45K/mes', 
-      icon: <FaKey />, 
+    {
+      title: 'Alquileres vigentes',
+      value: 34,
+      desc: 'Ingresos $45K/mes',
+      icon: <FaKey />,
       color: 'from-orange-500 to-orange-600',
-      trend: '+5%'
+      trend: '+5%',
     },
   ];
 
@@ -428,34 +427,52 @@ const DashboardEjecutivo = () => {
       {/* KPIs en tiempo real - Métricas principales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {kpis.map((kpi, i) => {
-          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6', 'from-amber-500 to-amber-600': '#f59e0b', 'from-green-500 to-green-600': '#10b981', 'from-red-500 to-red-600': '#ef4444', 'from-purple-500 to-purple-600': '#8b5cf6', 'from-orange-500 to-orange-600': '#f59e0b' };
+          const colorMap = {
+            'from-blue-500 to-blue-600': '#3b82f6',
+            'from-emerald-500 to-emerald-600': '#10b981',
+            'from-violet-500 to-violet-600': '#8b5cf6',
+            'from-amber-500 to-amber-600': '#f59e0b',
+            'from-green-500 to-green-600': '#10b981',
+            'from-red-500 to-red-600': '#ef4444',
+            'from-purple-500 to-purple-600': '#8b5cf6',
+            'from-orange-500 to-orange-600': '#f59e0b',
+          };
           const accentColor = colorMap[kpi.color] || '#6366f1';
-          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20', 'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20' };
+          const bgMap = {
+            'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20',
+            'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20',
+            'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20',
+            'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20',
+            'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20',
+            'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20',
+            'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20',
+            'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20',
+          };
           const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
           return (
-          <div 
-            key={i} 
-            onClick={() => {
-              if (i === 0) setShowModalPropiedades(true);
-              else if (i === 1) setShowModalClientes(true);
-              else if (i === 2) setShowModalVentas(true);
-              else if (i === 3) setShowModalAlquileres(true);
-            }}
-            className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
-            style={{ borderLeft: `4px solid ${accentColor}` }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
-                <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
+            <div
+              key={i}
+              onClick={() => {
+                if (i === 0) setShowModalPropiedades(true);
+                else if (i === 1) setShowModalClientes(true);
+                else if (i === 2) setShowModalVentas(true);
+                else if (i === 3) setShowModalAlquileres(true);
+              }}
+              className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+              style={{ borderLeft: `4px solid ${accentColor}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30">
+                  {kpi.trend}
+                </span>
               </div>
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30">
-                {kpi.trend}
-              </span>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
             </div>
-            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
-            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
-            <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
-          </div>
           );
         })}
       </div>
@@ -475,20 +492,22 @@ const DashboardEjecutivo = () => {
               </span>
             </div>
           </div>
-          
+
           <ChartComponent
             id="ingresos-trend-chart"
-            primaryXAxis={{ 
-              valueType: 'Category', 
+            primaryXAxis={{
+              valueType: 'Category',
               labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
               majorGridLines: { width: 0 },
-              labelIntersectAction: 'Rotate45'
+              labelIntersectAction: 'Rotate45',
             }}
-            primaryYAxis={{ 
+            primaryYAxis={{
+              // eslint-disable-next-line no-template-curly-in-string
               labelFormat: '${value}K',
               labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' }
+              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' },
             }}
+            // eslint-disable-next-line no-template-curly-in-string
             tooltip={{ enable: true, format: '${point.x}: $${point.y}K' }}
             chartArea={{ border: { width: 0 } }}
             height="280px"
@@ -508,7 +527,7 @@ const DashboardEjecutivo = () => {
               />
             </SeriesCollectionDirective>
           </ChartComponent>
-          
+
           {/* Resumen rápido debajo del gráfico */}
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
             <div className="text-center">
@@ -537,14 +556,15 @@ const DashboardEjecutivo = () => {
               100 total
             </span>
           </div>
-          
+
           <AccumulationChartComponent
             id="propiedades-pie-chart"
-            legendSettings={{ 
-              visible: true, 
+            legendSettings={{
+              visible: true,
               position: 'Bottom',
-              textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }
+              textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
             }}
+            // eslint-disable-next-line no-template-curly-in-string
             tooltip={{ enable: true, format: '${point.x}: ${point.y} unidades' }}
             height="320px"
             background="transparent"
@@ -561,7 +581,7 @@ const DashboardEjecutivo = () => {
                   visible: true,
                   position: 'Inside',
                   name: 'cantidad',
-                  font: { fontWeight: '600', color: '#fff', size: '12px' }
+                  font: { fontWeight: '600', color: '#fff', size: '12px' },
                 }}
               />
             </AccumulationSeriesCollectionDirective>
@@ -582,18 +602,19 @@ const DashboardEjecutivo = () => {
               Últimos 6 meses
             </span>
           </div>
-          
+
           <ChartComponent
             id="comparativa-chart"
-            primaryXAxis={{ 
+            primaryXAxis={{
               valueType: 'Category',
               labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { width: 0 }
+              majorGridLines: { width: 0 },
             }}
-            primaryYAxis={{ 
+            primaryYAxis={{
+              // eslint-disable-next-line no-template-curly-in-string
               labelFormat: '${value}K',
               labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' }
+              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' },
             }}
             tooltip={{ enable: true }}
             legendSettings={{ visible: true, position: 'Top', textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } }}
@@ -638,7 +659,7 @@ const DashboardEjecutivo = () => {
               Top 5 zonas
             </span>
           </div>
-          
+
           <div className="space-y-4">
             {rendimientoZonas.map((zona, i) => (
               <div key={zona.zona} className="space-y-2">
@@ -646,7 +667,8 @@ const DashboardEjecutivo = () => {
                   <div className="flex items-center gap-2">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
                       i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-600' : 'bg-blue-500'
-                    }`}>
+                    }`}
+                    >
                       {i + 1}
                     </span>
                     <span className="font-medium dark:text-gray-200">{zona.zona}</span>
@@ -654,19 +676,20 @@ const DashboardEjecutivo = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-600 dark:text-gray-400">{zona.operaciones} ops</span>
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      zona.tendencia.startsWith('+') 
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                      zona.tendencia.startsWith('+')
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    }`}>
+                    }`}
+                    >
                       {zona.tendencia}
                     </span>
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
+                  <div
                     className={`h-2 rounded-full transition-all duration-500 ${
                       i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-500' : 'bg-blue-500'
-                    }`} 
+                    }`}
                     style={{ width: `${(zona.operaciones / 28) * 100}%` }}
                   />
                 </div>
@@ -780,7 +803,7 @@ const DashboardEjecutivo = () => {
               </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: '78%' }}></div>
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: '78%' }} />
             </div>
             <p className="text-xs text-center text-gray-500 dark:text-gray-400">Por encima del 78% de competidores</p>
           </div>
@@ -800,11 +823,11 @@ const DashboardEjecutivo = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">Ingresos</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-red-500" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">Gastos</span>
               </div>
             </div>
@@ -840,6 +863,7 @@ const DashboardEjecutivo = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {/* Botón Rendimiento Mensual */}
         <button
+          type="button"
           onClick={() => setShowModalRendimiento(true)}
           className="group relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
         >
@@ -852,11 +876,12 @@ const DashboardEjecutivo = () => {
               <p className="text-sm text-purple-100">Ver análisis completo</p>
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-10 -mt-10" />
         </button>
 
         {/* Botón Actividades Recientes */}
         <button
+          type="button"
           onClick={() => setShowModalActividades(true)}
           className="group relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
         >
@@ -869,11 +894,12 @@ const DashboardEjecutivo = () => {
               <p className="text-sm text-orange-100">Últimas 24 horas</p>
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-10 -mt-10" />
         </button>
 
         {/* Botón Metas y Objetivos */}
         <button
+          type="button"
           onClick={() => setShowModalMetas(true)}
           className="group relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
         >
@@ -886,7 +912,7 @@ const DashboardEjecutivo = () => {
               <p className="text-sm text-teal-100">Progreso del equipo</p>
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-10 -mt-10" />
         </button>
       </div>
 
@@ -903,21 +929,22 @@ const DashboardEjecutivo = () => {
               Este mes
             </span>
           </div>
-          
+
           <ChartComponent
             id="agentes-ranking-chart"
-            primaryXAxis={{ 
-              valueType: 'Category', 
+            primaryXAxis={{
+              valueType: 'Category',
               title: 'Agentes',
-              labelStyle: { size: '10px' }
+              labelStyle: { size: '10px' },
             }}
-            primaryYAxis={{ 
+            primaryYAxis={{
               title: 'Operaciones',
-              labelStyle: { size: '10px' }
+              labelStyle: { size: '10px' },
             }}
-            tooltip={{ 
+            tooltip={{
               enable: true,
-              format: '${point.x}: ${point.y} operaciones'
+              // eslint-disable-next-line no-template-curly-in-string
+              format: '${point.x}: ${point.y} operaciones',
             }}
             palettes={[currentColor || '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']}
             legendSettings={{ visible: false }}
@@ -937,7 +964,7 @@ const DashboardEjecutivo = () => {
               />
             </SeriesCollectionDirective>
           </ChartComponent>
-          
+
           {/* Mini ranking visual */}
           <div className="mt-4 space-y-2">
             {agentesOps.slice(0, 3).map((agente, index) => (
@@ -945,7 +972,8 @@ const DashboardEjecutivo = () => {
                 <div className="flex items-center gap-2">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
                     index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-600'
-                  }`}>
+                  }`}
+                  >
                     {index + 1}
                   </span>
                   <span className="text-sm font-medium dark:text-gray-200">{agente.agente.split(' ')[0]}</span>
@@ -967,7 +995,7 @@ const DashboardEjecutivo = () => {
               Top 5
             </span>
           </div>
-          
+
           <GridComponent
             dataSource={propiedadesVistas}
             allowPaging={false}
@@ -978,9 +1006,9 @@ const DashboardEjecutivo = () => {
           >
             <GridInject services={[Sort, Filter]} />
             <ColumnsDirective>
-              <ColumnDirective 
-                field="propiedad" 
-                headerText="Propiedad" 
+              <ColumnDirective
+                field="propiedad"
+                headerText="Propiedad"
                 width="180"
                 template={(props) => (
                   <div className="py-2">
@@ -989,34 +1017,35 @@ const DashboardEjecutivo = () => {
                   </div>
                 )}
               />
-              <ColumnDirective 
-                field="visitas" 
-                headerText="Visitas" 
-                textAlign="Center" 
+              <ColumnDirective
+                field="visitas"
+                headerText="Visitas"
+                textAlign="Center"
                 width="80"
                 template={(props) => (
                   <span className="font-bold text-blue-600 dark:text-blue-400">{props.visitas.toLocaleString()}</span>
                 )}
               />
-              <ColumnDirective 
-                field="estado" 
-                headerText="Estado" 
+              <ColumnDirective
+                field="estado"
+                headerText="Estado"
                 width="100"
                 template={(props) => (
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    props.estado === 'Disponible' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                    props.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                    props.estado === 'Vendida' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' :
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                  }`}>
+                    props.estado === 'Disponible' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : props.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        : props.estado === 'Vendida' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                  }`}
+                  >
                     {props.estado}
                   </span>
                 )}
               />
-              <ColumnDirective 
-                field="precio" 
-                headerText="Precio" 
-                textAlign="Right" 
+              <ColumnDirective
+                field="precio"
+                headerText="Precio"
+                textAlign="Right"
                 width="100"
                 template={(props) => (
                   <span className="font-semibold text-green-600 dark:text-green-400 text-sm">{props.precio}</span>
@@ -1029,7 +1058,7 @@ const DashboardEjecutivo = () => {
 
       {/* Mapa, Tareas y Alertas - Sección inferior */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        
+
         {/* Mapa interactivo con propiedades activas */}
         <div className={cardBase}>
           <div className="flex items-center justify-between mb-4">
@@ -1058,10 +1087,11 @@ const DashboardEjecutivo = () => {
                 {propiedadesMapa.slice(0, 4).map((prop, index) => (
                   <div key={index} className="flex items-center gap-2 p-2 bg-white dark:bg-gray-700 rounded-lg">
                     <div className={`w-3 h-3 rounded-full ${
-                      prop.estado === 'Disponible' ? 'bg-green-500' :
-                      prop.estado === 'Reservada' ? 'bg-yellow-500' :
-                      prop.estado === 'Vendida' ? 'bg-gray-500' : 'bg-blue-500'
-                    }`}></div>
+                      prop.estado === 'Disponible' ? 'bg-green-500'
+                        : prop.estado === 'Reservada' ? 'bg-yellow-500'
+                          : prop.estado === 'Vendida' ? 'bg-gray-500' : 'bg-blue-500'
+                    }`}
+                    />
                     <div className="text-xs">
                       <p className="font-medium dark:text-gray-200">{prop.name.split(' ')[0]}</p>
                       <p className="text-gray-500 dark:text-gray-400">{prop.estado}</p>
@@ -1071,23 +1101,23 @@ const DashboardEjecutivo = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Leyenda del mapa */}
           <div className="mt-3 flex flex-wrap gap-2">
             <div className="flex items-center gap-1 text-xs">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500" />
               <span className="dark:text-gray-300">Disponible</span>
             </div>
             <div className="flex items-center gap-1 text-xs">
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500" />
               <span className="dark:text-gray-300">Reservada</span>
             </div>
             <div className="flex items-center gap-1 text-xs">
-              <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+              <div className="w-3 h-3 rounded-full bg-gray-500" />
               <span className="dark:text-gray-300">Vendida</span>
             </div>
             <div className="flex items-center gap-1 text-xs">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <div className="w-3 h-3 rounded-full bg-blue-500" />
               <span className="dark:text-gray-300">Alquilada</span>
             </div>
           </div>
@@ -1101,30 +1131,34 @@ const DashboardEjecutivo = () => {
               Tareas del Día
             </h3>
             <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full">
-              {tareas.filter(t => !t.completada).length} pendientes
+              {tareas.filter((t) => !t.completada).length} pendientes
             </span>
           </div>
-          
+
           <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
             {tareas.map((tarea) => (
-              <div key={tarea.id} className={`p-3 rounded-lg border transition-all duration-200 ${
-                tarea.completada 
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 opacity-60' 
-                  : 'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:shadow-md'
-              }`}>
+              <div
+                key={tarea.id}
+                className={`p-3 rounded-lg border transition-all duration-200 ${
+                  tarea.completada
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 opacity-60'
+                    : 'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:shadow-md'
+                }`}
+              >
                 <div className="flex items-start gap-3">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={tarea.completada}
-                    className="w-4 h-4 mt-1 text-blue-600 rounded focus:ring-blue-500" 
+                    className="w-4 h-4 mt-1 text-blue-600 rounded focus:ring-blue-500"
                     readOnly
                   />
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium ${
-                      tarea.completada 
-                        ? 'line-through text-gray-500 dark:text-gray-400' 
+                      tarea.completada
+                        ? 'line-through text-gray-500 dark:text-gray-400'
                         : 'dark:text-gray-200'
-                    }`}>
+                    }`}
+                    >
                       {tarea.texto}
                     </p>
                     <div className="flex items-center justify-between mt-2">
@@ -1133,10 +1167,11 @@ const DashboardEjecutivo = () => {
                         {tarea.hora}
                       </span>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        tarea.prioridad === 'alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
-                        tarea.prioridad === 'media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
-                        'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                      }`}>
+                        tarea.prioridad === 'alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          : tarea.prioridad === 'media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                      }`}
+                      >
                         {tarea.prioridad}
                       </span>
                     </div>
@@ -1145,14 +1180,14 @@ const DashboardEjecutivo = () => {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4 pt-3 border-t dark:border-gray-700">
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
               <span className="flex items-center gap-1">
                 <FaCheckCircle className="text-green-500" />
                 Recordatorios automáticos activos
               </span>
-              <span>{tareas.filter(t => t.completada).length}/{tareas.length} completadas</span>
+              <span>{tareas.filter((t) => t.completada).length}/{tareas.length} completadas</span>
             </div>
           </div>
         </div>
@@ -1165,25 +1200,29 @@ const DashboardEjecutivo = () => {
               Alertas Inteligentes
             </h3>
             <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-1 rounded-full">
-              {alertas.filter(a => a.urgencia === 'alta').length} urgentes
+              {alertas.filter((a) => a.urgencia === 'alta').length} urgentes
             </span>
           </div>
-          
+
           <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
             {alertas.map((alerta) => (
-              <div key={alerta.id} className={`p-4 rounded-lg border-l-4 transition-all duration-200 hover:shadow-md ${
-                alerta.tipo === 'peligro'
-                  ? 'bg-red-50 dark:bg-red-900/20 border-red-500'
-                  : alerta.tipo === 'aviso'
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500'
-                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-500'
-              }`}>
+              <div
+                key={alerta.id}
+                className={`p-4 rounded-lg border-l-4 transition-all duration-200 hover:shadow-md ${
+                  alerta.tipo === 'peligro'
+                    ? 'bg-red-50 dark:bg-red-900/20 border-red-500'
+                    : alerta.tipo === 'aviso'
+                      ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500'
+                      : 'bg-blue-50 dark:bg-blue-900/20 border-blue-500'
+                }`}
+              >
                 <div className="flex items-start gap-3">
                   <div className={`text-lg ${
-                    alerta.tipo === 'peligro' ? 'text-red-600 dark:text-red-400' :
-                    alerta.tipo === 'aviso' ? 'text-yellow-600 dark:text-yellow-400' :
-                    'text-blue-600 dark:text-blue-400'
-                  }`}>
+                    alerta.tipo === 'peligro' ? 'text-red-600 dark:text-red-400'
+                      : alerta.tipo === 'aviso' ? 'text-yellow-600 dark:text-yellow-400'
+                        : 'text-blue-600 dark:text-blue-400'
+                  }`}
+                  >
                     {alerta.icono}
                   </div>
                   <div className="flex-1">
@@ -1192,13 +1231,14 @@ const DashboardEjecutivo = () => {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        alerta.urgencia === 'alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
-                        alerta.urgencia === 'media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
-                        'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                      }`}>
+                        alerta.urgencia === 'alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          : alerta.urgencia === 'media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                      }`}
+                      >
                         {alerta.urgencia}
                       </span>
-                      <button className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                      <button type="button" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
                         Ver detalles
                       </button>
                     </div>
@@ -1207,9 +1247,9 @@ const DashboardEjecutivo = () => {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-4 pt-3 border-t dark:border-gray-700">
-            <button className="w-full text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors">
+            <button type="button" className="w-full text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors">
               Ver todas las alertas →
             </button>
           </div>
@@ -1218,7 +1258,7 @@ const DashboardEjecutivo = () => {
 
       {/* Nuevos Widgets Ejecutivos - Información Clave para CEO */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-        
+
         {/* Widget 1: Estado de Propiedades por Categoría */}
         <div className={cardBase}>
           <div className="flex items-center justify-between mb-4">
@@ -1230,25 +1270,25 @@ const DashboardEjecutivo = () => {
               87 total
             </span>
           </div>
-          
+
           {/* Gráfico de dona con estadísticas */}
           <div className="space-y-4">
             {[
               { estado: 'Disponibles', cantidad: 52, porcentaje: 60, color: 'bg-green-500', textColor: 'text-green-600 dark:text-green-400' },
               { estado: 'Reservadas', cantidad: 18, porcentaje: 21, color: 'bg-yellow-500', textColor: 'text-yellow-600 dark:text-yellow-400' },
               { estado: 'En Negociación', cantidad: 12, porcentaje: 14, color: 'bg-blue-500', textColor: 'text-blue-600 dark:text-blue-400' },
-              { estado: 'Vendidas/Alquiladas', cantidad: 5, porcentaje: 5, color: 'bg-gray-500', textColor: 'text-gray-600 dark:text-gray-400' }
+              { estado: 'Vendidas/Alquiladas', cantidad: 5, porcentaje: 5, color: 'bg-gray-500', textColor: 'text-gray-600 dark:text-gray-400' },
             ].map((item, i) => (
               <div key={i} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${item.color}`} />
                     <span className="text-sm font-medium dark:text-gray-200">{item.estado}</span>
                   </div>
                   <span className={`text-sm font-bold ${item.textColor}`}>{item.cantidad}</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className={`${item.color} h-2 rounded-full transition-all duration-500`} style={{ width: `${item.porcentaje}%` }}></div>
+                  <div className={`${item.color} h-2 rounded-full transition-all duration-500`} style={{ width: `${item.porcentaje}%` }} />
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                   <span>{item.porcentaje}% del total</span>
@@ -1283,14 +1323,14 @@ const DashboardEjecutivo = () => {
               Top 5
             </span>
           </div>
-          
+
           <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-hide">
             {[
               { nombre: 'Penthouse Recoleta', precio: '$850K', zona: 'Recoleta', tipo: 'Venta', visitas: 234, interes: 'Alto' },
               { nombre: 'Casa Nordelta', precio: '$720K', zona: 'Nordelta', tipo: 'Venta', visitas: 189, interes: 'Alto' },
               { nombre: 'Loft Palermo Soho', precio: '$420K', zona: 'Palermo', tipo: 'Venta', visitas: 156, interes: 'Medio' },
               { nombre: 'Depto Puerto Madero', precio: '$380K', zona: 'Pto. Madero', tipo: 'Venta', visitas: 142, interes: 'Alto' },
-              { nombre: 'Casa Belgrano R', precio: '$650K', zona: 'Belgrano', tipo: 'Venta', visitas: 128, interes: 'Medio' }
+              { nombre: 'Casa Belgrano R', precio: '$650K', zona: 'Belgrano', tipo: 'Venta', visitas: 128, interes: 'Medio' },
             ].map((prop, i) => (
               <div key={i} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-3 hover:shadow-md transition-all cursor-pointer`}>
                 <div className="flex items-start justify-between mb-2">
@@ -1298,7 +1338,8 @@ const DashboardEjecutivo = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
                         i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-600' : 'bg-blue-500'
-                      }`}>
+                      }`}
+                      >
                         {i + 1}
                       </span>
                       <h4 className="font-bold text-sm dark:text-gray-200">{prop.nombre}</h4>
@@ -1312,10 +1353,11 @@ const DashboardEjecutivo = () => {
                 <div className="flex items-center justify-between ml-8 mt-2">
                   <span className="text-xs text-gray-600 dark:text-gray-400">👁️ {prop.visitas} visitas</span>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    prop.interes === 'Alto' 
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' 
+                    prop.interes === 'Alto'
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
                       : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
-                  }`}>
+                  }`}
+                  >
                     🔥 {prop.interes}
                   </span>
                 </div>
@@ -1324,7 +1366,7 @@ const DashboardEjecutivo = () => {
           </div>
 
           <div className="mt-4 pt-3 border-t dark:border-gray-700">
-            <button className="w-full text-sm text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 font-medium transition-colors">
+            <button type="button" className="w-full text-sm text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 font-medium transition-colors">
               Ver todas las propiedades premium →
             </button>
           </div>
@@ -1341,7 +1383,7 @@ const DashboardEjecutivo = () => {
               Octubre
             </span>
           </div>
-          
+
           <div className="space-y-4">
             {/* Ingresos Totales */}
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 p-4 rounded-lg border-2 border-emerald-200 dark:border-emerald-700">
@@ -1386,7 +1428,7 @@ const DashboardEjecutivo = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-0.5">de $15M meta</p>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full" style={{ width: '96%' }}></div>
+                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full" style={{ width: '96%' }} />
               </div>
             </div>
           </div>
@@ -1404,7 +1446,7 @@ const DashboardEjecutivo = () => {
                 </h2>
                 <p className="text-blue-100 text-sm mt-1">87 propiedades disponibles (+12 esta semana)</p>
               </div>
-              <button onClick={() => setShowModalPropiedades(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalPropiedades(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1419,11 +1461,12 @@ const DashboardEjecutivo = () => {
                         <p className="text-sm text-gray-500 dark:text-gray-400">📍 {prop.zona}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                        prop.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                        prop.estado === 'Vendida' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                      }`}>
+                        prop.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                          : prop.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : prop.estado === 'Vendida' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                      }`}
+                      >
                         {prop.estado}
                       </span>
                     </div>
@@ -1460,7 +1503,7 @@ const DashboardEjecutivo = () => {
                 </h2>
                 <p className="text-indigo-100 text-sm mt-1">156 clientes totales (23 nuevos este mes)</p>
               </div>
-              <button onClick={() => setShowModalClientes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalClientes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1489,9 +1532,10 @@ const DashboardEjecutivo = () => {
                         </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        cliente.estado === 'Activo' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                      }`}>
+                        cliente.estado === 'Activo' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                      }`}
+                      >
                         {cliente.estado}
                       </span>
                     </div>
@@ -1514,7 +1558,7 @@ const DashboardEjecutivo = () => {
                 </h2>
                 <p className="text-emerald-100 text-sm mt-1">$850K en ventas (+15% vs mes anterior)</p>
               </div>
-              <button onClick={() => setShowModalVentas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalVentas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1561,7 +1605,7 @@ const DashboardEjecutivo = () => {
                     <p className="text-purple-100 text-sm mt-1">Análisis completo de métricas clave</p>
                   </div>
                 </div>
-                <button onClick={() => setShowModalRendimiento(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                <button type="button" onClick={() => setShowModalRendimiento(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                   <FaTimes className="text-2xl" />
                 </button>
               </div>
@@ -1606,11 +1650,11 @@ const DashboardEjecutivo = () => {
                   {[
                     { mes: 'Octubre 2025', ventas: 15, ingresos: '$850K', color: 'bg-purple-500' },
                     { mes: 'Septiembre 2025', ventas: 12, ingresos: '$720K', color: 'bg-purple-400' },
-                    { mes: 'Agosto 2025', ventas: 10, ingresos: '$650K', color: 'bg-purple-300' }
+                    { mes: 'Agosto 2025', ventas: 10, ingresos: '$650K', color: 'bg-purple-300' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                        <div className={`w-3 h-3 rounded-full ${item.color}`} />
                         <span className="font-medium dark:text-gray-200">{item.mes}</span>
                       </div>
                       <div className="flex gap-6">
@@ -1629,7 +1673,7 @@ const DashboardEjecutivo = () => {
                   {[
                     { tipo: 'Departamentos 2 amb', cantidad: 12, porcentaje: 35 },
                     { tipo: 'Casas en Zona Norte', cantidad: 8, porcentaje: 25 },
-                    { tipo: 'PH en Capital', cantidad: 6, porcentaje: 18 }
+                    { tipo: 'PH en Capital', cantidad: 6, porcentaje: 18 },
                   ].map((item, i) => (
                     <div key={i} className="space-y-1">
                       <div className="flex justify-between text-sm">
@@ -1637,7 +1681,7 @@ const DashboardEjecutivo = () => {
                         <span className="text-gray-600 dark:text-gray-400">{item.cantidad} unidades</span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div className="bg-purple-500 h-2 rounded-full transition-all" style={{ width: `${item.porcentaje}%` }}></div>
+                        <div className="bg-purple-500 h-2 rounded-full transition-all" style={{ width: `${item.porcentaje}%` }} />
                       </div>
                     </div>
                   ))}
@@ -1648,6 +1692,7 @@ const DashboardEjecutivo = () => {
             {/* Footer */}
             <div className="p-4 border-t dark:border-gray-700 flex justify-end">
               <button
+                type="button"
                 onClick={() => setShowModalRendimiento(false)}
                 className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors"
               >
@@ -1672,7 +1717,7 @@ const DashboardEjecutivo = () => {
                     <p className="text-orange-100 text-sm mt-1">Últimas 24 horas del sistema</p>
                   </div>
                 </div>
-                <button onClick={() => setShowModalActividades(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                <button type="button" onClick={() => setShowModalActividades(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                   <FaTimes className="text-2xl" />
                 </button>
               </div>
@@ -1682,60 +1727,60 @@ const DashboardEjecutivo = () => {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 {[
-                  { 
-                    hora: '10:30 AM', 
-                    tipo: 'venta', 
-                    titulo: 'Nueva venta registrada', 
-                    detalle: 'Depto 2 amb Palermo - $185,000', 
+                  {
+                    hora: '10:30 AM',
+                    tipo: 'venta',
+                    titulo: 'Nueva venta registrada',
+                    detalle: 'Depto 2 amb Palermo - $185,000',
                     agente: 'María González',
                     icon: <FaDollarSign />,
-                    color: 'from-green-500 to-green-600'
+                    color: 'from-green-500 to-green-600',
                   },
-                  { 
-                    hora: '09:15 AM', 
-                    tipo: 'cliente', 
-                    titulo: 'Cliente nuevo registrado', 
-                    detalle: 'Juan Pérez - Interesado en zona norte', 
+                  {
+                    hora: '09:15 AM',
+                    tipo: 'cliente',
+                    titulo: 'Cliente nuevo registrado',
+                    detalle: 'Juan Pérez - Interesado en zona norte',
                     agente: 'Carlos Ruiz',
                     icon: <FaUserFriends />,
-                    color: 'from-blue-500 to-blue-600'
+                    color: 'from-blue-500 to-blue-600',
                   },
-                  { 
-                    hora: '08:45 AM', 
-                    tipo: 'propiedad', 
-                    titulo: 'Propiedad publicada', 
-                    detalle: 'Casa 3 amb Belgrano - $320,000', 
+                  {
+                    hora: '08:45 AM',
+                    tipo: 'propiedad',
+                    titulo: 'Propiedad publicada',
+                    detalle: 'Casa 3 amb Belgrano - $320,000',
                     agente: 'Ana Martínez',
                     icon: <FaHome />,
-                    color: 'from-purple-500 to-purple-600'
+                    color: 'from-purple-500 to-purple-600',
                   },
-                  { 
-                    hora: 'Ayer 6:20 PM', 
-                    tipo: 'visita', 
-                    titulo: 'Visita programada', 
-                    detalle: 'PH Colegiales - Mañana 11:00 AM', 
+                  {
+                    hora: 'Ayer 6:20 PM',
+                    tipo: 'visita',
+                    titulo: 'Visita programada',
+                    detalle: 'PH Colegiales - Mañana 11:00 AM',
                     agente: 'Luis Torres',
                     icon: <FaMapMarkerAlt />,
-                    color: 'from-red-500 to-red-600'
+                    color: 'from-red-500 to-red-600',
                   },
-                  { 
-                    hora: 'Ayer 4:10 PM', 
-                    tipo: 'tarea', 
-                    titulo: 'Tarea completada', 
-                    detalle: 'Seguimiento cliente - Documentación enviada', 
+                  {
+                    hora: 'Ayer 4:10 PM',
+                    tipo: 'tarea',
+                    titulo: 'Tarea completada',
+                    detalle: 'Seguimiento cliente - Documentación enviada',
                     agente: 'María González',
                     icon: <FaCheckCircle />,
-                    color: 'from-teal-500 to-teal-600'
+                    color: 'from-teal-500 to-teal-600',
                   },
-                  { 
-                    hora: 'Ayer 2:30 PM', 
-                    tipo: 'alerta', 
-                    titulo: 'Alerta generada', 
-                    detalle: 'Lead sin respuesta hace 48h', 
+                  {
+                    hora: 'Ayer 2:30 PM',
+                    tipo: 'alerta',
+                    titulo: 'Alerta generada',
+                    detalle: 'Lead sin respuesta hace 48h',
                     agente: 'Sistema',
                     icon: <FaBell />,
-                    color: 'from-yellow-500 to-yellow-600'
-                  }
+                    color: 'from-yellow-500 to-yellow-600',
+                  },
                 ].map((actividad, i) => (
                   <div key={i} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 hover:shadow-md transition-shadow`}>
                     <div className="flex items-start gap-4">
@@ -1760,6 +1805,7 @@ const DashboardEjecutivo = () => {
             <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center">
               <span className="text-sm text-gray-600 dark:text-gray-400">Mostrando últimas 6 actividades</span>
               <button
+                type="button"
                 onClick={() => setShowModalActividades(false)}
                 className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
               >
@@ -1784,7 +1830,7 @@ const DashboardEjecutivo = () => {
                     <p className="text-teal-100 text-sm mt-1">Progreso del equipo - Octubre 2025</p>
                   </div>
                 </div>
-                <button onClick={() => setShowModalMetas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                <button type="button" onClick={() => setShowModalMetas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                   <FaTimes className="text-2xl" />
                 </button>
               </div>
@@ -1799,7 +1845,7 @@ const DashboardEjecutivo = () => {
                   <span className="text-3xl font-bold text-teal-600 dark:text-teal-400">78%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-2">
-                  <div className="bg-gradient-to-r from-teal-500 to-teal-600 h-4 rounded-full transition-all" style={{ width: '78%' }}></div>
+                  <div className="bg-gradient-to-r from-teal-500 to-teal-600 h-4 rounded-full transition-all" style={{ width: '78%' }} />
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Faltan $220K para alcanzar la meta de $1M</p>
               </div>
@@ -1807,42 +1853,42 @@ const DashboardEjecutivo = () => {
               {/* Metas por Categoría */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {[
-                  { 
-                    titulo: 'Ventas Totales', 
-                    meta: 20, 
-                    actual: 15, 
-                    porcentaje: 75, 
+                  {
+                    titulo: 'Ventas Totales',
+                    meta: 20,
+                    actual: 15,
+                    porcentaje: 75,
                     icon: <FaDollarSign />,
                     color: 'text-green-600 dark:text-green-400',
-                    bgColor: 'bg-green-500'
+                    bgColor: 'bg-green-500',
                   },
-                  { 
-                    titulo: 'Nuevos Clientes', 
-                    meta: 100, 
-                    actual: 89, 
-                    porcentaje: 89, 
+                  {
+                    titulo: 'Nuevos Clientes',
+                    meta: 100,
+                    actual: 89,
+                    porcentaje: 89,
                     icon: <FaUserFriends />,
                     color: 'text-blue-600 dark:text-blue-400',
-                    bgColor: 'bg-blue-500'
+                    bgColor: 'bg-blue-500',
                   },
-                  { 
-                    titulo: 'Propiedades Publicadas', 
-                    meta: 50, 
-                    actual: 42, 
-                    porcentaje: 84, 
+                  {
+                    titulo: 'Propiedades Publicadas',
+                    meta: 50,
+                    actual: 42,
+                    porcentaje: 84,
                     icon: <FaHome />,
                     color: 'text-purple-600 dark:text-purple-400',
-                    bgColor: 'bg-purple-500'
+                    bgColor: 'bg-purple-500',
                   },
-                  { 
-                    titulo: 'Visitas Realizadas', 
-                    meta: 150, 
-                    actual: 127, 
-                    porcentaje: 85, 
+                  {
+                    titulo: 'Visitas Realizadas',
+                    meta: 150,
+                    actual: 127,
+                    porcentaje: 85,
                     icon: <FaMapMarkerAlt />,
                     color: 'text-orange-600 dark:text-orange-400',
-                    bgColor: 'bg-orange-500'
-                  }
+                    bgColor: 'bg-orange-500',
+                  },
                 ].map((meta, i) => (
                   <div key={i} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
                     <div className="flex items-center gap-3 mb-3">
@@ -1854,7 +1900,7 @@ const DashboardEjecutivo = () => {
                       <span className="text-sm text-gray-600 dark:text-gray-400">de {meta.meta}</span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div className={`${meta.bgColor} h-2 rounded-full transition-all`} style={{ width: `${meta.porcentaje}%` }}></div>
+                      <div className={`${meta.bgColor} h-2 rounded-full transition-all`} style={{ width: `${meta.porcentaje}%` }} />
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{meta.porcentaje}% completado</p>
                   </div>
@@ -1869,7 +1915,7 @@ const DashboardEjecutivo = () => {
                     { nombre: 'María González', ventas: 8, meta: 10, porcentaje: 80, medalla: '🥇' },
                     { nombre: 'Carlos Ruiz', ventas: 6, meta: 10, porcentaje: 60, medalla: '🥈' },
                     { nombre: 'Ana Martínez', ventas: 5, meta: 10, porcentaje: 50, medalla: '🥉' },
-                    { nombre: 'Luis Torres', ventas: 4, meta: 10, porcentaje: 40, medalla: '⭐' }
+                    { nombre: 'Luis Torres', ventas: 4, meta: 10, porcentaje: 40, medalla: '⭐' },
                   ].map((agente, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <span className="text-2xl">{agente.medalla}</span>
@@ -1879,7 +1925,7 @@ const DashboardEjecutivo = () => {
                           <span className="text-sm text-gray-600 dark:text-gray-400">{agente.ventas}/{agente.meta} ventas</span>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div className="bg-teal-500 h-2 rounded-full transition-all" style={{ width: `${agente.porcentaje}%` }}></div>
+                          <div className="bg-teal-500 h-2 rounded-full transition-all" style={{ width: `${agente.porcentaje}%` }} />
                         </div>
                       </div>
                     </div>
@@ -1891,6 +1937,7 @@ const DashboardEjecutivo = () => {
             {/* Footer */}
             <div className="p-4 border-t dark:border-gray-700 flex justify-end">
               <button
+                type="button"
                 onClick={() => setShowModalMetas(false)}
                 className="px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors"
               >
@@ -1912,7 +1959,7 @@ const DashboardEjecutivo = () => {
                 </h2>
                 <p className="text-orange-100 text-sm mt-1">34 contratos activos (Ingresos: $45K/mes)</p>
               </div>
-              <button onClick={() => setShowModalAlquileres(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+              <button type="button" onClick={() => setShowModalAlquileres(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
               </button>
             </div>
@@ -1935,9 +1982,10 @@ const DashboardEjecutivo = () => {
                       <div className="text-right">
                         <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{alquiler.monto}</p>
                         <span className={`text-xs px-2 py-1 rounded mt-1 inline-block ${
-                          alquiler.estado === 'Al día' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        }`}>
+                          alquiler.estado === 'Al día' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        }`}
+                        >
                           {alquiler.estado}
                         </span>
                       </div>

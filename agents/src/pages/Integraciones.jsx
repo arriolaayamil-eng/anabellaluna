@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import { confirmToast } from '../utils/confirmToast';
 import { FaCheck, FaTimes, FaGoogle, FaSync } from 'react-icons/fa';
-import { Header } from '../components';
+import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
@@ -12,11 +10,11 @@ const Integraciones = () => {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [status, setStatus] = useState({ 
-    configured: false, 
-    connected: false, 
-    email: '', 
-    calendarId: 'primary'
+  const [status, setStatus] = useState({
+    configured: false,
+    connected: false,
+    email: '',
+    calendarId: 'primary',
   });
 
   const loadStatus = async () => {
@@ -28,7 +26,7 @@ const Integraciones = () => {
         configured: !!statusRes?.configured,
         connected: !!statusRes?.connected,
         email: statusRes?.email || '',
-        calendarId: statusRes?.calendarId || 'primary'
+        calendarId: statusRes?.calendarId || 'primary',
       });
     } catch (e) {
       setError(e?.message || 'No se pudo cargar el estado de integraciones');
@@ -98,7 +96,7 @@ const Integraciones = () => {
 
       {loading ? (
         <div className="flex justify-center py-10">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
         </div>
       ) : (
         <div className="max-w-xl">
@@ -115,10 +113,11 @@ const Integraciones = () => {
                 </p>
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                status.connected 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                status.connected
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                   : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-              }`}>
+              }`}
+              >
                 {status.connected ? <><FaCheck className="inline mr-1" /> Conectado</> : <><FaTimes className="inline mr-1" /> Desconectado</>}
               </span>
             </div>
@@ -141,7 +140,7 @@ const Integraciones = () => {
             {!status.configured && (
               <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                  ⚠️ La integración con Google Calendar no está habilitada. 
+                  ⚠️ La integración con Google Calendar no está habilitada.
                   Contacta al administrador para activarla.
                 </p>
               </div>
@@ -150,7 +149,7 @@ const Integraciones = () => {
             {status.configured && !status.connected && (
               <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-300">
-                  📅 Conecta tu cuenta de Google para sincronizar automáticamente 
+                  📅 Conecta tu cuenta de Google para sincronizar automáticamente
                   las citas del CRM con tu calendario personal.
                 </p>
               </div>
@@ -163,8 +162,8 @@ const Integraciones = () => {
                   disabled={connecting}
                   onClick={status.connected ? disconnectGoogleCalendar : connectGoogleCalendar}
                   className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                    status.connected 
-                      ? 'bg-red-500 hover:bg-red-600 text-white' 
+                    status.connected
+                      ? 'bg-red-500 hover:bg-red-600 text-white'
                       : 'bg-blue-500 hover:bg-blue-600 text-white'
                   } ${connecting ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
+import { FaUserShield, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaUsers, FaShieldAlt } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
-import { FaUserShield, FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaUsers } from 'react-icons/fa';
 
 const RolesPermisos = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -18,8 +17,8 @@ const RolesPermisos = () => {
         propiedades: { ver: true, crear: true, editar: true, eliminar: true },
         clientes: { ver: true, crear: true, editar: true, eliminar: true },
         reportes: { ver: true, crear: true, editar: true, eliminar: true },
-        configuracion: { ver: true, crear: true, editar: true, eliminar: true }
-      }
+        configuracion: { ver: true, crear: true, editar: true, eliminar: true },
+      },
     },
     {
       id: 2,
@@ -31,8 +30,8 @@ const RolesPermisos = () => {
         propiedades: { ver: true, crear: true, editar: true, eliminar: false },
         clientes: { ver: true, crear: true, editar: true, eliminar: false },
         reportes: { ver: true, crear: true, editar: true, eliminar: false },
-        configuracion: { ver: true, crear: false, editar: false, eliminar: false }
-      }
+        configuracion: { ver: true, crear: false, editar: false, eliminar: false },
+      },
     },
     {
       id: 3,
@@ -44,8 +43,8 @@ const RolesPermisos = () => {
         propiedades: { ver: true, crear: true, editar: true, eliminar: false },
         clientes: { ver: true, crear: true, editar: true, eliminar: false },
         reportes: { ver: true, crear: false, editar: false, eliminar: false },
-        configuracion: { ver: false, crear: false, editar: false, eliminar: false }
-      }
+        configuracion: { ver: false, crear: false, editar: false, eliminar: false },
+      },
     },
     {
       id: 4,
@@ -57,33 +56,33 @@ const RolesPermisos = () => {
         propiedades: { ver: true, crear: false, editar: true, eliminar: false },
         clientes: { ver: true, crear: true, editar: true, eliminar: false },
         reportes: { ver: true, crear: false, editar: false, eliminar: false },
-        configuracion: { ver: false, crear: false, editar: false, eliminar: false }
-      }
-    }
+        configuracion: { ver: false, crear: false, editar: false, eliminar: false },
+      },
+    },
   ];
 
   const modulos = [
     { id: 'propiedades', nombre: 'Propiedades', icon: '🏠' },
     { id: 'clientes', nombre: 'Clientes', icon: '👥' },
     { id: 'reportes', nombre: 'Reportes', icon: '📊' },
-    { id: 'configuracion', nombre: 'Configuración', icon: '⚙️' }
+    { id: 'configuracion', nombre: 'Configuración', icon: '⚙️' },
   ];
 
   const acciones = [
     { id: 'ver', nombre: 'Ver', icon: '👁️' },
     { id: 'crear', nombre: 'Crear', icon: '➕' },
     { id: 'editar', nombre: 'Editar', icon: '✏️' },
-    { id: 'eliminar', nombre: 'Eliminar', icon: '🗑️' }
+    { id: 'eliminar', nombre: 'Eliminar', icon: '🗑️' },
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
 
   const getColorClasses = (color) => {
     const colors = {
       red: 'from-red-500 to-red-600',
       blue: 'from-blue-500 to-blue-600',
       green: 'from-green-500 to-green-600',
-      purple: 'from-purple-500 to-purple-600'
+      purple: 'from-purple-500 to-purple-600',
     };
     return colors[color] || colors.blue;
   };
@@ -98,6 +97,7 @@ const RolesPermisos = () => {
           <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Control de acceso y seguridad</p>
         </div>
         <button
+          type="button"
           className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
           style={{ backgroundColor: currentColor }}
         >
@@ -176,10 +176,10 @@ const RolesPermisos = () => {
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">{role.descripcion}</p>
               <div className="flex gap-2 mt-3">
-                <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                   <FaEdit className="text-blue-500" />
                 </button>
-                <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                   <FaTrash className="text-red-500" />
                 </button>
               </div>
@@ -192,7 +192,7 @@ const RolesPermisos = () => {
           <h3 className="text-xl font-bold mb-4 dark:text-gray-200">
             {selectedRole ? `Permisos de ${selectedRole.nombre}` : 'Selecciona un rol para ver permisos'}
           </h3>
-          
+
           {selectedRole ? (
             <div className={cardBase}>
               <div className="overflow-x-auto">
@@ -240,12 +240,13 @@ const RolesPermisos = () => {
 
               <div className="mt-6 flex gap-3">
                 <button
+                  type="button"
                   className="flex-1 py-3 rounded-lg text-white font-medium transition-colors"
                   style={{ backgroundColor: currentColor }}
                 >
                   Guardar Cambios
                 </button>
-                <button className="px-6 py-3 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
+                <button type="button" className="px-6 py-3 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
                   Cancelar
                 </button>
               </div>

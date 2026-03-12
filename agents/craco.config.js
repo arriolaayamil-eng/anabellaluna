@@ -1,6 +1,7 @@
 module.exports = {
   eslint: {
-    enable: false,
+    enable: true,
+    mode: 'file',
   },
   webpack: {
     configure: (config) => {

@@ -21,12 +21,10 @@ const UserProfile = () => {
     window.addEventListener('userUpdated', handleUserUpdate);
     return () => window.removeEventListener('userUpdated', handleUserUpdate);
   }, []);
-  
+
   const capitalize = (str) => {
     if (!str) return '';
-    return str.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ');
+    return str.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
 
   const userName = capitalize(currentUser?.nombre || currentUser?.username || 'Usuario');
@@ -97,9 +95,9 @@ const UserProfile = () => {
           onClick={handleClose}
         />
       </div>
-      
+
       {/* User Info */}
-      <div 
+      <div
         className="flex gap-4 items-center pb-4 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg p-2 -mx-2 transition-colors"
         onClick={() => handleNavigate('/crm/perfil')}
       >
@@ -119,8 +117,8 @@ const UserProfile = () => {
       {/* Menu Items */}
       <div className="py-2">
         {menuItems.map((item, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             onClick={item.action}
             className="flex gap-4 items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer rounded-lg transition-colors"
           >
@@ -141,6 +139,7 @@ const UserProfile = () => {
       {/* Logout Button */}
       <div className="pt-2 border-t border-gray-200 dark:border-gray-600 mt-2">
         <button
+          type="button"
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium text-white transition-colors"
           style={{ backgroundColor: currentColor }}

@@ -1,6 +1,5 @@
 import React from 'react';
 import { FiSettings, FiUser, FiBell, FiLock, FiDatabase } from 'react-icons/fi';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 
 const Configuracion = () => {
@@ -14,7 +13,7 @@ const Configuracion = () => {
         </h2>
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ajustes del sistema</p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Perfil */}
         <div className={`rounded-2xl p-6 border ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
@@ -24,14 +23,14 @@ const Configuracion = () => {
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
-              <input type="text" className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200" defaultValue="Admin Usuario" />
+              <label htmlFor="field-57" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+              <input id="field-57" type="text" className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200" defaultValue="Admin Usuario" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-              <input type="email" className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200" defaultValue="admin@crm.com" />
+              <label htmlFor="field-58" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input id="field-58" type="email" className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200" defaultValue="admin@crm.com" />
             </div>
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Guardar Cambios</button>
+            <button type="button" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Guardar Cambios</button>
           </div>
         </div>
 
@@ -42,16 +41,16 @@ const Configuracion = () => {
             <h3 className="text-lg font-bold dark:text-gray-200">Notificaciones</h3>
           </div>
           <div className="space-y-3">
-            <label className="flex items-center gap-3">
-              <input type="checkbox" className="w-4 h-4" defaultChecked />
+            <label htmlFor="field-59" className="flex items-center gap-3">
+              <input id="field-59" type="checkbox" className="w-4 h-4" defaultChecked />
               <span className="text-sm dark:text-gray-300">Nuevos leads</span>
             </label>
-            <label className="flex items-center gap-3">
-              <input type="checkbox" className="w-4 h-4" defaultChecked />
+            <label htmlFor="field-60" className="flex items-center gap-3">
+              <input id="field-60" type="checkbox" className="w-4 h-4" defaultChecked />
               <span className="text-sm dark:text-gray-300">Citas próximas</span>
             </label>
-            <label className="flex items-center gap-3">
-              <input type="checkbox" className="w-4 h-4" />
+            <label htmlFor="field-61" className="flex items-center gap-3">
+              <input id="field-61" type="checkbox" className="w-4 h-4" />
               <span className="text-sm dark:text-gray-300">Cambios en propiedades</span>
             </label>
           </div>
@@ -63,7 +62,7 @@ const Configuracion = () => {
             <FiLock className="text-2xl text-red-500" />
             <h3 className="text-lg font-bold dark:text-gray-200">Seguridad</h3>
           </div>
-          <button className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+          <button type="button" className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
             Cambiar Contraseña
           </button>
         </div>
@@ -75,10 +74,10 @@ const Configuracion = () => {
             <h3 className="text-lg font-bold dark:text-gray-200">Datos</h3>
           </div>
           <div className="space-y-2">
-            <button className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+            <button type="button" className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
               Exportar Datos
             </button>
-            <button className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+            <button type="button" className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
               Backup
             </button>
           </div>

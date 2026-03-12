@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTrophy, FaStar, FaRegStar, FaMedal, FaAward, FaSync, FaChartLine, FaTimes } from 'react-icons/fa';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
@@ -53,10 +52,10 @@ const Recompensas = () => {
     });
   };
 
-  const stars = rewards.filter(r => r.category === 'star');
-  const medals = rewards.filter(r => r.category === 'medal');
-  const badges = rewards.filter(r => r.category === 'badge');
-  const levels = rewards.filter(r => r.category === 'level');
+  const stars = rewards.filter((r) => r.category === 'star');
+  const medals = rewards.filter((r) => r.category === 'medal');
+  const badges = rewards.filter((r) => r.category === 'badge');
+  const levels = rewards.filter((r) => r.category === 'level');
   const currentLevel = levels.length > 0 ? levels[levels.length - 1] : null;
 
   const getSeniorityData = () => {
@@ -64,7 +63,7 @@ const Recompensas = () => {
       const levelName = currentLevel.title?.toLowerCase() || '';
       if (levelName.includes('senior') && !levelName.includes('semi')) {
         return { name: 'Senior', stars: 5, icon: '🌳' };
-      } else if (levelName.includes('semi')) {
+      } if (levelName.includes('semi')) {
         return { name: 'Semi-Senior', stars: 4, icon: '🌿' };
       }
     }
@@ -91,6 +90,7 @@ const Recompensas = () => {
           <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Logros y gamificación</p>
         </div>
         <button
+          type="button"
           onClick={handleCalculate}
           disabled={calculating}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50"
@@ -102,7 +102,7 @@ const Recompensas = () => {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: currentColor }}></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: currentColor }} />
         </div>
       ) : (
         <>
@@ -197,7 +197,7 @@ const Recompensas = () => {
                   <div className="w-full bg-emerald-900/50 rounded-full h-2.5 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-lime-300 via-yellow-300 to-orange-300 h-2.5 rounded-full"
-                      style={{ width: `${Math.min((metrics?.loginCount || 0) / 5 * 100, 100)}%` }}
+                      style={{ width: `${Math.min(((metrics?.loginCount || 0) / 5) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -471,8 +471,9 @@ const Recompensas = () => {
       {/* Modal para detalles */}
       {selectedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedModal(null)}>
-          <div className="relative mx-4 max-w-lg w-full rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-800" onClick={e => e.stopPropagation()}>
+          <div className="relative mx-4 max-w-lg w-full rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-800" onClick={(e) => e.stopPropagation()}>
             <button
+              type="button"
               onClick={() => setSelectedModal(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >

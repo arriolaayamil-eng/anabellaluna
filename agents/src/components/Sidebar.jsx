@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+
 import { Link, NavLink } from 'react-router-dom';
 import { MdSpaceDashboard, MdOutlineCancel } from 'react-icons/md';
-import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaHome, FaBuilding, FaRobot, FaFileAlt, FaMagic } from 'react-icons/fa';
-import { TooltipComponent } from '@syncfusion/ej2-react-popups';
+import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaBuilding, FaRobot, FaFileAlt, FaMagic } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
 
@@ -22,7 +22,7 @@ const menuItems = [
 ];
 
 const Sidebar = () => {
-  const { currentColor, currentMode, activeMenu, setActiveMenu, screenSize } = useStateContext();
+  const { currentColor, activeMenu, setActiveMenu, screenSize } = useStateContext();
   const [isHovered, setIsHovered] = useState(false);
 
   const handleCloseSideBar = () => {
@@ -38,20 +38,20 @@ const Sidebar = () => {
     <>
       {/* Overlay para móviles */}
       {activeMenu && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setActiveMenu(false)}
         />
       )}
-      
+
       {/* Sidebar */}
-      <div 
+      <div
         className={`
           fixed left-0 top-0 h-screen flex flex-col z-50 bg-gray-900 shadow-xl
           transition-all duration-300 ease-in-out overflow-hidden
-          ${isMobile 
-            ? (activeMenu ? 'w-64 translate-x-0' : 'w-0 -translate-x-full') 
-            : (isExpanded ? 'w-64' : 'w-16')
+          ${isMobile
+          ? (activeMenu ? 'w-64 translate-x-0' : 'w-0 -translate-x-full')
+          : (isExpanded ? 'w-64' : 'w-16')
           }
         `}
         onMouseEnter={() => !isMobile && setIsHovered(true)}
@@ -59,9 +59,9 @@ const Sidebar = () => {
       >
         {/* Header */}
         <div className={`flex items-center p-4 border-b border-gray-700 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
-          <Link 
-            to="/crm" 
-            onClick={handleCloseSideBar} 
+          <Link
+            to="/crm"
+            onClick={handleCloseSideBar}
             className="flex items-center gap-3 text-white overflow-hidden"
           >
             <MdSpaceDashboard className="text-2xl flex-shrink-0" style={{ color: currentColor }} />
@@ -69,7 +69,7 @@ const Sidebar = () => {
               CRM Panel
             </span>
           </Link>
-          
+
           {isMobile && isExpanded && (
             <button
               type="button"
@@ -92,9 +92,9 @@ const Sidebar = () => {
               className={({ isActive }) => `
                 flex items-center gap-4 mx-2 my-1 p-3 rounded-lg
                 transition-all duration-200 group relative
-                ${isActive 
-                  ? 'text-white shadow-lg' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                ${isActive
+                ? 'text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800'
                 }
                 ${!isExpanded ? 'justify-center' : ''}
               `}
@@ -105,7 +105,7 @@ const Sidebar = () => {
             >
               {({ isActive }) => (
                 <>
-                  <span 
+                  <span
                     className="text-xl flex-shrink-0 transition-transform duration-200"
                     style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)' }}
                   >
@@ -114,7 +114,7 @@ const Sidebar = () => {
                   <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'}`}>
                     {item.name}
                   </span>
-                  
+
                   {/* Tooltip cuando está colapsado */}
                   {!isExpanded && !isMobile && (
                     <div className="
@@ -122,7 +122,8 @@ const Sidebar = () => {
                       opacity-0 invisible group-hover:opacity-100 group-hover:visible
                       transition-all duration-200 whitespace-nowrap z-50 shadow-lg
                       pointer-events-none
-                    ">
+                    "
+                    >
                       {item.name}
                       <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 border-4 border-transparent border-r-gray-800" />
                     </div>

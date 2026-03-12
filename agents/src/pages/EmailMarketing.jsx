@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
 import { FaEnvelope, FaPlus, FaEdit, FaTrash, FaCopy, FaEye, FaPaperPlane, FaUsers, FaChartBar } from 'react-icons/fa';
 import { MdOutlineEmail, MdDrafts } from 'react-icons/md';
+import { useStateContext } from '../contexts/ContextProvider';
 
 const EmailMarketing = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -17,7 +16,7 @@ const EmailMarketing = () => {
       usos: 234,
       tasaApertura: 68,
       preview: '👋 ¡Bienvenido a [Empresa]! Estamos emocionados de...',
-      color: 'blue'
+      color: 'blue',
     },
     {
       id: 2,
@@ -27,7 +26,7 @@ const EmailMarketing = () => {
       usos: 456,
       tasaApertura: 55,
       preview: '🏠 Nueva propiedad que te puede interesar en...',
-      color: 'green'
+      color: 'green',
     },
     {
       id: 3,
@@ -37,7 +36,7 @@ const EmailMarketing = () => {
       usos: 189,
       tasaApertura: 82,
       preview: '📅 Recordatorio: Tu visita está programada para...',
-      color: 'orange'
+      color: 'orange',
     },
     {
       id: 4,
@@ -47,7 +46,7 @@ const EmailMarketing = () => {
       usos: 312,
       tasaApertura: 45,
       preview: '📰 Lo más destacado del mes en el mercado...',
-      color: 'purple'
+      color: 'purple',
     },
     {
       id: 5,
@@ -57,7 +56,7 @@ const EmailMarketing = () => {
       usos: 145,
       tasaApertura: 62,
       preview: '⭐ ¿Cómo fue tu experiencia con nosotros?...',
-      color: 'pink'
+      color: 'pink',
     },
     {
       id: 6,
@@ -67,8 +66,8 @@ const EmailMarketing = () => {
       usos: 98,
       tasaApertura: 38,
       preview: '💡 Te extrañamos! Mira estas nuevas opciones...',
-      color: 'red'
-    }
+      color: 'red',
+    },
   ];
 
   const borradores = [
@@ -77,15 +76,15 @@ const EmailMarketing = () => {
       asunto: 'Promoción Especial - Descuento 10%',
       destinatarios: 850,
       ultimaEdicion: 'Hace 2 horas',
-      progreso: 75
+      progreso: 75,
     },
     {
       id: 2,
       asunto: 'Invitación Open House - Palermo',
       destinatarios: 234,
       ultimaEdicion: 'Hace 1 día',
-      progreso: 45
-    }
+      progreso: 45,
+    },
   ];
 
   const enviados = [
@@ -98,7 +97,7 @@ const EmailMarketing = () => {
       clicks: 234,
       fecha: '10/10/2025',
       tasaApertura: 55,
-      tasaClick: 18.7
+      tasaClick: 18.7,
     },
     {
       id: 2,
@@ -109,11 +108,11 @@ const EmailMarketing = () => {
       clicks: 420,
       fecha: '01/10/2025',
       tasaApertura: 60,
-      tasaClick: 20
-    }
+      tasaClick: 20,
+    },
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
 
   const getColorClasses = (color) => {
     const colors = {
@@ -122,7 +121,7 @@ const EmailMarketing = () => {
       orange: 'from-orange-500 to-orange-600',
       purple: 'from-purple-500 to-purple-600',
       pink: 'from-pink-500 to-pink-600',
-      red: 'from-red-500 to-red-600'
+      red: 'from-red-500 to-red-600',
     };
     return colors[color] || colors.blue;
   };
@@ -137,6 +136,7 @@ const EmailMarketing = () => {
           <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Campañas de email</p>
         </div>
         <button
+          type="button"
           className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
           style={{ backgroundColor: currentColor }}
         >
@@ -194,6 +194,7 @@ const EmailMarketing = () => {
       {/* Tabs de Navegación */}
       <div className="flex gap-2 mb-6">
         <button
+          type="button"
           onClick={() => setVistaActual('plantillas')}
           className={`px-6 py-3 rounded-lg font-medium transition-all ${
             vistaActual === 'plantillas'
@@ -205,6 +206,7 @@ const EmailMarketing = () => {
           📋 Plantillas ({plantillas.length})
         </button>
         <button
+          type="button"
           onClick={() => setVistaActual('borradores')}
           className={`px-6 py-3 rounded-lg font-medium transition-all ${
             vistaActual === 'borradores'
@@ -216,6 +218,7 @@ const EmailMarketing = () => {
           📝 Borradores ({borradores.length})
         </button>
         <button
+          type="button"
           onClick={() => setVistaActual('enviados')}
           className={`px-6 py-3 rounded-lg font-medium transition-all ${
             vistaActual === 'enviados'
@@ -244,7 +247,7 @@ const EmailMarketing = () => {
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{plantilla.descripcion}</p>
-              
+
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mb-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Vista previa:</p>
                 <p className="text-sm italic dark:text-gray-300">{plantilla.preview}</p>
@@ -263,12 +266,14 @@ const EmailMarketing = () => {
 
               <div className="flex gap-2">
                 <button
+                  type="button"
                   className="flex-1 py-2 rounded-lg border-2 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-2"
                   style={{ borderColor: currentColor, color: currentColor }}
                 >
                   <FaEye /> Vista Previa
                 </button>
                 <button
+                  type="button"
                   className="flex-1 py-2 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2"
                   style={{ backgroundColor: currentColor }}
                 >
@@ -305,16 +310,16 @@ const EmailMarketing = () => {
                       <div
                         className="h-2 rounded-full transition-all"
                         style={{ backgroundColor: currentColor, width: `${borrador.progreso}%` }}
-                      ></div>
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex gap-2 ml-4">
-                  <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <button type="button" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <FaEdit className="text-blue-500" />
                   </button>
-                  <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <button type="button" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <FaTrash className="text-red-500" />
                   </button>
                 </div>
@@ -358,13 +363,13 @@ const EmailMarketing = () => {
                     <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Engagement</p>
                       <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                        {((email.abiertos + email.clicks) / email.enviados * 100).toFixed(1)}%
+                        {(((email.abiertos + email.clicks) / email.enviados) * 100).toFixed(1)}%
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <button className="ml-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" className="ml-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                   <FaChartBar className="text-purple-500 text-xl" />
                 </button>
               </div>

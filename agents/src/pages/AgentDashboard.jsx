@@ -16,16 +16,15 @@ import {
   FaArrowUp,
   FaArrowDown,
 } from 'react-icons/fa';
-import { Header } from '../components';
+import Chart from 'react-apexcharts';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
-import Chart from 'react-apexcharts';
 
 const AgentDashboard = () => {
-  const { currentColor, currentMode } = useStateContext();
+  const { currentMode } = useStateContext();
 
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -37,6 +36,7 @@ const AgentDashboard = () => {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -96,16 +96,17 @@ const AgentDashboard = () => {
 
   // Comisiones chart data
   const comMensual = com.mensual || [];
-  const comMeses = comMensual.map(m => m.mes);
-  const comData = comMensual.map(m => m.comisiones);
-  const comObjetivo = comMensual.map(m => m.objetivo);
+  const comMeses = comMensual.map((m) => m.mes);
+  const comData = comMensual.map((m) => m.comisiones);
+  const comObjetivo = comMensual.map((m) => m.objetivo);
 
   // ApexCharts - Progreso Meta Mensual (Radial)
   const metaOptions = {
     chart: { type: 'radialBar', height: 220, background: 'transparent', sparkline: { enabled: false } },
     plotOptions: {
       radialBar: {
-        startAngle: -135, endAngle: 135,
+        startAngle: -135,
+        endAngle: 135,
         hollow: { size: '65%', background: 'transparent' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -155,7 +156,8 @@ const AgentDashboard = () => {
     xaxis: {
       categories: comMeses.length > 0 ? comMeses : ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
       labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
-      axisBorder: { show: false }, axisTicks: { show: false },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
     },
     yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' }, formatter: (val) => `$${val}K` } },
     grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
@@ -186,7 +188,8 @@ const AgentDashboard = () => {
     chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
     plotOptions: {
       radialBar: {
-        startAngle: -90, endAngle: 90,
+        startAngle: -90,
+        endAngle: 90,
         hollow: { size: '60%' },
         track: { background: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeWidth: '100%' },
         dataLabels: {
@@ -216,9 +219,27 @@ const AgentDashboard = () => {
       {/* KPIs principales del agente (misma estructura que DashboardEjecutivo) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {kpis.map((kpi) => {
-          const colorMap = { 'from-blue-500 to-blue-600': '#3b82f6', 'from-emerald-500 to-emerald-600': '#10b981', 'from-violet-500 to-violet-600': '#8b5cf6', 'from-amber-500 to-amber-600': '#f59e0b', 'from-green-500 to-green-600': '#10b981', 'from-red-500 to-red-600': '#ef4444', 'from-purple-500 to-purple-600': '#8b5cf6', 'from-orange-500 to-orange-600': '#f59e0b' };
+          const colorMap = {
+            'from-blue-500 to-blue-600': '#3b82f6',
+            'from-emerald-500 to-emerald-600': '#10b981',
+            'from-violet-500 to-violet-600': '#8b5cf6',
+            'from-amber-500 to-amber-600': '#f59e0b',
+            'from-green-500 to-green-600': '#10b981',
+            'from-red-500 to-red-600': '#ef4444',
+            'from-purple-500 to-purple-600': '#8b5cf6',
+            'from-orange-500 to-orange-600': '#f59e0b',
+          };
           const accentColor = colorMap[kpi.color] || '#6366f1';
-          const bgMap = { 'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20', 'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20' };
+          const bgMap = {
+            'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20',
+            'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20',
+            'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20',
+            'from-amber-500 to-amber-600': 'bg-amber-50 dark:bg-amber-900/20',
+            'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20',
+            'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20',
+            'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20',
+            'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20',
+          };
           const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
           return (
             <div key={kpi.title} className={`rounded-2xl p-6 border shadow-sm transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`} style={{ borderLeft: `4px solid ${accentColor}` }}>
@@ -308,7 +329,7 @@ const AgentDashboard = () => {
               </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, conversionRate * 4)}%` }}></div>
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, conversionRate * 4)}%` }} />
             </div>
             <p className="text-xs text-center text-gray-500">{conversionRate >= 18 ? 'Por encima del promedio' : 'Por debajo del promedio'}</p>
           </div>
@@ -328,11 +349,11 @@ const AgentDashboard = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                <div className="w-3 h-3 rounded-full bg-purple-500" />
                 <span className="text-xs text-gray-600 dark:text-gray-400">Comisiones</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 <span className="text-xs text-gray-600 dark:text-gray-400">Objetivo</span>
               </div>
             </div>
@@ -449,10 +470,12 @@ const AgentDashboard = () => {
                 >
                   <span>{tarea.title}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    tarea.priority === 'Alta' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                    tarea.priority === 'Media' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                  }`}>{tarea.priority}</span>
+                    tarea.priority === 'Alta' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                      : tarea.priority === 'Media' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                  >{tarea.priority}
+                  </span>
                 </li>
               )) : (
                 <li className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-sm text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-center">

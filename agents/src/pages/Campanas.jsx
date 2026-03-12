@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
-import { useStateContext } from '../contexts/ContextProvider';
-import { FaEnvelope, FaPlus, FaPlay, FaPause, FaEdit, FaTrash, FaChartLine, FaUsers, FaEye, FaMousePointer } from 'react-icons/fa';
+import { FaPlus, FaPlay, FaPause, FaEdit, FaTrash, FaChartLine, FaUsers, FaEye, FaMousePointer, FaBullhorn } from 'react-icons/fa';
 import { MdOutlineEmail } from 'react-icons/md';
+import { useStateContext } from '../contexts/ContextProvider';
 
 const Campanas = () => {
   const { currentMode, currentColor } = useStateContext();
-  const [showModal, setShowModal] = useState(false);
+  const [, setShowModal] = useState(false);
 
   const campanas = [
     {
@@ -24,7 +23,7 @@ const Campanas = () => {
       tasaConversion: 3.6,
       fechaInicio: '01/10/2025',
       fechaFin: '15/10/2025',
-      color: 'blue'
+      color: 'blue',
     },
     {
       id: 2,
@@ -41,7 +40,7 @@ const Campanas = () => {
       tasaConversion: 3.6,
       fechaInicio: '10/10/2025',
       fechaFin: '31/10/2025',
-      color: 'green'
+      color: 'green',
     },
     {
       id: 3,
@@ -58,7 +57,7 @@ const Campanas = () => {
       tasaConversion: 0,
       fechaInicio: '20/10/2025',
       fechaFin: '30/10/2025',
-      color: 'orange'
+      color: 'orange',
     },
     {
       id: 4,
@@ -75,18 +74,18 @@ const Campanas = () => {
       tasaConversion: 3.2,
       fechaInicio: '01/09/2025',
       fechaFin: '30/09/2025',
-      color: 'purple'
-    }
+      color: 'purple',
+    },
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
 
   const getEstadoColor = (estado) => {
     const colors = {
       activa: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
       programada: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
       completada: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-      pausada: 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300'
+      pausada: 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300',
     };
     return colors[estado] || colors.activa;
   };
@@ -101,6 +100,7 @@ const Campanas = () => {
           <p className={`text-sm mt-1 ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>Gestión de campañas activas</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
           style={{ backgroundColor: currentColor }}
@@ -171,7 +171,7 @@ const Campanas = () => {
                     {campana.estado.toUpperCase()}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
                   <span>📅 {campana.fechaInicio} - {campana.fechaFin}</span>
                   <span className="flex items-center gap-1">
@@ -210,6 +210,7 @@ const Campanas = () => {
               <div className="flex flex-col gap-2 ml-4">
                 {campana.estado === 'activa' && (
                   <button
+                    type="button"
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     title="Pausar"
                   >
@@ -218,6 +219,7 @@ const Campanas = () => {
                 )}
                 {campana.estado === 'programada' && (
                   <button
+                    type="button"
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     title="Iniciar"
                   >
@@ -225,18 +227,21 @@ const Campanas = () => {
                   </button>
                 )}
                 <button
+                  type="button"
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Editar"
                 >
                   <FaEdit className="text-blue-500" />
                 </button>
                 <button
+                  type="button"
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Ver Estadísticas"
                 >
                   <FaChartLine className="text-purple-500" />
                 </button>
                 <button
+                  type="button"
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Eliminar"
                 >

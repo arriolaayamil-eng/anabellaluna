@@ -45,14 +45,12 @@ const Navbar = () => {
   const {
     currentColor,
     currentMode,
-    activeMenu,
     setActiveMenu,
     handleClick,
     isClicked,
     setScreenSize,
     screenSize,
     setMode,
-    setThemeSettings,
     setColor,
   } = useStateContext();
 
@@ -62,11 +60,11 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = screenSize <= 900;
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [, setUnreadCount] = useState(0);
   const [rewardCount, setRewardCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [apiOffline, setApiOffline] = useState(false);
-  
+
   // Navbar summary counts
   const [navbarStats, setNavbarStats] = useState({
     propiedades: { total: 0, disponibles: 0 },
@@ -74,7 +72,7 @@ const Navbar = () => {
     mensajes: { consultasNoLeidas: 0, internosNoLeidos: 0, total: 0 },
     notificaciones: { noLeidas: 0 },
   });
-  
+
   // Listen for user updates (e.g., after profile save)
   useEffect(() => {
     const handleUserUpdate = (event) => {
@@ -83,14 +81,12 @@ const Navbar = () => {
     window.addEventListener('userUpdated', handleUserUpdate);
     return () => window.removeEventListener('userUpdated', handleUserUpdate);
   }, []);
-  
+
   const capitalize = (str) => {
     if (!str) return '';
-    return str.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    ).join(' ');
+    return str.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
-  
+
   const userName = capitalize(currentUser?.nombre || currentUser?.username || 'Usuario');
   const userAvatar = currentUser?.avatar || avatar;
 
@@ -111,19 +107,7 @@ const Navbar = () => {
     }
   }, []);
 
-  const loadUnreadCount = useCallback(async () => {
-    try {
-      const items = await crmService.activities.getAll();
-      const unread = (Array.isArray(items) ? items : [])
-        .filter(item => 
-          (item.type === 'enquiry' || item.type === 'visit_scheduled') &&
-          !(item.metadata && item.metadata.read)
-        ).length;
-      setUnreadCount(unread);
-    } catch (e) {
-      console.error('Error loading unread count:', e);
-    }
-  }, []);
+  // loadUnreadCount removed — unread count now computed via navbarStats
 
   const loadRewardCount = useCallback(async () => {
     try {
@@ -175,7 +159,7 @@ const Navbar = () => {
   }, [screenSize, setActiveMenu]);
 
   useEffect(() => {
-    if (!isMobile) { setTopBarVisible(true); return; }
+    if (!isMobile) { setTopBarVisible(true); return undefined; }
     const THRESHOLD = 10;
     const handleScroll = () => {
       const currentY = window.scrollY;
@@ -271,46 +255,46 @@ const Navbar = () => {
         {/* Desktop: Full nav group */}
         {!isMobile && (
           <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-2xl px-2 py-1 shadow-sm">
-            <NavButton 
-              title={`Propiedades (${navbarStats.propiedades.disponibles} disponibles)`} 
-              customFunc={() => handleClick('propiedades')} 
-              color={currentColor} 
-              icon={<FaBuilding />} 
+            <NavButton
+              title={`Propiedades (${navbarStats.propiedades.disponibles} disponibles)`}
+              customFunc={() => handleClick('propiedades')}
+              color={currentColor}
+              icon={<FaBuilding />}
               badgeCount={navbarStats.propiedades.disponibles}
-              isActive={isClicked.propiedades} 
+              isActive={isClicked.propiedades}
             />
-            <NavButton 
-              title={`Tareas (${navbarStats.tareas.total} pendientes)`} 
-              customFunc={() => handleClick('tareas')} 
-              color={currentColor} 
-              icon={<FaTasks />} 
+            <NavButton
+              title={`Tareas (${navbarStats.tareas.total} pendientes)`}
+              customFunc={() => handleClick('tareas')}
+              color={currentColor}
+              icon={<FaTasks />}
               badgeCount={navbarStats.tareas.total}
-              dotColor={navbarStats.tareas.hoy > 0 ? "#EF4444" : "transparent"}
-              isActive={isClicked.tareas} 
+              dotColor={navbarStats.tareas.hoy > 0 ? '#EF4444' : 'transparent'}
+              isActive={isClicked.tareas}
             />
-            <NavButton 
-              title={`Mensajes (${navbarStats.mensajes.total} sin leer)`} 
-              customFunc={() => { handleClick('chatInterno'); loadNavbarStats(); }} 
-              color={currentColor} 
-              icon={<FaComments />} 
+            <NavButton
+              title={`Mensajes (${navbarStats.mensajes.total} sin leer)`}
+              customFunc={() => { handleClick('chatInterno'); loadNavbarStats(); }}
+              color={currentColor}
+              icon={<FaComments />}
               badgeCount={navbarStats.mensajes.total}
-              isActive={isClicked.chatInterno} 
+              isActive={isClicked.chatInterno}
             />
-            <NavButton 
-              title={`Alertas (${navbarStats.notificaciones.noLeidas} sin leer)`} 
-              customFunc={() => handleClick('alertas')} 
-              color={currentColor} 
-              icon={<FaBell />} 
+            <NavButton
+              title={`Alertas (${navbarStats.notificaciones.noLeidas} sin leer)`}
+              customFunc={() => handleClick('alertas')}
+              color={currentColor}
+              icon={<FaBell />}
               badgeCount={navbarStats.notificaciones.noLeidas}
-              isActive={isClicked.alertas} 
+              isActive={isClicked.alertas}
             />
-            <NavButton 
-              title="Mis Logros" 
-              dotColor={rewardCount > 0 ? "#FFD700" : "transparent"} 
-              customFunc={() => handleClick('rewards')} 
-              color={currentColor} 
-              icon={<FaTrophy />} 
-              isActive={isClicked.rewards} 
+            <NavButton
+              title="Mis Logros"
+              dotColor={rewardCount > 0 ? '#FFD700' : 'transparent'}
+              customFunc={() => handleClick('rewards')}
+              color={currentColor}
+              icon={<FaTrophy />}
+              isActive={isClicked.rewards}
             />
             <NavButton title="Probar Celebración" customFunc={() => triggerTestCelebration()} color={currentColor} icon={<FaGift />} />
             <div className="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1" />

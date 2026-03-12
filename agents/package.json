@@ -36,12 +36,6 @@
     "eject": "react-scripts eject",
     "clean": "rimraf node_modules build .cache"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -55,7 +49,7 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^5.9.0",
+    "@craco/craco": "^7.1.0",
     "autoprefixer": "^10.4.2",
     "eslint": "^8.9.0",
     "eslint-config-airbnb": "^19.0.4",

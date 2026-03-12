@@ -114,6 +114,7 @@ const Plantillas = () => {
       fetchTemplates();
     }, 220);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateQuery, categoryFilter, statusFilter]);
 
   useEffect(() => {
@@ -187,6 +188,7 @@ const Plantillas = () => {
 
   const handleDelete = async () => {
     if (!isAdmin || !selectedTemplate) return;
+    // eslint-disable-next-line no-alert
     if (!window.confirm(`Eliminar la plantilla "${selectedTemplate.name}"?`)) return;
     try {
       await templateService.remove(selectedTemplate._id);

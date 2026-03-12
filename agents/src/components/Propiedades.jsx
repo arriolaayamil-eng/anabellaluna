@@ -45,12 +45,12 @@ const Propiedades = () => {
     try {
       const [items, summary] = await Promise.all([
         crmService.propiedades.getAll(),
-        crmService.navbar.getSummary()
+        crmService.navbar.getSummary(),
       ]);
-      
+
       const propiedadesData = (Array.isArray(items) ? items : [])
         .slice(0, 10)
-        .map(p => ({
+        .map((p) => ({
           id: p._id,
           nombre: p.titulo || p.nombre || 'Sin título',
           direccion: p.direccion || p.ubicacion?.direccion || 'Sin dirección',
@@ -60,11 +60,11 @@ const Propiedades = () => {
           tipo: p.tipo || 'casa',
           operacion: p.operacion || 'venta',
         }));
-      
+
       setPropiedades(propiedadesData);
       setStats({
         total: summary?.propiedades?.total || propiedadesData.length,
-        disponibles: summary?.propiedades?.disponibles || propiedadesData.filter(p => p.estado === 'disponible').length,
+        disponibles: summary?.propiedades?.disponibles || propiedadesData.filter((p) => p.estado === 'disponible').length,
       });
     } catch (err) {
       console.error('Error loading properties:', err);
@@ -77,7 +77,7 @@ const Propiedades = () => {
     loadPropiedades();
   }, [loadPropiedades]);
 
-  const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+  const capitalize = (str) => (str ? str.charAt(0).toUpperCase() + str.slice(1) : '');
 
   return (
     <div className="nav-item absolute right-5 md:right-40 top-16 bg-white dark:bg-[#42464D] p-6 rounded-lg w-96 shadow-xl z-50">
@@ -100,6 +100,7 @@ const Propiedades = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={loadPropiedades}
             disabled={loading}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -121,7 +122,7 @@ const Propiedades = () => {
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {loading && propiedades.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }}></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: currentColor }} />
           </div>
         ) : propiedades.length === 0 ? (
           <div className="text-center py-8">
@@ -181,6 +182,7 @@ const Propiedades = () => {
 
       <div className="mt-4 pt-4 border-t dark:border-gray-600">
         <button
+          type="button"
           className="w-full py-2 rounded-lg font-medium transition-colors"
           style={{ backgroundColor: currentColor, color: 'white' }}
           onClick={() => {

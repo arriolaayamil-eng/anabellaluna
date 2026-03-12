@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
 import { toast } from 'react-toastify';
+import { FaRobot, FaPlus, FaCog, FaChartLine, FaBolt, FaBell, FaUserPlus, FaClock, FaBirthdayCake, FaFileAlt, FaHandshake, FaStar, FaExclamationTriangle, FaCheckCircle, FaTimesCircle, FaCalendarAlt, FaPlay, FaPause, FaTrash, FaTimes, FaSave, FaSync } from 'react-icons/fa';
+
 import { confirmToast } from '../utils/confirmToast';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
-import { FaRobot, FaPlus, FaCog, FaChartLine, FaBolt, FaEnvelope, FaSms, FaBell, FaUserPlus, FaClock, FaBirthdayCake, FaFileAlt, FaHandshake, FaStar, FaExclamationTriangle, FaCheckCircle, FaTimesCircle, FaCalendarAlt, FaPlay, FaPause, FaTrash, FaTimes, FaSave, FaSync } from 'react-icons/fa';
 import automationService from '../services/automationService';
 
 const Automatizacion = () => {
@@ -90,7 +91,7 @@ const Automatizacion = () => {
   const handleToggle = async (id) => {
     try {
       const updated = await automationService.toggleAutomation(id);
-      setAutomatizaciones(prev => prev.map(a => a._id === id ? updated : a));
+      setAutomatizaciones((prev) => prev.map((a) => (a._id === id ? updated : a)));
       loadData(); // Refresh stats
     } catch (err) {
       console.error('Error toggling automation:', err);
@@ -101,7 +102,7 @@ const Automatizacion = () => {
     if (!(await confirmToast('¿Estás seguro de eliminar esta automatización?'))) return;
     try {
       await automationService.deleteAutomation(id);
-      setAutomatizaciones(prev => prev.filter(a => a._id !== id));
+      setAutomatizaciones((prev) => prev.filter((a) => a._id !== id));
       loadData(); // Refresh stats
     } catch (err) {
       console.error('Error deleting automation:', err);
@@ -124,7 +125,7 @@ const Automatizacion = () => {
       setSaving(true);
       await automationService.createAutomation({ template: selectedTemplate });
       // Check milestones (non-blocking)
-      try { const { crmService } = await import('../services/crmService'); crmService.rewards.checkMilestones('automation').catch(() => {}); } catch (_) {}
+      try { const { crmService: svc } = await import('../services/crmService'); svc.rewards.checkMilestones('automation').catch(() => {}); } catch (_e) { /* milestone check non-critical */ }
       setShowModal(false);
       setSelectedTemplate('');
       loadData();
@@ -148,7 +149,7 @@ const Automatizacion = () => {
     }
   };
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
 
   const getColorClasses = (color) => {
     const colors = {
@@ -185,6 +186,7 @@ const Automatizacion = () => {
           </a>
           {automatizaciones.length === 0 && (
             <button
+              type="button"
               onClick={handleInitializeDefaults}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-all hover:shadow-md disabled:opacity-50"
@@ -194,6 +196,7 @@ const Automatizacion = () => {
             </button>
           )}
           <button
+            type="button"
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
             style={{ backgroundColor: currentColor }}
@@ -249,7 +252,7 @@ const Automatizacion = () => {
       {/* Grid de Automatizaciones */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: currentColor }}></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: currentColor }} />
         </div>
       ) : automatizaciones.length === 0 ? (
         <div className={`${cardBase} text-center py-16`}>
@@ -257,6 +260,7 @@ const Automatizacion = () => {
           <h3 className="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">No hay automatizaciones configuradas</h3>
           <p className="text-gray-500 dark:text-gray-500 mb-6">Comienza creando tus primeras automatizaciones para mejorar la interacción con tus clientes.</p>
           <button
+            type="button"
             onClick={handleInitializeDefaults}
             disabled={saving}
             className="px-6 py-3 rounded-lg text-white font-medium transition-all hover:shadow-lg disabled:opacity-50"
@@ -274,7 +278,7 @@ const Automatizacion = () => {
             const ejecutadas = auto.estadisticas?.vecesEjecutada || 0;
             const exitosas = auto.estadisticas?.exitosas || 0;
             const tasa = ejecutadas > 0 ? Math.round((exitosas / ejecutadas) * 100) : 0;
-            
+
             return (
               <div key={auto._id} className={cardBase}>
                 <div className={`bg-gradient-to-br ${getColorClasses(color)} text-white p-4 rounded-lg mb-4`}>
@@ -314,16 +318,18 @@ const Automatizacion = () => {
 
                 <div className="flex gap-2 mt-4">
                   <button
+                    type="button"
                     onClick={() => handleToggle(auto._id)}
                     className={`flex-1 py-2 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
-                      auto.activo 
-                        ? 'border-orange-500 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20' 
+                      auto.activo
+                        ? 'border-orange-500 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20'
                         : 'border-green-500 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
                     }`}
                   >
                     {auto.activo ? <><FaPause /> Pausar</> : <><FaPlay /> Activar</>}
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleExecute(auto._id)}
                     className="flex-1 py-2 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2"
                     style={{ backgroundColor: currentColor }}
@@ -331,6 +337,7 @@ const Automatizacion = () => {
                     <FaBolt /> Probar
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDelete(auto._id)}
                     className="px-4 py-2 rounded-lg border-2 border-red-500 text-red-500 font-medium transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
@@ -378,7 +385,8 @@ const Automatizacion = () => {
           <div className={`${cardBase} max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold dark:text-white">Nueva Automatización</h2>
-              <button 
+              <button
+                type="button"
                 onClick={() => { setShowModal(false); setSelectedTemplate(''); }}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
@@ -395,20 +403,21 @@ const Automatizacion = () => {
                 const color = typeColors[tipo] || 'blue';
                 const icon = typeIcons[tipo] || <FaBell />;
                 const isSelected = selectedTemplate === tipo;
-                
+
                 return (
                   <button
+                    type="button"
                     key={tipo}
                     onClick={() => setSelectedTemplate(tipo)}
                     className={`p-4 rounded-lg border-2 text-left transition-all ${
-                      isSelected 
-                        ? 'border-current shadow-lg scale-[1.02]' 
+                      isSelected
+                        ? 'border-current shadow-lg scale-[1.02]'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                     style={isSelected ? { borderColor: currentColor, backgroundColor: `${currentColor}10` } : {}}
                   >
                     <div className="flex items-center gap-3">
-                      <div 
+                      <div
                         className={`p-3 rounded-lg bg-gradient-to-br ${getColorClasses(color)} text-white`}
                       >
                         {icon}
@@ -427,6 +436,7 @@ const Automatizacion = () => {
 
             <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
+                type="button"
                 onClick={() => { setShowModal(false); setSelectedTemplate(''); }}
                 className="px-6 py-3 rounded-lg border-2 font-medium transition-all hover:shadow-md"
                 style={{ borderColor: currentColor, color: currentColor }}
@@ -434,6 +444,7 @@ const Automatizacion = () => {
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleCreateFromTemplate}
                 disabled={!selectedTemplate || saving}
                 className="px-6 py-3 rounded-lg text-white font-medium transition-all hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
