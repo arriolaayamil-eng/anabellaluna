@@ -57,7 +57,8 @@ async function waitForCharts(container, timeoutMs = 4000) {
     );
     if (pending.length === 0) break;
     if (Date.now() - start > timeoutMs) break;
-    await new Promise((r) => setTimeout(r, 200));
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => { setTimeout(r, 200); });
   }
 }
 
@@ -215,6 +216,17 @@ function drawCover(doc, cfg) {
   });
 }
 
+/* ── Hex colour helper ────────────────────────────────────────────── */
+
+function hexToRgb(hex) {
+  const h = (hex || '#888888').replace('#', '');
+  return [
+    parseInt(h.substring(0, 2), 16),
+    parseInt(h.substring(2, 4), 16),
+    parseInt(h.substring(4, 6), 16),
+  ];
+}
+
 /* ── Summary / Totals page ────────────────────────────────────────── */
 
 function drawSummary(doc, reportDefinitions, selectedReports, reportData) {
@@ -301,24 +313,13 @@ function drawSummary(doc, reportDefinitions, selectedReports, reportData) {
   );
 }
 
-/* ── Hex colour helper ────────────────────────────────────────────── */
-
-function hexToRgb(hex) {
-  const h = (hex || '#888888').replace('#', '');
-  return [
-    parseInt(h.substring(0, 2), 16),
-    parseInt(h.substring(2, 4), 16),
-    parseInt(h.substring(4, 6), 16),
-  ];
-}
-
 /* ── Image → PDF placement with smart grouping ────────────────────── */
 
 function placeCharts(doc, captures) {
   let y = MARGIN;
   let needsNewPage = true;
 
-  for (let i = 0; i < captures.length; i++) {
+  for (let i = 0; i < captures.length; i += 1) {
     const { imgData, imgW, imgH, label } = captures[i];
 
     const bannerH = 34;
@@ -396,6 +397,7 @@ export async function exportDashboardToPDF(config) {
   progress(5);
 
   /* ── 1. Init PDF & cover ──────────────────────────────────────── */
+  // eslint-disable-next-line new-cap
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
 
   const selectedIds = Object.entries(selectedReports)
@@ -418,9 +420,10 @@ export async function exportDashboardToPDF(config) {
   const validEls = chartElements.filter(Boolean);
   const captures = [];
 
-  for (let i = 0; i < validEls.length; i++) {
+  for (let i = 0; i < validEls.length; i += 1) {
     const el = validEls[i];
     try {
+      // eslint-disable-next-line no-await-in-loop
       const canvas = await capture(el);
       const imgData = canvas.toDataURL('image/png');
       const imgW = CONTENT_W;
@@ -432,7 +435,7 @@ export async function exportDashboardToPDF(config) {
       // eslint-disable-next-line no-console
       console.warn(`Failed to capture chart ${el.dataset?.reportId}:`, err);
     }
-    progress(10 + ((i + 1) / validEls.length) * 60);
+    progress(10 + (((i + 1) / validEls.length) * 60));
   }
 
   /* ── 3. Place charts with smart grouping ──────────────────────── */
@@ -447,7 +450,7 @@ export async function exportDashboardToPDF(config) {
 
   /* ── 5. Footers on every page ─────────────────────────────────── */
   const totalPages = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 1; i <= totalPages; i += 1) {
     doc.setPage(i);
     footer(doc, i, totalPages, reportId, timestamp);
   }

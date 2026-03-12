@@ -25,7 +25,7 @@ export const getAuthToken = () => {
   const raw = localStorage.getItem('authToken');
   if (!raw) return null;
 
-  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^\'|\'$/g, '');
+  const token = String(raw).trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
   return token.replace(/^Bearer\s+/i, '');
 };
 

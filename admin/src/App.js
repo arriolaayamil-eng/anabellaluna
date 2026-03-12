@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { FiSettings, FiEye, FiEyeOff } from 'react-icons/fi';
-import { TooltipComponent } from '@syncfusion/ej2-react-popups';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
 import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria } from './pages';
 import './App.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { authService } from './services/authService';
-
 import { useStateContext } from './contexts/ContextProvider';
 
 const App = () => {
-  const { setCurrentColor, setCurrentMode, currentMode, activeMenu, currentColor, themeSettings, setThemeSettings } = useStateContext();
+  const { setCurrentColor, setCurrentMode, currentMode, themeSettings } = useStateContext();
 
   const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken'));
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -43,7 +41,7 @@ const App = () => {
       if (!token) throw new Error('invalid credentials');
       setLoginStatus('success');
       setShowLoginOverlay(true);
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+      await new Promise((resolve) => { setTimeout(resolve, 2500); });
       setAuthToken(token);
     } catch (err) {
       const raw = err?.message || 'Error al iniciar sesión';
@@ -126,9 +124,10 @@ const App = () => {
                 </div>
 
                 <div className="mt-7 space-y-4 al-fade-up" style={{ animationDelay: '180ms' }}>
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${currentMode === 'Dark' ? 'text-gray-200' : 'text-gray-700'}`}>Usuario</label>
+                  <label htmlFor="login-username" className={`block text-sm font-medium mb-2 ${currentMode === 'Dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+                    <span className="block mb-2">Usuario</span>
                     <input
+                      id="login-username"
                       type="text"
                       value={loginForm.username}
                       onChange={(e) => {
@@ -143,12 +142,13 @@ const App = () => {
                       placeholder="admin"
                       required
                     />
-                  </div>
+                  </label>
 
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${currentMode === 'Dark' ? 'text-gray-200' : 'text-gray-700'}`}>Contraseña</label>
+                  <label htmlFor="login-password" className={`block text-sm font-medium ${currentMode === 'Dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+                    <span className="block mb-2">Contraseña</span>
                     <div className="relative">
                       <input
+                        id="login-password"
                         type={showPassword ? 'text' : 'password'}
                         value={loginForm.password}
                         onChange={(e) => {
@@ -175,7 +175,7 @@ const App = () => {
                         </span>
                       </button>
                     </div>
-                  </div>
+                  </label>
                 </div>
 
                 <div className="mt-5">
@@ -192,7 +192,8 @@ const App = () => {
                 >
                   <span className="flex items-center justify-center gap-2">
                     {loggingIn && <span className="al-spinner" />}
-                    {loginStatus === 'success' ? '¡Bienvenido!' : (loggingIn ? 'Ingresando...' : 'Ingresar')}
+                    {loginStatus === 'success' && '¡Bienvenido!'}
+                    {loginStatus !== 'success' && (loggingIn ? 'Ingresando...' : 'Ingresar')}
                   </span>
                 </button>
 
