@@ -5,7 +5,10 @@ import { FaGoogle, FaCheck, FaTimes, FaCopy, FaEye, FaEyeSlash, FaSave, FaTrash,
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const API_URL = process.env.REACT_APP_API_URL
+  || (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'https://api.anabellaluna.com.ar'
+    : 'http://localhost:4000');
 const getAuthToken = () => localStorage.getItem('authToken');
 
 const Integraciones = () => {

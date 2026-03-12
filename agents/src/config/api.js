@@ -1,6 +1,9 @@
 // Configuración de la API
 const API_CONFIG = {
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000',
+  baseURL: process.env.REACT_APP_API_URL
+    || (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'https://api.anabellaluna.com.ar'
+      : 'http://localhost:4000'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
