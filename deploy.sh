@@ -13,7 +13,6 @@ set -e
 
 PROJECT_DIR="/var/www/anabella"
 LOGFILE="$PROJECT_DIR/deploy.log"
-NODE_ENV="production"
 
 # Colores
 RED='\033[0;31m'
@@ -79,7 +78,7 @@ ok "Código actualizado"
 if should_run "backend"; then
   log "🔧 Backend — Instalando dependencias..."
   cd "$PROJECT_DIR/backend"
-  npm install --omit=dev --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  NODE_ENV=production npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
   ok "Dependencias del backend instaladas"
 
   log "🔄 Backend — Reiniciando con PM2..."
@@ -96,11 +95,11 @@ fi
 if should_run "admin"; then
   log "🏗️  Admin (ERP) — Instalando dependencias..."
   cd "$PROJECT_DIR/admin"
-  npm install --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  NODE_ENV=development npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
   ok "Dependencias admin instaladas"
 
   log "🏗️  Admin (ERP) — Compilando..."
-  DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
+  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
   ok "Admin build completado"
 fi
 
@@ -108,11 +107,11 @@ fi
 if should_run "agents"; then
   log "🏗️  Agents (CRM) — Instalando dependencias..."
   cd "$PROJECT_DIR/agents"
-  npm install --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  NODE_ENV=development npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
   ok "Dependencias agents instaladas"
 
   log "🏗️  Agents (CRM) — Compilando..."
-  DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
+  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
   ok "Agents build completado"
 fi
 
@@ -120,11 +119,11 @@ fi
 if should_run "frontend"; then
   log "🏗️  Frontend (Público) — Instalando dependencias..."
   cd "$PROJECT_DIR/frontend"
-  npm install --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  NODE_ENV=development npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
   ok "Dependencias frontend instaladas"
 
   log "🏗️  Frontend (Público) — Compilando..."
-  npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
+  NODE_ENV=production npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
   ok "Frontend build completado"
 fi
 
