@@ -7,7 +7,9 @@ const ClienteSchema = new mongoose.Schema({
   direccion: { type: String, default: '' },
   agenteId: { type: String, default: '', index: true },
   notas: { type: String, default: '' },
-  metadata: { type: Object, default: {} }
+  metadata: { type: Object, default: {} },
+  // ---- Rewards V2: loyalty tracking ----
+  fidelizado: { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Cliente', ClienteSchema);

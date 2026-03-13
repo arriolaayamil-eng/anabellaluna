@@ -23,7 +23,12 @@ const PropiedadSchema = new mongoose.Schema({
   agentId: { type: String },
   status: { type: String, enum: ['Disponible', 'Reservada', 'Vendida', 'Alquilada'], default: 'Disponible' },
   metadata: { type: Object, default: {} },
-  createdBy: { type: String }
+  createdBy: { type: String },
+  // ---- Rewards V2: capture / exclusivity tracking ----
+  exclusiva: { type: Boolean, default: false },
+  exclusividadDias: { type: Number, default: 0 },
+  exclusividadDesde: { type: Date },
+  fechaCaptacion: { type: Date },
 }, { timestamps: true });
 
 PropiedadSchema.pre('validate', async function preValidate(next) {

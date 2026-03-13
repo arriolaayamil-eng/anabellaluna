@@ -90,10 +90,20 @@ export const crmService = {
     getAgentesStats: () => api.get('/crm/stats/agentes'),
   },
 
-  // ============ RECOMPENSAS ============
+  // ============ RECOMPENSAS V2 ============
   rewards: {
+    // Legacy (kept for backward compat)
     getSummary: () => api.get('/crm/rewards/summary'),
     getAgentRewards: (agenteId) => api.get(`/crm/rewards/agent/${agenteId}`),
+    // V2
+    getLeaderboard: (year, quarter) => api.get(`/crm/rewards-v2/leaderboard?year=${year}&quarter=${quarter}`),
+    getConfig: () => api.get('/crm/rewards-v2/config'),
+    updateConfig: (data) => api.put('/crm/rewards-v2/config', data),
+    recalculate: (data) => api.post('/crm/rewards-v2/recalculate', data),
+    getAgentDashboard: (id) => api.get(`/crm/rewards-v2/agent/${id}/dashboard`),
+    getQuarterlyAwards: (year, quarter) => api.get(`/crm/rewards-v2/quarterly-awards?year=${year}&quarter=${quarter}`),
+    getPreListingAll: () => api.get('/crm/rewards-v2/pre-listing/all'),
+    getLoyalty: (year) => api.get(`/crm/rewards-v2/loyalty?year=${year}`),
   },
 
   // ============ REPORTES ============

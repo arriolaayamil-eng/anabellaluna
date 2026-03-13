@@ -7,7 +7,11 @@ const OperacionSchema = new mongoose.Schema({
   tipo: { type: String, enum: ['Venta', 'Alquiler'], default: 'Venta' },
   monto: { type: Number, default: 0 },
   estado: { type: String, default: 'Pendiente' },
-  notas: { type: String, default: '' }
+  notas: { type: String, default: '' },
+  // ---- Rewards V2: commission tracking ----
+  comisionMonto: { type: Number, default: 0 },
+  comisionCobrada: { type: Boolean, default: false },
+  comisionFechaCobro: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Operacion', OperacionSchema);

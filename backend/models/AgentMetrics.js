@@ -1,3 +1,7 @@
+/**
+ * @deprecated LEGACY model – kept for historical data only.
+ * New rewards calculations are handled by rewardsEngine.js.
+ */
 const mongoose = require('mongoose');
 
 const agentMetricsSchema = new mongoose.Schema({

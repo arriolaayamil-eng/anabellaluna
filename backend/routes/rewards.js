@@ -1,3 +1,8 @@
+/**
+ * @deprecated LEGACY rewards route – kept for backward compatibility only.
+ * All new rewards logic lives in /crm/rewards-v2 (see routes/rewardsV2.js).
+ * Do NOT add new features here. This file may be removed in a future release.
+ */
 const express = require('express');
 const Reward = require('../models/Reward');
 const AgentMetrics = require('../models/AgentMetrics');

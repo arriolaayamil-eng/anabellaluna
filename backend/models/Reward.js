@@ -1,3 +1,7 @@
+/**
+ * @deprecated LEGACY model – kept for historical data only.
+ * New rewards use BadgeRecord, SellerTierHistory, QuarterlyAward, CustomerLoyalty.
+ */
 const mongoose = require('mongoose');
 
 const rewardSchema = new mongoose.Schema({

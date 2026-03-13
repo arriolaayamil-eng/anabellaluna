@@ -72,6 +72,8 @@ const integrationsRoutes = require('./routes/integrations');
 
 const rewardsRoutes = require('./routes/rewards');
 
+const rewardsV2Routes = require('./routes/rewardsV2');
+
 const messagesRoutes = require('./routes/messages');
 
 const reportsRoutes = require('./routes/reports');
@@ -97,6 +99,8 @@ const adminNotificationsRoutes = require('./routes/adminNotifications');
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
+
+const { initRewardsScheduler } = require('./services/rewardsScheduler');
 
 
 
@@ -215,6 +219,8 @@ app.use('/crm/activities', activitiesRoutes);
 app.use('/crm/integrations', integrationsRoutes);
 
 app.use('/crm/rewards', rewardsRoutes);
+
+app.use('/crm/rewards-v2', rewardsV2Routes);
 
 app.use('/crm/messages', messagesRoutes);
 
@@ -1091,6 +1097,9 @@ if (require.main === module) {
       // Initialize automation scheduler for CRM notifications
 
       initAutomationScheduler();
+
+      // Initialize rewards V2 scheduler (weekly badge, quarterly awards, annual tiers)
+      initRewardsScheduler();
 
     });
 

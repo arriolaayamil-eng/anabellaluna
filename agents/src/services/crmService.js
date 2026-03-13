@@ -123,6 +123,7 @@ export const crmService = {
 
   // ============ RECOMPENSAS ============
   rewards: {
+    // Legacy V1 (kept for backward compat – milestones, celebrations)
     getMy: () => api.get('/crm/rewards/my'),
     getUnseen: () => api.get('/crm/rewards/unseen'),
     markCelebrated: (rewardIds) => api.post('/crm/rewards/mark-celebrated', { rewardIds }),
@@ -130,8 +131,14 @@ export const crmService = {
     recordLogin: () => api.post('/crm/rewards/record-login', {}),
     calculate: () => api.post('/crm/rewards/calculate', {}),
     checkMilestones: (hint) => api.post('/crm/rewards/check-milestones', { hint }),
-    getSummary: () => api.get('/crm/rewards/summary'),
-    getAgentRewards: (agenteId) => api.get(`/crm/rewards/agent/${agenteId}`),
+    // V2
+    getDashboard: () => api.get('/crm/rewards-v2/dashboard'),
+    getLeaderboard: (year, quarter) => api.get(`/crm/rewards-v2/leaderboard?year=${year}&quarter=${quarter}`),
+    getQuarterlyAwards: (year, quarter) => api.get(`/crm/rewards-v2/quarterly-awards?year=${year}&quarter=${quarter}`),
+    createPreListing: (data) => api.post('/crm/rewards-v2/pre-listing', data),
+    getPreListings: (limit) => api.get(`/crm/rewards-v2/pre-listing?limit=${limit || 50}`),
+    getBadgeHistory: () => api.get('/crm/rewards-v2/badge-history'),
+    getTierHistory: () => api.get('/crm/rewards-v2/tier-history'),
   },
 
   // ============ REPORTES ============

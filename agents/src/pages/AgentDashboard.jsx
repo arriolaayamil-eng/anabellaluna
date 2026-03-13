@@ -24,7 +24,7 @@ const AgentDashboard = () => {
   const { currentMode } = useStateContext();
 
   const [data, setData] = useState(null);
-  const [setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
     try {
