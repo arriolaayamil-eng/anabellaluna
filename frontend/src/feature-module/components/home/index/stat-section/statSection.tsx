@@ -24,10 +24,10 @@ const StatSection = () => {
   }, []);
 
   const items = [
-    { icon: "assets/img/home/icons/stat-icon-01.svg", value: formatCount(stats.properties), label: "Publicaciones" },
-    { icon: "assets/img/home/icons/stat-icon-02.svg", value: formatCount(stats.agents), label: "Agentes" },
-    { icon: "assets/img/home/icons/stat-icon-03.svg", value: formatCount(stats.sales), label: "En Venta" },
-    { icon: "assets/img/home/icons/stat-icon-04.svg", value: formatCount(stats.rentals), label: "En Alquiler" },
+    { icon: "assets/img/home/icons/stat-icon-1.svg", value: formatCount(stats.properties), label: "Publicaciones" },
+    { icon: "assets/img/home/icons/stat-icon-2.svg", value: formatCount(stats.agents), label: "Agentes" },
+    { icon: "assets/img/home/icons/stat-icon-3.svg", value: formatCount(stats.sales), label: "En Venta" },
+    { icon: "assets/img/home/icons/stat-icon-4.svg", value: formatCount(stats.rentals), label: "En Alquiler" },
   ];
 
   return (

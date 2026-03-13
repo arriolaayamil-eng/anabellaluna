@@ -1,6 +1,9 @@
 // Configuración de la API para el ERP
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'https://api.anabellaluna.com.ar'
+    : 'http://localhost:4000');
 
 
 
