@@ -18,14 +18,14 @@
       text-align: center;
     }
     h1 {
-      color: var(--gray-900);
+      color: #fff;
       font-size: 44px;
       @include respond-below(sm) {
         font-size: 32px;
       }
     }
     p {
-      color: var(--gray-900);
+      color: #fff;
     }
   }
   .home-search-1 {
