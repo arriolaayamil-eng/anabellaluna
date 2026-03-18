@@ -3,6 +3,27 @@ const router = express.Router();
 const Folder = require('../models/Folder');
 const Document = require('../models/Document');
 const { authenticateToken, agentScopeId } = require('../auth');
+const { presignedGetObject } = require('../minio');
+
+const IMAGE_MIMETYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  'image/bmp', 'image/tiff', 'image/avif',
+]);
+
+async function enrichDocsWithThumbnails(docs) {
+  const plain = docs.map(d => (typeof d.toObject === 'function' ? d.toObject() : { ...d }));
+  await Promise.all(plain.map(async (doc) => {
+    if (!doc.object_key || !doc.bucket) return;
+    const isImage = doc.tipo === 'Imagen'
+      || IMAGE_MIMETYPES.has((doc.mimetype || '').toLowerCase())
+      || /\.(jpe?g|png|gif|webp|svg|bmp|avif)$/i.test(doc.object_key);
+    if (!isImage) return;
+    try {
+      doc.thumbnailUrl = await presignedGetObject(doc.bucket, doc.object_key, 3600);
+    } catch (_e) { /* ignore – thumbnail just won't show */ }
+  }));
+  return plain;
+}
 
 // --------------- FOLDERS ---------------
 
@@ -213,10 +234,11 @@ router.get('/browse', authenticateToken, async (req, res) => {
       docFilter.nombre = new RegExp(q, 'i');
     }
 
-    const [folders, documents] = await Promise.all([
+    const [folders, rawDocs] = await Promise.all([
       Folder.find(folderFilter).sort({ name: 1 }).exec(),
       Document.find(docFilter).sort({ fecha: -1 }).limit(500).exec(),
     ]);
+    const documents = await enrichDocsWithThumbnails(rawDocs);
 
     res.json({ folders, documents });
   } catch (err) {
@@ -238,10 +260,11 @@ router.get('/search', authenticateToken, async (req, res) => {
       docFilter.agenteId = scopeId;
     }
 
-    const [folders, documents] = await Promise.all([
+    const [folders, rawDocs] = await Promise.all([
       Folder.find(folderFilter).sort({ name: 1 }).limit(50).exec(),
       Document.find(docFilter).sort({ fecha: -1 }).limit(200).exec(),
     ]);
+    const documents = await enrichDocsWithThumbnails(rawDocs);
 
     res.json({ folders, documents });
   } catch (err) {
@@ -260,10 +283,11 @@ router.get('/starred', authenticateToken, async (req, res) => {
       docFilter.agenteId = scopeId;
     }
 
-    const [folders, documents] = await Promise.all([
+    const [folders, rawDocs] = await Promise.all([
       Folder.find(folderFilter).sort({ name: 1 }).exec(),
       Document.find(docFilter).sort({ fecha: -1 }).exec(),
     ]);
+    const documents = await enrichDocsWithThumbnails(rawDocs);
 
     res.json({ folders, documents });
   } catch (err) {
@@ -277,7 +301,8 @@ router.get('/recent', authenticateToken, async (req, res) => {
     const scopeId = agentScopeId(req);
     const filter = {};
     if (scopeId) filter.agenteId = scopeId;
-    const docs = await Document.find(filter).sort({ fecha: -1 }).limit(30).exec();
+    const rawDocs = await Document.find(filter).sort({ fecha: -1 }).limit(30).exec();
+    const docs = await enrichDocsWithThumbnails(rawDocs);
     res.json(docs);
   } catch (err) {
     res.status(500).json({ error: err.message });

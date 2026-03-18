@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const Propiedad = require('../models/Propiedad');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
@@ -52,6 +53,49 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
     if (!updated) return res.status(404).json({ error: 'Not found' });
     res.json(updated);
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// Toggle published status
+router.patch('/:id/publish', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const scopeId = agentScopeId(req);
+    const filter = { _id: req.params.id };
+    if (scopeId) filter.agentId = scopeId;
+    const prop = await Propiedad.findOne(filter);
+    if (!prop) return res.status(404).json({ error: 'Not found' });
+    const published = req.body.published != null ? !!req.body.published : !prop.published;
+    prop.published = published;
+    await prop.save();
+    res.json({ published: prop.published });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Generate a private share token
+router.post('/:id/private-link', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const scopeId = agentScopeId(req);
+    const filter = { _id: req.params.id };
+    if (scopeId) filter.agentId = scopeId;
+    const prop = await Propiedad.findOne(filter);
+    if (!prop) return res.status(404).json({ error: 'Not found' });
+    prop.privateToken = crypto.randomBytes(32).toString('hex');
+    await prop.save();
+    res.json({ privateToken: prop.privateToken });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Revoke private share token
+router.delete('/:id/private-link', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const scopeId = agentScopeId(req);
+    const filter = { _id: req.params.id };
+    if (scopeId) filter.agentId = scopeId;
+    const prop = await Propiedad.findOne(filter);
+    if (!prop) return res.status(404).json({ error: 'Not found' });
+    prop.privateToken = '';
+    await prop.save();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {

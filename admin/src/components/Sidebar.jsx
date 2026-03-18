@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { MdSpaceDashboard, MdOutlineCancel, MdOutlineIntegrationInstructions } from 'react-icons/md';
-import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaTrophy, FaBuilding, FaUserTie, FaComments, FaFileAlt, FaMagic } from 'react-icons/fa';
+import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaTrophy, FaBuilding, FaUserTie, FaComments, FaFileAlt, FaMagic, FaImage } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
 
@@ -14,6 +14,7 @@ const menuItems = [
   { name: 'Agenda', path: '/citas', icon: <FaRegCalendarAlt /> },
   { name: 'Mensajería', path: '/mensajeria', icon: <FaComments /> },
   { name: 'Archivos', path: '/archivos', icon: <FaFileAlt /> },
+  { name: 'Editor', path: '/editor-imagenes', icon: <FaImage /> },
   { name: 'Plantillas', path: '/plantillas', icon: <FaMagic /> },
   { name: 'Reportes', path: '/reportes', icon: <FaChartBar /> },
   { name: 'Recompensas', path: '/recompensas', icon: <FaTrophy /> },

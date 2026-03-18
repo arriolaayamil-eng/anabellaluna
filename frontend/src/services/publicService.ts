@@ -119,8 +119,9 @@ export const publicService = {
     return api.get(`/public/properties${query}`) as Promise<{ items: PropertyCard[] }>;
   },
 
-  getPropertyBySlug: async (slug: string) => {
-    return api.get(`/public/properties/${encodeURIComponent(slug)}`) as Promise<{ item: PropertyDetail }>;
+  getPropertyBySlug: async (slug: string, token?: string) => {
+    const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+    return api.get(`/public/properties/${encodeURIComponent(slug)}${qs}`) as Promise<{ item: PropertyDetail }>;
   },
 
   createBookingRequest: async (contact: BookingContact) => {

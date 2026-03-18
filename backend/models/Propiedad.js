@@ -22,6 +22,8 @@ const PropiedadSchema = new mongoose.Schema({
   ownerId: { type: String }, // cliente id
   agentId: { type: String },
   status: { type: String, enum: ['Disponible', 'Reservada', 'Vendida', 'Alquilada'], default: 'Disponible' },
+  published: { type: Boolean, default: true, index: true },
+  privateToken: { type: String, default: '', index: true },
   metadata: { type: Object, default: {} },
   createdBy: { type: String },
   // ---- Rewards V2: capture / exclusivity tracking ----

@@ -33,8 +33,22 @@ const router = express.Router();
 // ============================================================
 router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const agenteId = agentScopeId(req);
-    if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
+    // agentScopeId returns null for admins by design; fall back to req.user.agenteId
+    const agenteId = agentScopeId(req) || (req.user && req.user.agenteId ? String(req.user.agenteId) : null);
+    if (!agenteId) {
+      // Admin without linked agent – return empty dashboard so the page renders
+      const now = new Date();
+      const q = Math.ceil((now.getMonth() + 1) / 3);
+      return res.json({
+        year: now.getFullYear(), quarter: q,
+        captures: { quarterly: 0, annual: 0, quarterlyGoal: 0, annualGoal: 0 },
+        revenue: { quarterly: 0, annual: 0, quarterlyTarget: 0, annualTarget: 0 },
+        loyalty: { closedCount: 0, loyalCount: 0, totalCount: 0, seniority: 0 },
+        preListing: { weeklyCount: 0, weeklyMinimum: 0, hasBadge: false },
+        tier: { tier: 'none', medal: null, totalRevenue: 0, prize: null },
+        awards: [], tierHistory: [], config: {},
+      });
+    }
     const data = await engine.getAgentDashboard(agenteId);
     res.json(data);
   } catch (err) {
@@ -134,7 +148,7 @@ router.get('/quarterly-awards', authenticateToken, requireCRMUser, async (req, r
 // ============================================================
 router.post('/pre-listing', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const agenteId = agentScopeId(req);
+    const agenteId = agentScopeId(req) || (req.user && req.user.agenteId ? String(req.user.agenteId) : null);
     if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
     const { clienteId, tipo, fecha, observaciones } = req.body;
     if (!clienteId || !tipo || !fecha) return res.status(400).json({ error: 'clienteId, tipo, fecha required' });
@@ -154,8 +168,8 @@ router.post('/pre-listing', authenticateToken, requireCRMUser, async (req, res) 
 
 router.get('/pre-listing', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const agenteId = agentScopeId(req);
-    if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
+    const agenteId = agentScopeId(req) || (req.user && req.user.agenteId ? String(req.user.agenteId) : null);
+    if (!agenteId) return res.json([]);
     const limit = parseInt(req.query.limit) || 50;
     const docs = await PreListing.find({ agenteId }).sort({ fecha: -1 }).limit(limit).populate('clienteId', 'nombre email').lean();
     res.json(docs);
@@ -183,8 +197,8 @@ router.get('/pre-listing/all', authenticateToken, requireRole('admin'), async (r
 // ============================================================
 router.get('/badge-history', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const agenteId = agentScopeId(req);
-    if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
+    const agenteId = agentScopeId(req) || (req.user && req.user.agenteId ? String(req.user.agenteId) : null);
+    if (!agenteId) return res.json([]);
     const docs = await BadgeRecord.find({ agenteId }).sort({ createdAt: -1 }).limit(50).lean();
     res.json(docs);
   } catch (err) {
@@ -197,8 +211,8 @@ router.get('/badge-history', authenticateToken, requireCRMUser, async (req, res)
 // ============================================================
 router.get('/tier-history', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const agenteId = agentScopeId(req);
-    if (!agenteId) return res.status(403).json({ error: 'Agent ID required' });
+    const agenteId = agentScopeId(req) || (req.user && req.user.agenteId ? String(req.user.agenteId) : null);
+    if (!agenteId) return res.json([]);
     const docs = await SellerTierHistory.find({ agenteId }).sort({ year: -1 }).limit(10).lean();
     res.json(docs);
   } catch (err) {

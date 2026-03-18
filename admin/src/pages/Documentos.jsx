@@ -446,12 +446,17 @@ const Documentos = () => {
   const renderDocRow = (doc, idx, arr) => {
     const isRenaming = renameTarget && renameTarget.type === 'doc' && renameTarget.item._id === doc._id;
     const color = getFileColor(doc.tipo);
+    const hasThumb = !!doc.thumbnailUrl;
     return (
       <div key={doc._id} style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}) }}
         onClick={() => handlePreview(doc)} onContextMenu={(e) => openActionSheet(e, 'doc', doc)}>
-        <div style={S.fileThumb(color)}>
-          <span style={{ fontSize: 11, fontWeight: 700, color }}>{getFileLabel(doc.tipo)}</span>
-        </div>
+        {hasThumb ? (
+          <img src={doc.thumbnailUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
+        ) : (
+          <div style={S.fileThumb(color)}>
+            <span style={{ fontSize: 11, fontWeight: 700, color }}>{getFileLabel(doc.tipo)}</span>
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           {isRenaming
             ? <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)}
@@ -471,13 +476,20 @@ const Documentos = () => {
 
   const renderDocGrid = (doc) => {
     const color = getFileColor(doc.tipo);
+    const hasThumb = !!doc.thumbnailUrl;
     return (
       <div key={doc._id} style={S.gridItem} onClick={() => handlePreview(doc)} onContextMenu={(e) => openActionSheet(e, 'doc', doc)}>
-        <div style={S.fileThumbGrid(color)}>
-          <div style={{ width: 44, height: 44, borderRadius: 10, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{getFileLabel(doc.tipo)}</span>
+        {hasThumb ? (
+          <div style={{ width: '100%', height: 100, borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
+            <img src={doc.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
           </div>
-        </div>
+        ) : (
+          <div style={S.fileThumbGrid(color)}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{getFileLabel(doc.tipo)}</span>
+            </div>
+          </div>
+        )}
         {doc.starred && <StarFill size={14} filled style={{ position: 'absolute', top: 8, left: 8 }} />}
         <div style={{ padding: '8px 10px' }}>
           <div style={{ fontSize: 13, fontWeight: 500, color: IOS.label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</div>

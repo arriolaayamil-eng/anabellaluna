@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -13,6 +13,8 @@ type SliderType = Slider;
 
 const BuyDetails = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const privateToken = searchParams.get('token') || undefined;
   const [mainSlider, setMainSlider] = useState<SliderType | undefined>(
     undefined
   );
@@ -72,7 +74,7 @@ const BuyDetails = () => {
       }
       try {
         setIsLoading(true);
-        const res = await publicService.getPropertyBySlug(slug);
+        const res = await publicService.getPropertyBySlug(slug, privateToken);
         if (!isMounted) return;
         setProperty(res.item || null);
       } catch {

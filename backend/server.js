@@ -96,6 +96,8 @@ const adminDashboardStatsRoutes = require('./routes/adminDashboardStats');
 
 const adminNotificationsRoutes = require('./routes/adminNotifications');
 
+const editorRoutes = require('./routes/editor');
+
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
@@ -241,6 +243,8 @@ app.use('/admin/notifications', adminNotificationsRoutes);
 app.use('/admin/config', globalConfigRoutes);
 
 app.use('/files', foldersRoutes);
+
+app.use('/editor', editorRoutes);
 
 app.use('/contract-templates', contractTemplatesRoutes);
 

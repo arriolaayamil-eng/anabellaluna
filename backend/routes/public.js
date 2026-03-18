@@ -345,7 +345,7 @@ router.get('/agents/:id', async (req, res) => {
     if (!agent) return res.status(404).json({ error: 'agent not found' });
 
     // Get agent's properties
-    const props = await Propiedad.find({ agentId: String(agent._id) }).sort({ updatedAt: -1 }).limit(50).lean();
+    const props = await Propiedad.find({ agentId: String(agent._id), published: { $ne: false } }).sort({ updatedAt: -1 }).limit(50).lean();
     const coverMap = await getPropertyCoverMap(props.map((p) => p._id));
 
     const properties = props.map((p) => {
@@ -411,6 +411,7 @@ router.get('/properties', async (req, res) => {
       ];
     }
 
+    filter.published = { $ne: false };
     const props = await Propiedad.find(filter).sort({ updatedAt: -1 }).limit(200).lean();
 
     const agentIds = Array.from(new Set(props.map((p) => String(p.agentId || '')).filter(Boolean)));
@@ -441,6 +442,14 @@ router.get('/properties/:slug', async (req, res) => {
       prop = await Propiedad.findById(slug).lean();
     }
     if (!prop) return res.status(404).json({ error: 'Not found' });
+
+    // Enforce published gate: allow if published, or if valid private token provided
+    if (prop.published === false) {
+      const token = String(req.query.token || '').trim();
+      if (!token || !prop.privateToken || token !== prop.privateToken) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+    }
 
      const visitorId = ensureVisitorId(req);
      const propertyId = String(prop._id);

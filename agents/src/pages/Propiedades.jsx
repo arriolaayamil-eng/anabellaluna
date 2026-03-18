@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import Chart from 'react-apexcharts';
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
-import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaFileAlt, FaDownload, FaLink, FaCopy, FaGlobe, FaLock } from 'react-icons/fa';
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
 
 import { confirmToast } from '../utils/confirmToast';
@@ -12,6 +12,14 @@ import { documentService } from '../services/documentService';
 import API_CONFIG, { getAuthToken } from '../config/api';
 
 // Syncfusion Components
+
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic'];
+const isImageDoc = (doc) => {
+  if (!doc) return false;
+  if (doc.mimetype && doc.mimetype.startsWith('image/')) return true;
+  const ext = (doc.nombre || '').split('.').pop()?.toLowerCase() || '';
+  return IMAGE_EXTS.includes(ext);
+};
 
 const Propiedades = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -62,6 +70,10 @@ const Propiedades = () => {
   const [adjuntos, setAdjuntos] = useState([]);
   const [adjuntosLoading, setAdjuntosLoading] = useState(false);
   const [adjuntosError, setAdjuntosError] = useState('');
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [docBlobUrls, setDocBlobUrls] = useState({});
+  const [coverUrls, setCoverUrls] = useState({});
+  const [lightboxDoc, setLightboxDoc] = useState(null);
 
   const [filesFotos, setFilesFotos] = useState([]);
   const [filesDocumentos, setFilesDocumentos] = useState([]);
@@ -76,6 +88,7 @@ const Propiedades = () => {
     categoria: '',
     operacion: 'Venta',
     featured: false,
+    published: true,
     precio: '',
     precioOferta: '',
     precioPorM2: '',
@@ -128,6 +141,7 @@ const Propiedades = () => {
       categoria: '',
       operacion: 'Venta',
       featured: false,
+      published: true,
       precio: '',
       precioOferta: '',
       precioPorM2: '',
@@ -183,6 +197,7 @@ const Propiedades = () => {
       categoria: prop.categoria || '',
       operacion: prop.operacion || 'Venta',
       featured: !!prop.featured,
+      published: prop.published !== false,
       precio: prop.precio || '',
       precioOferta: prop.precioOferta || '',
       precioPorM2: prop.precioPorM2 || '',
@@ -286,6 +301,53 @@ const Propiedades = () => {
     }
   };
 
+  // Load blob URLs for image documents that require auth
+  useEffect(() => {
+    const docs = (adjuntos || [])
+      .map(l => l?.document)
+      .filter(d => d && d._id && d.url && isImageDoc(d));
+    if (!docs.length) { setDocBlobUrls({}); return; }
+    let cancelled = false;
+    const created = [];
+    (async () => {
+      const token = getAuthToken();
+      const result = {};
+      await Promise.allSettled(docs.map(async (d) => {
+        if (cancelled) return;
+        const raw = String(d.url);
+        if (raw.startsWith('http')) { result[d._id] = raw; return; }
+        try {
+          const res = await fetch(`${API_CONFIG.baseURL}${raw}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (cancelled || !res.ok) return;
+          const blob = await res.blob();
+          if (cancelled) return;
+          const blobUrl = URL.createObjectURL(blob);
+          created.push(blobUrl);
+          result[d._id] = blobUrl;
+        } catch { /* skip failed */ }
+      }));
+      if (!cancelled) setDocBlobUrls(result);
+    })();
+    return () => { cancelled = true; created.forEach(u => URL.revokeObjectURL(u)); };
+  }, [adjuntos]);
+
+  // Reset carousel when switching properties
+  useEffect(() => { setCarouselIdx(0); }, [propiedadSeleccionada?.id]);
+
+  // Derived: image adjuntos for carousel
+  const fotoAdjuntos = (adjuntos || []).filter(l => l?.document && isImageDoc(l.document));
+  const safeCarouselIdx = fotoAdjuntos.length > 0 ? Math.min(carouselIdx, fotoAdjuntos.length - 1) : 0;
+  const carouselDoc = fotoAdjuntos[safeCarouselIdx]?.document || null;
+  const carouselSrc = carouselDoc ? (docBlobUrls[carouselDoc._id] || null) : null;
+
+  // Helper: get displayable image URL for a doc
+  const getDocImgUrl = (doc) => {
+    if (!doc || !doc._id) return null;
+    return docBlobUrls[doc._id] || null;
+  };
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -320,6 +382,8 @@ const Propiedades = () => {
             tipo: meta.tipo || 'Departamento',
             categoria: meta.categoria || '',
             featured: !!(p.featured != null ? p.featured : meta.featured),
+            published: p.published !== false,
+            privateToken: p.privateToken || '',
             operacion: meta.operacion || 'Venta',
             unidadPrecio: meta.unit || 'month',
             precio: typeof p.price === 'number' ? p.price : Number(meta.precio || 0),
@@ -384,6 +448,41 @@ const Propiedades = () => {
       mounted = false;
     };
   }, []);
+
+  // Load cover images for property grid cards
+  useEffect(() => {
+    if (!propiedades.length) { setCoverUrls({}); return; }
+    let cancelled = false;
+    const created = [];
+    (async () => {
+      const token = getAuthToken();
+      const result = {};
+      await Promise.allSettled(propiedades.map(async (p) => {
+        if (cancelled) return;
+        try {
+          const links = await crmService.links.getByEntity('propiedad', p.id);
+          if (cancelled || !Array.isArray(links)) return;
+          const firstImg = links
+            .map(l => l?.document)
+            .find(d => d && d.url && isImageDoc(d));
+          if (!firstImg) return;
+          const raw = String(firstImg.url);
+          if (raw.startsWith('http')) { result[p.id] = raw; return; }
+          const res = await fetch(`${API_CONFIG.baseURL}${raw}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (cancelled || !res.ok) return;
+          const blob = await res.blob();
+          if (cancelled) return;
+          const blobUrl = URL.createObjectURL(blob);
+          created.push(blobUrl);
+          result[p.id] = blobUrl;
+        } catch { /* skip */ }
+      }));
+      if (!cancelled) setCoverUrls(result);
+    })();
+    return () => { cancelled = true; created.forEach(u => URL.revokeObjectURL(u)); };
+  }, [propiedades]);
 
   useEffect(() => {
     const id = propiedadSeleccionada && propiedadSeleccionada.id ? propiedadSeleccionada.id : null;
@@ -562,6 +661,7 @@ const Propiedades = () => {
         price: Number(nuevaPropiedad.precio || 0),
         moneda: nuevaPropiedad.moneda,
         featured: !!nuevaPropiedad.featured,
+        published: !!nuevaPropiedad.published,
         status: nuevaPropiedad.estado,
         agentId: nuevaPropiedad.agente || undefined,
         metadata: {
@@ -627,6 +727,8 @@ const Propiedades = () => {
         precio: saved.price ?? payload.metadata.precio,
         moneda: saved.moneda || payload.metadata.moneda,
         featured: saved.featured ?? payload.featured,
+        published: saved.published !== false,
+        privateToken: saved.privateToken || '',
         precioOferta: payload.metadata.precioOferta,
         precioPorM2: payload.metadata.precioPorM2,
         tipoEstructura: payload.metadata.tipoEstructura,
@@ -723,6 +825,7 @@ const Propiedades = () => {
         categoria: '',
         operacion: 'Venta',
         featured: false,
+        published: true,
         precio: '',
         precioOferta: '',
         precioPorM2: '',
@@ -1494,9 +1597,20 @@ const Propiedades = () => {
             ) : (
               propiedadesFiltradas.map((propiedad) => (
                 <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
-                  {/* Imagen placeholder */}
-                  <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <FaHome className="text-6xl text-white opacity-30" />
+                  {/* Portada */}
+                  <div className="h-48 rounded-lg mb-4 relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
+                    {coverUrls[propiedad.id] ? (
+                      <img
+                        src={coverUrls[propiedad.id]}
+                        alt={propiedad.titulo}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FaHome className="text-6xl text-white opacity-30" />
+                      </div>
+                    )}
                     <div className="absolute top-3 right-3 flex gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeWhite(propiedad.estado)}`}>
                         {propiedad.estado}
@@ -1564,10 +1678,51 @@ const Propiedades = () => {
       {/* Vista Detalle de Propiedad */}
       {vistaActual === 'detalle' && propiedadSeleccionada && (
         <div className="space-y-6">
-          {/* Header con imagen */}
-          <div className="relative h-96 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl overflow-hidden">
-            <FaHome className="absolute inset-0 m-auto text-9xl text-white opacity-20" />
-            <div className="absolute top-6 right-6 flex gap-3">
+          {/* Header con carrousel de imágenes */}
+          <div className="relative h-96 rounded-2xl overflow-hidden">
+            {/* Carousel background */}
+            {fotoAdjuntos.length > 0 ? (
+              <div className="w-full h-full bg-black flex items-center justify-center">
+                {carouselSrc ? (
+                  <img
+                    src={carouselSrc}
+                    alt={carouselDoc?.nombre || 'Imagen de propiedad'}
+                    className="w-full h-full object-contain"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="animate-pulse w-full h-full bg-gray-800" />
+                )}
+                {/* Carousel navigation */}
+                {fotoAdjuntos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setCarouselIdx(i => i <= 0 ? fotoAdjuntos.length - 1 : i - 1)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20"
+                    >
+                      <FaChevronLeft />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCarouselIdx(i => i >= fotoAdjuntos.length - 1 ? 0 : i + 1)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20"
+                    >
+                      <FaChevronRight />
+                    </button>
+                    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 text-white text-xs z-20">
+                      {safeCarouselIdx + 1} / {fotoAdjuntos.length}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                <FaHome className="text-9xl text-white opacity-20" />
+              </div>
+            )}
+            {/* Overlay: action buttons */}
+            <div className="absolute top-6 right-6 flex gap-3 z-10">
               <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getEstadoBadgeWhite(propiedadSeleccionada.estado)}`}>
                 {propiedadSeleccionada.estado}
               </span>
@@ -1578,7 +1733,8 @@ const Propiedades = () => {
                 <FaTrash /> Eliminar
               </button>
             </div>
-            <div className="absolute bottom-6 left-6 text-white">
+            {/* Overlay: title & address */}
+            <div className="absolute bottom-6 left-6 text-white z-10" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
               <h1 className="text-4xl font-bold mb-2">{propiedadSeleccionada.titulo}</h1>
               <p className="text-sm opacity-80 font-mono select-all mb-1">ID: {propiedadSeleccionada.id}</p>
               <p className="text-xl flex items-center gap-2">
@@ -1693,25 +1849,45 @@ const Propiedades = () => {
                 )}
 
                 {Array.isArray(adjuntos) && adjuntos.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {adjuntos.map((l) => {
                       const d = l && l.document ? l.document : null;
                       const docId = d && d._id ? d._id : null;
+                      const isImg = d && isImageDoc(d);
+                      const imgSrc = isImg ? getDocImgUrl(d) : null;
                       return (
-                        <div key={l._id} className="flex items-center justify-between gap-3 p-3 border dark:border-gray-700 rounded-lg">
-                          <div className="min-w-0">
-                            <div className="font-semibold dark:text-gray-100 truncate">{d ? d.nombre : 'Documento'}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{d ? `${d.tipo || ''}${d.categoria ? ` • ${d.categoria}` : ''}` : ''}</div>
+                        <div key={l._id} className="group relative rounded-xl overflow-hidden border dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col">
+                          {/* Thumbnail / icon */}
+                          <div className="aspect-square flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-900">
+                            {isImg && imgSrc ? (
+                              <img
+                                src={imgSrc}
+                                alt={d?.nombre || 'Imagen'}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : isImg && !imgSrc ? (
+                              <div className="animate-pulse w-full h-full bg-gray-200 dark:bg-gray-700" />
+                            ) : (
+                              <FaFileAlt className="text-3xl text-gray-400" />
+                            )}
                           </div>
-                          <div className="flex gap-2">
-                            <button type="button" onClick={() => downloadOrOpenDoc(d, 'view')} className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
-                              Ver
+                          {/* File info */}
+                          <div className="p-2">
+                            <p className="text-xs font-medium dark:text-gray-200 truncate" title={d?.nombre}>{d?.nombre || 'Documento'}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{d?.categoria || d?.tipo || ''}</p>
+                          </div>
+                          {/* Hover overlay with actions */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                            <button type="button" onClick={() => setLightboxDoc({ doc: d, link: l })} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Ver">
+                              <FaEye size={14} />
                             </button>
-                            <button type="button" onClick={() => downloadOrOpenDoc(d, 'download')} className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
-                              Descargar
+                            <button type="button" onClick={() => downloadOrOpenDoc(d, 'download')} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Descargar">
+                              <FaDownload size={14} />
                             </button>
                             <button
                               type="button"
+                              title="Quitar"
                               onClick={async () => {
                                 if (!docId) return;
                                 const ok = await confirmToast('¿Desvincular este archivo?');
@@ -1723,9 +1899,9 @@ const Propiedades = () => {
                                   setAdjuntosError(e?.message || 'Error al desvincular archivo');
                                 }
                               }}
-                              className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600"
+                              className="p-2 rounded-full bg-red-500/90 text-white hover:bg-red-500 transition-colors"
                             >
-                              Quitar
+                              <FaTimes size={14} />
                             </button>
                           </div>
                         </div>
@@ -1738,6 +1914,101 @@ const Propiedades = () => {
 
             {/* Columna Lateral */}
             <div className="space-y-6">
+              {/* Publicación y Link Privado */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaGlobe className="text-green-500" /> Publicación
+                </h3>
+                <div className="space-y-4">
+                  {/* Published toggle */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium dark:text-gray-200">Publicar en sitio web</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const res = await crmService.propiedades.togglePublish(propiedadSeleccionada.id, !propiedadSeleccionada.published);
+                          const newVal = !!res.published;
+                          setPropiedadSeleccionada(prev => ({ ...prev, published: newVal }));
+                          setPropiedades(prev => prev.map(p => String(p.id) === String(propiedadSeleccionada.id) ? { ...p, published: newVal } : p));
+                        } catch (e) { setError(e?.message || 'Error al cambiar publicación'); }
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${propiedadSeleccionada.published ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${propiedadSeleccionada.published ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {propiedadSeleccionada.published ? 'Visible en el sitio web público' : 'No visible en el sitio web público'}
+                  </div>
+
+                  <hr className="dark:border-gray-700" />
+
+                  {/* Private link */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <FaLock className="text-amber-500" />
+                      <span className="text-sm font-medium dark:text-gray-200">Link Privado</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      Genera un link secreto para compartir esta propiedad. Solo quien tenga el link podrá verla.
+                    </p>
+                    {propiedadSeleccionada.privateToken ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={`https://anabellaluna.com.ar/propiedad/${propiedadSeleccionada.id}?token=${propiedadSeleccionada.privateToken}`}
+                            className="flex-1 px-3 py-2 text-xs border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-gray-200 truncate"
+                          />
+                          <button
+                            type="button"
+                            title="Copiar link"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`https://anabellaluna.com.ar/propiedad/${propiedadSeleccionada.id}?token=${propiedadSeleccionada.privateToken}`);
+                            }}
+                            className="p-2 rounded-lg border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            <FaCopy className="text-sm dark:text-gray-300" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const ok = await confirmToast('¿Eliminar el link privado? Las personas con este link ya no podrán acceder.');
+                            if (!ok) return;
+                            try {
+                              await crmService.propiedades.revokePrivateLink(propiedadSeleccionada.id);
+                              setPropiedadSeleccionada(prev => ({ ...prev, privateToken: '' }));
+                              setPropiedades(prev => prev.map(p => String(p.id) === String(propiedadSeleccionada.id) ? { ...p, privateToken: '' } : p));
+                            } catch (e) { setError(e?.message || 'Error al eliminar link'); }
+                          }}
+                          className="w-full px-3 py-2 text-xs text-red-600 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FaTrash /> Eliminar acceso
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await crmService.propiedades.generatePrivateLink(propiedadSeleccionada.id);
+                            const token = res.privateToken || '';
+                            setPropiedadSeleccionada(prev => ({ ...prev, privateToken: token }));
+                            setPropiedades(prev => prev.map(p => String(p.id) === String(propiedadSeleccionada.id) ? { ...p, privateToken: token } : p));
+                          } catch (e) { setError(e?.message || 'Error al generar link'); }
+                        }}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <FaLink /> Generar link privado
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Información de Ubicación */}
               <div className={cardBase}>
                 <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -1988,7 +2259,7 @@ const Propiedades = () => {
                       </select>
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div>
                       <label htmlFor="field-100" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
                         <input
                           id="field-100"
@@ -1999,6 +2270,19 @@ const Propiedades = () => {
                           className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                         />
                         Featured
+                      </label>
+                    </div>
+                    <div>
+                      <label htmlFor="field-published" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
+                        <input
+                          id="field-published"
+                          type="checkbox"
+                          name="published"
+                          checked={!!nuevaPropiedad.published}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                        />
+                        Publicar en sitio web
                       </label>
                     </div>
                   </div>
@@ -2811,6 +3095,78 @@ const Propiedades = () => {
           </div>
         </div>
       )}
+      {/* Lightbox modal for file preview */}
+      {lightboxDoc && (() => {
+        const d = lightboxDoc.doc;
+        const l = lightboxDoc.link;
+        const docId = d && d._id ? d._id : null;
+        const isImg = d && isImageDoc(d);
+        const imgSrc = isImg ? getDocImgUrl(d) : null;
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70" onClick={() => setLightboxDoc(null)}>
+            <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b dark:border-gray-700">
+                <div className="min-w-0">
+                  <p className="font-semibold dark:text-gray-100 truncate">{d?.nombre || 'Archivo'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{d?.categoria || d?.tipo || ''}</p>
+                </div>
+                <button type="button" onClick={() => setLightboxDoc(null)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <FaTimes className="text-lg dark:text-gray-300" />
+                </button>
+              </div>
+              {/* Preview */}
+              <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-100 dark:bg-gray-950 min-h-[300px]">
+                {isImg && imgSrc ? (
+                  <img src={imgSrc} alt={d?.nombre || ''} className="max-w-full max-h-[70vh] object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+                ) : isImg && !imgSrc ? (
+                  <div className="animate-pulse w-64 h-64 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 py-10">
+                    <FaFileAlt className="text-5xl text-gray-400" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Vista previa no disponible</p>
+                  </div>
+                )}
+              </div>
+              {/* Footer actions */}
+              <div className="flex items-center justify-end gap-3 px-5 py-3 border-t dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!docId) return;
+                    const ok = await confirmToast('¿Desvincular este archivo?');
+                    if (!ok) return;
+                    try {
+                      await crmService.links.unlink({ documentId: docId, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
+                      setAdjuntos((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x._id) !== String(l._id)) : prev));
+                      setLightboxDoc(null);
+                    } catch (e) {
+                      setAdjuntosError(e?.message || 'Error al desvincular archivo');
+                    }
+                  }}
+                  className="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center gap-2"
+                >
+                  <FaTrash size={12} /> Eliminar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadOrOpenDoc(d, 'download')}
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 dark:text-gray-200"
+                >
+                  <FaDownload size={12} /> Descargar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxDoc(null)}
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors dark:text-gray-200"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

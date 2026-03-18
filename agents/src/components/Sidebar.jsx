@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { Link, NavLink } from 'react-router-dom';
 import { MdSpaceDashboard, MdOutlineCancel } from 'react-icons/md';
-import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaBuilding, FaRobot, FaFileAlt, FaMagic } from 'react-icons/fa';
+import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaPlug, FaEnvelope, FaTrophy, FaBuilding, FaRobot, FaFileAlt, FaMagic, FaImage } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
 
@@ -17,6 +17,7 @@ const menuItems = [
   { name: 'Recompensas', path: '/crm/recompensas', icon: <FaTrophy /> },
   { name: 'Integraciones', path: '/crm/integraciones', icon: <FaPlug /> },
   { name: 'Archivos', path: '/crm/archivos', icon: <FaFileAlt /> },
+  { name: 'Editor Imágenes', path: '/crm/editor-imagenes', icon: <FaImage /> },
   { name: 'Plantillas', path: '/crm/plantillas', icon: <FaMagic /> },
   { name: 'Reportes', path: '/crm/reportes', icon: <FaChartBar /> },
 ];

@@ -15,6 +15,9 @@ export const crmService = {
     create: (data) => api.post('/crm/propiedades', data),
     update: (id, data) => api.put(`/crm/propiedades/${id}`, data),
     delete: (id) => api.delete(`/crm/propiedades/${id}`),
+    togglePublish: (id, published) => api.patch(`/crm/propiedades/${id}/publish`, { published }),
+    generatePrivateLink: (id) => api.post(`/crm/propiedades/${id}/private-link`),
+    revokePrivateLink: (id) => api.delete(`/crm/propiedades/${id}/private-link`),
   },
 
   // ============ CLIENTES ============

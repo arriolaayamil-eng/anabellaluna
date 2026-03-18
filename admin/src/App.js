@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
-import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria } from './pages';
+import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria, EditorImagenes } from './pages';
 import './App.css';
 import { authService } from './services/authService';
 import { useStateContext } from './contexts/ContextProvider';
@@ -253,7 +253,8 @@ const App = () => {
 
                 {/* apps  */}
                 <Route path="/kanban" element={<Kanban />} />
-                <Route path="/editor" element={<Editor />} />
+                <Route path="/editor" element={<EditorImagenes />} />
+                <Route path="/editor-imagenes" element={<EditorImagenes />} />
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/color-picker" element={<ColorPicker />} />
 

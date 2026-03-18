@@ -12,7 +12,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
-import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes } from './pages';
+import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes, EditorImagenes } from './pages';
 import LoginAgente from './pages/LoginAgente';
 import './App.css';
 
@@ -157,6 +157,7 @@ const App = () => {
           <Route path="recompensas" element={<Recompensas />} />
           <Route path="automatizacion" element={<Automatizacion />} />
           <Route path="fechas-importantes" element={<FechasImportantes />} />
+          <Route path="editor-imagenes" element={<EditorImagenes />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

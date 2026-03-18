@@ -3,7 +3,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import BuyGalleryItem from "../../buy-property/buy-details/buyGalleryItem";
 import RentRightForm from "./rentRightForm";
 import { all_routes } from "../../../../routes/all_routes";
@@ -12,6 +12,8 @@ import publicService, { type PropertyDetail } from "../../../../../services/publ
 type SliderType = Slider;
 const Rentdetails = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const privateToken = searchParams.get('token') || undefined;
   const [mainSlider, setMainSlider] = useState<SliderType | undefined>(
     undefined
   );
@@ -71,7 +73,7 @@ const Rentdetails = () => {
       }
       try {
         setIsLoading(true);
-        const res = await publicService.getPropertyBySlug(slug);
+        const res = await publicService.getPropertyBySlug(slug, privateToken);
         if (!isMounted) return;
         setProperty(res.item || null);
       } catch {

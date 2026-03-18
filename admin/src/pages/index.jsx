@@ -39,4 +39,4 @@ export { default as AnalyticsMarketing } from './AnalyticsMarketing';
 export { default as MiPerfil } from './MiPerfil';
 export { default as Recompensas } from './Recompensas';
 export { default as Mensajeria } from './Mensajeria';
-
+export { default as EditorImagenes } from './EditorImagenes';

@@ -43,6 +43,7 @@ const Plantillas = () => {
   const [propertyResultsScopedToClient, setPropertyResultsScopedToClient] = useState(false);
   const [notes, setNotes] = useState('');
   const [preview, setPreview] = useState('');
+  const [activeTab, setActiveTab] = useState('biblioteca');
 
   const panelClass = dark ? 'bg-[#111827] border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-900';
   const softPanelClass = dark ? 'bg-[#0f172a] border border-white/10' : 'bg-slate-50 border border-slate-200';
@@ -293,118 +294,263 @@ const Plantillas = () => {
     return dark ? 'border-white/10 bg-black/10 hover:border-cyan-500/40' : 'border-slate-200 bg-slate-50 hover:border-cyan-300';
   };
 
-  return (
-    <div className={`m-4 md:m-8 ${dark ? 'text-white' : 'text-slate-900'}`}>
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className={`text-sm font-semibold uppercase tracking-[0.3em] ${subtleText}`}>Gestión documental</p>
-          <h1 className="mt-2 text-3xl font-black">Plantillas</h1>
-          <p className={`mt-2 max-w-3xl text-sm ${mutedText}`}>{isAdmin ? 'Crea y administra plantillas globales para todo el equipo comercial.' : 'Usa las plantillas publicadas por administración para generar contratos con tus clientes y propiedades asignadas.'}</p>
-        </div>
-        {isAdmin && <button type="button" onClick={handleCreate} className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20"><FaPlus /> Nueva plantilla</button>}
-      </div>
+  const IOS = dark ? {
+    blue: '#0A84FF', green: '#30D158', orange: '#FF9F0A', red: '#FF453A',
+    purple: '#BF5AF2', teal: '#64D2FF', gray: '#98989D', gray2: '#636366',
+    gray3: '#48484A', gray4: '#3A3A3C', gray5: '#333336', gray6: '#2C2C2E',
+    bgGrouped: '#202124', bgCard: '#292A2D',
+    separator: 'rgba(255,255,255,0.08)', label: '#E8EAED', label2: '#BDC1C6', label3: '#9AA0A6',
+  } : {
+    blue: '#007AFF', green: '#34C759', orange: '#FF9500', red: '#FF3B30',
+    purple: '#AF52DE', teal: '#5AC8FA', gray: '#8E8E93', gray2: '#AEAEB2',
+    gray3: '#C7C7CC', gray4: '#D1D1D6', gray5: '#E5E5EA', gray6: '#F2F2F7',
+    bgGrouped: '#F2F2F7', bgCard: '#FFFFFF',
+    separator: 'rgba(60,60,67,0.12)', label: '#000000', label2: '#3C3C43', label3: '#8E8E93',
+  };
 
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
-        {[{ label: 'Plantillas', value: stats.total }, { label: 'Activas', value: stats.active }, { label: 'Categorías', value: stats.categories }].map((item) => (
-          <div key={item.label} className={`${panelClass} rounded-3xl p-5 shadow-sm`}>
-            <div className={`text-sm ${subtleText}`}>{item.label}</div>
-            <div className="mt-2 text-3xl font-black">{item.value}</div>
+  const TABS = [
+    { key: 'biblioteca', label: 'Biblioteca' },
+    { key: 'editor', label: 'Editor' },
+  ];
+
+  const S = {
+    page: { fontFamily: '-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif', background: IOS.bgGrouped, minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', borderRadius: 20, overflow: 'hidden', margin: 8, marginTop: 72 },
+    header: { padding: '16px 20px 0' },
+    largeTitle: { fontSize: 34, fontWeight: 700, color: IOS.label, letterSpacing: -0.4 },
+    subtitle: { fontSize: 14, color: IOS.label3, marginTop: 4 },
+    segmentedWrap: { padding: '12px 16px' },
+    segmentedBar: { display: 'flex', background: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)', borderRadius: 10, padding: 2 },
+    segmentBtn: (active) => ({ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s', background: active ? IOS.bgCard : 'transparent', color: active ? IOS.label : IOS.gray, boxShadow: active ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }),
+    card: { background: IOS.bgCard, borderRadius: 12, margin: '0 16px', overflow: 'hidden' },
+    sectionHeader: { fontSize: 13, fontWeight: 600, color: IOS.label3, textTransform: 'uppercase', letterSpacing: 0.5, padding: '16px 20px 6px' },
+    listRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderBottom: `0.5px solid ${IOS.separator}`, cursor: 'pointer', transition: 'background 0.15s' },
+    input: { width: '100%', border: 'none', outline: 'none', background: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)', borderRadius: 10, padding: '10px 12px', fontSize: 15, color: IOS.label, fontFamily: 'inherit' },
+    textarea: { width: '100%', border: 'none', outline: 'none', background: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)', borderRadius: 10, padding: '10px 12px', fontSize: 15, color: IOS.label, fontFamily: 'inherit', resize: 'vertical', minHeight: 200 },
+    select: { width: '100%', border: 'none', outline: 'none', background: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)', borderRadius: 10, padding: '10px 12px', fontSize: 15, color: IOS.label, fontFamily: 'inherit', appearance: 'none', WebkitAppearance: 'none' },
+    btnPrimary: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.blue, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+    btnDanger: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.red, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8 },
+    btnSuccess: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.green, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+    btnSecondary: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.purple, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+    badge: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: color + '18', color }),
+    statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '0 16px 8px' },
+    statCard: { background: IOS.bgCard, borderRadius: 12, padding: '14px 16px', textAlign: 'center' },
+    templateItem: (active) => ({ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `0.5px solid ${IOS.separator}`, cursor: 'pointer', background: active ? (IOS.blue + '14') : 'transparent', transition: 'background 0.15s' }),
+    chip: { display: 'inline-block', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: IOS.label2, cursor: 'pointer', border: 'none', fontFamily: 'inherit', margin: 2 },
+    selectedBanner: (color) => ({ margin: '8px 0', padding: '10px 14px', borderRadius: 10, background: color + '14', display: 'flex', alignItems: 'center', gap: 8 }),
+  };
+
+  const renderBiblioteca = () => (
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      <div style={S.statsRow}>
+        {[{ label: 'Plantillas', value: stats.total, color: IOS.blue }, { label: 'Activas', value: stats.active, color: IOS.green }, { label: 'Categorías', value: stats.categories, color: IOS.purple }].map((item) => (
+          <div key={item.label} style={S.statCard}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: item.color }}>{item.value}</div>
+            <div style={{ fontSize: 12, color: IOS.label3, marginTop: 2 }}>{item.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-12">
-        <div className={`${panelClass} rounded-3xl p-5 shadow-sm xl:col-span-3`}>
-          <div className="flex items-center gap-2 text-lg font-bold"><FaFileAlt className="text-cyan-400" /> Biblioteca</div>
-          <div className="mt-4 space-y-3">
-            <div className="relative"><FaSearch className={`absolute left-3 top-1/2 -translate-y-1/2 ${subtleText}`} /><input value={templateQuery} onChange={(e) => setTemplateQuery(e.target.value)} placeholder="Buscar por nombre, categoría o tag" className={`${inputClass} pl-9`} /></div>
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={inputClass}><option value="">Todas las categorías</option>{CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-            {isAdmin && <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={inputClass}><option value="">Todos los estados</option><option value="active">Activas</option><option value="draft">Borrador</option><option value="archived">Archivadas</option></select>}
+      <div style={S.sectionHeader}>Filtros</div>
+      <div style={{ ...S.card, padding: 12 }}>
+        <div style={{ position: 'relative', marginBottom: 8 }}>
+          <FaSearch style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: IOS.gray, fontSize: 14 }} />
+          <input value={templateQuery} onChange={(e) => setTemplateQuery(e.target.value)} placeholder="Buscar por nombre, categoría o tag" style={{ ...S.input, paddingLeft: 32 }} />
+        </div>
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ ...S.select, marginBottom: isAdmin ? 8 : 0 }}>
+          <option value="">Todas las categorías</option>
+          {CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+        {isAdmin && (
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={S.select}>
+            <option value="">Todos los estados</option>
+            <option value="active">Activas</option>
+            <option value="draft">Borrador</option>
+            <option value="archived">Archivadas</option>
+          </select>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div style={{ padding: '12px 16px 0' }}>
+          <button type="button" onClick={() => { handleCreate(); setActiveTab('editor'); }} style={S.btnPrimary}><FaPlus /> Nueva plantilla</button>
+        </div>
+      )}
+
+      <div style={S.sectionHeader}>Plantillas</div>
+      <div style={S.card}>
+        {loading ? (
+          <div style={{ padding: 20, textAlign: 'center', color: IOS.label3, fontSize: 15 }}>Cargando plantillas...</div>
+        ) : templates.length === 0 ? (
+          <div style={{ padding: 20, textAlign: 'center', color: IOS.label3, fontSize: 15 }}>No hay plantillas con los filtros actuales.</div>
+        ) : templates.map((item, idx) => (
+          <div key={item._id} style={{ ...S.templateItem(selectedId === item._id && !creatingNew), ...(idx === templates.length - 1 ? { borderBottom: 'none' } : {}) }}
+            onClick={() => { applyTemplate(item); setActiveTab('editor'); }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: IOS.blue + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FaFileAlt style={{ color: IOS.blue, fontSize: 16 }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 17, fontWeight: 500, color: IOS.label, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+              <div style={{ fontSize: 13, color: IOS.label3, marginTop: 2 }}>{item.category || 'General'} · {item.status || 'active'}</div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={IOS.gray3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
-          <div className="mt-4 space-y-3">
-            {loading ? <div className={subtleText}>Cargando plantillas...</div> : templates.map((item) => (
-              <button key={item._id} type="button" onClick={() => applyTemplate(item)} className={`w-full rounded-2xl border p-4 text-left transition ${templateCardClass(item._id)}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold">{item.name}</div>
-                    <div className={`mt-1 text-xs ${subtleText}`}>{item.category || 'General'} · {item.status || 'active'}</div>
-                  </div>
-                  <FaArrowRight className={selectedId === item._id && !creatingNew ? 'text-cyan-400' : subtleText} />
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderEditor = () => (
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      {isAdmin && (
+        <div style={{ padding: '8px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+          <span style={S.badge(isDirty ? IOS.orange : IOS.green)}>{isDirty ? 'Cambios sin guardar' : 'Sincronizado'}</span>
+        </div>
+      )}
+
+      <div style={S.sectionHeader}>Datos de la plantilla</div>
+      <div style={{ ...S.card, padding: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} disabled={!isAdmin} placeholder="Nombre de la plantilla" style={S.input} />
+          <select value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))} disabled={!isAdmin} style={S.select}>
+            {CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <input value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} disabled={!isAdmin} placeholder="Descripción operativa" style={S.input} />
+          <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))} disabled={!isAdmin} style={S.select}>
+            <option value="active">Activa</option>
+            <option value="draft">Borrador</option>
+            <option value="archived">Archivada</option>
+          </select>
+        </div>
+        <input value={form.tags} onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))} disabled={!isAdmin} placeholder="Tags separados por coma" style={{ ...S.input, marginTop: 10 }} />
+      </div>
+
+      <div style={S.sectionHeader}>Contenido</div>
+      <div style={{ ...S.card, padding: 16 }}>
+        <textarea ref={textareaRef} value={form.content} onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))} disabled={!isAdmin} rows={14} style={{ ...S.textarea, minHeight: 320 }} />
+      </div>
+
+      {placeholders.length > 0 && (
+        <>
+          <div style={S.sectionHeader}>Variables disponibles</div>
+          <div style={{ ...S.card, padding: 14 }}>
+            {placeholders.map((section) => (
+              <div key={section.name} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: IOS.label2, marginBottom: 6 }}>{section.name}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {(section.tokens || []).map((token) => (
+                    <button key={token} type="button" onClick={() => handleInsertToken(token)} style={S.chip}>{token}</button>
+                  ))}
                 </div>
-                <div className={`mt-3 line-clamp-2 text-sm ${mutedText}`}>{item.description || 'Sin descripción'}</div>
-              </button>
+              </div>
             ))}
-            {!loading && templates.length === 0 && <div className={`rounded-2xl ${softPanelClass} p-4 text-sm ${mutedText}`}>No hay plantillas disponibles con los filtros actuales.</div>}
           </div>
+        </>
+      )}
+
+      {isAdmin && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ ...S.btnPrimary, opacity: saving ? 0.6 : 1 }}><FaSave /> {saving ? 'Guardando...' : 'Guardar plantilla'}</button>
+          {selectedTemplate && (
+            <button type="button" onClick={handleDelete} style={S.btnDanger}><FaTrash /> Eliminar</button>
+          )}
         </div>
+      )}
 
-        <div className="space-y-6 xl:col-span-5">
-          <div className={`${panelClass} rounded-3xl p-5 shadow-sm`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-lg font-bold">Editor de plantilla</div>
-                <div className={`text-sm ${mutedText}`}>{isAdmin ? 'Administra el texto contractual y publica cambios para todo el equipo.' : 'Vista de lectura para plantillas publicadas.'}</div>
-              </div>
-              {isAdmin && <div className={`rounded-full px-3 py-1 text-xs font-semibold ${isDirty ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{isDirty ? 'Cambios sin guardar' : 'Sincronizado'}</div>}
-            </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} disabled={!isAdmin} placeholder="Nombre de la plantilla" className={inputClass} />
-              <select value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))} disabled={!isAdmin} className={inputClass}>{CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-              <input value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} disabled={!isAdmin} placeholder="Descripción operativa" className={inputClass} />
-              <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))} disabled={!isAdmin} className={inputClass}><option value="active">Activa</option><option value="draft">Borrador</option><option value="archived">Archivada</option></select>
-              <div className="md:col-span-2"><input value={form.tags} onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))} disabled={!isAdmin} placeholder="Tags separados por coma" className={inputClass} /></div>
-              <div className="md:col-span-2"><textarea ref={textareaRef} value={form.content} onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))} disabled={!isAdmin} rows={14} className={`${inputClass} min-h-[320px] resize-y`} /></div>
-            </div>
-            {isAdmin && <div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white dark:bg-cyan-500"><FaSave /> {saving ? 'Guardando...' : 'Guardar plantilla'}</button>{selectedTemplate && <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-2xl border border-rose-300 px-4 py-3 text-sm font-semibold text-rose-500"><FaTrash /> Eliminar</button>}</div>}
-          </div>
-
-          <div className={`${panelClass} rounded-3xl p-5 shadow-sm`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-bold">Vista previa contractual</div>
-              <button type="button" onClick={handlePreview} disabled={previewing || !canPreview} className="inline-flex items-center gap-2 rounded-2xl bg-violet-500 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"><FaMagic /> {previewing ? 'Generando...' : 'Actualizar preview'}</button>
-            </div>
-            <div className={`mt-4 rounded-2xl ${softPanelClass} p-4`}>
-              <pre className={`whitespace-pre-wrap text-sm leading-7 ${mutedText}`}>{preview || 'Selecciona una plantilla, cliente y propiedad para visualizar el contrato renderizado.'}</pre>
-            </div>
-          </div>
+      <div style={S.sectionHeader}>Cliente</div>
+      <div style={{ ...S.card, padding: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <FaUser style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: IOS.blue, fontSize: 14 }} />
+          <input value={clientQuery} onChange={(e) => setClientQuery(e.target.value)} placeholder="Buscar cliente por nombre, email, teléfono o ID" style={{ ...S.input, paddingLeft: 32 }} />
         </div>
-
-        <div className="space-y-6 xl:col-span-4">
-          <div className={`${panelClass} rounded-3xl p-5 shadow-sm`}>
-            <div className="text-lg font-bold">Contexto del contrato</div>
-            <div className="mt-4 space-y-4">
-              <div>
-                <div className={`mb-2 flex items-center gap-2 text-sm font-semibold ${mutedText}`}><FaUser className="text-cyan-400" /> Cliente</div>
-                <input value={clientQuery} onChange={(e) => setClientQuery(e.target.value)} placeholder="Buscar cliente por nombre, email, teléfono o ID" className={inputClass} />
-                <div className="mt-2 max-h-40 space-y-2 overflow-auto">{clientResults.map((item) => <button key={item._id} type="button" onClick={() => { setSelectedClient(item); setSelectedProperty(null); setPropertyQuery(''); setPropertyResults([]); setPropertyResultsScopedToClient(false); setPreview(''); }} className={`w-full rounded-2xl ${softPanelClass} p-3 text-left`}><div className="font-semibold">{item.nombre}</div><div className={`text-xs ${subtleText}`}>{item.email || item.telefono || item._id}</div></button>)}</div>
-                {selectedClient && <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3 text-sm text-emerald-400">Cliente seleccionado: <span className="font-semibold">{selectedClient.nombre}</span></div>}
+        <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 8 }}>
+          {clientResults.map((item) => (
+            <div key={item._id} style={{ ...S.listRow, borderBottom: `0.5px solid ${IOS.separator}` }}
+              onClick={() => { setSelectedClient(item); setSelectedProperty(null); setPropertyQuery(''); setPropertyResults([]); setPropertyResultsScopedToClient(false); setPreview(''); }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: IOS.green + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FaUser style={{ color: IOS.green, fontSize: 13 }} />
               </div>
-              <div>
-                <div className={`mb-2 flex items-center gap-2 text-sm font-semibold ${mutedText}`}><FaHome className="text-cyan-400" /> Propiedad</div>
-                <input value={propertyQuery} onChange={(e) => setPropertyQuery(e.target.value)} placeholder="Buscar por título, dirección, slug o ID" className={inputClass} />
-                {selectedClient && <div className={`mt-2 text-xs ${subtleText}`}>{propertyResultsScopedToClient ? 'Mostrando propiedades vinculadas al cliente seleccionado.' : 'No encontramos propiedades vinculadas a este cliente. Mostrando propiedades disponibles para que puedas continuar.'}</div>}
-                <div className="mt-2 max-h-40 space-y-2 overflow-auto">{propertyResults.map((item) => <button key={item._id} type="button" onClick={() => { setSelectedProperty(item); setPreview(''); }} className={`w-full rounded-2xl ${softPanelClass} p-3 text-left`}><div className="font-semibold">{item.title}</div><div className={`text-xs ${subtleText}`}>{item.address || item._id}</div></button>)}</div>
-                {propertyResults.length === 0 && <div className={`mt-2 rounded-2xl ${softPanelClass} p-3 text-sm ${mutedText}`}>No hay propiedades disponibles con los criterios actuales.</div>}
-                {selectedProperty && <div className="mt-3 rounded-2xl bg-cyan-500/10 p-3 text-sm text-cyan-400">Propiedad seleccionada: <span className="font-semibold">{selectedProperty.title}</span></div>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: IOS.label }}>{item.nombre}</div>
+                <div style={{ fontSize: 12, color: IOS.label3 }}>{item.email || item.telefono || item._id}</div>
               </div>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Notas opcionales para el contrato" className={inputClass} />
-              <button type="button" onClick={handleGenerate} disabled={generating || !canGenerate} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none">{generating ? 'Generando contrato...' : 'Generar y guardar en Archivos'}</button>
             </div>
+          ))}
+        </div>
+        {selectedClient && (
+          <div style={S.selectedBanner(IOS.green)}>
+            <FaUser style={{ color: IOS.green, fontSize: 13 }} />
+            <span style={{ fontSize: 15, color: IOS.green, fontWeight: 600 }}>{selectedClient.nombre}</span>
           </div>
+        )}
+      </div>
 
-          <div className={`${panelClass} rounded-3xl p-5 shadow-sm`}>
-            <div className="text-lg font-bold">Variables disponibles</div>
-            <div className="mt-4 space-y-4">
-              {placeholders.map((section) => (
-                <div key={section.name} className={`rounded-2xl ${softPanelClass} p-4`}>
-                  <div className="text-sm font-semibold">{section.name}</div>
-                  <div className="mt-3 flex flex-wrap gap-2">{(section.tokens || []).map((token) => <button key={token} type="button" onClick={() => handleInsertToken(token)} className={`rounded-full border px-3 py-1 text-xs ${dark ? 'border-white/10 bg-black/20 text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}>{token}</button>)}</div>
-                </div>
-              ))}
-            </div>
+      <div style={S.sectionHeader}>Propiedad</div>
+      <div style={{ ...S.card, padding: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <FaHome style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: IOS.blue, fontSize: 14 }} />
+          <input value={propertyQuery} onChange={(e) => setPropertyQuery(e.target.value)} placeholder="Buscar por título, dirección, slug o ID" style={{ ...S.input, paddingLeft: 32 }} />
+        </div>
+        {selectedClient && (
+          <div style={{ fontSize: 12, color: IOS.label3, marginTop: 6, padding: '0 4px' }}>
+            {propertyResultsScopedToClient ? 'Mostrando propiedades vinculadas al cliente seleccionado.' : 'No encontramos propiedades vinculadas a este cliente. Mostrando propiedades disponibles.'}
           </div>
+        )}
+        <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 8 }}>
+          {propertyResults.map((item) => (
+            <div key={item._id} style={{ ...S.listRow, borderBottom: `0.5px solid ${IOS.separator}` }}
+              onClick={() => { setSelectedProperty(item); setPreview(''); }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: IOS.teal + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FaHome style={{ color: IOS.teal, fontSize: 13 }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: IOS.label }}>{item.title}</div>
+                <div style={{ fontSize: 12, color: IOS.label3 }}>{item.address || item._id}</div>
+              </div>
+            </div>
+          ))}
+          {propertyResults.length === 0 && (
+            <div style={{ padding: 16, textAlign: 'center', color: IOS.label3, fontSize: 14 }}>No hay propiedades disponibles.</div>
+          )}
+        </div>
+        {selectedProperty && (
+          <div style={S.selectedBanner(IOS.teal)}>
+            <FaHome style={{ color: IOS.teal, fontSize: 13 }} />
+            <span style={{ fontSize: 15, color: IOS.teal, fontWeight: 600 }}>{selectedProperty.title}</span>
+          </div>
+        )}
+      </div>
+
+      <div style={S.sectionHeader}>Vista previa contractual</div>
+      <div style={{ ...S.card, padding: 16 }}>
+        <button type="button" onClick={handlePreview} disabled={previewing || !canPreview} style={{ ...S.btnSecondary, marginBottom: 12, opacity: (previewing || !canPreview) ? 0.5 : 1 }}><FaMagic /> {previewing ? 'Generando...' : 'Actualizar preview'}</button>
+        <pre style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.8, color: IOS.label2, margin: 0 }}>{preview || 'Selecciona una plantilla, cliente y propiedad para visualizar el contrato renderizado.'}</pre>
+      </div>
+
+      <div style={{ padding: '16px 16px 0' }}>
+        <button type="button" onClick={handleGenerate} disabled={generating || !canGenerate} style={{ ...S.btnSuccess, opacity: (generating || !canGenerate) ? 0.5 : 1 }}>
+          {generating ? 'Generando contrato...' : 'Generar y guardar en Archivos'}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={S.page}>
+      <div style={S.header}>
+        <div style={S.largeTitle}>Plantillas</div>
+        <div style={S.subtitle}>{isAdmin ? 'Crea y administra plantillas globales para todo el equipo comercial.' : 'Usa las plantillas publicadas para generar contratos.'}</div>
+      </div>
+
+      <div style={S.segmentedWrap}>
+        <div style={S.segmentedBar}>
+          {TABS.map((t) => (
+            <button key={t.key} type="button" style={S.segmentBtn(activeTab === t.key)} onClick={() => setActiveTab(t.key)}>{t.label}</button>
+          ))}
         </div>
       </div>
+
+      {activeTab === 'biblioteca' && renderBiblioteca()}
+      {activeTab === 'editor' && renderEditor()}
     </div>
   );
 };

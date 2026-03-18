@@ -6,6 +6,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@react-google-maps/api": "^2.20.8",
     "@syncfusion/ej2": "^19.4.48",
     "@syncfusion/ej2-react-calendars": "^19.4.48",
@@ -19,8 +20,8 @@
     "@syncfusion/ej2-react-popups": "^19.4.52",
     "@syncfusion/ej2-react-richtexteditor": "^19.4.50",
     "@syncfusion/ej2-react-schedule": "^19.4.50",
-    "@craco/craco": "^7.1.0",
     "apexcharts": "4.7.0",
+    "fabric": "^5.5.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.1.0",
     "react": "^17.0.2",
