@@ -2255,958 +2255,958 @@ const Propiedades = () => {
                 {formStep === 1 && (
                   <>
 
-                {/* Información Básica */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                    <FaBuilding className="text-blue-500" /> Información Básica
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label htmlFor="field-93" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Título de la Propiedad *
-                      </label>
-                      <input
-                        id="field-93"
-                        type="text"
-                        name="titulo"
-                        value={nuevaPropiedad.titulo}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Ej: Depto 2amb Palermo con balcón"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
+                    {/* Información Básica */}
                     <div>
-                      <label htmlFor="field-94" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Tipo de Propiedad *
-                      </label>
-                      <select
-                        id="field-94"
-                        name="tipo"
-                        value={nuevaPropiedad.tipo}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="Departamento">Departamento</option>
-                        <option value="Casa">Casa</option>
-                        <option value="PH">PH</option>
-                        <option value="Oficina">Oficina</option>
-                        <option value="Local">Local Comercial</option>
-                        <option value="Terreno">Terreno</option>
-                        <option value="Cochera">Cochera</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-95" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Categoría
-                      </label>
-                      <input
-                        id="field-95"
-                        type="text"
-                        name="categoria"
-                        value={nuevaPropiedad.categoria}
-                        onChange={handleInputChange}
-                        placeholder="Ej: Residencial"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-96" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Operación *
-                      </label>
-                      <select
-                        id="field-96"
-                        name="operacion"
-                        value={nuevaPropiedad.operacion}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="Venta">Venta</option>
-                        <option value="Alquiler">Alquiler</option>
-                        <option value="Alquiler Temporal">Alquiler Temporal</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-97" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Precio *
-                      </label>
-                      <div className="flex gap-2">
-                        <select
-                          id="field-97"
-                          name="moneda"
-                          value={nuevaPropiedad.moneda}
-                          onChange={handleInputChange}
-                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="ARS">ARS</option>
-                        </select>
-                        {String(nuevaPropiedad.operacion || '').toLowerCase().includes('alquil') ? (
-                          <select
-                            name="unidadPrecio"
-                            value={nuevaPropiedad.unidadPrecio}
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaBuilding className="text-blue-500" /> Información Básica
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label htmlFor="field-93" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Título de la Propiedad *
+                          </label>
+                          <input
+                            id="field-93"
+                            type="text"
+                            name="titulo"
+                            value={nuevaPropiedad.titulo}
                             onChange={handleInputChange}
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                            required
+                            placeholder="Ej: Depto 2amb Palermo con balcón"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-94" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Tipo de Propiedad *
+                          </label>
+                          <select
+                            id="field-94"
+                            name="tipo"
+                            value={nuevaPropiedad.tipo}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                           >
-                            <option value="month">Mes</option>
-                            <option value="week">Semana</option>
-                            <option value="day">Día</option>
-                            <option value="night">Noche</option>
+                            <option value="Departamento">Departamento</option>
+                            <option value="Casa">Casa</option>
+                            <option value="PH">PH</option>
+                            <option value="Oficina">Oficina</option>
+                            <option value="Local">Local Comercial</option>
+                            <option value="Terreno">Terreno</option>
+                            <option value="Cochera">Cochera</option>
                           </select>
-                        ) : null}
-                        <input
-                          type="number"
-                          name="precio"
-                          value={nuevaPropiedad.precio}
-                          onChange={handleInputChange}
-                          required
-                          placeholder="150000"
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                        />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-95" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Categoría
+                          </label>
+                          <input
+                            id="field-95"
+                            type="text"
+                            name="categoria"
+                            value={nuevaPropiedad.categoria}
+                            onChange={handleInputChange}
+                            placeholder="Ej: Residencial"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-96" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Operación *
+                          </label>
+                          <select
+                            id="field-96"
+                            name="operacion"
+                            value={nuevaPropiedad.operacion}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="Venta">Venta</option>
+                            <option value="Alquiler">Alquiler</option>
+                            <option value="Alquiler Temporal">Alquiler Temporal</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-97" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Precio *
+                          </label>
+                          <div className="flex gap-2">
+                            <select
+                              id="field-97"
+                              name="moneda"
+                              value={nuevaPropiedad.moneda}
+                              onChange={handleInputChange}
+                              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                            >
+                              <option value="USD">USD</option>
+                              <option value="ARS">ARS</option>
+                            </select>
+                            {String(nuevaPropiedad.operacion || '').toLowerCase().includes('alquil') ? (
+                              <select
+                                name="unidadPrecio"
+                                value={nuevaPropiedad.unidadPrecio}
+                                onChange={handleInputChange}
+                                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                              >
+                                <option value="month">Mes</option>
+                                <option value="week">Semana</option>
+                                <option value="day">Día</option>
+                                <option value="night">Noche</option>
+                              </select>
+                            ) : null}
+                            <input
+                              type="number"
+                              name="precio"
+                              value={nuevaPropiedad.precio}
+                              onChange={handleInputChange}
+                              required
+                              placeholder="150000"
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-98" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Precio de Oferta
+                          </label>
+                          <input
+                            id="field-98"
+                            type="number"
+                            name="precioOferta"
+                            value={nuevaPropiedad.precioOferta}
+                            onChange={handleInputChange}
+                            placeholder="140000"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-99" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Estado *
+                          </label>
+                          <select
+                            id="field-99"
+                            name="estado"
+                            value={nuevaPropiedad.estado}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="Disponible">Disponible</option>
+                            <option value="Reservada">Reservada</option>
+                            <option value="Vendida">Vendida</option>
+                            <option value="Alquilada">Alquilada</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-100" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
+                            <input
+                              id="field-100"
+                              type="checkbox"
+                              name="featured"
+                              checked={!!nuevaPropiedad.featured}
+                              onChange={handleInputChange}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            Featured
+                          </label>
+                        </div>
+                        <div>
+                          <label htmlFor="field-published" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
+                            <input
+                              id="field-published"
+                              type="checkbox"
+                              name="published"
+                              checked={!!nuevaPropiedad.published}
+                              onChange={handleInputChange}
+                              className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                            />
+                            Publicar en sitio web
+                          </label>
+                        </div>
                       </div>
                     </div>
 
+                    {/* Ubicación */}
                     <div>
-                      <label htmlFor="field-98" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Precio de Oferta
-                      </label>
-                      <input
-                        id="field-98"
-                        type="number"
-                        name="precioOferta"
-                        value={nuevaPropiedad.precioOferta}
-                        onChange={handleInputChange}
-                        placeholder="140000"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-99" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Estado *
-                      </label>
-                      <select
-                        id="field-99"
-                        name="estado"
-                        value={nuevaPropiedad.estado}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="Disponible">Disponible</option>
-                        <option value="Reservada">Reservada</option>
-                        <option value="Vendida">Vendida</option>
-                        <option value="Alquilada">Alquilada</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-100" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
-                        <input
-                          id="field-100"
-                          type="checkbox"
-                          name="featured"
-                          checked={!!nuevaPropiedad.featured}
-                          onChange={handleInputChange}
-                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                        Featured
-                      </label>
-                    </div>
-                    <div>
-                      <label htmlFor="field-published" className="flex items-center gap-3 text-sm font-medium dark:text-gray-200">
-                        <input
-                          id="field-published"
-                          type="checkbox"
-                          name="published"
-                          checked={!!nuevaPropiedad.published}
-                          onChange={handleInputChange}
-                          className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
-                        />
-                        Publicar en sitio web
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ubicación */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-red-500" /> Ubicación
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label htmlFor="field-101" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Dirección *
-                      </label>
-                      <input
-                        id="field-101"
-                        type="text"
-                        name="direccion"
-                        value={nuevaPropiedad.direccion}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Av. Santa Fe 1234"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-102" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Barrio *
-                      </label>
-                      <input
-                        id="field-102"
-                        type="text"
-                        name="barrio"
-                        value={nuevaPropiedad.barrio}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Palermo"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-103" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Ciudad *
-                      </label>
-                      <input
-                        id="field-103"
-                        type="text"
-                        name="ciudad"
-                        value={nuevaPropiedad.ciudad}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-104" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Provincia *
-                      </label>
-                      <input
-                        id="field-104"
-                        type="text"
-                        name="provincia"
-                        value={nuevaPropiedad.provincia}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-105" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        País
-                      </label>
-                      <input
-                        id="field-105"
-                        type="text"
-                        name="pais"
-                        value={nuevaPropiedad.pais}
-                        onChange={handleInputChange}
-                        placeholder="AR"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-106" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Código Postal
-                      </label>
-                      <input
-                        id="field-106"
-                        type="text"
-                        name="codigoPostal"
-                        value={nuevaPropiedad.codigoPostal}
-                        onChange={handleInputChange}
-                        placeholder="C1425"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Características */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                    <FaHome className="text-green-500" /> Características
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <label htmlFor="field-107" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        ID de la propiedad
-                      </label>
-                      <input
-                        id="field-107"
-                        type="text"
-                        name="idPropiedad"
-                        value={nuevaPropiedad.idPropiedad}
-                        onChange={handleInputChange}
-                        placeholder="PROP-001"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-108" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Precio por m²
-                      </label>
-                      <input
-                        id="field-108"
-                        type="number"
-                        name="precioPorM2"
-                        value={nuevaPropiedad.precioPorM2}
-                        onChange={handleInputChange}
-                        placeholder="3500"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-109" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Tipo de estructura
-                      </label>
-                      <input
-                        id="field-109"
-                        type="text"
-                        name="tipoEstructura"
-                        value={nuevaPropiedad.tipoEstructura}
-                        onChange={handleInputChange}
-                        placeholder="Hormigón"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="field-110" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        M² Totales *
-                      </label>
-                      <input
-                        id="field-110"
-                        type="number"
-                        name="m2Totales"
-                        value={nuevaPropiedad.m2Totales}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="45"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-111" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        M² Cubiertos
-                      </label>
-                      <input
-                        id="field-111"
-                        type="number"
-                        name="m2Cubiertos"
-                        value={nuevaPropiedad.m2Cubiertos}
-                        onChange={handleInputChange}
-                        placeholder="40"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-112" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Ambientes *
-                      </label>
-                      <input
-                        id="field-112"
-                        type="number"
-                        name="ambientes"
-                        value={nuevaPropiedad.ambientes}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="2"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-113" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Dormitorios
-                      </label>
-                      <input
-                        id="field-113"
-                        type="number"
-                        name="dormitorios"
-                        value={nuevaPropiedad.dormitorios}
-                        onChange={handleInputChange}
-                        placeholder="1"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-114" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Baños
-                      </label>
-                      <input
-                        id="field-114"
-                        type="number"
-                        name="baños"
-                        value={nuevaPropiedad.baños}
-                        onChange={handleInputChange}
-                        placeholder="1"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-115" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Cocheras
-                      </label>
-                      <input
-                        id="field-115"
-                        type="number"
-                        name="cocheras"
-                        value={nuevaPropiedad.cocheras}
-                        onChange={handleInputChange}
-                        placeholder="0"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-tipoCochera" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Tipo de Cochera
-                      </label>
-                      <select
-                        id="field-tipoCochera"
-                        name="tipoCochera"
-                        value={nuevaPropiedad.tipoCochera}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="">— Sin especificar —</option>
-                        <option value="Cubierta">Cubierta</option>
-                        <option value="Descubierta">Descubierta</option>
-                        <option value="Semicubierta">Semicubierta</option>
-                        <option value="Espacio para estacionar">Espacio para estacionar</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-tipoCalefaccion" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Calefacción
-                      </label>
-                      <select
-                        id="field-tipoCalefaccion"
-                        name="tipoCalefaccion"
-                        value={nuevaPropiedad.tipoCalefaccion}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="">— Sin especificar —</option>
-                        <option value="Gas natural">Gas natural</option>
-                        <option value="Gas envasado">Gas envasado</option>
-                        <option value="Eléctrica">Eléctrica</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-tipoAguaCaliente" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Agua Caliente
-                      </label>
-                      <select
-                        id="field-tipoAguaCaliente"
-                        name="tipoAguaCaliente"
-                        value={nuevaPropiedad.tipoAguaCaliente}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="">— Sin especificar —</option>
-                        <option value="Gas natural">Gas natural</option>
-                        <option value="Gas envasado">Gas envasado</option>
-                        <option value="Termotanque eléctrico">Termotanque eléctrico</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-tipoCocina" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Cocina
-                      </label>
-                      <select
-                        id="field-tipoCocina"
-                        name="tipoCocina"
-                        value={nuevaPropiedad.tipoCocina}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="">— Sin especificar —</option>
-                        <option value="Gas natural">Gas natural</option>
-                        <option value="Gas envasado">Gas envasado</option>
-                        <option value="Eléctrica">Eléctrica</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="field-116" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Antigüedad (años)
-                      </label>
-                      <input
-                        id="field-116"
-                        type="number"
-                        name="antiguedad"
-                        value={nuevaPropiedad.antiguedad}
-                        onChange={handleInputChange}
-                        placeholder="5"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Descripción */}
-                <div>
-                  <label htmlFor="field-117" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                    Descripción
-                  </label>
-                  <textarea
-                    id="field-117"
-                    name="descripcion"
-                    value={nuevaPropiedad.descripcion}
-                    onChange={handleInputChange}
-                    rows="4"
-                    placeholder="Descripción detallada de la propiedad..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                  />
-                </div>
-
-                {/* Amenities */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">
-                    Amenities
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {amenitiesDisponibles.map((amenity) => (
-                      <label htmlFor="field-118" key={amenity} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input
-                          id="field-118"
-                          type="checkbox"
-                          checked={nuevaPropiedad.amenities.includes(amenity)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNuevaPropiedad((prev) => ({
-                                ...prev,
-                                amenities: [...prev.amenities, amenity],
-                              }));
-                            } else {
-                              setNuevaPropiedad((prev) => ({
-                                ...prev,
-                                amenities: prev.amenities.filter((a) => a !== amenity),
-                              }));
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className="dark:text-gray-200">{amenity}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Multimedia</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label htmlFor="field-119" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Fotos
-                      </label>
-                      <input
-                        id="field-119"
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={(e) => setFilesFotos(Array.from(e.target.files || []))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                      />
-                      {filesFotos.length ? (
-                        <div className="mt-2 text-sm dark:text-gray-200">
-                          {filesFotos.length} archivo(s) seleccionado(s)
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaMapMarkerAlt className="text-red-500" /> Ubicación
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label htmlFor="field-101" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Dirección *
+                          </label>
+                          <input
+                            id="field-101"
+                            type="text"
+                            name="direccion"
+                            value={nuevaPropiedad.direccion}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="Av. Santa Fe 1234"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
                         </div>
-                      ) : null}
-                    </div>
 
-                    <div>
-                      <label htmlFor="field-120" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Planos
-                      </label>
-                      <input
-                        id="field-120"
-                        type="file"
-                        multiple
-                        accept="image/*,.pdf"
-                        onChange={(e) => setFilesPlanos(Array.from(e.target.files || []))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                      />
-                      {filesPlanos.length ? (
-                        <div className="mt-2 text-sm dark:text-gray-200">
-                          {filesPlanos.length} archivo(s) seleccionado(s)
+                        <div>
+                          <label htmlFor="field-102" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Barrio *
+                          </label>
+                          <input
+                            id="field-102"
+                            type="text"
+                            name="barrio"
+                            value={nuevaPropiedad.barrio}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="Palermo"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
                         </div>
-                      ) : null}
-                    </div>
 
-                    <div>
-                      <label htmlFor="field-121" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Documentos
-                      </label>
-                      <input
-                        id="field-121"
-                        type="file"
-                        multiple
-                        accept="image/*,.pdf,.doc,.docx,.zip"
-                        onChange={(e) => setFilesDocumentos(Array.from(e.target.files || []))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                      />
-                      {filesDocumentos.length ? (
-                        <div className="mt-2 text-sm dark:text-gray-200">
-                          {filesDocumentos.length} archivo(s) seleccionado(s)
+                        <div>
+                          <label htmlFor="field-103" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Ciudad *
+                          </label>
+                          <input
+                            id="field-103"
+                            type="text"
+                            name="ciudad"
+                            value={nuevaPropiedad.ciudad}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
                         </div>
-                      ) : null}
-                    </div>
-                  </div>
 
-                  <div className="mt-4">
-                    <label htmlFor="field-122" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Videos (YouTube/Vimeo)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="field-122"
-                        type="text"
-                        value={videoUrlDraft}
-                        onChange={(e) => setVideoUrlDraft(e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const v = String(videoUrlDraft || '').trim();
-                          if (!v) return;
-                          setNuevaPropiedad((prev) => ({
-                            ...prev,
-                            videoUrls: Array.from(new Set([...(prev.videoUrls || []), v])),
-                          }));
-                          setVideoUrlDraft('');
-                        }}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                      >
-                        Agregar
-                      </button>
+                        <div>
+                          <label htmlFor="field-104" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Provincia *
+                          </label>
+                          <input
+                            id="field-104"
+                            type="text"
+                            name="provincia"
+                            value={nuevaPropiedad.provincia}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-105" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            País
+                          </label>
+                          <input
+                            id="field-105"
+                            type="text"
+                            name="pais"
+                            value={nuevaPropiedad.pais}
+                            onChange={handleInputChange}
+                            placeholder="AR"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-106" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Código Postal
+                          </label>
+                          <input
+                            id="field-106"
+                            type="text"
+                            name="codigoPostal"
+                            value={nuevaPropiedad.codigoPostal}
+                            onChange={handleInputChange}
+                            placeholder="C1425"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    {(nuevaPropiedad.videoUrls || []).length ? (
-                      <div className="mt-3 space-y-2">
-                        {(nuevaPropiedad.videoUrls || []).map((u, idx) => (
-                          <div
-                            key={`${u}-${idx}`}
-                            className="flex items-center justify-between gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg"
+
+                    {/* Características */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaHome className="text-green-500" /> Características
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <label htmlFor="field-107" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            ID de la propiedad
+                          </label>
+                          <input
+                            id="field-107"
+                            type="text"
+                            name="idPropiedad"
+                            value={nuevaPropiedad.idPropiedad}
+                            onChange={handleInputChange}
+                            placeholder="PROP-001"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-108" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Precio por m²
+                          </label>
+                          <input
+                            id="field-108"
+                            type="number"
+                            name="precioPorM2"
+                            value={nuevaPropiedad.precioPorM2}
+                            onChange={handleInputChange}
+                            placeholder="3500"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-109" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Tipo de estructura
+                          </label>
+                          <input
+                            id="field-109"
+                            type="text"
+                            name="tipoEstructura"
+                            value={nuevaPropiedad.tipoEstructura}
+                            onChange={handleInputChange}
+                            placeholder="Hormigón"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="field-110" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            M² Totales *
+                          </label>
+                          <input
+                            id="field-110"
+                            type="number"
+                            name="m2Totales"
+                            value={nuevaPropiedad.m2Totales}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="45"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-111" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            M² Cubiertos
+                          </label>
+                          <input
+                            id="field-111"
+                            type="number"
+                            name="m2Cubiertos"
+                            value={nuevaPropiedad.m2Cubiertos}
+                            onChange={handleInputChange}
+                            placeholder="40"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-112" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Ambientes *
+                          </label>
+                          <input
+                            id="field-112"
+                            type="number"
+                            name="ambientes"
+                            value={nuevaPropiedad.ambientes}
+                            onChange={handleInputChange}
+                            required
+                            placeholder="2"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-113" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Dormitorios
+                          </label>
+                          <input
+                            id="field-113"
+                            type="number"
+                            name="dormitorios"
+                            value={nuevaPropiedad.dormitorios}
+                            onChange={handleInputChange}
+                            placeholder="1"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-114" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Baños
+                          </label>
+                          <input
+                            id="field-114"
+                            type="number"
+                            name="baños"
+                            value={nuevaPropiedad.baños}
+                            onChange={handleInputChange}
+                            placeholder="1"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-115" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Cocheras
+                          </label>
+                          <input
+                            id="field-115"
+                            type="number"
+                            name="cocheras"
+                            value={nuevaPropiedad.cocheras}
+                            onChange={handleInputChange}
+                            placeholder="0"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-tipoCochera" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Tipo de Cochera
+                          </label>
+                          <select
+                            id="field-tipoCochera"
+                            name="tipoCochera"
+                            value={nuevaPropiedad.tipoCochera}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                           >
-                            <div className="text-sm dark:text-gray-200 break-all">{u}</div>
-                            <button
-                              type="button"
-                              onClick={() => setNuevaPropiedad((prev) => ({
-                                ...prev,
-                                videoUrls: (prev.videoUrls || []).filter((x) => x !== u),
-                              }))}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <FaTimes />
-                            </button>
-                          </div>
+                            <option value="">— Sin especificar —</option>
+                            <option value="Cubierta">Cubierta</option>
+                            <option value="Descubierta">Descubierta</option>
+                            <option value="Semicubierta">Semicubierta</option>
+                            <option value="Espacio para estacionar">Espacio para estacionar</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-tipoCalefaccion" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Calefacción
+                          </label>
+                          <select
+                            id="field-tipoCalefaccion"
+                            name="tipoCalefaccion"
+                            value={nuevaPropiedad.tipoCalefaccion}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="">— Sin especificar —</option>
+                            <option value="Gas natural">Gas natural</option>
+                            <option value="Gas envasado">Gas envasado</option>
+                            <option value="Eléctrica">Eléctrica</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-tipoAguaCaliente" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Agua Caliente
+                          </label>
+                          <select
+                            id="field-tipoAguaCaliente"
+                            name="tipoAguaCaliente"
+                            value={nuevaPropiedad.tipoAguaCaliente}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="">— Sin especificar —</option>
+                            <option value="Gas natural">Gas natural</option>
+                            <option value="Gas envasado">Gas envasado</option>
+                            <option value="Termotanque eléctrico">Termotanque eléctrico</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-tipoCocina" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Cocina
+                          </label>
+                          <select
+                            id="field-tipoCocina"
+                            name="tipoCocina"
+                            value={nuevaPropiedad.tipoCocina}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="">— Sin especificar —</option>
+                            <option value="Gas natural">Gas natural</option>
+                            <option value="Gas envasado">Gas envasado</option>
+                            <option value="Eléctrica">Eléctrica</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-116" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Antigüedad (años)
+                          </label>
+                          <input
+                            id="field-116"
+                            type="number"
+                            name="antiguedad"
+                            value={nuevaPropiedad.antiguedad}
+                            onChange={handleInputChange}
+                            placeholder="5"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Descripción */}
+                    <div>
+                      <label htmlFor="field-117" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Descripción
+                      </label>
+                      <textarea
+                        id="field-117"
+                        name="descripcion"
+                        value={nuevaPropiedad.descripcion}
+                        onChange={handleInputChange}
+                        rows="4"
+                        placeholder="Descripción detallada de la propiedad..."
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* Amenities */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">
+                        Amenities
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                        {amenitiesDisponibles.map((amenity) => (
+                          <label htmlFor="field-118" key={amenity} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input
+                              id="field-118"
+                              type="checkbox"
+                              checked={nuevaPropiedad.amenities.includes(amenity)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNuevaPropiedad((prev) => ({
+                                    ...prev,
+                                    amenities: [...prev.amenities, amenity],
+                                  }));
+                                } else {
+                                  setNuevaPropiedad((prev) => ({
+                                    ...prev,
+                                    amenities: prev.amenities.filter((a) => a !== amenity),
+                                  }));
+                                }
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="dark:text-gray-200">{amenity}</span>
+                          </label>
                         ))}
                       </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* Datos Registrales */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                    <FaFileAlt className="text-indigo-500" /> Datos Registrales
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="field-nc" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Nomenclatura Catastral
-                      </label>
-                      <input
-                        id="field-nc"
-                        type="text"
-                        name="nomenclaturaCatastral"
-                        value={nuevaPropiedad.nomenclaturaCatastral}
-                        onChange={handleInputChange}
-                        placeholder="Ej: Circ. I - Secc. A - Manz. 10 - Parc. 5"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
                     </div>
-                    <div>
-                      <label htmlFor="field-pi" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Partida Inmobiliaria
-                      </label>
-                      <input
-                        id="field-pi"
-                        type="text"
-                        name="partidaInmobiliaria"
-                        value={nuevaPropiedad.partidaInmobiliaria}
-                        onChange={handleInputChange}
-                        placeholder="Ej: 012-34567"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                {/* Asignación y Comisión */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                    <FaUser className="text-purple-500" /> Asignación
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="field-123" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Responsable *
-                      </label>
-                      <select
-                        id="field-123"
-                        name="agente"
-                        value={nuevaPropiedad.agente}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      >
-                        <option value="">Seleccionar responsable</option>
-                        {admins.length > 0 && (
-                          <optgroup label="Administrador (ERP)">
-                            {admins.map((a) => (
-                              <option key={`admin-${a._id}`} value={`admin:${a._id}`}>{a.nombre}</option>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Multimedia</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label htmlFor="field-119" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Fotos
+                          </label>
+                          <input
+                            id="field-119"
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={(e) => setFilesFotos(Array.from(e.target.files || []))}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          {filesFotos.length ? (
+                            <div className="mt-2 text-sm dark:text-gray-200">
+                              {filesFotos.length} archivo(s) seleccionado(s)
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-120" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Planos
+                          </label>
+                          <input
+                            id="field-120"
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf"
+                            onChange={(e) => setFilesPlanos(Array.from(e.target.files || []))}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          {filesPlanos.length ? (
+                            <div className="mt-2 text-sm dark:text-gray-200">
+                              {filesPlanos.length} archivo(s) seleccionado(s)
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-121" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Documentos
+                          </label>
+                          <input
+                            id="field-121"
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf,.doc,.docx,.zip"
+                            onChange={(e) => setFilesDocumentos(Array.from(e.target.files || []))}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          {filesDocumentos.length ? (
+                            <div className="mt-2 text-sm dark:text-gray-200">
+                              {filesDocumentos.length} archivo(s) seleccionado(s)
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label htmlFor="field-122" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                          Videos (YouTube/Vimeo)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            id="field-122"
+                            type="text"
+                            value={videoUrlDraft}
+                            onChange={(e) => setVideoUrlDraft(e.target.value)}
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const v = String(videoUrlDraft || '').trim();
+                              if (!v) return;
+                              setNuevaPropiedad((prev) => ({
+                                ...prev,
+                                videoUrls: Array.from(new Set([...(prev.videoUrls || []), v])),
+                              }));
+                              setVideoUrlDraft('');
+                            }}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                          >
+                            Agregar
+                          </button>
+                        </div>
+                        {(nuevaPropiedad.videoUrls || []).length ? (
+                          <div className="mt-3 space-y-2">
+                            {(nuevaPropiedad.videoUrls || []).map((u, idx) => (
+                              <div
+                                key={`${u}-${idx}`}
+                                className="flex items-center justify-between gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg"
+                              >
+                                <div className="text-sm dark:text-gray-200 break-all">{u}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => setNuevaPropiedad((prev) => ({
+                                    ...prev,
+                                    videoUrls: (prev.videoUrls || []).filter((x) => x !== u),
+                                  }))}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <FaTimes />
+                                </button>
+                              </div>
                             ))}
-                          </optgroup>
-                        )}
-                        <optgroup label="Agentes">
-                          {agentes.map((a) => (
-                            <option key={a._id} value={a._id}>{a.nombre}</option>
-                          ))}
-                        </optgroup>
-                      </select>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
 
+                    {/* Datos Registrales */}
                     <div>
-                      <label htmlFor="field-124" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Comisión (%)
-                      </label>
-                      <input
-                        id="field-124"
-                        type="number"
-                        name="comision"
-                        value={nuevaPropiedad.comision}
-                        onChange={handleInputChange}
-                        step="0.5"
-                        min="0"
-                        max="10"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                      />
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaFileAlt className="text-indigo-500" /> Datos Registrales
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="field-nc" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Nomenclatura Catastral
+                          </label>
+                          <input
+                            id="field-nc"
+                            type="text"
+                            name="nomenclaturaCatastral"
+                            value={nuevaPropiedad.nomenclaturaCatastral}
+                            onChange={handleInputChange}
+                            placeholder="Ej: Circ. I - Secc. A - Manz. 10 - Parc. 5"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="field-pi" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Partida Inmobiliaria
+                          </label>
+                          <input
+                            id="field-pi"
+                            type="text"
+                            name="partidaInmobiliaria"
+                            value={nuevaPropiedad.partidaInmobiliaria}
+                            onChange={handleInputChange}
+                            placeholder="Ej: 012-34567"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Botones Paso 1 */}
-                <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormStep(2)}
-                    style={{ backgroundColor: currentColor }}
-                    className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
-                  >
-                    Siguiente <FaChevronRight />
-                  </button>
-                </div>
+                    {/* Asignación y Comisión */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaUser className="text-purple-500" /> Asignación
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="field-123" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Responsable *
+                          </label>
+                          <select
+                            id="field-123"
+                            name="agente"
+                            value={nuevaPropiedad.agente}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          >
+                            <option value="">Seleccionar responsable</option>
+                            {admins.length > 0 && (
+                              <optgroup label="Administrador (ERP)">
+                                {admins.map((a) => (
+                                  <option key={`admin-${a._id}`} value={`admin:${a._id}`}>{a.nombre}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                            <optgroup label="Agentes">
+                              {agentes.map((a) => (
+                                <option key={a._id} value={a._id}>{a.nombre}</option>
+                              ))}
+                            </optgroup>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="field-124" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                            Comisión (%)
+                          </label>
+                          <input
+                            id="field-124"
+                            type="number"
+                            name="comision"
+                            value={nuevaPropiedad.comision}
+                            onChange={handleInputChange}
+                            step="0.5"
+                            min="0"
+                            max="10"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botones Paso 1 */}
+                    <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => setShowModal(false)}
+                        className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormStep(2)}
+                        style={{ backgroundColor: currentColor }}
+                        className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
+                      >
+                        Siguiente <FaChevronRight />
+                      </button>
+                    </div>
                   </>
                 )}
 
                 {formStep === 2 && (
                   <>
-                {/* Toggle incluir cliente */}
-                <div className="flex items-center gap-3 p-4 rounded-lg border dark:border-gray-700 bg-blue-50 dark:bg-gray-800">
-                  <input
-                    type="checkbox"
-                    id="incluirCliente"
-                    checked={incluirCliente}
-                    onChange={(e) => setIncluirCliente(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label htmlFor="incluirCliente" className="text-sm font-medium dark:text-gray-200">
-                    Agregar un cliente asociado a esta propiedad
-                  </label>
-                </div>
-
-                {incluirCliente && (
-                  <>
-                    {/* Información Personal del Cliente */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                        <FaUser className="text-blue-500" /> Información Personal
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre *</label>
-                          <input type="text" name="nombre" value={nuevoCliente.nombre} onChange={handleClienteInputChange} required placeholder="Juan" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido *</label>
-                          <input type="text" name="apellido" value={nuevoCliente.apellido} onChange={handleClienteInputChange} required placeholder="Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email *</label>
-                          <input type="email" name="email" value={nuevoCliente.email} onChange={handleClienteInputChange} required placeholder="juan@email.com" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
-                          <input type="tel" name="telefono" value={nuevoCliente.telefono} onChange={handleClienteInputChange} required placeholder="+54 11 1234-5678" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono Alternativo</label>
-                          <input type="tel" name="telefonoAlternativo" value={nuevoCliente.telefonoAlternativo} onChange={handleClienteInputChange} placeholder="+54 11 8765-4321" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ocupación</label>
-                          <input type="text" name="ocupacion" value={nuevoCliente.ocupacion} onChange={handleClienteInputChange} placeholder="Ingeniero" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Empresa</label>
-                          <input type="text" name="empresa" value={nuevoCliente.empresa} onChange={handleClienteInputChange} placeholder="Tech Corp" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
-                          <input type="text" name="direccion" value={nuevoCliente.direccion} onChange={handleClienteInputChange} placeholder="Av. Corrientes 1234" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ciudad</label>
-                          <input type="text" name="ciudad" value={nuevoCliente.ciudad} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Provincia</label>
-                          <input type="text" name="provincia" value={nuevoCliente.provincia} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                        </div>
-                      </div>
+                    {/* Toggle incluir cliente */}
+                    <div className="flex items-center gap-3 p-4 rounded-lg border dark:border-gray-700 bg-blue-50 dark:bg-gray-800">
+                      <input
+                        type="checkbox"
+                        id="incluirCliente"
+                        checked={incluirCliente}
+                        onChange={(e) => setIncluirCliente(e.target.checked)}
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <label htmlFor="incluirCliente" className="text-sm font-medium dark:text-gray-200">
+                        Agregar un cliente asociado a esta propiedad
+                      </label>
                     </div>
 
-                    {/* Clasificación CRM del Cliente */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                        <FaChartLine className="text-purple-500" /> Clasificación CRM
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {incluirCliente && (
+                      <>
+                        {/* Información Personal del Cliente */}
                         <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cliente</label>
-                          <select name="tipoCliente" value={nuevoCliente.tipoCliente} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                            <option value="Comprador">Comprador</option>
-                            <option value="Propietario">Propietario</option>
-                            <option value="Inversor">Inversor</option>
-                            <option value="Inquilino">Inquilino</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Estado en el Ciclo</label>
-                          <select name="estado" value={nuevoCliente.estado} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                            <option value="Lead">Lead</option>
-                            <option value="Contacto">Contacto</option>
-                            <option value="Prospecto">Prospecto</option>
-                            <option value="Negociación">Negociación</option>
-                            <option value="Cerrado">Cerrado</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Origen del Lead</label>
-                          <select name="origen" value={nuevoCliente.origen} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                            <option value="Web">Sitio Web</option>
-                            <option value="Redes Sociales">Redes Sociales</option>
-                            <option value="Referido">Referido</option>
-                            <option value="Llamada">Llamada Directa</option>
-                            <option value="Email">Email</option>
-                            <option value="Evento">Evento</option>
-                            <option value="Otro">Otro</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Preferencias de Búsqueda del Cliente */}
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                        <FaHome className="text-green-500" /> Preferencias de Búsqueda
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Presupuesto</label>
-                          <div className="flex gap-2">
-                            <select name="moneda" value={nuevoCliente.moneda} onChange={handleClienteInputChange} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                              <option value="USD">USD</option>
-                              <option value="ARS">ARS</option>
-                            </select>
-                            <input type="number" name="presupuesto" value={nuevoCliente.presupuesto} onChange={handleClienteInputChange} placeholder="150000" className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                            <FaUser className="text-blue-500" /> Información Personal
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre *</label>
+                              <input type="text" name="nombre" value={nuevoCliente.nombre} onChange={handleClienteInputChange} required placeholder="Juan" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido *</label>
+                              <input type="text" name="apellido" value={nuevoCliente.apellido} onChange={handleClienteInputChange} required placeholder="Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email *</label>
+                              <input type="email" name="email" value={nuevoCliente.email} onChange={handleClienteInputChange} required placeholder="juan@email.com" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
+                              <input type="tel" name="telefono" value={nuevoCliente.telefono} onChange={handleClienteInputChange} required placeholder="+54 11 1234-5678" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono Alternativo</label>
+                              <input type="tel" name="telefonoAlternativo" value={nuevoCliente.telefonoAlternativo} onChange={handleClienteInputChange} placeholder="+54 11 8765-4321" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ocupación</label>
+                              <input type="text" name="ocupacion" value={nuevoCliente.ocupacion} onChange={handleClienteInputChange} placeholder="Ingeniero" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Empresa</label>
+                              <input type="text" name="empresa" value={nuevoCliente.empresa} onChange={handleClienteInputChange} placeholder="Tech Corp" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
+                              <input type="text" name="direccion" value={nuevoCliente.direccion} onChange={handleClienteInputChange} placeholder="Av. Corrientes 1234" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ciudad</label>
+                              <input type="text" name="ciudad" value={nuevoCliente.ciudad} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Provincia</label>
+                              <input type="text" name="provincia" value={nuevoCliente.provincia} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
                           </div>
                         </div>
+
+                        {/* Clasificación CRM del Cliente */}
                         <div>
-                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Zona de Interés</label>
-                          <input type="text" name="zonaInteres" value={nuevoCliente.zonaInteres} onChange={handleClienteInputChange} placeholder="Palermo, Belgrano" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                            <FaChartLine className="text-purple-500" /> Clasificación CRM
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cliente</label>
+                              <select name="tipoCliente" value={nuevoCliente.tipoCliente} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                                <option value="Comprador">Comprador</option>
+                                <option value="Propietario">Propietario</option>
+                                <option value="Inversor">Inversor</option>
+                                <option value="Inquilino">Inquilino</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Estado en el Ciclo</label>
+                              <select name="estado" value={nuevoCliente.estado} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                                <option value="Lead">Lead</option>
+                                <option value="Contacto">Contacto</option>
+                                <option value="Prospecto">Prospecto</option>
+                                <option value="Negociación">Negociación</option>
+                                <option value="Cerrado">Cerrado</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Origen del Lead</label>
+                              <select name="origen" value={nuevoCliente.origen} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                                <option value="Web">Sitio Web</option>
+                                <option value="Redes Sociales">Redes Sociales</option>
+                                <option value="Referido">Referido</option>
+                                <option value="Llamada">Llamada Directa</option>
+                                <option value="Email">Email</option>
+                                <option value="Evento">Evento</option>
+                                <option value="Otro">Otro</option>
+                              </select>
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Preferencias de Búsqueda del Cliente */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                            <FaHome className="text-green-500" /> Preferencias de Búsqueda
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Presupuesto</label>
+                              <div className="flex gap-2">
+                                <select name="moneda" value={nuevoCliente.moneda} onChange={handleClienteInputChange} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                                  <option value="USD">USD</option>
+                                  <option value="ARS">ARS</option>
+                                </select>
+                                <input type="number" name="presupuesto" value={nuevoCliente.presupuesto} onChange={handleClienteInputChange} placeholder="150000" className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Zona de Interés</label>
+                              <input type="text" name="zonaInteres" value={nuevoCliente.zonaInteres} onChange={handleClienteInputChange} placeholder="Palermo, Belgrano" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Notas del Cliente */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Notas Adicionales</label>
+                          <textarea name="notas" value={nuevoCliente.notas} onChange={handleClienteInputChange} rows="3" placeholder="Información adicional..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Botones Paso 2 */}
+                    <div className="flex gap-3 justify-between pt-4 border-t dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => setFormStep(1)}
+                        className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                      >
+                        <FaChevronLeft /> Anterior
+                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowModal(false)}
+                          className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          style={{ backgroundColor: currentColor }}
+                          className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
+                          disabled={loading}
+                        >
+                          <FaSave /> Guardar Propiedad
+                        </button>
                       </div>
                     </div>
-
-                    {/* Notas del Cliente */}
-                    <div>
-                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Notas Adicionales</label>
-                      <textarea name="notas" value={nuevoCliente.notas} onChange={handleClienteInputChange} rows="3" placeholder="Información adicional..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                    </div>
-                  </>
-                )}
-
-                {/* Botones Paso 2 */}
-                <div className="flex gap-3 justify-between pt-4 border-t dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={() => setFormStep(1)}
-                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
-                  >
-                    <FaChevronLeft /> Anterior
-                  </button>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      style={{ backgroundColor: currentColor }}
-                      className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
-                      disabled={loading}
-                    >
-                      <FaSave /> Guardar Propiedad
-                    </button>
-                  </div>
-                </div>
                   </>
                 )}
               </form>

@@ -25,3 +25,60 @@ Logs y Monitoreo: Asegúrate de que existan logs claros y monitoreo activo. La o
 Responsabilidad Profesional: Piensa como un desarrollador profesional: sin excusas, sin atajos, sin deuda, siempre con visión a largo plazo.
 
 Innovación: Siempre busca soluciones modernas y mejores prácticas. No te quedes con lo básico.
+
+---
+
+## Checklist obligatorio antes de commit/push
+
+### 1. ESLint — Errores comunes a evitar
+
+- **`quote-props`**: No usar comillas en propiedades de objetos a menos que sea estrictamente necesario (ej: `baños: value` en vez de `'baños': value`).
+- **`react/jsx-indent`**: Al envolver JSX en fragmentos (`<>...</>`), condicionales (`{cond && (...)}`), o cualquier wrapper, **re-indentar todo el contenido interior** con +2 espacios respecto al tag padre. Nunca dejar contenido al mismo nivel de indentación que el wrapper.
+- **`react/jsx-wrap-multilines`**: Los paréntesis alrededor de JSX multi-línea deben estar en líneas separadas:
+  ```jsx
+  // ✅ Correcto
+  {formStep === 1 && (
+    <>
+      <div>...</div>
+    </>
+  )}
+
+  // ❌ Incorrecto
+  {formStep === 1 && (<>
+    <div>...</div>
+  </>)}
+  ```
+- **`react/jsx-closing-tag-location`**: El tag de cierre debe coincidir con la indentación del tag de apertura.
+- **`no-unused-vars`**: Es un ERROR (no warning). Nunca dejar variables o imports sin usar. Nunca remover comentarios `eslint-disable` sin verificar que la regla está desactivada en `.eslintrc.js`.
+
+### 2. Build local obligatorio
+
+Antes de cada `git commit` y `git push`, ejecutar **siempre** los builds locales de ambas apps:
+
+```bash
+# En agents/
+npx craco build
+
+# En admin/
+npx craco build
+```
+
+Ambos builds deben mostrar **"Compiled successfully."** con **cero errores** antes de proceder al push.
+
+### 3. Reglas de indentación JSX
+
+- La base de indentación es **2 espacios** por nivel.
+- Cada nivel de anidamiento JSX (`<div>`, `<>`, `<form>`, condicionales) agrega 2 espacios.
+- Al mover bloques de JSX dentro de nuevos wrappers (fragmentos, condicionales, componentes), **siempre** re-indentar todo el bloque movido.
+- Verificar visualmente que los tags de apertura y cierre estén alineados.
+
+### 4. Proceso de deploy
+
+```bash
+cd /var/www/anabella
+git pull origin main
+cd agents && npm run build
+cd ../admin && npm run build
+cd ../frontend && npm run build
+pm2 restart backend
+```
