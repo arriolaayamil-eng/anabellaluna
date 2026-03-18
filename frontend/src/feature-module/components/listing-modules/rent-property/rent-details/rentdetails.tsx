@@ -4,7 +4,6 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import { Link, useParams, useSearchParams } from "react-router";
-import BuyGalleryItem from "../../buy-property/buy-details/buyGalleryItem";
 import RentRightForm from "./rentRightForm";
 import { all_routes } from "../../../../routes/all_routes";
 import publicService, { type PropertyDetail } from "../../../../../services/publicService";
@@ -161,7 +160,7 @@ const Rentdetails = () => {
                   <div className="d-flex align-center gap-2 mb-2">
                     <span className="badge bg-primary">{property?.type || ""}</span>
                     <span className="badge bg-secondary">
-                      {property?.operation === "buy" ? "For Sale" : "For Rent"}
+                      {property?.operation === "buy" ? "En Venta" : "En Alquiler"}
                     </span>
                   </div>
                   <h1 className="breadcrumb-title text-start ">
@@ -181,13 +180,13 @@ const Rentdetails = () => {
                         to={all_routes.rentGridMap}
                         className="text-primary fs-14 text-decoration-underline ms-1"
                       >
-                        View Location
+                        Ver ubicación
                       </Link>
                     </div>
                     {false && (
                       <>
                         <i className="fa-solid fa-circle text-body" />
-                        <p className="fs-14 mb-0 text-white">Last Updated</p>
+                        <p className="fs-14 mb-0 text-white">Última actualización</p>
                       </>
                     )}
                   </div>
@@ -221,7 +220,7 @@ const Rentdetails = () => {
                       <i className="material-icons-outlined rounded me-1">
                         calendar_today
                       </i>
-                      Book Now
+                      Reservar
                     </Link>
                   </div>
                 </div>
@@ -243,16 +242,16 @@ const Rentdetails = () => {
                         <i className="material-icons-outlined fs-14 me-1">
                           generating_tokens
                         </i>
-                        Trending
+                        Tendencia
                       </span>
                       <span className="badge bg-orange d-flex align-items-center">
                         <i className="material-icons-outlined  fs-14 me-1">
                           loyalty
                         </i>
-                        Featured
+                        Destacado
                       </span>
                     </div>
-                    <p className="mb-0 text-dark">total No of Visits : 45</p>
+                    <p className="mb-0 text-dark">Total de visitas: 45</p>
                   </div>
                 )}
                 {/* start slider */}
@@ -275,7 +274,7 @@ const Rentdetails = () => {
                         ))
                       ) : (
                         <div className="service-img-wrap">
-                          <div className="text-center">{isLoading ? "Loading..." : "No images"}</div>
+                          <div className="text-center">{isLoading ? "Cargando..." : "Sin imágenes"}</div>
                         </div>
                       )}
                     </Slider>
@@ -297,7 +296,7 @@ const Rentdetails = () => {
                       ))
                     ) : (
                       <div className="slide-img">
-                        <div className="text-center">{isLoading ? "Loading..." : "No images"}</div>
+                        <div className="text-center">{isLoading ? "Cargando..." : "Sin imágenes"}</div>
                       </div>
                     )}
                   </Slider>
@@ -352,7 +351,7 @@ const Rentdetails = () => {
                         data-bs-target="#accordion-2"
                         aria-expanded="true"
                       >
-                        Property Features
+                        Características
                       </button>
                     </div>
                     <div
@@ -366,11 +365,11 @@ const Rentdetails = () => {
                             <div className="buy-property-items">
                               <p>
                                 <i className="material-icons-outlined">bed</i>
-                                Bedrooms: {property?.features?.beds ?? ""}
+                                Dormitorios: {property?.features?.beds ?? ""}
                               </p>
                               <p className="mb-lg-0">
                                 <i className="material-icons-outlined">bathtub</i>
-                                Bathrooms: {property?.features?.baths ?? ""}
+                                Baños: {property?.features?.baths ?? ""}
                               </p>
                             </div>
                           </div>
@@ -379,7 +378,7 @@ const Rentdetails = () => {
                             <div className="buy-property-items">
                               <p>
                                 <i className="material-icons-outlined">meeting_room</i>
-                                Rooms: {property?.features?.rooms ?? ""}
+                                Ambientes: {property?.features?.rooms ?? ""}
                               </p>
                               <p className="mb-lg-0">
                                 <i className="material-icons-outlined">
@@ -394,11 +393,11 @@ const Rentdetails = () => {
                             <div className="buy-property-items">
                               <p>
                                 <i className="material-icons-outlined">straighten</i>
-                                Area: {property?.features?.areaSqFt ?? ""} m²
+                                Superficie total: {property?.features?.areaSqFt ?? ""} m²
                               </p>
                               <p className="mb-lg-0">
                                 <i className="material-icons-outlined">crop_square</i>
-                                Covered: {property?.features?.coveredAreaSqFt ?? ""} m²
+                                Superficie cubierta: {property?.features?.coveredAreaSqFt ?? ""} m²
                               </p>
                             </div>
                           </div>
@@ -501,7 +500,7 @@ const Rentdetails = () => {
                           data-bs-target="#accordion-3"
                           aria-expanded="true"
                         >
-                          About Property
+                          Acerca de la propiedad
                         </button>
                       </div>
                       <div
@@ -522,7 +521,7 @@ const Rentdetails = () => {
                         data-bs-target="#accordion-4"
                         aria-expanded="true"
                       >
-                        Amenities
+                        Comodidades
                       </button>
                     </div>
                     <div
@@ -544,7 +543,7 @@ const Rentdetails = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center">{isLoading ? "Loading..." : "No amenities"}</div>
+                          <div className="text-center">{isLoading ? "Cargando..." : "Sin comodidades"}</div>
                         )}
                       </div>
                     </div>
@@ -560,7 +559,7 @@ const Rentdetails = () => {
                           data-bs-target="#accordion-5"
                           aria-expanded="true"
                         >
-                          Floor Plan
+                          Planos
                         </button>
                       </div>
                       <div
@@ -575,7 +574,7 @@ const Rentdetails = () => {
                             >
                               <div className="card-body d-flex align-center justify-content-between gap-2 flex-wrap">
                                 <h6 className="fs-16 fw-semibold mb-0">
-                                  Plan {idx + 1}
+                                  Plano {idx + 1}
                                 </h6>
                                 <div className="d-flex align-items-center floor-items">
                                   <a
@@ -606,8 +605,6 @@ const Rentdetails = () => {
                       </div>
                     </div>
                   ) : null}
-                  {/* gallery items */}
-                 <BuyGalleryItem images={galleryImages} />
                   {/* video items */}
                   {videoUrls.length ? (
                     <div className="accordion-item">
@@ -655,7 +652,7 @@ const Rentdetails = () => {
                         data-bs-target="#accordion-8"
                         aria-expanded="true"
                       >
-                        Frequently Asked Questions
+                        Preguntas frecuentes
                       </button>
                     </div>
                     <div
@@ -672,20 +669,19 @@ const Rentdetails = () => {
                                 to="#faqone"
                                 aria-expanded="false"
                               >
-                                Does offer free cancellation for a full refund?
+                                ¿Ofrecen cancelación gratuita con reembolso completo?
                               </Link>
                             </h4>
                             <div id="faqone" className="card-collapse collapse">
                               <div className="faq-content">
                                 <p>
-                                  Does have fully refundable room rates
-                                  available to book on our site. If you’ve
-                                  booked a fully refundable room rate, this can
-                                  be cancelled up to a few days before check-in
-                                  depending on the property's cancellation
-                                  policy. Just make sure to check this
-                                  property's cancellation policy for the exact
-                                  terms and conditions.
+                                  Disponemos de tarifas con reembolso completo en
+                                  nuestra plataforma. Si reservaste una tarifa
+                                  totalmente reembolsable, podés cancelarla
+                                  con varios días de anticipación según
+                                  la política de cancelación de la
+                                  propiedad. Verificá siempre los términos
+                                  y condiciones exactos.
                                 </p>
                               </div>
                             </div>
@@ -698,15 +694,15 @@ const Rentdetails = () => {
                                 to="#faqtwo"
                                 aria-expanded="false"
                               >
-                                Is there a pool?
+                                ¿Hay pileta?
                               </Link>
                             </h4>
                             <div id="faqtwo" className="card-collapse collapse">
                               <div className="faq-content">
                                 <p>
-                                  Yes, there is a pool available for guests,
-                                  providing a perfect place to relax, unwind,
-                                  and enjoy some leisure time during their stay.
+                                  Sí, la propiedad cuenta con pileta disponible
+                                  para los inquilinos, un lugar ideal para
+                                  relajarse y disfrutar durante su estadía.
                                 </p>
                               </div>
                             </div>
@@ -719,7 +715,7 @@ const Rentdetails = () => {
                                 to="#faqthree"
                                 aria-expanded="false"
                               >
-                                Are pets allowed?
+                                ¿Se admiten mascotas?
                               </Link>
                             </h4>
                             <div
@@ -728,10 +724,9 @@ const Rentdetails = () => {
                             >
                               <div className="faq-content">
                                 <p>
-                                  Yes, pets are allowed, and we welcome your
-                                  furry friends to stay with you, ensuring a
-                                  comfortable experience for both you and your
-                                  pets.
+                                  Sí, se admiten mascotas. Tus peludos son
+                                  bienvenidos, garantizando una experiencia
+                                  cómoda para vos y tu familia.
                                 </p>
                               </div>
                             </div>
@@ -744,7 +739,7 @@ const Rentdetails = () => {
                                 to="#faqfour"
                                 aria-expanded="false"
                               >
-                                Is airport shuttle service offered?
+                                ¿Hay acceso fácil al transporte público?
                               </Link>
                             </h4>
                             <div
@@ -753,11 +748,10 @@ const Rentdetails = () => {
                             >
                               <div className="faq-content">
                                 <p>
-                                  Yes, airport shuttle service is offered to
-                                  provide convenient and reliable transportation
-                                  for our guests between the airport and their
-                                  destination, ensuring a smooth and stress-free
-                                  travel experience.
+                                  Sí, la zona cuenta con excelente acceso al
+                                  transporte público, facilitando el
+                                  desplazamiento hacia distintos puntos
+                                  de la ciudad de forma cómoda y eficiente.
                                 </p>
                               </div>
                             </div>
@@ -770,7 +764,7 @@ const Rentdetails = () => {
                                 to="#faqfive"
                                 aria-expanded="false"
                               >
-                                What are the check-in and check-out times?
+                                ¿Cuáles son los horarios de ingreso y egreso?
                               </Link>
                             </h4>
                             <div
@@ -779,9 +773,9 @@ const Rentdetails = () => {
                             >
                               <div className="faq-content">
                                 <p>
-                                  Check-in is typically from 12:00 PM, and
-                                  check-out is usually by 11:00 AM to ensure a
-                                  smooth transition for all guests.
+                                  El ingreso es a partir de las 12:00 hs y
+                                  el egreso hasta las 11:00 hs para garantizar
+                                  una transición fluida entre inquilinos.
                                 </p>
                               </div>
                             </div>
@@ -800,7 +794,7 @@ const Rentdetails = () => {
                         data-bs-target="#accordion-9"
                         aria-expanded="true"
                       >
-                        Reviews
+                        Reseñas
                       </button>
                     </div>
                     <div
@@ -819,7 +813,7 @@ const Rentdetails = () => {
                             <i className="material-icons-outlined me-1 fs-13">
                               edit_note
                             </i>
-                            Write a Review
+                            Escribir reseña
                           </Link>
                         </div>
                         {/* start row */}
@@ -827,7 +821,7 @@ const Rentdetails = () => {
                           <div className="col-lg-6 d-flex">
                             <div className="p-4 bg-light rounded text-center d-flex align-items-center justify-content-center flex-column flex-fill">
                               <h6 className="fs-16 fw-medium mb-3">
-                                Customer Reviews &amp; Ratings
+                                Opiniones y calificaciones
                               </h6>
                               <div className="mb-3">
                                 <h2 className="mb-1">
@@ -855,7 +849,7 @@ const Rentdetails = () => {
                                 </div>
                               </div>
                               <p className="mb-0 fs-14">
-                                Based On 2,459 Reviews
+                                Basado en 2.459 opiniones
                               </p>
                             </div>
                           </div>
@@ -865,7 +859,7 @@ const Rentdetails = () => {
                               <div className="card-body ">
                                 {/* Progress 1 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>5 Star Ratings</p>
+                                  <p>5 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning five-star"
@@ -881,7 +875,7 @@ const Rentdetails = () => {
                                 </div>
                                 {/* Progress 2 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>4 Star Ratings</p>
+                                  <p>4 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -897,7 +891,7 @@ const Rentdetails = () => {
                                 </div>
                                 {/* Progress 3 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>3 Star Ratings</p>
+                                  <p>3 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -913,7 +907,7 @@ const Rentdetails = () => {
                                 </div>
                                 {/* Progress 4 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>2 Star Ratings</p>
+                                  <p>2 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -929,7 +923,7 @@ const Rentdetails = () => {
                                 </div>
                                 {/* Progress 5 */}
                                 <div className="progress-lvl mb-0">
-                                  <p className="mb-0">1 Star Ratings</p>
+                                  <p className="mb-0">1 estrella</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -967,7 +961,7 @@ const Rentdetails = () => {
                                 </h6>
                                 <div className="d-flex align-items-center gap-2 flex-wrap">
                                   <p className="fs-14 mb-0 text-body">
-                                    2 days ago
+                                    Hace 2 días
                                   </p>
                                   <i className="fa-solid fa-circle text-body" />
                                   <div className="d-flex align-items-center justify-content-center">
@@ -988,16 +982,16 @@ const Rentdetails = () => {
                                     </i>
                                   </div>
                                   <p className="fs-14 mb-0 text-body">
-                                    Unforgettable Stay!
+                                    ¡Estadía inolvidable!
                                   </p>
                                 </div>
                               </div>
                             </div>
                             <p className="mb-2 text-body">
-                              This hotel exceeded my expectations! The pool,
-                              spa, and dining options were top-notch, and the
-                              room had every amenity I could ask for. It felt
-                              like a true getaway.
+                              ¡La propiedad superó mis expectativas! Las
+                              instalaciones, la ubicación y el espacio son
+                              de primer nivel. Me sentí como en casa desde
+                              el primer momento.
                             </p>
                             <div className="d-flex align-items-center gap-3">
                               <p className="mb-0 d-flex align-items-center fs-14">
@@ -1039,7 +1033,7 @@ const Rentdetails = () => {
                                   </h6>
                                   <div className="d-flex align-items-center gap-2 flex-wrap">
                                     <p className="fs-14 mb-0 text-body">
-                                      2 days ago
+                                      Hace 2 días
                                     </p>
                                     <i className="fa-solid fa-circle text-body" />
                                     <div className="d-flex align-items-center justify-content-center">
@@ -1060,7 +1054,7 @@ const Rentdetails = () => {
                                       </i>
                                     </div>
                                     <p className="fs-14 mb-0 text-body">
-                                      Excellent service!
+                                      ¡Excelente servicio!
                                     </p>
                                   </div>
                                 </div>
@@ -1072,14 +1066,14 @@ const Rentdetails = () => {
                                 <i className="material-icons-outlined text-dark me-1">
                                   repeat
                                 </i>
-                                Reply
+                                Responder
                               </Link>
                             </div>
                             <p className="mb-2 text-body">
-                              This hotel exceeded my expectations! The pool,
-                              spa, and dining options were top-notch, and the
-                              room had every amenity I could ask for. It felt
-                              like a true getaway.
+                              ¡La propiedad superó mis expectativas! Las
+                              instalaciones, la ubicación y el espacio son
+                              de primer nivel. Me sentí como en casa desde
+                              el primer momento.
                             </p>
                             <div className="d-flex align-items-center gap-3">
                               <p className="mb-0 d-flex align-items-center fs-14">
@@ -1122,7 +1116,7 @@ const Rentdetails = () => {
                                     </h6>
                                     <div className="d-flex align-items-center gap-2 flex-wrap">
                                       <p className="fs-14 mb-0 text-body">
-                                        2 days ago
+                                        Hace 2 días
                                       </p>
                                       <i className="fa-solid fa-circle text-body" />
                                       <div className="d-flex align-items-center justify-content-center">
@@ -1143,7 +1137,7 @@ const Rentdetails = () => {
                                         </i>
                                       </div>
                                       <p className="fs-14 mb-0 text-body">
-                                        Convenient Location!
+                                        ¡Ubicación conveniente!
                                       </p>
                                     </div>
                                   </div>
@@ -1155,14 +1149,14 @@ const Rentdetails = () => {
                                   <i className="material-icons-outlined text-dark me-1">
                                     repeat
                                   </i>
-                                  Reply
+                                  Responder
                                 </Link>
                               </div>
                               <p className="mb-2 text-body">
-                                The location was perfect for exploring the city,
-                                and the views from our room were breathtaking.
-                                It made our trip so much more enjoyable to stay
-                                somewhere central and scenic.
+                                La ubicación es perfecta para recorrer la ciudad.
+                                Las vistas desde el departamento son increíbles.
+                                Hizo que toda la experiencia fuera mucho
+                                más agradable.
                               </p>
                               <div className="d-flex align-items-center gap-3">
                                 <p className="mb-0 d-flex align-items-center fs-14">
@@ -1203,7 +1197,7 @@ const Rentdetails = () => {
                                       </h6>
                                       <div className="d-flex align-items-center gap-2 flex-wrap">
                                         <p className="fs-14 mb-0 text-body">
-                                          2 days ago
+                                          Hace 2 días
                                         </p>
                                         <i className="fa-solid fa-circle text-body" />
                                         <div className="d-flex align-items-center justify-content-center">
@@ -1224,7 +1218,7 @@ const Rentdetails = () => {
                                           </i>
                                         </div>
                                         <p className="fs-14 mb-0 text-body">
-                                          Excellent service!
+                                          ¡Excelente servicio!
                                         </p>
                                       </div>
                                     </div>
@@ -1236,14 +1230,14 @@ const Rentdetails = () => {
                                     <i className="material-icons-outlined text-dark me-1">
                                       repeat
                                     </i>
-                                    Reply
+                                    Responder
                                   </Link>
                                 </div>
                                 <p className="mb-2 text-body">
-                                  Thank you so much for your kind words! We're
-                                  thrilled to hear that our location and views
-                                  made your trip even more enjoyable. We hope to
-                                  welcome you back soon for another scenic stay!
+                                  ¡Muchas gracias por tus palabras! Nos alegra
+                                  saber que la ubicación y las vistas hicieron
+                                  tu estadía más especial. ¡Esperamos
+                                  verte pronto de nuevo!
                                 </p>
                                 <div className="d-flex align-items-center gap-3">
                                   <p className="mb-0 d-flex align-items-center fs-14">
@@ -1274,7 +1268,7 @@ const Rentdetails = () => {
                             to="#"
                             className="btn btn-dark d-inline-flex align-center gap-1 review-btn"
                           >
-                            See All Reviews
+                            Ver todas las reseñas
                           </Link>
                         </div>
                       </div>

@@ -4,7 +4,6 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
-import BuyGalleryItem from "./buyGalleryItem";
 import BuyLeftForm from "./buyLeftForm";
 import { all_routes } from "../../../../routes/all_routes";
 import publicService, { type PropertyDetail } from "../../../../../services/publicService";
@@ -164,7 +163,7 @@ const BuyDetails = () => {
                   <div className="d-flex align-center gap-2 mb-2">
                     <span className="badge bg-primary">{property?.type || ""}</span>
                     <span className="badge bg-secondary">
-                      {property?.operation === "rent" ? "For Rent" : "For Sale"}
+                      {property?.operation === "rent" ? "En Alquiler" : "En Venta"}
                     </span>
                     {property?.status ? (
                       <span className="badge bg-success">{property.status}</span>
@@ -204,12 +203,13 @@ const BuyDetails = () => {
                         to={all_routes.buyGridMap}
                         className="text-primary fs-14 text-decoration-underline ms-1"
                       >
-                        View Location
+                        Ver ubicación
                       </Link>
                     </div>
                     <i className="fa-solid fa-circle text-body" />
                     {false && (
                       <p className="fs-14 mb-0 text-white">
+                        Última actualización: 24 Feb 2025
                         Last Updated on : 24 Feb 2025
                       </p>
                     )}
@@ -256,7 +256,7 @@ const BuyDetails = () => {
                           <i className="material-icons-outlined fs-14 me-1">
                             generating_tokens
                           </i>
-                          Trending
+                          En tendencia
                         </span>
                       ) : null}
                       {property?.featured ? (
@@ -264,12 +264,12 @@ const BuyDetails = () => {
                           <i className="material-icons-outlined  fs-14 me-1">
                             loyalty
                           </i>
-                          Featured
+                          Destacada
                         </span>
                       ) : null}
                     </div>
                     {property?.visitCount != null ? (
-                      <p className="mb-0 text-dark">Total No of Visits : {property.visitCount}</p>
+                      <p className="mb-0 text-dark">Total de visitas: {property.visitCount}</p>
                     ) : null}
                   </div>
                 ) : null}
@@ -293,7 +293,7 @@ const BuyDetails = () => {
                         ))
                       ) : (
                         <div className="service-img-wrap">
-                          <div className="text-center">{isLoading ? "Loading..." : "No images"}</div>
+                          <div className="text-center">{isLoading ? "Cargando..." : "Sin imágenes"}</div>
                         </div>
                       )}
                     </Slider>
@@ -315,7 +315,7 @@ const BuyDetails = () => {
                       ))
                     ) : (
                       <div className="slide-img">
-                        <div className="text-center">{isLoading ? "Loading..." : "No images"}</div>
+                        <div className="text-center">{isLoading ? "Cargando..." : "Sin imágenes"}</div>
                       </div>
                     )}
                   </Slider>
@@ -370,7 +370,7 @@ const BuyDetails = () => {
                         data-bs-target="#accordion-2"
                         aria-expanded="true"
                       >
-                        Property Features
+                        Características
                       </button>
                     </div>
                     <div
@@ -384,11 +384,11 @@ const BuyDetails = () => {
                             <div className="buy-property-items">
                               <p>
                                 <i className="material-icons-outlined">bed</i>
-                                Bedrooms: {property?.features?.beds ?? ""}
+                                Dormitorios: {property?.features?.beds ?? ""}
                               </p>
                               <p className="mb-lg-0">
                                 <i className="material-icons-outlined">bathtub</i>
-                                Bathrooms: {property?.features?.baths ?? ""}
+                                Baños: {property?.features?.baths ?? ""}
                               </p>
                             </div>
                           </div>
@@ -397,7 +397,7 @@ const BuyDetails = () => {
                             <div className="buy-property-items">
                               <p>
                                 <i className="material-icons-outlined">meeting_room</i>
-                                Rooms: {property?.features?.rooms ?? ""}
+                                Ambientes: {property?.features?.rooms ?? ""}
                               </p>
                               <p className="mb-lg-0">
                                 <i className="material-icons-outlined">
@@ -412,11 +412,11 @@ const BuyDetails = () => {
                             <div className="buy-property-items">
                               <p>
                                 <i className="material-icons-outlined">straighten</i>
-                                Area: {property?.features?.areaSqFt ?? ""} m²
+                                Superficie total: {property?.features?.areaSqFt ?? ""} m²
                               </p>
                               <p className="mb-lg-0">
                                 <i className="material-icons-outlined">crop_square</i>
-                                Covered: {property?.features?.coveredAreaSqFt ?? ""} m²
+                                Superficie cubierta: {property?.features?.coveredAreaSqFt ?? ""} m²
                               </p>
                             </div>
                           </div>
@@ -432,7 +432,7 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined">
                                       door_sliding
                                     </i>
-                                    Floor: {extraFeatures.floor}
+                                    Piso: {extraFeatures.floor}
                                   </p>
                                 </div>
                               </div>
@@ -444,7 +444,7 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined">
                                       microwave
                                     </i>
-                                    Microwave: {extraFeatures.microwave}
+                                    Microondas: {extraFeatures.microwave}
                                   </p>
                                 </div>
                               </div>
@@ -456,7 +456,7 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined">
                                       ac_unit
                                     </i>
-                                    AC: {extraFeatures.ac}
+                                    Aire acondicionado: {extraFeatures.ac}
                                   </p>
                                 </div>
                               </div>
@@ -478,7 +478,7 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined">
                                       kitchen
                                     </i>
-                                    Fridge: {extraFeatures.fridge}
+                                    Heladera: {extraFeatures.fridge}
                                   </p>
                                 </div>
                               </div>
@@ -490,7 +490,7 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined">
                                       corporate_fare
                                     </i>
-                                    Balcony: {extraFeatures.balcony}
+                                    Balcón: {extraFeatures.balcony}
                                   </p>
                                 </div>
                               </div>
@@ -500,7 +500,7 @@ const BuyDetails = () => {
                                 <div className="buy-property-items">
                                   <p>
                                     <i className="material-icons-outlined">water</i>
-                                    Water Purifier: {extraFeatures.waterPurifier}
+                                    Purificador de agua: {extraFeatures.waterPurifier}
                                   </p>
                                 </div>
                               </div>
@@ -563,7 +563,7 @@ const BuyDetails = () => {
                         data-bs-target="#accordion-3"
                         aria-expanded="true"
                       >
-                        About Property
+                        Sobre la propiedad
                       </button>
                     </div>
                     <div
@@ -574,31 +574,31 @@ const BuyDetails = () => {
                         {property?.status ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Status: {property.status}
+                            Estado: {property.status}
                           </p>
                         ) : null}
                         {property?.ageYears != null ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Age (years): {property.ageYears}
+                            Antigüedad (años): {property.ageYears}
                           </p>
                         ) : null}
                         {property?.category ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Category: {property.category}
+                            Categoría: {property.category}
                           </p>
                         ) : null}
                         {property?.propertyCode ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Property Code: {property.propertyCode}
+                            Código: {property.propertyCode}
                           </p>
                         ) : null}
                         {property?.offerPrice != null ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Offer Price: {property.offerPrice}
+                            Precio oferta: {property.offerPrice}
                           </p>
                         ) : null}
                         {property?.pricePerM2 != null ? (
@@ -610,31 +610,31 @@ const BuyDetails = () => {
                         {property?.structureType ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Structure Type: {property.structureType}
+                            Tipo de estructura: {property.structureType}
                           </p>
                         ) : null}
                         {property?.location?.neighborhood ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Neighborhood: {property.location.neighborhood}
+                            Barrio: {property.location.neighborhood}
                           </p>
                         ) : null}
                         {property?.location?.city ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            City: {property.location.city}
+                            Ciudad: {property.location.city}
                           </p>
                         ) : null}
                         {property?.location?.province ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Province: {property.location.province}
+                            Provincia: {property.location.province}
                           </p>
                         ) : null}
                         {property?.location?.postalCode ? (
                           <p className="mb-2">
                             <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Postal Code: {property.location.postalCode}
+                            Código postal: {property.location.postalCode}
                           </p>
                         ) : null}
                         {!property?.status &&
@@ -643,7 +643,7 @@ const BuyDetails = () => {
                         !property?.location?.city &&
                         !property?.location?.province &&
                         !property?.location?.postalCode ? (
-                          <p className="mb-0">{isLoading ? "Loading..." : "No additional details"}</p>
+                          <p className="mb-0">{isLoading ? "Cargando..." : "Sin detalles adicionales"}</p>
                         ) : null}
                       </div>
                     </div>
@@ -658,7 +658,7 @@ const BuyDetails = () => {
                         data-bs-target="#accordion-4"
                         aria-expanded="true"
                       >
-                        Amenities
+                        Comodidades
                       </button>
                     </div>
                     <div
@@ -680,7 +680,7 @@ const BuyDetails = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center">{isLoading ? "Loading..." : "No amenities"}</div>
+                          <div className="text-center">{isLoading ? "Cargando..." : "Sin comodidades"}</div>
                         )}
                       </div>
                     </div>
@@ -696,7 +696,7 @@ const BuyDetails = () => {
                           data-bs-target="#accordion-5"
                           aria-expanded="true"
                         >
-                          Floor Plan
+                          Planos
                         </button>
                       </div>
                       <div
@@ -742,8 +742,6 @@ const BuyDetails = () => {
                       </div>
                     </div>
                   ) : null}
-                  {/* gallery items */}
-                  <BuyGalleryItem images={galleryImages} />
                   {/* video items */}
                   {videoUrls.length ? (
                     <div className="accordion-item">
@@ -792,7 +790,7 @@ const BuyDetails = () => {
                         data-bs-target="#accordion-8"
                         aria-expanded="true"
                       >
-                        Frequently Asked Questions
+                        Preguntas frecuentes
                       </button>
                     </div>
                     <div
@@ -939,7 +937,7 @@ const BuyDetails = () => {
                         data-bs-target="#accordion-9"
                         aria-expanded="true"
                       >
-                        Reviews
+                        Reseñas
                       </button>
                     </div>
                     <div
@@ -961,7 +959,7 @@ const BuyDetails = () => {
                             <i className="material-icons-outlined me-1 fs-13">
                               edit_note
                             </i>
-                            Write a Review
+                            Escribir reseña
                           </Link>
                         </div>
                         {/* start row */}
@@ -969,7 +967,7 @@ const BuyDetails = () => {
                           <div className="col-lg-6 d-flex">
                             <div className="p-4 bg-light rounded text-center d-flex align-items-center justify-content-center flex-column flex-fill">
                               <h6 className="fs-16 fw-medium mb-3">
-                                Customer Reviews &amp; Ratings
+                                Opiniones y calificaciones
                               </h6>
                               <div className="mb-3">
                                 <h2 className="mb-1">
@@ -998,7 +996,7 @@ const BuyDetails = () => {
                               </div>
                               <p className="mb-0 fs-14">
                                 {" "}
-                                Based On 2,459 Reviews{" "}
+                                Basado en 2.459 opiniones{" "}
                               </p>
                             </div>
                           </div>
@@ -1008,7 +1006,7 @@ const BuyDetails = () => {
                               <div className="card-body ">
                                 {/* Progress 1 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>5 Star Ratings</p>
+                                  <p>5 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning five-star"
@@ -1024,7 +1022,7 @@ const BuyDetails = () => {
                                 </div>
                                 {/* Progress 2 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>4 Star Ratings</p>
+                                  <p>4 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -1040,7 +1038,7 @@ const BuyDetails = () => {
                                 </div>
                                 {/* Progress 3 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>3 Star Ratings</p>
+                                  <p>3 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -1056,7 +1054,7 @@ const BuyDetails = () => {
                                 </div>
                                 {/* Progress 4 */}
                                 <div className="progress-lvl mb-2">
-                                  <p>2 Star Ratings</p>
+                                  <p>2 estrellas</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -1072,7 +1070,7 @@ const BuyDetails = () => {
                                 </div>
                                 {/* Progress 5 */}
                                 <div className="progress-lvl mb-0">
-                                  <p className="mb-0">1 Star Ratings</p>
+                                  <p className="mb-0">1 estrella</p>
                                   <div className="progress">
                                     <div
                                       className="progress-bar bg-warning"
@@ -1110,7 +1108,7 @@ const BuyDetails = () => {
                                 </h6>
                                 <div className="d-flex align-items-center gap-2 flex-wrap">
                                   <p className="fs-14 mb-0 text-body">
-                                    2 days ago
+                                    Hace 2 días
                                   </p>
                                   <i className="fa-solid fa-circle text-body" />
                                   <div className="d-flex align-items-center justify-content-center">
@@ -1131,7 +1129,7 @@ const BuyDetails = () => {
                                     </i>
                                   </div>
                                   <p className="fs-14 mb-0 text-body">
-                                    Unforgettable Stay!
+                                    ¡Estadía inolvidable!
                                   </p>
                                 </div>
                               </div>
@@ -1182,7 +1180,7 @@ const BuyDetails = () => {
                                   </h6>
                                   <div className="d-flex align-items-center gap-2 flex-wrap">
                                     <p className="fs-14 mb-0 text-body">
-                                      2 days ago
+                                      Hace 2 días
                                     </p>
                                     <i className="fa-solid fa-circle text-body" />
                                     <div className="d-flex align-items-center justify-content-center">
@@ -1203,7 +1201,7 @@ const BuyDetails = () => {
                                       </i>
                                     </div>
                                     <p className="fs-14 mb-0 text-body">
-                                      Excellent service!
+                                      ¡Excelente servicio!
                                     </p>
                                   </div>
                                 </div>
@@ -1265,7 +1263,7 @@ const BuyDetails = () => {
                                     </h6>
                                     <div className="d-flex align-items-center gap-2 flex-wrap">
                                       <p className="fs-14 mb-0 text-body">
-                                        2 days ago
+                                        Hace 2 días
                                       </p>
                                       <i className="fa-solid fa-circle text-body" />
                                       <div className="d-flex align-items-center justify-content-center">
@@ -1286,7 +1284,7 @@ const BuyDetails = () => {
                                         </i>
                                       </div>
                                       <p className="fs-14 mb-0 text-body">
-                                        Convenient Location!
+                                        ¡Ubicación conveniente!
                                       </p>
                                     </div>
                                   </div>
@@ -1298,7 +1296,7 @@ const BuyDetails = () => {
                                   <i className="material-icons-outlined text-dark me-1">
                                     repeat
                                   </i>
-                                  Reply
+                                  Responder
                                 </Link>
                               </div>
                               <p className="mb-2 text-body">
@@ -1346,7 +1344,7 @@ const BuyDetails = () => {
                                       </h6>
                                       <div className="d-flex align-items-center gap-2 flex-wrap">
                                         <p className="fs-14 mb-0 text-body">
-                                          2 days ago
+                                          Hace 2 días
                                         </p>
                                         <i className="fa-solid fa-circle text-body" />
                                         <div className="d-flex align-items-center justify-content-center">
@@ -1367,7 +1365,7 @@ const BuyDetails = () => {
                                           </i>
                                         </div>
                                         <p className="fs-14 mb-0 text-body">
-                                          Excellent service!
+                                          ¡Excelente servicio!
                                         </p>
                                       </div>
                                     </div>
@@ -1379,7 +1377,7 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined text-dark me-1">
                                       repeat
                                     </i>
-                                    Reply
+                                    Responder
                                   </Link>
                                 </div>
                                 <p className="mb-2 text-body">
@@ -1417,7 +1415,7 @@ const BuyDetails = () => {
                             to="#"
                             className="btn btn-dark d-inline-flex align-center gap-1 review-btn"
                           >
-                            See All Reviews
+                            Ver todas las reseñas
                           </Link>
                         </div>
                       </div>
