@@ -403,7 +403,7 @@ const BuyDetails = () => {
                                 <i className="material-icons-outlined">
                                   directions_car_filled
                                 </i>
-                                Parking: {property?.features?.parking ?? ""}
+                                Cocheras: {property?.features?.parking ?? ""}{property?.features?.parkingType ? ` (${property.features.parkingType})` : ""}
                               </p>
                             </div>
                           </div>
@@ -512,7 +512,37 @@ const BuyDetails = () => {
                                     <i className="material-icons-outlined">
                                       checkroom
                                     </i>
-                                    Curtains: {extraFeatures.curtains}
+                                    Cortinas: {extraFeatures.curtains}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.heating ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p>
+                                    <i className="material-icons-outlined">local_fire_department</i>
+                                    Calefacción: {extraFeatures.heating}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.hotWater ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p>
+                                    <i className="material-icons-outlined">hot_tub</i>
+                                    Agua caliente: {extraFeatures.hotWater}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.stove ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p>
+                                    <i className="material-icons-outlined">countertops</i>
+                                    Cocina: {extraFeatures.stove}
                                   </p>
                                 </div>
                               </div>

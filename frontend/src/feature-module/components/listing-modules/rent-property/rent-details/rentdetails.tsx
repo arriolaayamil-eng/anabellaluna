@@ -117,6 +117,7 @@ const Rentdetails = () => {
     .filter(Boolean)
     .join(", ");
 
+  const extraFeatures = property?.extraFeatures;
   const amenities = (property?.amenities || []).filter(Boolean);
   const floorPlanUrls = (property?.floorPlanUrls || []).filter(Boolean);
   const videoUrls = (property?.videoUrls || []).filter(Boolean);
@@ -384,7 +385,7 @@ const Rentdetails = () => {
                                 <i className="material-icons-outlined">
                                   directions_car_filled
                                 </i>
-                                Parking: {property?.features?.parking ?? ""}
+                                Cocheras: {property?.features?.parking ?? ""}{property?.features?.parkingType ? ` (${property.features.parkingType})` : ""}
                               </p>
                             </div>
                           </div>
@@ -404,94 +405,87 @@ const Rentdetails = () => {
                           {/* end col */}
                         </div>
 
-                        {false && (
-                        <div className="row row-gap-4">
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">bed</i>
-                                Bedrooms: 3
-                              </p>
-                              <p>
-                                <i className="material-icons-outlined">
-                                  door_sliding
-                                </i>
-                                Floor: 5th of 12
-                              </p>
-                              <p>
-                                <i className="material-icons-outlined">
-                                  microwave
-                                </i>
-                                Microwave : 2
-                              </p>
-                            </div>
+                        {extraFeatures ? (
+                          <div className="row row-gap-4">
+                            {extraFeatures.floor ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">door_sliding</i> Piso: {extraFeatures.floor}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.microwave ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">microwave</i> Microondas: {extraFeatures.microwave}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.ac ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">ac_unit</i> AC: {extraFeatures.ac}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.tv ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">tv</i> TV: {extraFeatures.tv}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.fridge ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">kitchen</i> Heladera: {extraFeatures.fridge}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.balcony ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">corporate_fare</i> Balcón: {extraFeatures.balcony}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.waterPurifier ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">water</i> Purificador de agua: {extraFeatures.waterPurifier}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.curtains ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">checkroom</i> Cortinas: {extraFeatures.curtains}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.heating ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">local_fire_department</i> Calefacción: {extraFeatures.heating}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.hotWater ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">hot_tub</i> Agua caliente: {extraFeatures.hotWater}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {extraFeatures.stove ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p><i className="material-icons-outlined">countertops</i> Cocina: {extraFeatures.stove}</p>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">
-                                  bathtub
-                                </i>
-                                Bedrooms: 2
-                              </p>
-                              <p>
-                                <i className="material-icons-outlined">bento</i>
-                                Wardrobe :1
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  ac_unit
-                                </i>
-                                AC : 4
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">
-                                  directions_car_filled
-                                </i>
-                                Parking: 1
-                              </p>
-                              <p>
-                                <i className="material-icons-outlined">tv</i> TV
-                                : 4
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  kitchen
-                                </i>
-                                Fridge : 1
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">
-                                  corporate_fare
-                                </i>
-                                Balcony: Yes
-                              </p>
-                              <p>
-                                <i className="material-icons-outlined">water</i>
-                                Water Purifier : 2
-                              </p>
-                              <p className="mb-lg-0 mb-0">
-                                <i className="material-icons-outlined">
-                                  checkroom
-                                </i>
-                                Curtains : yes
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                        </div>
-                        )}
+                        ) : null}
                         {/* end row */}
                       </div>
                     </div>

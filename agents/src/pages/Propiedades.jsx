@@ -108,6 +108,7 @@ const Propiedades = () => {
     dormitorios: '',
     baños: '',
     cocheras: '',
+    tipoCochera: '',
     balcon: '',
     piso: '',
     armario: '',
@@ -121,6 +122,9 @@ const Propiedades = () => {
     anioConstruccion: '',
     cortinas: '',
     antiguedad: '',
+    tipoCalefaccion: '',
+    tipoAguaCaliente: '',
+    tipoCocina: '',
     estado: 'Disponible',
     descripcion: '',
     amenities: [],
@@ -161,6 +165,7 @@ const Propiedades = () => {
       dormitorios: '',
       baños: '',
       cocheras: '',
+      tipoCochera: '',
       balcon: '',
       piso: '',
       armario: '',
@@ -174,6 +179,9 @@ const Propiedades = () => {
       anioConstruccion: '',
       cortinas: '',
       antiguedad: '',
+      tipoCalefaccion: '',
+      tipoAguaCaliente: '',
+      tipoCocina: '',
       estado: 'Disponible',
       descripcion: '',
       amenities: [],
@@ -217,6 +225,7 @@ const Propiedades = () => {
       dormitorios: prop.dormitorios || '',
       baños: prop.baños || '',
       cocheras: prop.cocheras || '',
+      tipoCochera: prop.tipoCochera || '',
       balcon: prop.balcon || '',
       piso: prop.piso || '',
       armario: prop.armario || '',
@@ -230,6 +239,9 @@ const Propiedades = () => {
       anioConstruccion: prop.anioConstruccion || '',
       cortinas: prop.cortinas || '',
       antiguedad: prop.antiguedad || '',
+      tipoCalefaccion: prop.tipoCalefaccion || '',
+      tipoAguaCaliente: prop.tipoAguaCaliente || '',
+      tipoCocina: prop.tipoCocina || '',
       estado: prop.estado || 'Disponible',
       descripcion: prop.descripcion || '',
       amenities: Array.isArray(prop.amenities) ? prop.amenities : [],
@@ -688,6 +700,7 @@ const Propiedades = () => {
           dormitorios: Number(nuevaPropiedad.dormitorios || 0),
           baños: Number(nuevaPropiedad.baños || 0),
           cocheras: Number(nuevaPropiedad.cocheras || 0),
+          tipoCochera: nuevaPropiedad.tipoCochera,
           balcon: nuevaPropiedad.balcon,
           piso: nuevaPropiedad.piso,
           armario: nuevaPropiedad.armario,
@@ -701,6 +714,9 @@ const Propiedades = () => {
           anioConstruccion: nuevaPropiedad.anioConstruccion,
           cortinas: nuevaPropiedad.cortinas,
           antiguedad: Number(nuevaPropiedad.antiguedad || 0),
+          tipoCalefaccion: nuevaPropiedad.tipoCalefaccion,
+          tipoAguaCaliente: nuevaPropiedad.tipoAguaCaliente,
+          tipoCocina: nuevaPropiedad.tipoCocina,
           estado: nuevaPropiedad.estado,
           descripcion: nuevaPropiedad.descripcion,
           amenities: nuevaPropiedad.amenities,
@@ -754,6 +770,7 @@ const Propiedades = () => {
         dormitorios: payload.metadata.dormitorios,
         baños: payload.metadata.baños,
         cocheras: payload.metadata.cocheras,
+        tipoCochera: payload.metadata.tipoCochera,
         balcon: payload.metadata.balcon,
         piso: payload.metadata.piso,
         armario: payload.metadata.armario,
@@ -767,6 +784,9 @@ const Propiedades = () => {
         anioConstruccion: payload.metadata.anioConstruccion,
         cortinas: payload.metadata.cortinas,
         antiguedad: payload.metadata.antiguedad,
+        tipoCalefaccion: payload.metadata.tipoCalefaccion,
+        tipoAguaCaliente: payload.metadata.tipoAguaCaliente,
+        tipoCocina: payload.metadata.tipoCocina,
         estado: saved.status || payload.metadata.estado,
       };
 
@@ -2528,6 +2548,79 @@ const Propiedades = () => {
                         placeholder="0"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-tipoCochera" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Tipo de Cochera
+                      </label>
+                      <select
+                        id="field-tipoCochera"
+                        name="tipoCochera"
+                        value={nuevaPropiedad.tipoCochera}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="">— Sin especificar —</option>
+                        <option value="Cubierta">Cubierta</option>
+                        <option value="Descubierta">Descubierta</option>
+                        <option value="Semicubierta">Semicubierta</option>
+                        <option value="Espacio para estacionar">Espacio para estacionar</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-tipoCalefaccion" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Calefacción
+                      </label>
+                      <select
+                        id="field-tipoCalefaccion"
+                        name="tipoCalefaccion"
+                        value={nuevaPropiedad.tipoCalefaccion}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="">— Sin especificar —</option>
+                        <option value="Gas natural">Gas natural</option>
+                        <option value="Gas envasado">Gas envasado</option>
+                        <option value="Eléctrica">Eléctrica</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-tipoAguaCaliente" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Agua Caliente
+                      </label>
+                      <select
+                        id="field-tipoAguaCaliente"
+                        name="tipoAguaCaliente"
+                        value={nuevaPropiedad.tipoAguaCaliente}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="">— Sin especificar —</option>
+                        <option value="Gas natural">Gas natural</option>
+                        <option value="Gas envasado">Gas envasado</option>
+                        <option value="Termotanque eléctrico">Termotanque eléctrico</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="field-tipoCocina" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Cocina
+                      </label>
+                      <select
+                        id="field-tipoCocina"
+                        name="tipoCocina"
+                        value={nuevaPropiedad.tipoCocina}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        <option value="">— Sin especificar —</option>
+                        <option value="Gas natural">Gas natural</option>
+                        <option value="Gas envasado">Gas envasado</option>
+                        <option value="Eléctrica">Eléctrica</option>
+                      </select>
                     </div>
 
                     <div>

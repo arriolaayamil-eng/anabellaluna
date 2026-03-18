@@ -84,6 +84,9 @@ function mapPropertyCard(prop, agent, coverUrl) {
       garageSize: meta.tamanoGaraje || '',
       availableFrom: meta.disponibleDesde || '',
       yearBuilt: meta.anioConstruccion || '',
+      heating: meta.tipoCalefaccion || '',
+      hotWater: meta.tipoAguaCaliente || '',
+      stove: meta.tipoCocina || '',
     },
     price: {
       amount: typeof prop.price === 'number' ? prop.price : safeNumber(meta.precio),
@@ -108,6 +111,7 @@ function mapPropertyCard(prop, agent, coverUrl) {
       coveredAreaSqFt: safeNumber(meta.m2Cubiertos),
       rooms: safeNumber(meta.ambientes),
       parking: safeNumber(meta.cocheras),
+      parkingType: meta.tipoCochera || '',
     },
     agent: agent
       ? {
