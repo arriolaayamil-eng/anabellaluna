@@ -731,7 +731,7 @@ const Propiedades = () => {
               tipoPropiedad: nuevoCliente.tipoPropiedad || 'Departamento',
               ambientes: nuevoCliente.ambientes || '',
               dormitorios: nuevoCliente.dormitorios || '',
-              'ba\u00f1os': nuevoCliente.ba\u00f1os || '',
+              baños: nuevoCliente.baños || '',
               caracteristicas: Array.isArray(nuevoCliente.caracteristicas) ? nuevoCliente.caracteristicas : [],
               origen: nuevoCliente.origen || 'Web',
               agente: nuevoCliente.agente || '',
@@ -1504,7 +1504,8 @@ const Propiedades = () => {
             {/* Formulario con scroll */}
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {formStep === 1 && (<>
+                {formStep === 1 && (
+                  <>
               {/* Información Básica */}
               <div>
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -2240,9 +2241,11 @@ const Propiedades = () => {
                   Siguiente <FaChevronRight />
                 </button>
               </div>
-              </>)}
+                  </>
+                )}
 
-              {formStep === 2 && (<>
+                {formStep === 2 && (
+                  <>
                 {/* Toggle incluir cliente */}
                 <div className="flex items-center gap-3 p-4 rounded-lg border dark:border-gray-700 bg-blue-50 dark:bg-gray-800">
                   <input
@@ -2406,7 +2409,8 @@ const Propiedades = () => {
                     </button>
                   </div>
                 </div>
-              </>)}
+                  </>
+                )}
               </form>
             </div>
           </div>
