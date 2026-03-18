@@ -984,7 +984,7 @@ app.delete('/documents/:id', authenticateToken, async (req, res) => {
 
     await Version.deleteMany({ document: doc._id });
 
-    await doc.remove();
+    await Document.deleteOne({ _id: doc._id });
 
     res.json({ deletedId: id });
 

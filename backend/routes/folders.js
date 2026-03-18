@@ -9,8 +9,9 @@ const IMAGE_MIMETYPES = new Set([
 ]);
 
 function buildProxyUrl(req, bucket, key) {
-  const proto = req.get('X-Forwarded-Proto') || req.protocol || 'https';
-  const host = req.get('X-Forwarded-Host') || req.get('Host');
+  const host = req.get('X-Forwarded-Host') || req.get('Host') || '';
+  const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  const proto = req.get('X-Forwarded-Proto') || (isLocal ? 'http' : 'https');
   return `${proto}://${host}/editor/file?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
 }
 
