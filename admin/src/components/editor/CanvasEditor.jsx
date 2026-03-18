@@ -337,7 +337,8 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
 
       const cW = canvas.getWidth();
       const cH = canvas.getHeight();
-      let cropW, cropH;
+      let cropW;
+      let cropH;
       if (aspectRatio) {
         cropW = cW * 0.8;
         cropH = cropW / aspectRatio;
@@ -350,7 +351,10 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       const syncOverlays = () => {
         const cr = cropRectRef.current;
         if (!cr) return;
-        const l = cr.left, t = cr.top, w = cr.getScaledWidth(), h = cr.getScaledHeight();
+        const l = cr.left;
+        const t = cr.top;
+        const w = cr.getScaledWidth();
+        const h = cr.getScaledHeight();
         cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
         const oc = 'rgba(0,0,0,0.55)';
         const mk = (x, y, ww, hh) => new F.Rect({ left: x, top: y, width: Math.max(0, ww), height: Math.max(0, hh), fill: oc, selectable: false, evented: false });
@@ -362,20 +366,31 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       };
 
       const cropRect = new F.Rect({
-        left: (cW - cropW) / 2, top: (cH - cropH) / 2,
-        width: cropW, height: cropH,
-        fill: 'transparent', stroke: '#fff', strokeWidth: 2, strokeUniform: true,
-        cornerColor: '#fff', cornerStyle: 'circle', cornerSize: 10,
-        transparentCorners: false, borderColor: '#fff',
-        hasRotatingPoint: false, lockRotation: true,
-        selectable: true, evented: true,
+        left: (cW - cropW) / 2,
+        top: (cH - cropH) / 2,
+        width: cropW,
+        height: cropH,
+        fill: 'transparent',
+        stroke: '#fff',
+        strokeWidth: 2,
+        strokeUniform: true,
+        cornerColor: '#fff',
+        cornerStyle: 'circle',
+        cornerSize: 10,
+        transparentCorners: false,
+        borderColor: '#fff',
+        hasRotatingPoint: false,
+        lockRotation: true,
+        selectable: true,
+        evented: true,
         lockUniScaling: !!aspectRatio,
       });
 
       const clamp = () => {
         const r = cropRectRef.current;
         if (!r) return;
-        let w = r.getScaledWidth(), h = r.getScaledHeight();
+        let w = r.getScaledWidth();
+        let h = r.getScaledHeight();
         if (w > cW) { r.scaleX = cW / r.width; w = cW; }
         if (h > cH) { r.scaleY = cH / r.height; h = cH; }
         r.left = Math.max(0, Math.min(r.left, cW - w));
@@ -398,8 +413,10 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       const crop = cropRectRef.current;
       if (!canvas || !crop) return null;
       const ratio = canvasRatioRef.current;
-      const l = crop.left, t = crop.top;
-      const w = crop.getScaledWidth(), h = crop.getScaledHeight();
+      const l = crop.left;
+      const t = crop.top;
+      const w = crop.getScaledWidth();
+      const h = crop.getScaledHeight();
       const cropConfig = { left: Math.round(l / ratio), top: Math.round(t / ratio), width: Math.round(w / ratio), height: Math.round(h / ratio) };
 
       cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
@@ -436,12 +453,14 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       const crop = cropRectRef.current;
       if (!canvas || !F || !crop) return;
       cropRatioRef.current = aspectRatio || null;
-      const cW = canvas.getWidth(), cH = canvas.getHeight();
+      const cW = canvas.getWidth();
+      const cH = canvas.getHeight();
 
       if (aspectRatio) {
         const cx = crop.left + crop.getScaledWidth() / 2;
         const cy = crop.top + crop.getScaledHeight() / 2;
-        let nw = crop.getScaledWidth(), nh = nw / aspectRatio;
+        let nw = crop.getScaledWidth();
+        let nh = nw / aspectRatio;
         if (nh > cH * 0.95) { nh = cH * 0.9; nw = nh * aspectRatio; }
         if (nw > cW * 0.95) { nw = cW * 0.9; nh = nw / aspectRatio; }
         crop.set({ width: nw, height: nh, scaleX: 1, scaleY: 1, left: Math.max(0, Math.min(cx - nw / 2, cW - nw)), top: Math.max(0, Math.min(cy - nh / 2, cH - nh)), lockUniScaling: true });
@@ -450,7 +469,10 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       }
       crop.setCoords();
 
-      const l = crop.left, t = crop.top, w = crop.getScaledWidth(), h = crop.getScaledHeight();
+      const l = crop.left;
+      const t = crop.top;
+      const w = crop.getScaledWidth();
+      const h = crop.getScaledHeight();
       cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
       const oc = 'rgba(0,0,0,0.55)';
       const mk = (x, y, ww, hh) => new F.Rect({ left: x, top: y, width: Math.max(0, ww), height: Math.max(0, hh), fill: oc, selectable: false, evented: false });
