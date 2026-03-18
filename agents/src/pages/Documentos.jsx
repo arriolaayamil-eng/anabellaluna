@@ -195,6 +195,8 @@ const Documentos = () => {
   const [moveParent, setMoveParent] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dropTargetId, setDropTargetId] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -343,6 +345,23 @@ const Documentos = () => {
   const handleMoveBrowse = async (fId) => {
     setMoveParent(fId);
     try { const data = await documentService.browse(fId); setMoveFolders(data.folders || []); } catch { setMoveFolders([]); }
+  };
+
+  /* ═══════ Drag & Drop ═══════ */
+  const onDragStartDoc = (e, doc) => { setDraggedItem({ type: 'doc', item: doc }); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', doc._id); };
+  const onDragStartFolder = (e, folder) => { setDraggedItem({ type: 'folder', item: folder }); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', folder._id); };
+  const onDragEnd = () => { setDraggedItem(null); setDropTargetId(null); };
+  const onFolderDragOver = (e, folderId) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dropTargetId !== folderId) setDropTargetId(folderId); };
+  const onFolderDragLeave = () => { setDropTargetId(null); };
+  const onFolderDrop = async (e, targetFolderId) => {
+    e.preventDefault(); setDropTargetId(null);
+    if (!draggedItem) return;
+    try {
+      if (draggedItem.type === 'doc') await documentService.moveDoc(draggedItem.item._id, targetFolderId);
+      else if (draggedItem.type === 'folder' && draggedItem.item._id !== targetFolderId) await documentService.moveFolder(draggedItem.item._id, targetFolderId);
+      refresh();
+    } catch { setError('Error al mover'); }
+    setDraggedItem(null);
   };
 
   const handleSearchSubmit = (e) => { e.preventDefault(); if (!searchQuery.trim()) return; setTab('search'); doSearch(searchQuery.trim()); };
@@ -500,9 +519,15 @@ const Documentos = () => {
     return (
       <div
         key={folder._id}
-        style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}) }}
+        style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}), ...(dropTargetId === folder._id ? { background: `${IOS.blue}18`, outline: `2px dashed ${IOS.blue}`, borderRadius: 8 } : {}) }}
         onClick={() => navigateToFolder(folder._id)}
         onContextMenu={(e) => openActionSheet(e, 'folder', folder)}
+        draggable
+        onDragStart={(e) => onDragStartFolder(e, folder)}
+        onDragEnd={onDragEnd}
+        onDragOver={(e) => onFolderDragOver(e, folder._id)}
+        onDragLeave={onFolderDragLeave}
+        onDrop={(e) => onFolderDrop(e, folder._id)}
       >
         <FolderFill size={28} color={folder.color || IOS.blue} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -541,9 +566,12 @@ const Documentos = () => {
     return (
       <div
         key={doc._id}
-        style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}) }}
+        style={{ ...S.listRow, ...(idx === arr.length - 1 ? S.listRowLast : {}), ...(draggedItem?.item?._id === doc._id ? { opacity: 0.4 } : {}) }}
         onClick={() => handlePreview(doc)}
         onContextMenu={(e) => openActionSheet(e, 'doc', doc)}
+        draggable
+        onDragStart={(e) => onDragStartDoc(e, doc)}
+        onDragEnd={onDragEnd}
       >
         {hasThumb ? (
           <img src={doc.thumbnailUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
@@ -584,7 +612,7 @@ const Documentos = () => {
     const color = getFileColor(doc.tipo);
     const hasThumb = !!doc.thumbnailUrl;
     return (
-      <div key={doc._id} style={S.gridItem} onClick={() => handlePreview(doc)} onContextMenu={(e) => openActionSheet(e, 'doc', doc)}>
+      <div key={doc._id} style={{ ...S.gridItem, ...(draggedItem?.item?._id === doc._id ? { opacity: 0.4 } : {}) }} onClick={() => handlePreview(doc)} onContextMenu={(e) => openActionSheet(e, 'doc', doc)} draggable onDragStart={(e) => onDragStartDoc(e, doc)} onDragEnd={onDragEnd}>
         {hasThumb ? (
           <div style={{ width: '100%', height: 100, borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
             <img src={doc.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
@@ -607,7 +635,7 @@ const Documentos = () => {
 
   /* ═══════ Render: Folder Grid Card (iOS) ═══════ */
   const renderFolderGrid = (folder) => (
-    <div key={folder._id} style={S.gridItem} onClick={() => navigateToFolder(folder._id)} onContextMenu={(e) => openActionSheet(e, 'folder', folder)}>
+    <div key={folder._id} style={{ ...S.gridItem, ...(dropTargetId === folder._id ? { outline: `2px dashed ${IOS.blue}`, background: `${IOS.blue}12` } : {}) }} onClick={() => navigateToFolder(folder._id)} onContextMenu={(e) => openActionSheet(e, 'folder', folder)} draggable onDragStart={(e) => onDragStartFolder(e, folder)} onDragEnd={onDragEnd} onDragOver={(e) => onFolderDragOver(e, folder._id)} onDragLeave={onFolderDragLeave} onDrop={(e) => onFolderDrop(e, folder._id)}>
       <div style={{ ...S.fileThumbGrid(IOS.blue), height: 80 }}>
         <FolderFill size={40} color={folder.color || IOS.blue} />
       </div>

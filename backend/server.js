@@ -44,6 +44,8 @@ const Document = require('./models/Document');
 
 const Version = require('./models/Version');
 
+const EditedImage = require('./models/EditedImage');
+
 const User = require('./models/User');
 
 const { router: authRouter, authenticateToken, agentScopeId } = require('./auth');
@@ -983,6 +985,17 @@ app.delete('/documents/:id', authenticateToken, async (req, res) => {
 
 
     await Version.deleteMany({ document: doc._id });
+
+    // Cascade: remove EditedImage records that reference this document
+    if (doc.object_key) {
+      await EditedImage.deleteMany({
+        $or: [
+          { originalDocumentId: doc._id },
+          { originalObjectKey: doc.object_key },
+          { outputObjectKey: doc.object_key },
+        ],
+      });
+    }
 
     await Document.deleteOne({ _id: doc._id });
 
