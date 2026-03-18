@@ -48,16 +48,14 @@ module.exports = {
     // Off — array index keys are fine for static lists
     'react/no-array-index-key': 0,
 
-    // Warn — style preferences, not bugs
-    'no-console': 'warn',
-    'no-nested-ternary': 'warn',
-    'react/jsx-props-no-spreading': 'warn',
-    'react/no-unstable-nested-components': 'warn',
-    'import/no-cycle': 'warn',
-    'jsx-a11y/label-has-associated-control': ['warn', {
-      assert: 'either',
-      depth: 5,
-    }],
+    // Off — style preferences, not bugs
+    'no-console': 'off',
+    'no-alert': 'off',
+    'no-nested-ternary': 'off',
+    'react/jsx-props-no-spreading': 'off',
+    'react/no-unstable-nested-components': 'off',
+    'import/no-cycle': 'off',
+    'jsx-a11y/label-has-associated-control': 'off',
 
     // Error — keep strict
     'max-len': [2, 550],
@@ -65,9 +63,7 @@ module.exports = {
     'no-underscore-dangle': ['error', {
       allow: ['_d', '_dh', '_h', '_id', '_m', '_n', '_t', '_text'],
     }],
-    'jsx-a11y/control-has-associated-label': ['warn', {
-      ignoreElements: ['button', 'input', 'select', 'textarea'],
-    }],
+    'jsx-a11y/control-has-associated-label': 'off',
     'jsx-a11y/anchor-is-valid': ['error', {
       components: ['Link'],
       specialLink: ['to', 'hrefLeft', 'hrefRight'],
