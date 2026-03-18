@@ -45,11 +45,6 @@ const Plantillas = () => {
   const [preview, setPreview] = useState('');
   const [activeTab, setActiveTab] = useState('biblioteca');
 
-  const panelClass = dark ? 'bg-[#111827] border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-900';
-  const softPanelClass = dark ? 'bg-[#0f172a] border border-white/10' : 'bg-slate-50 border border-slate-200';
-  const inputClass = dark ? 'w-full rounded-xl border border-white/10 bg-[#1e293b] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-cyan-400 focus:outline-none' : 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none';
-  const mutedText = dark ? 'text-slate-300' : 'text-slate-600';
-  const subtleText = dark ? 'text-slate-400' : 'text-slate-500';
   const selectedTemplate = useMemo(() => templates.find((item) => item._id === selectedId) || null, [templates, selectedId]);
   const isDirty = useMemo(() => {
     if (creatingNew) return !!(form.name || form.description || form.tags || form.content !== EMPTY_FORM.content);
@@ -289,11 +284,6 @@ const Plantillas = () => {
   const hasPreviewTemplateContext = creatingNew || Boolean(selectedTemplate?._id);
   const canPreview = hasPreviewTemplateContext && hasContractContext && hasTemplateContent;
   const canGenerate = Boolean(selectedTemplate?._id) && hasContractContext && hasTemplateContent && (!isAdmin || (!creatingNew && !isDirty));
-  const templateCardClass = (templateId) => {
-    if (selectedId === templateId && !creatingNew) return 'border-cyan-400 bg-cyan-500/10';
-    return dark ? 'border-white/10 bg-black/10 hover:border-cyan-500/40' : 'border-slate-200 bg-slate-50 hover:border-cyan-300';
-  };
-
   const IOS = dark ? {
     blue: '#0A84FF',
     green: '#30D158',
