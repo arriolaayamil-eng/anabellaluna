@@ -458,7 +458,7 @@ router.get('/debug-folders', authenticateToken, async (req, res) => {
 });
 
 // ── Proxy: serve MinIO objects through the API to avoid mixed-content / CORS ──
-router.get('/file', authenticateToken, async (req, res) => {
+router.get('/file', async (req, res) => {
   try {
     const { bucket, key } = req.query;
     if (!bucket || !key) return res.status(400).json({ error: 'bucket and key required' });
