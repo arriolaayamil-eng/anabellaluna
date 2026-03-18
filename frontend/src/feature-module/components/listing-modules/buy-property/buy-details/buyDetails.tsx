@@ -333,7 +333,7 @@ const BuyDetails = () => {
                         data-bs-target="#accordion-1"
                         aria-expanded="true"
                       >
-                        Description
+                        Descripción
                       </button>
                     </div>
                     <div
@@ -341,17 +341,17 @@ const BuyDetails = () => {
                       className="accordion-collapse collapse show"
                     >
                       <div className="accordion-body">
-                        <p>
+                        <p style={{ whiteSpace: 'pre-line' }}>
                           {property?.description || ""}
                         </p>
                         <div className="more-menu">
-                          <p>
+                          <p style={{ whiteSpace: 'pre-line' }}>
                             {property?.description || ""}
                           </p>
                         </div>
                         <div className="view-all d-inline-flex align-items-center">
                           <Link to="#" className="viewall-button fs-14">
-                            Read More
+                            Leer más
                           </Link>
                           <i className="material-icons-outlined">
                             keyboard_arrow_down
