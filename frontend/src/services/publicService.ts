@@ -25,6 +25,9 @@ export interface PropertyCard {
     garageSize?: string;
     availableFrom?: string;
     yearBuilt?: string;
+    heating?: string;
+    hotWater?: string;
+    stove?: string;
   };
   media?: { coverUrl?: string };
   location?: {
@@ -43,6 +46,7 @@ export interface PropertyCard {
     coveredAreaSqFt?: number;
     rooms?: number;
     parking?: number;
+    parkingType?: string;
   };
   agent?: {
     id: string;
