@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaList, FaThLarge, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChevronRight, FaChevronLeft, FaFileAlt, FaChartLine } from 'react-icons/fa';
@@ -76,7 +76,77 @@ const Propiedades = () => {
   const [filesPlanos, setFilesPlanos] = useState([]);
 
   const [videoUrlDraft, setVideoUrlDraft] = useState('');
-  
+
+  // Drag-and-drop refs for file reordering
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+
+  const reorderFiles = useCallback((setter) => {
+    setter((prev) => {
+      if (dragItem.current === null || dragOverItem.current === null) return prev;
+      if (dragItem.current === dragOverItem.current) return prev;
+      const items = [...prev];
+      const [dragged] = items.splice(dragItem.current, 1);
+      items.splice(dragOverItem.current, 0, dragged);
+      return items;
+    });
+    dragItem.current = null;
+    dragOverItem.current = null;
+  }, []);
+
+  const removeFile = useCallback((setter, index) => {
+    setter((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const renderFileGrid = useCallback((files, setter) => {
+    if (!files.length) return null;
+    return (
+      <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+        {files.map((file, idx) => {
+          const isImage = file.type?.startsWith('image/');
+          return (
+            <div
+              key={`${file.name}-${file.size}-${idx}`}
+              draggable
+              onDragStart={() => { dragItem.current = idx; }}
+              onDragEnter={() => { dragOverItem.current = idx; }}
+              onDragEnd={() => reorderFiles(setter)}
+              onDragOver={(e) => e.preventDefault()}
+              className="relative group aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 overflow-hidden cursor-grab active:cursor-grabbing hover:border-blue-400 dark:hover:border-blue-500 transition-all bg-gray-50 dark:bg-gray-800"
+            >
+              {isImage ? (
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  className="w-full h-full object-cover"
+                  onLoad={(e) => { URL.revokeObjectURL(e.target.src); }}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 p-1">
+                  <FaFileAlt className="text-2xl mb-1" />
+                  <span className="text-[10px] text-center leading-tight truncate w-full">{file.name}</span>
+                </div>
+              )}
+              <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                {idx + 1}
+              </div>
+              <button
+                type="button"
+                onClick={() => removeFile(setter, idx)}
+                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow"
+              >
+                ×
+              </button>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent h-6 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-0.5">
+                <span className="text-[9px] text-white/80">arrastra para ordenar</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }, [reorderFiles, removeFile]);
+
   // Estado para el formulario de nueva propiedad
   const [nuevaPropiedad, setNuevaPropiedad] = useState({
     titulo: '',
@@ -2026,60 +2096,62 @@ const Propiedades = () => {
 
                   <div>
                     <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">Multimedia</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                          Fotos
-                        </label>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={(e) => setFilesFotos(Array.from(e.target.files || []))}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                        />
-                        {filesFotos.length ? (
-                          <div className="mt-2 text-sm dark:text-gray-200">
-                            {filesFotos.length} archivo(s) seleccionado(s)
-                          </div>
-                        ) : null}
-                      </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                          Planos
-                        </label>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*,.pdf"
-                          onChange={(e) => setFilesPlanos(Array.from(e.target.files || []))}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                        />
-                        {filesPlanos.length ? (
-                          <div className="mt-2 text-sm dark:text-gray-200">
-                            {filesPlanos.length} archivo(s) seleccionado(s)
-                          </div>
-                        ) : null}
-                      </div>
+                    {/* Fotos */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Fotos <span className="text-gray-400 font-normal">(arrastra para reordenar)</span>
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => {
+                          const nf = Array.from(e.target.files || []);
+                          if (nf.length) setFilesFotos((prev) => [...prev, ...nf]);
+                          e.target.value = '';
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {renderFileGrid(filesFotos, setFilesFotos)}
+                    </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                          Documentos
-                        </label>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*,.pdf,.doc,.docx,.zip"
-                          onChange={(e) => setFilesDocumentos(Array.from(e.target.files || []))}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
-                        />
-                        {filesDocumentos.length ? (
-                          <div className="mt-2 text-sm dark:text-gray-200">
-                            {filesDocumentos.length} archivo(s) seleccionado(s)
-                          </div>
-                        ) : null}
-                      </div>
+                    {/* Planos */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Planos
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const nf = Array.from(e.target.files || []);
+                          if (nf.length) setFilesPlanos((prev) => [...prev, ...nf]);
+                          e.target.value = '';
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {renderFileGrid(filesPlanos, setFilesPlanos)}
+                    </div>
+
+                    {/* Documentos */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Documentos
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx,.zip"
+                        onChange={(e) => {
+                          const nf = Array.from(e.target.files || []);
+                          if (nf.length) setFilesDocumentos((prev) => [...prev, ...nf]);
+                          e.target.value = '';
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {renderFileGrid(filesDocumentos, setFilesDocumentos)}
                     </div>
 
                     <div className="mt-4">
