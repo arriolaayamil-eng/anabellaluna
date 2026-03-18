@@ -15,7 +15,7 @@ const loadSavedControls = () => {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
 };
 const saveControls = (obj) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch (_e) { /* noop */ }
 };
 
 const EditorImagenes = () => {
@@ -144,7 +144,7 @@ const EditorImagenes = () => {
 
   // ── Every time edit view mounts (canvas recreated), reload image + watermark ──
   useEffect(() => {
-    if (view !== 'edit' || !selectedImage) return;
+    if (view !== 'edit' || !selectedImage) return undefined;
     let cancelled = false;
     const tryLoad = async (retries = 15) => {
       if (cancelled) return;
@@ -330,12 +330,14 @@ const EditorImagenes = () => {
     if (!window.confirm(`¿Aplicar marca de agua a ${imgs.length} imagen(es)?`)) return;
 
     setBatchProcessing({ done: 0, total: imgs.length, errors: 0 });
-    let done = 0; let
-      errors = 0;
+    let done = 0;
+    let errors = 0;
 
-    for (const img of imgs) {
+    for (let i = 0; i < imgs.length; i += 1) {
+      const img = imgs[i];
       try {
         const wmConfig = buildWmConfigFromControls();
+        // eslint-disable-next-line no-await-in-loop
         await editorService.render({
           imageId: img._id,
           imageObjectKey: img.object_key,
@@ -344,11 +346,11 @@ const EditorImagenes = () => {
           watermarkConfig: wmConfig,
           outputFormat,
         });
-        done++;
+        done += 1;
       } catch (err) {
         console.error(`[Batch] Error rendering ${img.nombre}:`, err);
-        errors++;
-        done++;
+        errors += 1;
+        done += 1;
       }
       setBatchProcessing({ done, total: imgs.length, errors });
     }
@@ -417,12 +419,12 @@ const EditorImagenes = () => {
           { id: 'watermarks', label: 'Marcas de Agua', icon: <ILayers size={15} /> },
           { id: 'edited', label: 'Editadas', icon: <IHistory size={15} /> },
         ].map((tb) => (
-          <button key={tb.id} onClick={() => setBrowseTab(tb.id)} style={tabBtn(browseTab === tb.id)}>
+          <button type="button" key={tb.id} onClick={() => setBrowseTab(tb.id)} style={tabBtn(browseTab === tb.id)}>
             {tb.icon} {tb.label}
           </button>
         ))}
         {selectedImage && (
-          <button onClick={() => setView('edit')} style={{ ...tabBtn(false), marginLeft: 'auto', color: currentColor || t.accent, fontSize: 12 }}>
+          <button type="button" onClick={() => setView('edit')} style={{ ...tabBtn(false), marginLeft: 'auto', color: currentColor || t.accent, fontSize: 12 }}>
             <ISave size={14} /> Volver al editor
           </button>
         )}
@@ -446,6 +448,7 @@ const EditorImagenes = () => {
               />
             </div>
             <button
+              type="button"
               onClick={() => { setBatchMode((v) => !v); if (batchMode) clearBatchSelection(); }}
               style={{ ...btnSecondary, background: batchMode ? (currentColor || t.accent) : 'transparent', color: batchMode ? '#fff' : t.text2, borderColor: batchMode ? (currentColor || t.accent) : t.border }}
             >
@@ -453,7 +456,7 @@ const EditorImagenes = () => {
             </button>
             {folderStack.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button onClick={goBack} style={{ ...btnSecondary, padding: '6px 10px', fontSize: 12 }}><IChevronLeft size={14} /> Atrás</button>
+              <button type="button" onClick={goBack} style={{ ...btnSecondary, padding: '6px 10px', fontSize: 12 }}><IChevronLeft size={14} /> Atrás</button>
               <span style={{ fontSize: 12, color: t.text3 }}>{folderStack.map((f) => f.name).join(' / ')}</span>
             </div>
             )}
@@ -476,11 +479,11 @@ const EditorImagenes = () => {
             <span style={{ fontSize: 13, fontWeight: 600, color: currentColor || t.accent }}>
               {batchCount} imagen{batchCount !== 1 ? 'es' : ''} seleccionada{batchCount !== 1 ? 's' : ''}
             </span>
-            <button onClick={selectAllImages} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Seleccionar todas</button>
-            <button onClick={clearBatchSelection} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Limpiar</button>
+            <button type="button" onClick={selectAllImages} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Seleccionar todas</button>
+            <button type="button" onClick={clearBatchSelection} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Limpiar</button>
             <div style={{ flex: 1 }} />
             {!selectedWatermark && (
-            <button onClick={() => setBrowseTab('watermarks')} style={{ ...btnSecondary, fontSize: 12, borderColor: '#FF9500', color: '#FF9500' }}>
+            <button type="button" onClick={() => setBrowseTab('watermarks')} style={{ ...btnSecondary, fontSize: 12, borderColor: '#FF9500', color: '#FF9500' }}>
               <ILayers size={14} /> Elegir marca de agua
             </button>
             )}
@@ -491,6 +494,7 @@ const EditorImagenes = () => {
             </span>
             )}
             <button
+              type="button"
               onClick={handleBatchRender}
               disabled={batchCount === 0 || !selectedWatermark || !!batchProcessing}
               style={{ ...btnPrimary, fontSize: 12, padding: '6px 14px', opacity: (batchCount === 0 || !selectedWatermark || !!batchProcessing) ? 0.5 : 1 }}
@@ -595,9 +599,9 @@ const EditorImagenes = () => {
           )}
           {imagesTotal > 50 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
-            <button disabled={imagesPage <= 1} onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage - 1, searchQ); }} style={btnSecondary}>Anterior</button>
+            <button type="button" disabled={imagesPage <= 1} onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage - 1, searchQ); }} style={btnSecondary}>Anterior</button>
             <span style={{ fontSize: 12, color: t.text3, lineHeight: '34px' }}>Pág {imagesPage}</span>
-            <button onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage + 1, searchQ); }} style={btnSecondary}>Siguiente</button>
+            <button type="button" onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage + 1, searchQ); }} style={btnSecondary}>Siguiente</button>
           </div>
           )}
         </>
@@ -608,7 +612,7 @@ const EditorImagenes = () => {
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <input ref={watermarkInputRef} type="file" name="watermark-upload" accept=".png,.svg" onChange={handleWatermarkUpload} style={{ display: 'none' }} />
-            <button onClick={() => watermarkInputRef.current?.click()} style={{ ...btnPrimary, fontSize: 13 }}>
+            <button type="button" onClick={() => watermarkInputRef.current?.click()} style={{ ...btnPrimary, fontSize: 13 }}>
               <IUpload size={14} /> Subir Marca de Agua
             </button>
             <span style={{ fontSize: 12, color: t.text3 }}>Formatos: PNG (transparente), SVG</span>
@@ -635,7 +639,7 @@ const EditorImagenes = () => {
                 </div>
                 <div style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ flex: 1, fontSize: 11, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wm.filename}</span>
-                  <button onClick={(e) => { e.stopPropagation(); handleDeleteWatermark(wm); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteWatermark(wm); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
                     <ITrash size={13} style={{ color: t.danger }} />
                   </button>
                 </div>
@@ -705,12 +709,12 @@ const EditorImagenes = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8, borderRadius: 8, background: isDark ? t.cardAlt : '#F0F4FF', border: `1px solid ${t.border}` }}>
               <img src={selectedWatermark.url} alt="" style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 4, background: isDark ? '#555' : '#ddd' }} />
               <span style={{ fontSize: 12, color: t.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedWatermark.filename}</span>
-              <button onClick={() => setSelectedWatermark(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+              <button type="button" onClick={() => setSelectedWatermark(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
                 <ITrash size={14} style={{ color: t.danger }} />
               </button>
             </div>
           ) : (
-            <button onClick={() => { setView('browse'); setBrowseTab('watermarks'); }} style={{ ...btnSecondary, width: '100%', justifyContent: 'center' }}>
+            <button type="button" onClick={() => { setView('browse'); setBrowseTab('watermarks'); }} style={{ ...btnSecondary, width: '100%', justifyContent: 'center' }}>
               <ILayers size={14} /> Elegir watermark
             </button>
           )}
@@ -765,6 +769,7 @@ const EditorImagenes = () => {
           <div style={{ display: 'flex', gap: 6 }}>
             {['png', 'jpeg', 'webp'].map((fmt) => (
               <button
+                type="button"
                 key={fmt}
                 onClick={() => setOutputFormat(fmt)}
                 style={{
@@ -786,6 +791,7 @@ const EditorImagenes = () => {
 
       <div style={{ padding: 14, borderTop: `1px solid ${t.border}` }}>
         <button
+          type="button"
           onClick={handleRender}
           disabled={rendering || !selectedImage || !selectedWatermark}
           style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: (rendering || !selectedImage || !selectedWatermark) ? 0.5 : 1 }}
@@ -809,7 +815,7 @@ const EditorImagenes = () => {
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {view === 'edit' && (
-            <button onClick={backToBrowse} style={{ ...btnSecondary, padding: '6px 10px' }}>
+            <button type="button" onClick={backToBrowse} style={{ ...btnSecondary, padding: '6px 10px' }}>
               <IChevronLeft size={14} /> Archivos
             </button>
           )}
@@ -825,7 +831,7 @@ const EditorImagenes = () => {
           </div>
         </div>
         {view === 'edit' && selectedImage && selectedWatermark && (
-          <button onClick={handleRender} disabled={rendering} style={{ ...btnPrimary, opacity: rendering ? 0.6 : 1 }}>
+          <button type="button" onClick={handleRender} disabled={rendering} style={{ ...btnPrimary, opacity: rendering ? 0.6 : 1 }}>
             {rendering ? <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <ISave size={16} />}
             {rendering ? 'Renderizando...' : 'Guardar Imagen Final'}
           </button>

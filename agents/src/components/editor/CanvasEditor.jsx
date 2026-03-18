@@ -48,7 +48,7 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       canvas.remove(wmObjectRef.current);
       wmObjectRef.current = null;
     }
-    wmTilesRef.current.forEach((tile) => { try { canvas.remove(tile); } catch (e) {} });
+    wmTilesRef.current.forEach((tile) => { try { canvas.remove(tile); } catch (_e) { /* noop */ } });
     wmTilesRef.current = [];
   }, []);
 
@@ -76,28 +76,29 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
     const gap = patternSpacing * ratio;
 
     const tiles = [];
-    let pending = 0;
+    const counter = { value: 0 };
+    const onCloned = (cx, cy, clonedTile) => {
+      clonedTile.set({
+        left: cx,
+        top: cy,
+        scaleX: tw / clonedTile.width,
+        scaleY: th / clonedTile.height,
+        opacity,
+        angle: rotation || -30,
+        selectable: false,
+        evented: false,
+      });
+      canvas.add(clonedTile);
+      tiles.push(clonedTile);
+      counter.value -= 1;
+      if (counter.value === 0) canvas.renderAll();
+    };
     for (let y = -th; y < cH + th; y += gap) {
       for (let x = -tw; x < cW + tw; x += gap) {
-        pending++;
-        const cx = x; const
-          cy = y;
-        sourceImg.clone((tile) => {
-          tile.set({
-            left: cx,
-            top: cy,
-            scaleX: tw / tile.width,
-            scaleY: th / tile.height,
-            opacity,
-            angle: rotation || -30,
-            selectable: false,
-            evented: false,
-          });
-          canvas.add(tile);
-          tiles.push(tile);
-          pending--;
-          if (pending === 0) canvas.renderAll();
-        });
+        counter.value += 1;
+        const cx = x;
+        const cy = y;
+        sourceImg.clone((clonedTile) => onCloned(cx, cy, clonedTile));
       }
     }
     wmTilesRef.current = tiles;
@@ -172,7 +173,7 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       const cW = canvas.getWidth();
       const cH = canvas.getHeight();
       const ratio = canvasRatioRef.current;
-      const { preset = 'bottom-right', opacity = 0.7, scale = 0.2, rotation = 0, margin = 20, patternSpacing = 200, lockAspect = true } = props || {};
+      const { preset = 'bottom-right', opacity = 0.7, scale = 0.2, rotation = 0, margin = 20, lockAspect = true } = props || {};
 
       const sourceImg = await loadCachedWmImage(wmUrl, F);
       if (!sourceImg) return;
@@ -189,7 +190,7 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       const presetDef = PRESETS.find((p) => p.id === preset) || PRESETS[7];
       const pos = presetDef.getPos(cW, cH, wmW, wmH, margin * ratio);
 
-      const cloneImg = await new Promise((resolve) => sourceImg.clone((c) => resolve(c)));
+      const cloneImg = await new Promise((resolve) => { sourceImg.clone((c) => resolve(c)); });
       cloneImg.set({
         left: pos.left || 0,
         top: pos.top || 0,
@@ -217,13 +218,14 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       const canvas = fabricCanvasRef.current;
       if (!canvas) return;
 
-      const { preset, opacity, scale, rotation, margin, lockAspect, patternSpacing } = props;
+      const { preset, opacity, scale, rotation, margin, lockAspect } = props;
       const isPattern = preset === 'pattern';
 
       if (isPattern) {
         wmTilesRef.current.forEach((tile) => {
           if (opacity != null) tile.set('opacity', opacity);
           if (rotation != null) tile.set('angle', rotation);
+          // eslint-disable-next-line no-param-reassign
           tile.dirty = true;
           tile.setCoords();
         });
@@ -280,12 +282,11 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
       return wasPattern !== isPattern;
     },
 
-    getWatermarkConfig(origMeta) {
+    getWatermarkConfig(/* origMeta */) {
       const canvas = fabricCanvasRef.current;
       if (!canvas) return null;
       const ratio = canvasRatioRef.current;
       const cW = canvas.getWidth();
-      const cH = canvas.getHeight();
 
       if (wmTilesRef.current.length > 0) {
         const tile = wmTilesRef.current[0];
@@ -293,7 +294,7 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
           mode: 'pattern',
           patternOpacity: tile ? tile.opacity : 0.3,
           patternAngle: tile ? tile.angle : -30,
-          patternScale: tile ? (tile.scaleX * tile.width) / (cW / ratio) * 2 : 0.12,
+          patternScale: tile ? ((tile.scaleX * tile.width) / (cW / ratio)) * 2 : 0.12,
           patternSpacingX: 200,
           patternSpacingY: 200,
         };

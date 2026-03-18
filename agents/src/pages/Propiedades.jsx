@@ -306,7 +306,7 @@ const Propiedades = () => {
     const docs = (adjuntos || [])
       .map((l) => l?.document)
       .filter((d) => d && d._id && d.url && isImageDoc(d));
-    if (!docs.length) { setDocBlobUrls({}); return; }
+    if (!docs.length) { setDocBlobUrls({}); return undefined; }
     let cancelled = false;
     const created = [];
     (async () => {
@@ -451,7 +451,7 @@ const Propiedades = () => {
 
   // Load cover images for property grid cards
   useEffect(() => {
-    if (!propiedades.length) { setCoverUrls({}); return; }
+    if (!propiedades.length) { setCoverUrls({}); return undefined; }
     let cancelled = false;
     const created = [];
     (async () => {

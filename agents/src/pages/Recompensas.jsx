@@ -137,7 +137,7 @@ const Recompensas = () => {
           <h2 className={`text-xl font-bold flex items-center gap-2 ${textCls}`}><FaTrophy className="text-amber-500" /> Mis Recompensas</h2>
           <p className={`text-sm mt-1 ${subCls}`}>Metas, badges, medallas y premios</p>
         </div>
-        <button onClick={loadDashboard} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 transition-all" style={{ backgroundColor: currentColor }}>
+        <button type="button" onClick={loadDashboard} disabled={loading} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 transition-all" style={{ backgroundColor: currentColor }}>
           <FaSync className={loading ? 'animate-spin' : ''} /> Actualizar
         </button>
       </div>
@@ -148,7 +148,7 @@ const Recompensas = () => {
           const Icon = t.icon;
           const active = activeTab === t.key;
           return (
-            <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${active ? 'border-current' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`} style={active ? { color: currentColor, borderColor: currentColor } : {}}>
+            <button type="button" key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${active ? 'border-current' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`} style={active ? { color: currentColor, borderColor: currentColor } : {}}>
               <Icon /> {t.label}
             </button>
           );
@@ -208,7 +208,7 @@ const Recompensas = () => {
                 <ProgressBar value={dash.captures?.monthly?.count || 0} max={dash.captures?.monthly?.target || 2} color="#3b82f6" label="Mensual" isDark={isDark} />
                 <ProgressBar value={dash.captures?.quarterly?.count || 0} max={dash.captures?.quarterly?.target || 6} color="#6366f1" label="Trimestral" isDark={isDark} />
                 <ProgressBar value={dash.captures?.annual?.count || 0} max={dash.captures?.annual?.target || 24} color="#8b5cf6" label="Anual" isDark={isDark} />
-                <p className={`text-xs mt-2 ${subCls}`}>Propiedades exclusivas >= {dash.config?.captureGoals?.minExclusivityDays || 90} dias</p>
+                <p className={`text-xs mt-2 ${subCls}`}>Propiedades exclusivas {'>='}  {dash.config?.captureGoals?.minExclusivityDays || 90} dias</p>
               </div>
 
               {/* Revenue Goals */}
@@ -416,7 +416,7 @@ const Recompensas = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <p className={`font-medium mb-1 ${textCls}`}>🏠 Captaciones</p>
-            <p className={subCls}>Capta propiedades exclusivas >= 90 dias</p>
+            <p className={subCls}>Capta propiedades exclusivas {'>='}  90 dias</p>
           </div>
           <div>
             <p className={`font-medium mb-1 ${textCls}`}>💰 Facturacion</p>
