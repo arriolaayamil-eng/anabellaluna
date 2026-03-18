@@ -304,8 +304,8 @@ const Propiedades = () => {
   // Load blob URLs for image documents that require auth
   useEffect(() => {
     const docs = (adjuntos || [])
-      .map(l => l?.document)
-      .filter(d => d && d._id && d.url && isImageDoc(d));
+      .map((l) => l?.document)
+      .filter((d) => d && d._id && d.url && isImageDoc(d));
     if (!docs.length) { setDocBlobUrls({}); return; }
     let cancelled = false;
     const created = [];
@@ -330,14 +330,14 @@ const Propiedades = () => {
       }));
       if (!cancelled) setDocBlobUrls(result);
     })();
-    return () => { cancelled = true; created.forEach(u => URL.revokeObjectURL(u)); };
+    return () => { cancelled = true; created.forEach((u) => URL.revokeObjectURL(u)); };
   }, [adjuntos]);
 
   // Reset carousel when switching properties
   useEffect(() => { setCarouselIdx(0); }, [propiedadSeleccionada?.id]);
 
   // Derived: image adjuntos for carousel
-  const fotoAdjuntos = (adjuntos || []).filter(l => l?.document && isImageDoc(l.document));
+  const fotoAdjuntos = (adjuntos || []).filter((l) => l?.document && isImageDoc(l.document));
   const safeCarouselIdx = fotoAdjuntos.length > 0 ? Math.min(carouselIdx, fotoAdjuntos.length - 1) : 0;
   const carouselDoc = fotoAdjuntos[safeCarouselIdx]?.document || null;
   const carouselSrc = carouselDoc ? (docBlobUrls[carouselDoc._id] || null) : null;
@@ -463,8 +463,8 @@ const Propiedades = () => {
           const links = await crmService.links.getByEntity('propiedad', p.id);
           if (cancelled || !Array.isArray(links)) return;
           const firstImg = links
-            .map(l => l?.document)
-            .find(d => d && d.url && isImageDoc(d));
+            .map((l) => l?.document)
+            .find((d) => d && d.url && isImageDoc(d));
           if (!firstImg) return;
           const raw = String(firstImg.url);
           if (raw.startsWith('http')) { result[p.id] = raw; return; }
@@ -481,7 +481,7 @@ const Propiedades = () => {
       }));
       if (!cancelled) setCoverUrls(result);
     })();
-    return () => { cancelled = true; created.forEach(u => URL.revokeObjectURL(u)); };
+    return () => { cancelled = true; created.forEach((u) => URL.revokeObjectURL(u)); };
   }, [propiedades]);
 
   useEffect(() => {
@@ -1698,14 +1698,14 @@ const Propiedades = () => {
                   <>
                     <button
                       type="button"
-                      onClick={() => setCarouselIdx(i => i <= 0 ? fotoAdjuntos.length - 1 : i - 1)}
+                      onClick={() => setCarouselIdx((i) => (i <= 0 ? fotoAdjuntos.length - 1 : i - 1))}
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20"
                     >
                       <FaChevronLeft />
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCarouselIdx(i => i >= fotoAdjuntos.length - 1 ? 0 : i + 1)}
+                      onClick={() => setCarouselIdx((i) => (i >= fotoAdjuntos.length - 1 ? 0 : i + 1))}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20"
                     >
                       <FaChevronRight />
@@ -1929,8 +1929,8 @@ const Propiedades = () => {
                         try {
                           const res = await crmService.propiedades.togglePublish(propiedadSeleccionada.id, !propiedadSeleccionada.published);
                           const newVal = !!res.published;
-                          setPropiedadSeleccionada(prev => ({ ...prev, published: newVal }));
-                          setPropiedades(prev => prev.map(p => String(p.id) === String(propiedadSeleccionada.id) ? { ...p, published: newVal } : p));
+                          setPropiedadSeleccionada((prev) => ({ ...prev, published: newVal }));
+                          setPropiedades((prev) => prev.map((p) => (String(p.id) === String(propiedadSeleccionada.id) ? { ...p, published: newVal } : p)));
                         } catch (e) { setError(e?.message || 'Error al cambiar publicación'); }
                       }}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${propiedadSeleccionada.published ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
@@ -1980,8 +1980,8 @@ const Propiedades = () => {
                             if (!ok) return;
                             try {
                               await crmService.propiedades.revokePrivateLink(propiedadSeleccionada.id);
-                              setPropiedadSeleccionada(prev => ({ ...prev, privateToken: '' }));
-                              setPropiedades(prev => prev.map(p => String(p.id) === String(propiedadSeleccionada.id) ? { ...p, privateToken: '' } : p));
+                              setPropiedadSeleccionada((prev) => ({ ...prev, privateToken: '' }));
+                              setPropiedades((prev) => prev.map((p) => (String(p.id) === String(propiedadSeleccionada.id) ? { ...p, privateToken: '' } : p)));
                             } catch (e) { setError(e?.message || 'Error al eliminar link'); }
                           }}
                           className="w-full px-3 py-2 text-xs text-red-600 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
@@ -1996,8 +1996,8 @@ const Propiedades = () => {
                           try {
                             const res = await crmService.propiedades.generatePrivateLink(propiedadSeleccionada.id);
                             const token = res.privateToken || '';
-                            setPropiedadSeleccionada(prev => ({ ...prev, privateToken: token }));
-                            setPropiedades(prev => prev.map(p => String(p.id) === String(propiedadSeleccionada.id) ? { ...p, privateToken: token } : p));
+                            setPropiedadSeleccionada((prev) => ({ ...prev, privateToken: token }));
+                            setPropiedades((prev) => prev.map((p) => (String(p.id) === String(propiedadSeleccionada.id) ? { ...p, privateToken: token } : p)));
                           } catch (e) { setError(e?.message || 'Error al generar link'); }
                         }}
                         className="w-full px-3 py-2 text-sm rounded-lg border border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex items-center justify-center gap-2"

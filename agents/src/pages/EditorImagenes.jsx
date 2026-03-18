@@ -246,9 +246,12 @@ const EditorImagenes = () => {
         const pos = presetDef.getPos(origW, origH, wmW, wmH, margin);
         wmConfig = {
           mode: preset === 'pattern' ? 'pattern' : 'single',
-          left: Math.round(pos.left || 0), top: Math.round(pos.top || 0),
-          width: Math.round(wmW), height: Math.round(wmH),
-          angle: pos.angle || rotation, opacity,
+          left: Math.round(pos.left || 0),
+          top: Math.round(pos.top || 0),
+          width: Math.round(wmW),
+          height: Math.round(wmH),
+          angle: pos.angle || rotation,
+          opacity,
         };
       }
 
@@ -303,9 +306,12 @@ const EditorImagenes = () => {
     const pos = presetDef.getPos(imgW, imgH, wmW, wmH, margin);
     const cfg = {
       mode: preset === 'pattern' ? 'pattern' : 'single',
-      left: Math.round(pos.left || 0), top: Math.round(pos.top || 0),
-      width: Math.round(wmW), height: Math.round(wmH),
-      angle: pos.angle || rotation, opacity,
+      left: Math.round(pos.left || 0),
+      top: Math.round(pos.top || 0),
+      width: Math.round(wmW),
+      height: Math.round(wmH),
+      angle: pos.angle || rotation,
+      opacity,
     };
     if (cfg.mode === 'pattern') {
       cfg.patternOpacity = opacity;
@@ -324,7 +330,8 @@ const EditorImagenes = () => {
     if (!window.confirm(`¿Aplicar marca de agua a ${imgs.length} imagen(es)?`)) return;
 
     setBatchProcessing({ done: 0, total: imgs.length, errors: 0 });
-    let done = 0, errors = 0;
+    let done = 0; let
+      errors = 0;
 
     for (const img of imgs) {
       try {
@@ -357,19 +364,43 @@ const EditorImagenes = () => {
   const panelStyle = { background: t.card, color: t.text };
   const labelCls = { color: t.text2, fontSize: 12, fontWeight: 600, marginBottom: 4, display: 'block' };
   const btnPrimary = {
-    background: currentColor || t.accent, color: '#fff', border: 'none', borderRadius: 8,
-    padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-    display: 'inline-flex', alignItems: 'center', gap: 6,
+    background: currentColor || t.accent,
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    padding: '8px 16px',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
   };
   const btnSecondary = {
-    background: 'transparent', color: t.text2,
-    borderWidth: 1, borderStyle: 'solid', borderColor: t.border, borderRadius: 8,
-    padding: '6px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-    display: 'inline-flex', alignItems: 'center', gap: 4,
+    background: 'transparent',
+    color: t.text2,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: t.border,
+    borderRadius: 8,
+    padding: '6px 12px',
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
   };
   const tabBtn = (active) => ({
-    padding: '10px 20px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
-    display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 0,
+    padding: '10px 20px',
+    fontSize: 13,
+    fontWeight: 600,
+    border: 'none',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 0,
     background: active ? (isDark ? '#333' : '#EEF2FF') : 'transparent',
     color: active ? (currentColor || t.accent) : t.text3,
     borderBottom: active ? `2px solid ${currentColor || t.accent}` : '2px solid transparent',
@@ -399,90 +430,109 @@ const EditorImagenes = () => {
 
       <div style={{ padding: 16 }}>
         {/* ── Images sub-tab ── */}
-        {browseTab === 'images' && (<>
+        {browseTab === 'images' && (
+        <>
           {/* Toolbar: search + batch toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
               <ISearch size={14} style={{ position: 'absolute', left: 10, top: 10, color: t.text3 }} />
-              <input type="text" name="editor-search" placeholder="Buscar imágenes..." value={searchQ}
+              <input
+                type="text"
+                name="editor-search"
+                placeholder="Buscar imágenes..."
+                value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px 8px 32px', fontSize: 13, borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#F9FAFB', color: t.text, outline: 'none' }}
               />
             </div>
-            <button onClick={() => { setBatchMode((v) => !v); if (batchMode) clearBatchSelection(); }}
-              style={{ ...btnSecondary, background: batchMode ? (currentColor || t.accent) : 'transparent', color: batchMode ? '#fff' : t.text2, borderColor: batchMode ? (currentColor || t.accent) : t.border }}>
+            <button
+              onClick={() => { setBatchMode((v) => !v); if (batchMode) clearBatchSelection(); }}
+              style={{ ...btnSecondary, background: batchMode ? (currentColor || t.accent) : 'transparent', color: batchMode ? '#fff' : t.text2, borderColor: batchMode ? (currentColor || t.accent) : t.border }}
+            >
               <ICheck size={14} /> {batchMode ? 'Cancelar selección' : 'Selección múltiple'}
             </button>
             {folderStack.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button onClick={goBack} style={{ ...btnSecondary, padding: '6px 10px', fontSize: 12 }}><IChevronLeft size={14} /> Atrás</button>
-                <span style={{ fontSize: 12, color: t.text3 }}>{folderStack.map((f) => f.name).join(' / ')}</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={goBack} style={{ ...btnSecondary, padding: '6px 10px', fontSize: 12 }}><IChevronLeft size={14} /> Atrás</button>
+              <span style={{ fontSize: 12, color: t.text3 }}>{folderStack.map((f) => f.name).join(' / ')}</span>
+            </div>
             )}
           </div>
 
           {/* Batch action bar */}
           {batchMode && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 14px', borderRadius: 10,
-              background: isDark ? 'rgba(10,132,255,0.12)' : 'rgba(0,122,255,0.08)', border: `1px solid ${isDark ? 'rgba(10,132,255,0.3)' : 'rgba(0,122,255,0.2)'}`,
-              flexWrap: 'wrap',
-            }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: currentColor || t.accent }}>
-                {batchCount} imagen{batchCount !== 1 ? 'es' : ''} seleccionada{batchCount !== 1 ? 's' : ''}
-              </span>
-              <button onClick={selectAllImages} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Seleccionar todas</button>
-              <button onClick={clearBatchSelection} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Limpiar</button>
-              <div style={{ flex: 1 }} />
-              {!selectedWatermark && (
-                <button onClick={() => setBrowseTab('watermarks')} style={{ ...btnSecondary, fontSize: 12, borderColor: '#FF9500', color: '#FF9500' }}>
-                  <ILayers size={14} /> Elegir marca de agua
-                </button>
-              )}
-              {selectedWatermark && (
-                <span style={{ fontSize: 11, color: t.text2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <img src={selectedWatermark.url} alt="" style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 3 }} />
-                  {selectedWatermark.filename}
-                </span>
-              )}
-              <button onClick={handleBatchRender} disabled={batchCount === 0 || !selectedWatermark || !!batchProcessing}
-                style={{ ...btnPrimary, fontSize: 12, padding: '6px 14px', opacity: (batchCount === 0 || !selectedWatermark || !!batchProcessing) ? 0.5 : 1 }}>
-                <ISave size={14} /> Aplicar marca de agua
-              </button>
-            </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 12,
+            padding: '10px 14px',
+            borderRadius: 10,
+            background: isDark ? 'rgba(10,132,255,0.12)' : 'rgba(0,122,255,0.08)',
+            border: `1px solid ${isDark ? 'rgba(10,132,255,0.3)' : 'rgba(0,122,255,0.2)'}`,
+            flexWrap: 'wrap',
+          }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 600, color: currentColor || t.accent }}>
+              {batchCount} imagen{batchCount !== 1 ? 'es' : ''} seleccionada{batchCount !== 1 ? 's' : ''}
+            </span>
+            <button onClick={selectAllImages} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Seleccionar todas</button>
+            <button onClick={clearBatchSelection} style={{ ...btnSecondary, fontSize: 11, padding: '4px 10px' }}>Limpiar</button>
+            <div style={{ flex: 1 }} />
+            {!selectedWatermark && (
+            <button onClick={() => setBrowseTab('watermarks')} style={{ ...btnSecondary, fontSize: 12, borderColor: '#FF9500', color: '#FF9500' }}>
+              <ILayers size={14} /> Elegir marca de agua
+            </button>
+            )}
+            {selectedWatermark && (
+            <span style={{ fontSize: 11, color: t.text2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <img src={selectedWatermark.url} alt="" style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 3 }} />
+              {selectedWatermark.filename}
+            </span>
+            )}
+            <button
+              onClick={handleBatchRender}
+              disabled={batchCount === 0 || !selectedWatermark || !!batchProcessing}
+              style={{ ...btnPrimary, fontSize: 12, padding: '6px 14px', opacity: (batchCount === 0 || !selectedWatermark || !!batchProcessing) ? 0.5 : 1 }}
+            >
+              <ISave size={14} /> Aplicar marca de agua
+            </button>
+          </div>
           )}
 
           {/* Batch progress */}
           {batchProcessing && (
-            <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: isDark ? '#1a2e1a' : '#f0fdf4', border: `1px solid ${t.success}44` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span className="animate-spin inline-block w-4 h-4 border-2 border-t-transparent rounded-full" style={{ borderColor: `${t.success} transparent ${t.success} ${t.success}` }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: t.success }}>
-                  Procesando {batchProcessing.done} de {batchProcessing.total}...
-                </span>
-                {batchProcessing.errors > 0 && <span style={{ fontSize: 12, color: t.danger }}>({batchProcessing.errors} errores)</span>}
-              </div>
-              <div style={{ width: '100%', height: 6, borderRadius: 3, background: isDark ? '#333' : '#e5e5e5', overflow: 'hidden' }}>
-                <div style={{ width: `${(batchProcessing.done / batchProcessing.total) * 100}%`, height: '100%', borderRadius: 3, background: t.success, transition: 'width 0.3s ease' }} />
-              </div>
+          <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: isDark ? '#1a2e1a' : '#f0fdf4', border: `1px solid ${t.success}44` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span className="animate-spin inline-block w-4 h-4 border-2 border-t-transparent rounded-full" style={{ borderColor: `${t.success} transparent ${t.success} ${t.success}` }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: t.success }}>
+                Procesando {batchProcessing.done} de {batchProcessing.total}...
+              </span>
+              {batchProcessing.errors > 0 && <span style={{ fontSize: 12, color: t.danger }}>({batchProcessing.errors} errores)</span>}
             </div>
+            <div style={{ width: '100%', height: 6, borderRadius: 3, background: isDark ? '#333' : '#e5e5e5', overflow: 'hidden' }}>
+              <div style={{ width: `${(batchProcessing.done / batchProcessing.total) * 100}%`, height: '100%', borderRadius: 3, background: t.success, transition: 'width 0.3s ease' }} />
+            </div>
+          </div>
           )}
 
           {/* Folders */}
           {folders.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, marginBottom: 16 }}>
-              {folders.map((f) => (
-                <div key={f._id} onClick={() => enterFolder(f)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#F8F9FA', transition: 'background 0.15s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? t.cardAlt : '#F8F9FA'; }}
-                >
-                  <IFolder size={20} style={{ color: '#007AFF', flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, color: t.text, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                  <IChevron style={{ color: t.text3 }} />
-                </div>
-              ))}
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, marginBottom: 16 }}>
+            {folders.map((f) => (
+              <div
+                key={f._id}
+                onClick={() => enterFolder(f)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#F8F9FA', transition: 'background 0.15s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? t.cardAlt : '#F8F9FA'; }}
+              >
+                <IFolder size={20} style={{ color: '#007AFF', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: t.text, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                <IChevron style={{ color: t.text3 }} />
+              </div>
+            ))}
+          </div>
           )}
 
           {/* Images grid */}
@@ -491,10 +541,15 @@ const EditorImagenes = () => {
             {images.map((img) => {
               const isSelected = !!batchSelected[img._id];
               return (
-                <div key={img._id}
-                  onClick={() => batchMode ? toggleBatchImage(img) : openImage(img)}
+                <div
+                  key={img._id}
+                  onClick={() => (batchMode ? toggleBatchImage(img) : openImage(img))}
                   style={{
-                    borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', position: 'relative',
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                    position: 'relative',
                     border: isSelected ? `2px solid ${currentColor || t.accent}` : (selectedImage?._id === img._id ? `2px solid ${currentColor || t.accent}` : `1px solid ${t.border}`),
                     background: isSelected ? (isDark ? 'rgba(10,132,255,0.15)' : 'rgba(0,122,255,0.06)') : t.cardAlt,
                   }}
@@ -502,14 +557,23 @@ const EditorImagenes = () => {
                   onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
                 >
                   {batchMode && (
-                    <div style={{
-                      position: 'absolute', top: 6, left: 6, zIndex: 2, width: 22, height: 22, borderRadius: 6,
-                      background: isSelected ? (currentColor || t.accent) : 'rgba(0,0,0,0.45)',
-                      border: `2px solid ${isSelected ? (currentColor || t.accent) : 'rgba(255,255,255,0.7)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {isSelected && <ICheck size={13} style={{ color: '#fff' }} />}
-                    </div>
+                  <div style={{
+                    position: 'absolute',
+                    top: 6,
+                    left: 6,
+                    zIndex: 2,
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: isSelected ? (currentColor || t.accent) : 'rgba(0,0,0,0.45)',
+                    border: `2px solid ${isSelected ? (currentColor || t.accent) : 'rgba(255,255,255,0.7)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  >
+                    {isSelected && <ICheck size={13} style={{ color: '#fff' }} />}
+                  </div>
                   )}
                   <div style={{ width: '100%', height: 110, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {img.thumbnailUrl
@@ -524,22 +588,24 @@ const EditorImagenes = () => {
             })}
           </div>
           {!loadingImages && images.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>
-              <IImage size={40} style={{ color: t.text3, marginBottom: 8, opacity: 0.5 }} />
-              <p>No hay imágenes en esta carpeta</p>
-            </div>
+          <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>
+            <IImage size={40} style={{ color: t.text3, marginBottom: 8, opacity: 0.5 }} />
+            <p>No hay imágenes en esta carpeta</p>
+          </div>
           )}
           {imagesTotal > 50 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
-              <button disabled={imagesPage <= 1} onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage - 1, searchQ); }} style={btnSecondary}>Anterior</button>
-              <span style={{ fontSize: 12, color: t.text3, lineHeight: '34px' }}>Pág {imagesPage}</span>
-              <button onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage + 1, searchQ); }} style={btnSecondary}>Siguiente</button>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+            <button disabled={imagesPage <= 1} onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage - 1, searchQ); }} style={btnSecondary}>Anterior</button>
+            <span style={{ fontSize: 12, color: t.text3, lineHeight: '34px' }}>Pág {imagesPage}</span>
+            <button onClick={() => { const fId = folderStack.length > 0 ? folderStack[folderStack.length - 1]._id : null; loadImages(fId, imagesPage + 1, searchQ); }} style={btnSecondary}>Siguiente</button>
+          </div>
           )}
-        </>)}
+        </>
+        )}
 
         {/* ── Watermarks sub-tab ── */}
-        {browseTab === 'watermarks' && (<>
+        {browseTab === 'watermarks' && (
+        <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <input ref={watermarkInputRef} type="file" name="watermark-upload" accept=".png,.svg" onChange={handleWatermarkUpload} style={{ display: 'none' }} />
             <button onClick={() => watermarkInputRef.current?.click()} style={{ ...btnPrimary, fontSize: 13 }}>
@@ -550,11 +616,17 @@ const EditorImagenes = () => {
           {loadingWatermarks && <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>Cargando...</div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
             {watermarks.map((wm) => (
-              <div key={wm.key} style={{
-                borderRadius: 10, overflow: 'hidden', position: 'relative', transition: 'transform 0.15s',
-                border: selectedWatermark?.key === wm.key ? `2px solid ${currentColor || t.accent}` : `1px solid ${t.border}`,
-                background: t.cardAlt, cursor: 'pointer',
-              }}
+              <div
+                key={wm.key}
+                style={{
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  position: 'relative',
+                  transition: 'transform 0.15s',
+                  border: selectedWatermark?.key === wm.key ? `2px solid ${currentColor || t.accent}` : `1px solid ${t.border}`,
+                  background: t.cardAlt,
+                  cursor: 'pointer',
+                }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = ''; }}
               >
@@ -568,23 +640,25 @@ const EditorImagenes = () => {
                   </button>
                 </div>
                 {selectedWatermark?.key === wm.key && (
-                  <div style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: currentColor || t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ICheck size={14} style={{ color: '#fff' }} />
-                  </div>
+                <div style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: currentColor || t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ICheck size={14} style={{ color: '#fff' }} />
+                </div>
                 )}
               </div>
             ))}
           </div>
           {!loadingWatermarks && watermarks.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>
-              <ILayers size={40} style={{ color: t.text3, marginBottom: 8, opacity: 0.5 }} />
-              <p>No hay marcas de agua. Subí una para empezar.</p>
-            </div>
+          <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>
+            <ILayers size={40} style={{ color: t.text3, marginBottom: 8, opacity: 0.5 }} />
+            <p>No hay marcas de agua. Subí una para empezar.</p>
+          </div>
           )}
-        </>)}
+        </>
+        )}
 
         {/* ── Edited sub-tab ── */}
-        {browseTab === 'edited' && (<>
+        {browseTab === 'edited' && (
+        <>
           {loadingEdited && <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>Cargando...</div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
             {editedList.map((ed) => (
@@ -598,9 +672,9 @@ const EditorImagenes = () => {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 10, color: t.text3 }}>{new Date(ed.createdAt).toLocaleString('es-AR')}</span>
                     {ed.outputUrl && (
-                      <a href={ed.outputUrl} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, padding: '4px 8px', fontSize: 11 }}>
-                        <IDownload size={12} /> Descargar
-                      </a>
+                    <a href={ed.outputUrl} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, padding: '4px 8px', fontSize: 11 }}>
+                      <IDownload size={12} /> Descargar
+                    </a>
                     )}
                   </div>
                 </div>
@@ -608,12 +682,13 @@ const EditorImagenes = () => {
             ))}
           </div>
           {!loadingEdited && editedList.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>
-              <IHistory size={40} style={{ color: t.text3, marginBottom: 8, opacity: 0.5 }} />
-              <p>No hay imágenes editadas aún.</p>
-            </div>
+          <div style={{ textAlign: 'center', padding: 40, color: t.text3, fontSize: 13 }}>
+            <IHistory size={40} style={{ color: t.text3, marginBottom: 8, opacity: 0.5 }} />
+            <p>No hay imágenes editadas aún.</p>
+          </div>
           )}
-        </>)}
+        </>
+        )}
       </div>
     </div>
   );
@@ -643,8 +718,12 @@ const EditorImagenes = () => {
 
         <div>
           <label style={labelCls}>Posición</label>
-          <select name="wm-preset" value={preset} onChange={(e) => setPreset(e.target.value)}
-            style={{ width: '100%', padding: '7px 8px', fontSize: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#fff', color: t.text, cursor: 'pointer' }}>
+          <select
+            name="wm-preset"
+            value={preset}
+            onChange={(e) => setPreset(e.target.value)}
+            style={{ width: '100%', padding: '7px 8px', fontSize: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#fff', color: t.text, cursor: 'pointer' }}
+          >
             {PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
         </div>
@@ -685,20 +764,32 @@ const EditorImagenes = () => {
           <label style={labelCls}>Formato de salida</label>
           <div style={{ display: 'flex', gap: 6 }}>
             {['png', 'jpeg', 'webp'].map((fmt) => (
-              <button key={fmt} onClick={() => setOutputFormat(fmt)} style={{
-                ...btnSecondary, flex: 1, justifyContent: 'center', textTransform: 'uppercase', fontSize: 11,
-                background: outputFormat === fmt ? (currentColor || t.accent) : 'transparent',
-                color: outputFormat === fmt ? '#fff' : t.text2,
-                borderColor: outputFormat === fmt ? (currentColor || t.accent) : t.border,
-              }}>{fmt}</button>
+              <button
+                key={fmt}
+                onClick={() => setOutputFormat(fmt)}
+                style={{
+                  ...btnSecondary,
+                  flex: 1,
+                  justifyContent: 'center',
+                  textTransform: 'uppercase',
+                  fontSize: 11,
+                  background: outputFormat === fmt ? (currentColor || t.accent) : 'transparent',
+                  color: outputFormat === fmt ? '#fff' : t.text2,
+                  borderColor: outputFormat === fmt ? (currentColor || t.accent) : t.border,
+                }}
+              >{fmt}
+              </button>
             ))}
           </div>
         </div>
       </div>
 
       <div style={{ padding: 14, borderTop: `1px solid ${t.border}` }}>
-        <button onClick={handleRender} disabled={rendering || !selectedImage || !selectedWatermark}
-          style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: (rendering || !selectedImage || !selectedWatermark) ? 0.5 : 1 }}>
+        <button
+          onClick={handleRender}
+          disabled={rendering || !selectedImage || !selectedWatermark}
+          style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: (rendering || !selectedImage || !selectedWatermark) ? 0.5 : 1 }}
+        >
           {rendering ? (<><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Procesando...</>)
             : (<><ISave size={16} /> Renderizar y Guardar</>)}
         </button>

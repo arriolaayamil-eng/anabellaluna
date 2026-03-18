@@ -20,13 +20,11 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
   const cachedWmImageRef = useRef(null);
   const cachedWmUrlRef = useRef(null);
 
-  useEffect(() => {
-    return () => {
-      if (fabricCanvasRef.current) {
-        try { fabricCanvasRef.current.dispose(); } catch (e) { /* ignore */ }
-        fabricCanvasRef.current = null;
-      }
-    };
+  useEffect(() => () => {
+    if (fabricCanvasRef.current) {
+      try { fabricCanvasRef.current.dispose(); } catch (e) { /* ignore */ }
+      fabricCanvasRef.current = null;
+    }
   }, []);
 
   const getOrCreateCanvas = useCallback(async () => {
@@ -82,14 +80,18 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
     for (let y = -th; y < cH + th; y += gap) {
       for (let x = -tw; x < cW + tw; x += gap) {
         pending++;
-        const cx = x, cy = y;
+        const cx = x; const
+          cy = y;
         sourceImg.clone((tile) => {
           tile.set({
-            left: cx, top: cy,
-            scaleX: tw / tile.width, scaleY: th / tile.height,
-            opacity: opacity,
+            left: cx,
+            top: cy,
+            scaleX: tw / tile.width,
+            scaleY: th / tile.height,
+            opacity,
             angle: rotation || -30,
-            selectable: false, evented: false,
+            selectable: false,
+            evented: false,
           });
           canvas.add(tile);
           tiles.push(tile);
@@ -146,9 +148,13 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
           canvas.setWidth(cW);
           canvas.setHeight(cH);
           fabricImg.set({
-            left: 0, top: 0,
-            scaleX: ratio, scaleY: ratio,
-            selectable: false, evented: false, hoverCursor: 'default',
+            left: 0,
+            top: 0,
+            scaleX: ratio,
+            scaleY: ratio,
+            selectable: false,
+            evented: false,
+            hoverCursor: 'default',
           });
           canvas.add(fabricImg);
           bgImageRef.current = fabricImg;
@@ -189,11 +195,16 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
         top: pos.top || 0,
         scaleX: wmW / cloneImg.width,
         scaleY: wmH / cloneImg.height,
-        opacity: opacity,
+        opacity,
         angle: pos.angle || rotation,
-        selectable: true, hasControls: true, hasBorders: true,
-        cornerColor: accentColor || '#007AFF', cornerStyle: 'circle', cornerSize: 10,
-        transparentCorners: false, borderColor: accentColor || '#007AFF',
+        selectable: true,
+        hasControls: true,
+        hasBorders: true,
+        cornerColor: accentColor || '#007AFF',
+        cornerStyle: 'circle',
+        cornerSize: 10,
+        transparentCorners: false,
+        borderColor: accentColor || '#007AFF',
         lockUniScaling: lockAspect,
       });
       canvas.add(cloneImg);

@@ -295,17 +295,43 @@ const Plantillas = () => {
   };
 
   const IOS = dark ? {
-    blue: '#0A84FF', green: '#30D158', orange: '#FF9F0A', red: '#FF453A',
-    purple: '#BF5AF2', teal: '#64D2FF', gray: '#98989D', gray2: '#636366',
-    gray3: '#48484A', gray4: '#3A3A3C', gray5: '#333336', gray6: '#2C2C2E',
-    bgGrouped: '#202124', bgCard: '#292A2D',
-    separator: 'rgba(255,255,255,0.08)', label: '#E8EAED', label2: '#BDC1C6', label3: '#9AA0A6',
+    blue: '#0A84FF',
+    green: '#30D158',
+    orange: '#FF9F0A',
+    red: '#FF453A',
+    purple: '#BF5AF2',
+    teal: '#64D2FF',
+    gray: '#98989D',
+    gray2: '#636366',
+    gray3: '#48484A',
+    gray4: '#3A3A3C',
+    gray5: '#333336',
+    gray6: '#2C2C2E',
+    bgGrouped: '#202124',
+    bgCard: '#292A2D',
+    separator: 'rgba(255,255,255,0.08)',
+    label: '#E8EAED',
+    label2: '#BDC1C6',
+    label3: '#9AA0A6',
   } : {
-    blue: '#007AFF', green: '#34C759', orange: '#FF9500', red: '#FF3B30',
-    purple: '#AF52DE', teal: '#5AC8FA', gray: '#8E8E93', gray2: '#AEAEB2',
-    gray3: '#C7C7CC', gray4: '#D1D1D6', gray5: '#E5E5EA', gray6: '#F2F2F7',
-    bgGrouped: '#F2F2F7', bgCard: '#FFFFFF',
-    separator: 'rgba(60,60,67,0.12)', label: '#000000', label2: '#3C3C43', label3: '#8E8E93',
+    blue: '#007AFF',
+    green: '#34C759',
+    orange: '#FF9500',
+    red: '#FF3B30',
+    purple: '#AF52DE',
+    teal: '#5AC8FA',
+    gray: '#8E8E93',
+    gray2: '#AEAEB2',
+    gray3: '#C7C7CC',
+    gray4: '#D1D1D6',
+    gray5: '#E5E5EA',
+    gray6: '#F2F2F7',
+    bgGrouped: '#F2F2F7',
+    bgCard: '#FFFFFF',
+    separator: 'rgba(60,60,67,0.12)',
+    label: '#000000',
+    label2: '#3C3C43',
+    label3: '#8E8E93',
   };
 
   const TABS = [
@@ -331,12 +357,12 @@ const Plantillas = () => {
     btnDanger: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.red, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8 },
     btnSuccess: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.green, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
     btnSecondary: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: IOS.purple, color: '#fff', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
-    badge: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: color + '18', color }),
+    badge: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: `${color}18`, color }),
     statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '0 16px 8px' },
     statCard: { background: IOS.bgCard, borderRadius: 12, padding: '14px 16px', textAlign: 'center' },
-    templateItem: (active) => ({ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `0.5px solid ${IOS.separator}`, cursor: 'pointer', background: active ? (IOS.blue + '14') : 'transparent', transition: 'background 0.15s' }),
+    templateItem: (active) => ({ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `0.5px solid ${IOS.separator}`, cursor: 'pointer', background: active ? (`${IOS.blue}14`) : 'transparent', transition: 'background 0.15s' }),
     chip: { display: 'inline-block', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: IOS.label2, cursor: 'pointer', border: 'none', fontFamily: 'inherit', margin: 2 },
-    selectedBanner: (color) => ({ margin: '8px 0', padding: '10px 14px', borderRadius: 10, background: color + '14', display: 'flex', alignItems: 'center', gap: 8 }),
+    selectedBanner: (color) => ({ margin: '8px 0', padding: '10px 14px', borderRadius: 10, background: `${color}14`, display: 'flex', alignItems: 'center', gap: 8 }),
   };
 
   const renderBiblioteca = () => (
@@ -383,16 +409,19 @@ const Plantillas = () => {
         ) : templates.length === 0 ? (
           <div style={{ padding: 20, textAlign: 'center', color: IOS.label3, fontSize: 15 }}>No hay plantillas con los filtros actuales.</div>
         ) : templates.map((item, idx) => (
-          <div key={item._id} style={{ ...S.templateItem(selectedId === item._id && !creatingNew), ...(idx === templates.length - 1 ? { borderBottom: 'none' } : {}) }}
-            onClick={() => { applyTemplate(item); setActiveTab('editor'); }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: IOS.blue + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div
+            key={item._id}
+            style={{ ...S.templateItem(selectedId === item._id && !creatingNew), ...(idx === templates.length - 1 ? { borderBottom: 'none' } : {}) }}
+            onClick={() => { applyTemplate(item); setActiveTab('editor'); }}
+          >
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: `${IOS.blue}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <FaFileAlt style={{ color: IOS.blue, fontSize: 16 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 500, color: IOS.label, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
               <div style={{ fontSize: 13, color: IOS.label3, marginTop: 2 }}>{item.category || 'General'} · {item.status || 'active'}</div>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={IOS.gray3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={IOS.gray3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
           </div>
         ))}
       </div>
@@ -464,9 +493,12 @@ const Plantillas = () => {
         </div>
         <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 8 }}>
           {clientResults.map((item) => (
-            <div key={item._id} style={{ ...S.listRow, borderBottom: `0.5px solid ${IOS.separator}` }}
-              onClick={() => { setSelectedClient(item); setSelectedProperty(null); setPropertyQuery(''); setPropertyResults([]); setPropertyResultsScopedToClient(false); setPreview(''); }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: IOS.green + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div
+              key={item._id}
+              style={{ ...S.listRow, borderBottom: `0.5px solid ${IOS.separator}` }}
+              onClick={() => { setSelectedClient(item); setSelectedProperty(null); setPropertyQuery(''); setPropertyResults([]); setPropertyResultsScopedToClient(false); setPreview(''); }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${IOS.green}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <FaUser style={{ color: IOS.green, fontSize: 13 }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -497,9 +529,12 @@ const Plantillas = () => {
         )}
         <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 8 }}>
           {propertyResults.map((item) => (
-            <div key={item._id} style={{ ...S.listRow, borderBottom: `0.5px solid ${IOS.separator}` }}
-              onClick={() => { setSelectedProperty(item); setPreview(''); }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: IOS.teal + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div
+              key={item._id}
+              style={{ ...S.listRow, borderBottom: `0.5px solid ${IOS.separator}` }}
+              onClick={() => { setSelectedProperty(item); setPreview(''); }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${IOS.teal}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <FaHome style={{ color: IOS.teal, fontSize: 13 }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

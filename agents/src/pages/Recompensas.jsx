@@ -144,7 +144,7 @@ const Recompensas = () => {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-        {TABS.map(t => {
+        {TABS.map((t) => {
           const Icon = t.icon;
           const active = activeTab === t.key;
           return (
@@ -243,7 +243,7 @@ const Recompensas = () => {
             <div className={`p-5 ${cardCls}`}>
               <h4 className={`font-semibold text-sm mb-3 ${textCls}`}>Categorias de Vendedor (Anuales)</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                {['rookie', 'executive', 'club100'].map(t => {
+                {['rookie', 'executive', 'club100'].map((t) => {
                   const m = TIER_META[t];
                   const cfg = dash.config?.sellerTiers?.[t];
                   return (
@@ -306,21 +306,21 @@ const Recompensas = () => {
             <form onSubmit={handleCreatePreListing} className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className={`block text-xs font-medium mb-1 ${subCls}`}>Cliente</label>
-                <select value={plForm.clienteId} onChange={e => setPlForm(p => ({ ...p, clienteId: e.target.value }))} required className={`w-full rounded-lg px-3 py-2 border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                <select value={plForm.clienteId} onChange={(e) => setPlForm((p) => ({ ...p, clienteId: e.target.value }))} required className={`w-full rounded-lg px-3 py-2 border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
                   <option value="">Seleccionar...</option>
-                  {clients.map(c => <option key={c._id} value={c._id}>{c.nombre}</option>)}
+                  {clients.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
                 </select>
               </div>
               <div>
                 <label className={`block text-xs font-medium mb-1 ${subCls}`}>Tipo</label>
-                <select value={plForm.tipo} onChange={e => setPlForm(p => ({ ...p, tipo: e.target.value }))} className={`w-full rounded-lg px-3 py-2 border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                <select value={plForm.tipo} onChange={(e) => setPlForm((p) => ({ ...p, tipo: e.target.value }))} className={`w-full rounded-lg px-3 py-2 border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
                   <option value="comprador">Comprador</option>
                   <option value="vendedor">Vendedor</option>
                 </select>
               </div>
               <div>
                 <label className={`block text-xs font-medium mb-1 ${subCls}`}>Fecha</label>
-                <input type="date" value={plForm.fecha} onChange={e => setPlForm(p => ({ ...p, fecha: e.target.value }))} className={`w-full rounded-lg px-3 py-2 border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                <input type="date" value={plForm.fecha} onChange={(e) => setPlForm((p) => ({ ...p, fecha: e.target.value }))} className={`w-full rounded-lg px-3 py-2 border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
               </div>
               <div className="flex items-end">
                 <button type="submit" disabled={plSaving} className="w-full px-4 py-2 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 transition-all" style={{ backgroundColor: currentColor }}>
