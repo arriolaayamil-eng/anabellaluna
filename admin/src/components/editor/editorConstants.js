@@ -23,6 +23,7 @@ export const IGrid = (p) => <SFIcon {...p}><rect x="3" y="3" width="7" height="7
 export const ISave = (p) => <SFIcon {...p}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></SFIcon>;
 export const IHistory = (p) => <SFIcon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></SFIcon>;
 export const ILayers = (p) => <SFIcon {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></SFIcon>;
+export const ICrop = (p) => <SFIcon {...p}><path d="M6 2v14a2 2 0 002 2h14" /><path d="M18 22V8a2 2 0 00-2-2H2" /></SFIcon>;
 
 /* ═══════════════════ Theme palettes ═══════════════════ */
 export const THEME = {
@@ -37,6 +38,16 @@ export const THEME = {
     success: '#30D158', danger: '#FF453A', hover: '#3A3A3C',
   },
 };
+
+/* ═══════════════════ Crop aspect-ratio presets ═══════════════════ */
+export const CROP_PRESETS = [
+  { id: 'free', label: 'Libre', ratio: null },
+  { id: '16:9', label: '16:9 — Slider principal', ratio: 16 / 9 },
+  { id: '4:3', label: '4:3 — Tarjetas grilla', ratio: 4 / 3 },
+  { id: '3:2', label: '3:2 — Listado', ratio: 3 / 2 },
+  { id: '1:1', label: '1:1 — Cuadrado', ratio: 1 },
+  { id: '9:16', label: '9:16 — Vertical / Stories', ratio: 9 / 16 },
+];
 
 /* ═══════════════════ Position presets ═══════════════════ */
 export const PRESETS = [

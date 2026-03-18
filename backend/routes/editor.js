@@ -170,7 +170,7 @@ router.delete('/watermarks/:key(*)', authenticateToken, async (req, res) => {
 // ── Render watermarked image ──
 router.post('/render', authenticateToken, async (req, res) => {
   try {
-    const { imageId, imageObjectKey, imageBucket, watermarkKey, watermarkConfig, outputFormat } = req.body;
+    const { imageId, imageObjectKey, imageBucket, watermarkKey, watermarkConfig, outputFormat, cropConfig } = req.body;
 
     if (!watermarkKey) return res.status(400).json({ error: 'watermarkKey is required' });
     if (!watermarkConfig) return res.status(400).json({ error: 'watermarkConfig is required' });
@@ -203,9 +203,24 @@ router.post('/render', authenticateToken, async (req, res) => {
       editorStorage.getObjectBuffer(editorStorage.resolveBucket('erp'), watermarkKey),
     ]);
 
+    // Crop first if requested
+    let finalImageBuffer = imageBuffer;
+    if (cropConfig && cropConfig.left != null && cropConfig.top != null && cropConfig.width && cropConfig.height) {
+      const sharp = require('sharp');
+      const meta = await sharp(imageBuffer).metadata();
+      const cl = Math.max(0, Math.min(cropConfig.left, meta.width - 1));
+      const ct = Math.max(0, Math.min(cropConfig.top, meta.height - 1));
+      const cw = Math.min(cropConfig.width, meta.width - cl);
+      const ch = Math.min(cropConfig.height, meta.height - ct);
+      if (cw > 0 && ch > 0) {
+        finalImageBuffer = await sharp(imageBuffer).extract({ left: cl, top: ct, width: cw, height: ch }).toBuffer();
+        console.log(`[Editor] Cropped to ${cw}x${ch} at (${cl},${ct})`);
+      }
+    }
+
     // Render
     const fmt = outputFormat || 'png';
-    const result = await editorRender.renderWatermark(imageBuffer, watermarkBuffer, watermarkConfig, fmt);
+    const result = await editorRender.renderWatermark(finalImageBuffer, watermarkBuffer, watermarkConfig, fmt);
 
     // Save to MinIO
     const mimeMap = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' };

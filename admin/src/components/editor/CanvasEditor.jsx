@@ -19,6 +19,10 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
   const canvasRatioRef = useRef(1);
   const cachedWmImageRef = useRef(null);
   const cachedWmUrlRef = useRef(null);
+  const cropRectRef = useRef(null);
+  const cropOverlaysRef = useRef([]);
+  const cropActiveRef = useRef(false);
+  const cropRatioRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -320,6 +324,150 @@ const CanvasEditor = forwardRef(({ accentColor, onOriginalMeta }, ref) => {
 
     hasBgImage() {
       return !!bgImageRef.current;
+    },
+
+    /* ═══ Crop methods ═══ */
+    startCrop(aspectRatio) {
+      const canvas = fabricCanvasRef.current;
+      const F = fabricModule;
+      if (!canvas || !F || !bgImageRef.current) return;
+      clearWatermark();
+      cropActiveRef.current = true;
+      cropRatioRef.current = aspectRatio || null;
+
+      const cW = canvas.getWidth();
+      const cH = canvas.getHeight();
+      let cropW, cropH;
+      if (aspectRatio) {
+        cropW = cW * 0.8;
+        cropH = cropW / aspectRatio;
+        if (cropH > cH * 0.8) { cropH = cH * 0.8; cropW = cropH * aspectRatio; }
+      } else {
+        cropW = cW * 0.8;
+        cropH = cH * 0.8;
+      }
+
+      const syncOverlays = () => {
+        const cr = cropRectRef.current;
+        if (!cr) return;
+        const l = cr.left, t = cr.top, w = cr.getScaledWidth(), h = cr.getScaledHeight();
+        cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
+        const oc = 'rgba(0,0,0,0.55)';
+        const mk = (x, y, ww, hh) => new F.Rect({ left: x, top: y, width: Math.max(0, ww), height: Math.max(0, hh), fill: oc, selectable: false, evented: false });
+        const arr = [mk(0, 0, cW, t), mk(0, t + h, cW, Math.max(0, cH - t - h)), mk(0, t, l, h), mk(l + w, t, Math.max(0, cW - l - w), h)];
+        arr.forEach((o) => canvas.add(o));
+        cropOverlaysRef.current = arr;
+        canvas.bringToFront(cr);
+        canvas.renderAll();
+      };
+
+      const cropRect = new F.Rect({
+        left: (cW - cropW) / 2, top: (cH - cropH) / 2,
+        width: cropW, height: cropH,
+        fill: 'transparent', stroke: '#fff', strokeWidth: 2, strokeUniform: true,
+        cornerColor: '#fff', cornerStyle: 'circle', cornerSize: 10,
+        transparentCorners: false, borderColor: '#fff',
+        hasRotatingPoint: false, lockRotation: true,
+        selectable: true, evented: true,
+        lockUniScaling: !!aspectRatio,
+      });
+
+      const clamp = () => {
+        const r = cropRectRef.current;
+        if (!r) return;
+        let w = r.getScaledWidth(), h = r.getScaledHeight();
+        if (w > cW) { r.scaleX = cW / r.width; w = cW; }
+        if (h > cH) { r.scaleY = cH / r.height; h = cH; }
+        r.left = Math.max(0, Math.min(r.left, cW - w));
+        r.top = Math.max(0, Math.min(r.top, cH - h));
+        r.setCoords();
+      };
+
+      cropRect.on('moving', () => { clamp(); syncOverlays(); });
+      cropRect.on('scaling', () => { clamp(); syncOverlays(); });
+      cropRect.on('modified', () => { clamp(); syncOverlays(); });
+
+      canvas.add(cropRect);
+      canvas.setActiveObject(cropRect);
+      cropRectRef.current = cropRect;
+      syncOverlays();
+    },
+
+    applyCrop() {
+      const canvas = fabricCanvasRef.current;
+      const crop = cropRectRef.current;
+      if (!canvas || !crop) return null;
+      const ratio = canvasRatioRef.current;
+      const l = crop.left, t = crop.top;
+      const w = crop.getScaledWidth(), h = crop.getScaledHeight();
+      const cropConfig = { left: Math.round(l / ratio), top: Math.round(t / ratio), width: Math.round(w / ratio), height: Math.round(h / ratio) };
+
+      cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
+      cropOverlaysRef.current = [];
+      canvas.remove(crop);
+      cropRectRef.current = null;
+      cropActiveRef.current = false;
+
+      const bgImg = bgImageRef.current;
+      if (bgImg) {
+        bgImg.set({ left: -l, top: -t });
+        canvas.setWidth(Math.round(w));
+        canvas.setHeight(Math.round(h));
+        canvas.renderAll();
+      }
+      if (onOriginalMeta) onOriginalMeta({ width: cropConfig.width, height: cropConfig.height });
+      return cropConfig;
+    },
+
+    cancelCrop() {
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
+      cropOverlaysRef.current = [];
+      if (cropRectRef.current) { canvas.remove(cropRectRef.current); cropRectRef.current = null; }
+      cropActiveRef.current = false;
+      cropRatioRef.current = null;
+      canvas.renderAll();
+    },
+
+    updateCropRatio(aspectRatio) {
+      const canvas = fabricCanvasRef.current;
+      const F = fabricModule;
+      const crop = cropRectRef.current;
+      if (!canvas || !F || !crop) return;
+      cropRatioRef.current = aspectRatio || null;
+      const cW = canvas.getWidth(), cH = canvas.getHeight();
+
+      if (aspectRatio) {
+        const cx = crop.left + crop.getScaledWidth() / 2;
+        const cy = crop.top + crop.getScaledHeight() / 2;
+        let nw = crop.getScaledWidth(), nh = nw / aspectRatio;
+        if (nh > cH * 0.95) { nh = cH * 0.9; nw = nh * aspectRatio; }
+        if (nw > cW * 0.95) { nw = cW * 0.9; nh = nw / aspectRatio; }
+        crop.set({ width: nw, height: nh, scaleX: 1, scaleY: 1, left: Math.max(0, Math.min(cx - nw / 2, cW - nw)), top: Math.max(0, Math.min(cy - nh / 2, cH - nh)), lockUniScaling: true });
+      } else {
+        crop.set({ lockUniScaling: false });
+      }
+      crop.setCoords();
+
+      const l = crop.left, t = crop.top, w = crop.getScaledWidth(), h = crop.getScaledHeight();
+      cropOverlaysRef.current.forEach((o) => { try { canvas.remove(o); } catch (_e) { /* */ } });
+      const oc = 'rgba(0,0,0,0.55)';
+      const mk = (x, y, ww, hh) => new F.Rect({ left: x, top: y, width: Math.max(0, ww), height: Math.max(0, hh), fill: oc, selectable: false, evented: false });
+      const arr = [mk(0, 0, cW, t), mk(0, t + h, cW, Math.max(0, cH - t - h)), mk(0, t, l, h), mk(l + w, t, Math.max(0, cW - l - w), h)];
+      arr.forEach((o) => canvas.add(o));
+      cropOverlaysRef.current = arr;
+      canvas.bringToFront(crop);
+      canvas.renderAll();
+    },
+
+    isCropping() { return cropActiveRef.current; },
+
+    getCropConfig() {
+      const crop = cropRectRef.current;
+      if (!crop) return null;
+      const ratio = canvasRatioRef.current;
+      return { left: Math.round(crop.left / ratio), top: Math.round(crop.top / ratio), width: Math.round(crop.getScaledWidth() / ratio), height: Math.round(crop.getScaledHeight() / ratio) };
     },
   }), [getOrCreateCanvas, clearWatermark, loadCachedWmImage, doApplyPattern, accentColor, onOriginalMeta]);
 

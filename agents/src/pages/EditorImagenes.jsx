@@ -4,10 +4,10 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { editorService } from '../services/editorService';
 import CanvasEditor from '../components/editor/CanvasEditor';
 import {
-  THEME, PRESETS,
+  THEME, PRESETS, CROP_PRESETS,
   IFolder, IImage, IUpload, ITrash, IDownload, ICheck,
   IChevron, IChevronLeft, ISearch, IDroplet, IRotate, IZoom,
-  IGrid, ISave, IHistory, ILayers,
+  IGrid, ISave, IHistory, ILayers, ICrop,
 } from '../components/editor/editorConstants';
 
 const LS_KEY = 'editor_wm_controls';
@@ -60,6 +60,9 @@ const EditorImagenes = () => {
   const [outputFormat, setOutputFormat] = useState(saved.outputFormat || 'png');
   const [rendering, setRendering] = useState(false);
   const [renderResult, setRenderResult] = useState(null);
+  const [cropMode, setCropMode] = useState(false);
+  const [cropPreset, setCropPreset] = useState('free');
+  const [cropConfig, setCropConfig] = useState(null);
 
   // ── Batch selection ──
   const [batchMode, setBatchMode] = useState(false);
@@ -225,6 +228,41 @@ const EditorImagenes = () => {
     }
   };
 
+  // ── Crop handlers ──
+  const handleStartCrop = () => {
+    const editor = canvasEditorRef.current;
+    if (!editor || !selectedImage) return;
+    const presetObj = CROP_PRESETS.find((p) => p.id === cropPreset);
+    editor.startCrop(presetObj?.ratio || null);
+    setCropMode(true);
+  };
+
+  const handleApplyCrop = () => {
+    const editor = canvasEditorRef.current;
+    if (!editor) return;
+    const cfg = editor.applyCrop();
+    if (cfg) setCropConfig(cfg);
+    setCropMode(false);
+    toast.success('Recorte aplicado');
+  };
+
+  const handleCancelCrop = () => {
+    const editor = canvasEditorRef.current;
+    if (!editor) return;
+    editor.cancelCrop();
+    setCropMode(false);
+  };
+
+  const handleCropPresetChange = (presetId) => {
+    setCropPreset(presetId);
+    const editor = canvasEditorRef.current;
+    if (!editor) return;
+    const presetObj = CROP_PRESETS.find((p) => p.id === presetId);
+    if (cropMode) {
+      editor.updateCropRatio(presetObj?.ratio || null);
+    }
+  };
+
   // ── Render final (backend Sharp, NOT canvas export) ──
   const handleRender = async () => {
     if (!selectedImage || !selectedWatermark) {
@@ -268,6 +306,7 @@ const EditorImagenes = () => {
         watermarkKey: selectedWatermark.key,
         watermarkConfig: wmConfig,
         outputFormat,
+        cropConfig: cropConfig || undefined,
       });
       setRenderResult(result);
       toast.success('Imagen renderizada y guardada exitosamente');
@@ -846,6 +885,28 @@ const EditorImagenes = () => {
         <div style={{ display: 'flex', gap: 12, minHeight: 'calc(100vh - 160px)' }}>
           {/* Main canvas area */}
           <div style={{ ...panelStyle, borderRadius: 12, border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 400, overflow: 'hidden' }}>
+            {/* Crop toolbar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#FAFBFC', flexWrap: 'wrap' }}>
+              {!cropMode ? (
+                <button type="button" onClick={handleStartCrop} disabled={!selectedImage} style={{ ...btnSecondary, fontSize: 12, opacity: selectedImage ? 1 : 0.4 }}>
+                  <ICrop size={14} /> Recortar
+                </button>
+              ) : (
+                <>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: t.text, marginRight: 4 }}><ICrop size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Recorte</span>
+                  <select value={cropPreset} onChange={(e) => handleCropPresetChange(e.target.value)} style={{ padding: '4px 8px', fontSize: 12, borderRadius: 6, border: `1px solid ${t.border}`, background: isDark ? t.cardAlt : '#fff', color: t.text, cursor: 'pointer' }}>
+                    {CROP_PRESETS.map((cp) => <option key={cp.id} value={cp.id}>{cp.label}</option>)}
+                  </select>
+                  <button type="button" onClick={handleApplyCrop} style={{ ...btnPrimary, fontSize: 12, padding: '5px 12px' }}><ICheck size={14} /> Aplicar</button>
+                  <button type="button" onClick={handleCancelCrop} style={{ ...btnSecondary, fontSize: 12 }}>Cancelar</button>
+                </>
+              )}
+              {cropConfig && !cropMode && (
+                <span style={{ fontSize: 11, color: t.success, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <ICheck size={12} /> Recorte: {cropConfig.width}×{cropConfig.height}px
+                </span>
+              )}
+            </div>
             <CanvasEditor
               ref={canvasEditorRef}
               accentColor={currentColor}
