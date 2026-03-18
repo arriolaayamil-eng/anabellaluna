@@ -51,6 +51,7 @@ import Checkout from "../components/pages-modules/checkout/checkout";
 import Profile from "../components/pages-modules/profile/profile";
 import UserCreateForm from "../../components/UserCreateForm";
 import RequireAuth from "../../core/auth/RequireAuth";
+import PropiedadRedirect from "../components/propiedad-redirect/PropiedadRedirect";
 
 const routes = all_routes;
 
@@ -59,6 +60,12 @@ export const publicRoutes = [
     path: "/",
     name: "Root",
     element: <Navigate to={routes.index} />,
+    route: Route,
+  },
+  {
+    path: "/propiedad/:id",
+    element: <PropiedadRedirect />,
+    meta_title: "Propiedad",
     route: Route,
   },
   {
