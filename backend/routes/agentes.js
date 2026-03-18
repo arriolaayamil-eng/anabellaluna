@@ -38,6 +38,21 @@ async function generateUniqueUsername() {
 
 
 
+router.get('/admins', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const admins = await User.find({ role: 'admin' })
+      .select('_id nombre email username cargo')
+      .sort({ nombre: 1 })
+      .lean();
+    res.json(admins.map((a) => ({
+      _id: a._id,
+      nombre: a.nombre || a.username || '',
+      email: a.email || '',
+      cargo: a.cargo || 'Administrador',
+    })));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
 
   try {

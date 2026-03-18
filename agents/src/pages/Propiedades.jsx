@@ -45,8 +45,40 @@ const Propiedades = () => {
 
   const [propiedades, setPropiedades] = useState([]);
   const [agentes, setAgentes] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [formStep, setFormStep] = useState(1);
+
+  const createEmptyClienteForm = () => ({
+    nombre: '',
+    apellido: '',
+    email: '',
+    telefono: '',
+    telefonoAlternativo: '',
+    tipoCliente: 'Comprador',
+    estado: 'Lead',
+    presupuesto: '',
+    moneda: 'USD',
+    zonaInteres: '',
+    tipoPropiedad: 'Departamento',
+    ambientes: '',
+    dormitorios: '',
+    baños: '',
+    caracteristicas: [],
+    origen: 'Web',
+    agente: '',
+    scoring: 50,
+    notas: '',
+    direccion: '',
+    ciudad: 'Buenos Aires',
+    provincia: 'Buenos Aires',
+    ocupacion: '',
+    empresa: '',
+  });
+
+  const [nuevoCliente, setNuevoCliente] = useState(createEmptyClienteForm);
+  const [incluirCliente, setIncluirCliente] = useState(false);
 
   // Estados para búsqueda y filtros avanzados
   const [searchTerm, setSearchTerm] = useState('');
@@ -125,6 +157,8 @@ const Propiedades = () => {
     tipoCalefaccion: '',
     tipoAguaCaliente: '',
     tipoCocina: '',
+    nomenclaturaCatastral: '',
+    partidaInmobiliaria: '',
     estado: 'Disponible',
     descripcion: '',
     amenities: [],
@@ -139,6 +173,9 @@ const Propiedades = () => {
     setFilesDocumentos([]);
     setFilesPlanos([]);
     setVideoUrlDraft('');
+    setFormStep(1);
+    setIncluirCliente(false);
+    setNuevoCliente(createEmptyClienteForm());
     setNuevaPropiedad({
       titulo: '',
       tipo: 'Departamento',
@@ -182,6 +219,8 @@ const Propiedades = () => {
       tipoCalefaccion: '',
       tipoAguaCaliente: '',
       tipoCocina: '',
+      nomenclaturaCatastral: '',
+      partidaInmobiliaria: '',
       estado: 'Disponible',
       descripcion: '',
       amenities: [],
@@ -242,13 +281,18 @@ const Propiedades = () => {
       tipoCalefaccion: prop.tipoCalefaccion || '',
       tipoAguaCaliente: prop.tipoAguaCaliente || '',
       tipoCocina: prop.tipoCocina || '',
+      nomenclaturaCatastral: prop.nomenclaturaCatastral || '',
+      partidaInmobiliaria: prop.partidaInmobiliaria || '',
       estado: prop.estado || 'Disponible',
       descripcion: prop.descripcion || '',
       amenities: Array.isArray(prop.amenities) ? prop.amenities : [],
       videoUrls: Array.isArray(prop.videoUrls) ? prop.videoUrls : [],
-      agente: prop.agenteId || '',
+      agente: prop.adminId && !prop.agenteId ? `admin:${prop.adminId}` : (prop.agenteId || ''),
       comision: String(prop.comision ?? '3'),
     });
+    setFormStep(1);
+    setIncluirCliente(false);
+    setNuevoCliente(createEmptyClienteForm());
     setShowModal(true);
   };
 
@@ -367,14 +411,16 @@ const Propiedades = () => {
         setLoading(true);
         setError('');
 
-        const [agentesData, propiedadesData] = await Promise.all([
+        const [agentesData, propiedadesData, adminsData] = await Promise.all([
           crmService.agentes.getAll(),
           crmService.propiedades.getAll(),
+          crmService.agentes.getAdmins().catch(() => []),
         ]);
 
         if (!mounted) return;
         const agentesArr = Array.isArray(agentesData) ? agentesData : [];
         setAgentes(agentesArr);
+        setAdmins(Array.isArray(adminsData) ? adminsData : []);
         if (agentesArr.length === 1) {
           setNuevaPropiedad((prev) => ({
             ...prev,
@@ -442,6 +488,10 @@ const Propiedades = () => {
             anioConstruccion: meta.anioConstruccion || '',
             cortinas: meta.cortinas || '',
             antiguedad: Number(meta.antiguedad || 0),
+            nomenclaturaCatastral: meta.nomenclaturaCatastral || '',
+            partidaInmobiliaria: meta.partidaInmobiliaria || '',
+            adminId: meta.adminId || '',
+            adminNombre: meta.adminNombre || '',
             estado: p.status || meta.estado || 'Disponible',
           };
         });
@@ -656,6 +706,14 @@ const Propiedades = () => {
     }));
   };
 
+  const handleClienteInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNuevoCliente((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
   // Función para manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -663,8 +721,13 @@ const Propiedades = () => {
       setLoading(true);
       setError('');
 
-      const agenteDoc = agentes.find((a) => String(a._id) === String(nuevaPropiedad.agente));
+      const isAdminAssign = String(nuevaPropiedad.agente).startsWith('admin:');
+      const rawAgentId = isAdminAssign ? '' : (nuevaPropiedad.agente || '');
+      const rawAdminId = isAdminAssign ? String(nuevaPropiedad.agente).replace('admin:', '') : '';
+      const agenteDoc = rawAgentId ? agentes.find((a) => String(a._id) === rawAgentId) : null;
       const agenteNombre = agenteDoc ? agenteDoc.nombre : '';
+      const adminDoc = rawAdminId ? admins.find((a) => String(a._id) === rawAdminId) : null;
+      const adminNombre = adminDoc ? adminDoc.nombre : '';
 
       const payload = {
         title: nuevaPropiedad.titulo,
@@ -675,7 +738,7 @@ const Propiedades = () => {
         featured: !!nuevaPropiedad.featured,
         published: !!nuevaPropiedad.published,
         status: nuevaPropiedad.estado,
-        agentId: nuevaPropiedad.agente || undefined,
+        agentId: rawAgentId || rawAdminId || undefined,
         metadata: {
           titulo: nuevaPropiedad.titulo,
           tipo: nuevaPropiedad.tipo,
@@ -717,12 +780,16 @@ const Propiedades = () => {
           tipoCalefaccion: nuevaPropiedad.tipoCalefaccion,
           tipoAguaCaliente: nuevaPropiedad.tipoAguaCaliente,
           tipoCocina: nuevaPropiedad.tipoCocina,
+          nomenclaturaCatastral: nuevaPropiedad.nomenclaturaCatastral,
+          partidaInmobiliaria: nuevaPropiedad.partidaInmobiliaria,
           estado: nuevaPropiedad.estado,
           descripcion: nuevaPropiedad.descripcion,
           amenities: nuevaPropiedad.amenities,
           videoUrls: Array.isArray(nuevaPropiedad.videoUrls) ? nuevaPropiedad.videoUrls : [],
-          agenteId: nuevaPropiedad.agente,
+          agenteId: rawAgentId,
           agenteNombre,
+          adminId: rawAdminId,
+          adminNombre,
           comision: Number(nuevaPropiedad.comision || 0),
         },
       };
@@ -787,6 +854,10 @@ const Propiedades = () => {
         tipoCalefaccion: payload.metadata.tipoCalefaccion,
         tipoAguaCaliente: payload.metadata.tipoAguaCaliente,
         tipoCocina: payload.metadata.tipoCocina,
+        nomenclaturaCatastral: payload.metadata.nomenclaturaCatastral,
+        partidaInmobiliaria: payload.metadata.partidaInmobiliaria,
+        adminId: payload.metadata.adminId,
+        adminNombre: payload.metadata.adminNombre,
         estado: saved.status || payload.metadata.estado,
       };
 
@@ -800,6 +871,42 @@ const Propiedades = () => {
 
       if (propiedadSeleccionada && String(propiedadSeleccionada.id) === String(mapped.id)) {
         setPropiedadSeleccionada(mapped);
+      }
+
+      // Create client if included
+      if (incluirCliente && nuevoCliente.nombre) {
+        try {
+          const fullName = [nuevoCliente.nombre, nuevoCliente.apellido].filter(Boolean).join(' ').trim();
+          await crmService.clientes.create({
+            nombre: fullName || nuevoCliente.nombre,
+            email: nuevoCliente.email || '',
+            telefono: nuevoCliente.telefono || '',
+            direccion: nuevoCliente.direccion || '',
+            notas: nuevoCliente.notas || '',
+            metadata: {
+              apellido: nuevoCliente.apellido || '',
+              telefonoAlternativo: nuevoCliente.telefonoAlternativo || '',
+              tipoCliente: nuevoCliente.tipoCliente || 'Comprador',
+              estado: nuevoCliente.estado || 'Lead',
+              presupuesto: nuevoCliente.presupuesto === '' ? 0 : Number(nuevoCliente.presupuesto || 0),
+              moneda: nuevoCliente.moneda || 'USD',
+              zonaInteres: nuevoCliente.zonaInteres || '',
+              tipoPropiedad: nuevoCliente.tipoPropiedad || 'Departamento',
+              ambientes: nuevoCliente.ambientes || '',
+              dormitorios: nuevoCliente.dormitorios || '',
+              'ba\u00f1os': nuevoCliente.ba\u00f1os || '',
+              caracteristicas: Array.isArray(nuevoCliente.caracteristicas) ? nuevoCliente.caracteristicas : [],
+              origen: nuevoCliente.origen || 'Web',
+              agente: nuevoCliente.agente || '',
+              scoring: Number(nuevoCliente.scoring || 50),
+              ciudad: nuevoCliente.ciudad || 'Buenos Aires',
+              provincia: nuevoCliente.provincia || 'Buenos Aires',
+              ocupacion: nuevoCliente.ocupacion || '',
+              empresa: nuevoCliente.empresa || '',
+              propiedadAsociada: mapped.id,
+            },
+          });
+        } catch (_clientErr) { /* non-blocking */ }
       }
 
       const uploadGroup = async (files, categoria) => {
@@ -865,6 +972,7 @@ const Propiedades = () => {
         dormitorios: '',
         baños: '',
         cocheras: '',
+        tipoCochera: '',
         balcon: '',
         piso: '',
         armario: '',
@@ -878,6 +986,11 @@ const Propiedades = () => {
         anioConstruccion: '',
         cortinas: '',
         antiguedad: '',
+        tipoCalefaccion: '',
+        tipoAguaCaliente: '',
+        tipoCocina: '',
+        nomenclaturaCatastral: '',
+        partidaInmobiliaria: '',
         estado: 'Disponible',
         descripcion: '',
         amenities: [],
@@ -885,6 +998,9 @@ const Propiedades = () => {
         agente: '',
         comision: '3',
       });
+      setFormStep(1);
+      setIncluirCliente(false);
+      setNuevoCliente(createEmptyClienteForm());
     } catch (saveErr) {
       setError(saveErr?.message || 'Error al guardar propiedad');
     } finally {
@@ -2114,20 +2230,30 @@ const Propiedades = () => {
                 <h2 className="text-2xl font-bold flex items-center gap-3">
                   <FaHome /> {editingPropiedadId ? 'Editar Propiedad' : 'Nueva Propiedad'}
                 </h2>
-                <p className="text-blue-100 text-sm mt-1">Complete los datos de la propiedad</p>
+                <p className="text-blue-100 text-sm mt-1">
+                  {formStep === 1 ? 'Paso 1: Datos de la propiedad' : 'Paso 2: Datos del cliente (opcional)'}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-              >
-                <FaTimes className="text-2xl" />
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-2">
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${formStep === 1 ? 'bg-white text-blue-600' : 'bg-blue-400 text-white'}`}>1</span>
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${formStep === 2 ? 'bg-white text-blue-600' : 'bg-blue-400 text-white'}`}>2</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                >
+                  <FaTimes className="text-2xl" />
+                </button>
+              </div>
             </div>
 
             {/* Formulario con scroll */}
             <div className="flex-1 overflow-y-auto">
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {formStep === 1 && (<>
+
                 {/* Información Básica */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -2804,7 +2930,44 @@ const Propiedades = () => {
                   </div>
                 </div>
 
-                {/* Agente y Comisión */}
+                {/* Datos Registrales */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaFileAlt className="text-indigo-500" /> Datos Registrales
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="field-nc" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Nomenclatura Catastral
+                      </label>
+                      <input
+                        id="field-nc"
+                        type="text"
+                        name="nomenclaturaCatastral"
+                        value={nuevaPropiedad.nomenclaturaCatastral}
+                        onChange={handleInputChange}
+                        placeholder="Ej: Circ. I - Secc. A - Manz. 10 - Parc. 5"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="field-pi" className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Partida Inmobiliaria
+                      </label>
+                      <input
+                        id="field-pi"
+                        type="text"
+                        name="partidaInmobiliaria"
+                        value={nuevaPropiedad.partidaInmobiliaria}
+                        onChange={handleInputChange}
+                        placeholder="Ej: 012-34567"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Asignación y Comisión */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
                     <FaUser className="text-purple-500" /> Asignación
@@ -2812,7 +2975,7 @@ const Propiedades = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="field-123" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Agente Responsable *
+                        Responsable *
                       </label>
                       <select
                         id="field-123"
@@ -2822,10 +2985,19 @@ const Propiedades = () => {
                         required
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       >
-                        <option value="">Seleccionar agente</option>
-                        {agentes.map((a) => (
-                          <option key={a._id} value={a._id}>{a.nombre}</option>
-                        ))}
+                        <option value="">Seleccionar responsable</option>
+                        {admins.length > 0 && (
+                          <optgroup label="Administrador (ERP)">
+                            {admins.map((a) => (
+                              <option key={`admin-${a._id}`} value={`admin:${a._id}`}>{a.nombre}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="Agentes">
+                          {agentes.map((a) => (
+                            <option key={a._id} value={a._id}>{a.nombre}</option>
+                          ))}
+                        </optgroup>
                       </select>
                     </div>
 
@@ -2848,7 +3020,7 @@ const Propiedades = () => {
                   </div>
                 </div>
 
-                {/* Botones de Acción */}
+                {/* Botones Paso 1 */}
                 <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
                   <button
                     type="button"
@@ -2858,14 +3030,181 @@ const Propiedades = () => {
                     Cancelar
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => setFormStep(2)}
                     style={{ backgroundColor: currentColor }}
                     className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
-                    disabled={loading}
                   >
-                    <FaSave /> Guardar Propiedad
+                    Siguiente <FaChevronRight />
                   </button>
                 </div>
+              </>)}
+
+              {formStep === 2 && (<>
+                {/* Toggle incluir cliente */}
+                <div className="flex items-center gap-3 p-4 rounded-lg border dark:border-gray-700 bg-blue-50 dark:bg-gray-800">
+                  <input
+                    type="checkbox"
+                    id="incluirCliente"
+                    checked={incluirCliente}
+                    onChange={(e) => setIncluirCliente(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <label htmlFor="incluirCliente" className="text-sm font-medium dark:text-gray-200">
+                    Agregar un cliente asociado a esta propiedad
+                  </label>
+                </div>
+
+                {incluirCliente && (
+                  <>
+                    {/* Información Personal del Cliente */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaUser className="text-blue-500" /> Información Personal
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre *</label>
+                          <input type="text" name="nombre" value={nuevoCliente.nombre} onChange={handleClienteInputChange} required placeholder="Juan" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido *</label>
+                          <input type="text" name="apellido" value={nuevoCliente.apellido} onChange={handleClienteInputChange} required placeholder="Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email *</label>
+                          <input type="email" name="email" value={nuevoCliente.email} onChange={handleClienteInputChange} required placeholder="juan@email.com" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
+                          <input type="tel" name="telefono" value={nuevoCliente.telefono} onChange={handleClienteInputChange} required placeholder="+54 11 1234-5678" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono Alternativo</label>
+                          <input type="tel" name="telefonoAlternativo" value={nuevoCliente.telefonoAlternativo} onChange={handleClienteInputChange} placeholder="+54 11 8765-4321" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ocupación</label>
+                          <input type="text" name="ocupacion" value={nuevoCliente.ocupacion} onChange={handleClienteInputChange} placeholder="Ingeniero" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Empresa</label>
+                          <input type="text" name="empresa" value={nuevoCliente.empresa} onChange={handleClienteInputChange} placeholder="Tech Corp" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
+                          <input type="text" name="direccion" value={nuevoCliente.direccion} onChange={handleClienteInputChange} placeholder="Av. Corrientes 1234" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ciudad</label>
+                          <input type="text" name="ciudad" value={nuevoCliente.ciudad} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Provincia</label>
+                          <input type="text" name="provincia" value={nuevoCliente.provincia} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Clasificación CRM del Cliente */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaChartLine className="text-purple-500" /> Clasificación CRM
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cliente</label>
+                          <select name="tipoCliente" value={nuevoCliente.tipoCliente} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                            <option value="Comprador">Comprador</option>
+                            <option value="Propietario">Propietario</option>
+                            <option value="Inversor">Inversor</option>
+                            <option value="Inquilino">Inquilino</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Estado en el Ciclo</label>
+                          <select name="estado" value={nuevoCliente.estado} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                            <option value="Lead">Lead</option>
+                            <option value="Contacto">Contacto</option>
+                            <option value="Prospecto">Prospecto</option>
+                            <option value="Negociación">Negociación</option>
+                            <option value="Cerrado">Cerrado</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Origen del Lead</label>
+                          <select name="origen" value={nuevoCliente.origen} onChange={handleClienteInputChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                            <option value="Web">Sitio Web</option>
+                            <option value="Redes Sociales">Redes Sociales</option>
+                            <option value="Referido">Referido</option>
+                            <option value="Llamada">Llamada Directa</option>
+                            <option value="Email">Email</option>
+                            <option value="Evento">Evento</option>
+                            <option value="Otro">Otro</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preferencias de Búsqueda del Cliente */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                        <FaHome className="text-green-500" /> Preferencias de Búsqueda
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Presupuesto</label>
+                          <div className="flex gap-2">
+                            <select name="moneda" value={nuevoCliente.moneda} onChange={handleClienteInputChange} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                              <option value="USD">USD</option>
+                              <option value="ARS">ARS</option>
+                            </select>
+                            <input type="number" name="presupuesto" value={nuevoCliente.presupuesto} onChange={handleClienteInputChange} placeholder="150000" className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2 dark:text-gray-200">Zona de Interés</label>
+                          <input type="text" name="zonaInteres" value={nuevoCliente.zonaInteres} onChange={handleClienteInputChange} placeholder="Palermo, Belgrano" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notas del Cliente */}
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Notas Adicionales</label>
+                      <textarea name="notas" value={nuevoCliente.notas} onChange={handleClienteInputChange} rows="3" placeholder="Información adicional..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                  </>
+                )}
+
+                {/* Botones Paso 2 */}
+                <div className="flex gap-3 justify-between pt-4 border-t dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setFormStep(1)}
+                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                  >
+                    <FaChevronLeft /> Anterior
+                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      style={{ backgroundColor: currentColor }}
+                      className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
+                      disabled={loading}
+                    >
+                      <FaSave /> Guardar Propiedad
+                    </button>
+                  </div>
+                </div>
+              </>)}
               </form>
             </div>
           </div>

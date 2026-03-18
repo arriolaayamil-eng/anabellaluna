@@ -36,6 +36,7 @@ export const crmService = {
     create: (data) => api.post('/crm/agentes', data),
     update: (id, data) => api.put(`/crm/agentes/${id}`, data),
     delete: (id) => api.delete(`/crm/agentes/${id}`),
+    getAdmins: () => api.get('/crm/agentes/admins'),
   },
 
   // ============ OPERACIONES/VENTAS ============
