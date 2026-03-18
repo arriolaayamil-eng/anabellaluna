@@ -3,25 +3,27 @@ const router = express.Router();
 const Folder = require('../models/Folder');
 const Document = require('../models/Document');
 const { authenticateToken, agentScopeId } = require('../auth');
-const { presignedGetObject } = require('../minio');
-
 const IMAGE_MIMETYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
   'image/bmp', 'image/tiff', 'image/avif',
 ]);
 
-async function enrichDocsWithThumbnails(docs) {
+function buildProxyUrl(req, bucket, key) {
+  const proto = req.get('X-Forwarded-Proto') || req.protocol || 'https';
+  const host = req.get('X-Forwarded-Host') || req.get('Host');
+  return `${proto}://${host}/editor/file?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
+}
+
+function enrichDocsWithThumbnails(docs, req) {
   const plain = docs.map(d => (typeof d.toObject === 'function' ? d.toObject() : { ...d }));
-  await Promise.all(plain.map(async (doc) => {
+  plain.forEach((doc) => {
     if (!doc.object_key || !doc.bucket) return;
     const isImage = doc.tipo === 'Imagen'
       || IMAGE_MIMETYPES.has((doc.mimetype || '').toLowerCase())
       || /\.(jpe?g|png|gif|webp|svg|bmp|avif)$/i.test(doc.object_key);
     if (!isImage) return;
-    try {
-      doc.thumbnailUrl = await presignedGetObject(doc.bucket, doc.object_key, 3600);
-    } catch (_e) { /* ignore – thumbnail just won't show */ }
-  }));
+    doc.thumbnailUrl = buildProxyUrl(req, doc.bucket, doc.object_key);
+  });
   return plain;
 }
 
@@ -238,7 +240,7 @@ router.get('/browse', authenticateToken, async (req, res) => {
       Folder.find(folderFilter).sort({ name: 1 }).exec(),
       Document.find(docFilter).sort({ fecha: -1 }).limit(500).exec(),
     ]);
-    const documents = await enrichDocsWithThumbnails(rawDocs);
+    const documents = enrichDocsWithThumbnails(rawDocs, req);
 
     res.json({ folders, documents });
   } catch (err) {
@@ -264,7 +266,7 @@ router.get('/search', authenticateToken, async (req, res) => {
       Folder.find(folderFilter).sort({ name: 1 }).limit(50).exec(),
       Document.find(docFilter).sort({ fecha: -1 }).limit(200).exec(),
     ]);
-    const documents = await enrichDocsWithThumbnails(rawDocs);
+    const documents = enrichDocsWithThumbnails(rawDocs, req);
 
     res.json({ folders, documents });
   } catch (err) {
@@ -287,7 +289,7 @@ router.get('/starred', authenticateToken, async (req, res) => {
       Folder.find(folderFilter).sort({ name: 1 }).exec(),
       Document.find(docFilter).sort({ fecha: -1 }).exec(),
     ]);
-    const documents = await enrichDocsWithThumbnails(rawDocs);
+    const documents = enrichDocsWithThumbnails(rawDocs, req);
 
     res.json({ folders, documents });
   } catch (err) {
@@ -302,7 +304,7 @@ router.get('/recent', authenticateToken, async (req, res) => {
     const filter = {};
     if (scopeId) filter.agenteId = scopeId;
     const rawDocs = await Document.find(filter).sort({ fecha: -1 }).limit(30).exec();
-    const docs = await enrichDocsWithThumbnails(rawDocs);
+    const docs = enrichDocsWithThumbnails(rawDocs, req);
     res.json(docs);
   } catch (err) {
     res.status(500).json({ error: err.message });

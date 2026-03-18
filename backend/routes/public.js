@@ -241,8 +241,17 @@ router.get('/media/:id', async (req, res) => {
     if (doc.object_key) {
       if (!minio.isConfigured()) return res.status(503).json({ error: 'MinIO is not configured' });
       const bucket = doc.bucket || minio.bucket;
-      const url = await minio.presignedGetObject(bucket, doc.object_key, 60 * 60);
-      return res.redirect(url);
+      try {
+        const stat = await minio.statObject(bucket, doc.object_key);
+        const ct = (stat.metaData && stat.metaData['content-type']) || doc.mimetype || 'application/octet-stream';
+        res.set('Content-Type', ct);
+        if (stat.size) res.set('Content-Length', String(stat.size));
+        res.set('Cache-Control', 'public, max-age=3600');
+        const stream = await minio.getObject(bucket, doc.object_key);
+        return stream.pipe(res);
+      } catch (streamErr) {
+        return res.status(500).json({ error: streamErr.message });
+      }
     }
 
     const url = String(doc.url || '');

@@ -8,6 +8,7 @@ const Folder = require('../models/Folder');
 const Agente = require('../models/Agente');
 const editorStorage = require('../services/editorStorage');
 const editorRender = require('../services/editorRender');
+const minio = require('../minio');
 
 // ── Helper: find or create a folder by name under a given parent, scoped to agenteId ──
 async function findOrCreateFolder(name, parent, agenteId) {
@@ -23,6 +24,14 @@ async function getAgenteName(agenteId) {
   if (!agenteId) return null;
   const agente = await Agente.findById(agenteId, 'nombre').lean();
   return agente ? agente.nombre : null;
+}
+
+// Helper: build a proxy URL so the browser fetches MinIO objects through the API
+// (avoids mixed-content / CORS when MinIO is on localhost)
+function buildProxyUrl(req, bucket, key) {
+  const proto = req.get('X-Forwarded-Proto') || req.protocol || 'https';
+  const host = req.get('X-Forwarded-Host') || req.get('Host');
+  return `${proto}://${host}/editor/file?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
 }
 
 const upload = multer({
@@ -58,7 +67,7 @@ router.get('/images', authenticateToken, async (req, res) => {
       let fullUrl = '';
       try {
         if (doc.object_key && doc.bucket) {
-          fullUrl = await editorStorage.getImageUrl(doc.object_key, 'erp', doc.bucket);
+          fullUrl = buildProxyUrl(req, doc.bucket, doc.object_key);
           thumbnailUrl = fullUrl; // Use same URL; frontend will constrain display size
         } else if (doc.url) {
           fullUrl = doc.url;
@@ -97,7 +106,7 @@ router.get('/images/:id/url', authenticateToken, async (req, res) => {
     if (scopeId && String(doc.agenteId || '') !== scopeId) return res.status(403).json({ error: 'forbidden' });
 
     if (doc.object_key && doc.bucket) {
-      const url = await editorStorage.getImageUrl(doc.object_key, 'erp', doc.bucket);
+      const url = buildProxyUrl(req, doc.bucket, doc.object_key);
       return res.json({ url, object_key: doc.object_key, bucket: doc.bucket });
     }
     if (doc.url) return res.json({ url: doc.url });
@@ -116,11 +125,7 @@ router.get('/watermarks', authenticateToken, async (req, res) => {
     const items = await editorStorage.listWatermarks('erp');
     // add presigned URLs
     const result = await Promise.all(items.map(async (item) => {
-      try {
-        item.url = await editorStorage.getWatermarkUrl(item.key, 'erp');
-      } catch (e) {
-        item.url = '';
-      }
+      item.url = buildProxyUrl(req, item.bucket, item.key);
       return item;
     }));
     res.json(result);
@@ -140,7 +145,7 @@ router.post('/watermarks', authenticateToken, upload.single('file'), async (req,
       req.file.mimetype,
       'erp'
     );
-    const url = await editorStorage.getWatermarkUrl(key, 'erp');
+    const url = buildProxyUrl(req, bucket, key);
     console.log(`[Editor] Watermark uploaded: ${key}`);
     res.status(201).json({ bucket, key, filename: req.file.originalname, url });
   } catch (err) {
@@ -299,7 +304,7 @@ router.post('/render', authenticateToken, async (req, res) => {
       console.error('[Editor] Warning: could not create Document in folder:', folderErr.message);
     }
 
-    const outputUrl = await editorStorage.getEditedImageUrl(saved.key, 'erp');
+    const outputUrl = buildProxyUrl(req, saved.bucket, saved.key);
 
     console.log(`[Editor] Render complete: ${saved.key} (${result.width}x${result.height}, ${result.buffer.length} bytes)`);
 
@@ -328,11 +333,7 @@ router.get('/edited', authenticateToken, async (req, res) => {
     const records = await EditedImage.find(filter).sort({ createdAt: -1 }).limit(200).lean();
 
     const items = await Promise.all(records.map(async (r) => {
-      try {
-        r.outputUrl = await editorStorage.getEditedImageUrl(r.outputObjectKey, 'erp');
-      } catch (e) {
-        r.outputUrl = '';
-      }
+      r.outputUrl = buildProxyUrl(req, r.outputBucket, r.outputObjectKey);
       return r;
     }));
 
@@ -453,6 +454,26 @@ router.get('/debug-folders', authenticateToken, async (req, res) => {
     res.json({ folders: wmFolders, documentsCount: wmDocs.length, editedImagesCount: editedCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Proxy: serve MinIO objects through the API to avoid mixed-content / CORS ──
+router.get('/file', authenticateToken, async (req, res) => {
+  try {
+    const { bucket, key } = req.query;
+    if (!bucket || !key) return res.status(400).json({ error: 'bucket and key required' });
+
+    const stat = await minio.statObject(bucket, key);
+    const ct = (stat.metaData && stat.metaData['content-type']) || 'application/octet-stream';
+    res.set('Content-Type', ct);
+    if (stat.size) res.set('Content-Length', String(stat.size));
+    res.set('Cache-Control', 'public, max-age=3600');
+
+    const stream = await minio.getObject(bucket, key);
+    stream.pipe(res);
+  } catch (err) {
+    console.error('[Editor] Proxy error:', err.message);
+    res.status(err.code === 'NoSuchKey' ? 404 : 500).json({ error: err.message });
   }
 });
 
