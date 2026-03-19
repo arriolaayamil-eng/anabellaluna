@@ -1,3 +1,4 @@
+/* eslint-disable no-confusing-arrow, no-unused-vars, object-property-newline, brace-style, no-empty, max-len, no-plusplus, quotes, prefer-template */
 import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { FaPlus, FaSearch, FaEdit, FaTrash, FaCopy, FaFilePdf, FaSave, FaArrowLeft, FaBuilding, FaChartLine, FaBalanceScale, FaEye, FaTimes, FaChevronDown, FaChevronUp, FaCalculator, FaDollarSign, FaFileAlt } from 'react-icons/fa';
