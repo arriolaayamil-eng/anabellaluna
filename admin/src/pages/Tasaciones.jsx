@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { FaPlus, FaSearch, FaEdit, FaTrash, FaCopy, FaFilePdf, FaSave, FaArrowLeft, FaBuilding, FaChartLine, FaBalanceScale, FaEye, FaTimes, FaChevronDown, FaChevronUp, FaCalculator } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaEdit, FaTrash, FaCopy, FaFilePdf, FaSave, FaArrowLeft, FaBuilding, FaChartLine, FaBalanceScale, FaEye, FaTimes, FaChevronDown, FaChevronUp, FaCalculator, FaDollarSign, FaFileAlt } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { tasacionesService } from '../services/tasacionesService';
