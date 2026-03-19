@@ -360,6 +360,33 @@ router.get('/edited', authenticateToken, async (req, res) => {
   }
 });
 
+// ── Delete an edited image ──
+router.delete('/edited/:id', authenticateToken, async (req, res) => {
+  try {
+    const record = await EditedImage.findById(req.params.id).lean();
+    if (!record) return res.status(404).json({ error: 'Edited image not found' });
+    const scopeId = agentScopeId(req);
+    if (scopeId && String(record.agenteId || '') !== scopeId) return res.status(403).json({ error: 'forbidden' });
+
+    // Delete MinIO object
+    if (record.outputBucket && record.outputObjectKey) {
+      try { await minio.removeObject(record.outputBucket, record.outputObjectKey); } catch (_e) { /* ignore missing */ }
+    }
+
+    // Delete linked Document records
+    if (record.outputObjectKey) {
+      await Document.deleteMany({ object_key: record.outputObjectKey, documentType: 'edited-image' });
+    }
+
+    await EditedImage.deleteOne({ _id: record._id });
+    console.log(`[Editor] Edited image deleted: ${record.outputObjectKey}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[Editor] Error deleting edited image:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Migrate existing edited images into folder/document system ──
 router.post('/migrate-to-folders', authenticateToken, async (req, res) => {
   try {

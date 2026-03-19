@@ -216,6 +216,17 @@ const EditorImagenes = () => {
     if (watermarkInputRef.current) watermarkInputRef.current.value = '';
   };
 
+  const handleDeleteEdited = async (ed) => {
+    if (!window.confirm('¿Eliminar esta imagen editada? Se eliminará de MinIO y del gestor de archivos.')) return;
+    try {
+      await editorService.deleteEdited(ed._id);
+      toast.success('Imagen eliminada');
+      setEditedList((prev) => prev.filter((x) => x._id !== ed._id));
+    } catch (err) {
+      toast.error(err.message || 'Error al eliminar');
+    }
+  };
+
   const handleDeleteWatermark = async (wm) => {
     if (!window.confirm('¿Eliminar esta marca de agua?')) return;
     try {
@@ -712,13 +723,23 @@ const EditorImagenes = () => {
                 <div style={{ padding: '8px 10px' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{ed.outputFilename}</div>
                   <div style={{ fontSize: 11, color: t.text3, marginBottom: 4 }}>{ed.outputWidth}x{ed.outputHeight} · {ed.outputFormat?.toUpperCase()} · {(ed.outputSize / 1024).toFixed(0)} KB</div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                     <span style={{ fontSize: 10, color: t.text3 }}>{new Date(ed.createdAt).toLocaleString('es-AR')}</span>
-                    {ed.outputUrl && (
-                    <a href={ed.outputUrl} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, padding: '4px 8px', fontSize: 11 }}>
-                      <IDownload size={12} /> Descargar
-                    </a>
-                    )}
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {ed.outputUrl && (
+                      <a href={ed.outputUrl} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, padding: '4px 8px', fontSize: 11 }}>
+                        <IDownload size={12} /> Descargar
+                      </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEdited(ed)}
+                        style={{ ...btnSecondary, padding: '4px 8px', fontSize: 11, color: t.danger, borderColor: t.danger }}
+                        title="Eliminar"
+                      >
+                        <ITrash size={12} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

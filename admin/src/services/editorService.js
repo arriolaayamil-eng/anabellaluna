@@ -39,6 +39,7 @@ export const editorService = {
 
   // Edited images
   listEdited: () => api.get('/editor/edited'),
+  deleteEdited: (id) => api.delete(`/editor/edited/${id}`),
 };
 
 export default editorService;
