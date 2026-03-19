@@ -1063,6 +1063,21 @@ header {
 html.menu-opened body {
     overflow: hidden;
 }
+// Propiedades nav: dropdown centered below the button (margin-left keeps animation identical)
+@media (min-width: 992px) {
+    .main-nav > li.propiedades-nav {
+        > ul.submenu {
+            left: 50%;
+            margin-left: -110px;
+            min-width: 220px;
+            text-align: center;
+            &::before {
+                left: calc(50% - 7px);
+            }
+        }
+    }
+}
+
 .menu-logo-dark {
     display: none;
 }

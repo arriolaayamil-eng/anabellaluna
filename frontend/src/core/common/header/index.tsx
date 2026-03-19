@@ -181,7 +181,7 @@ const Header = () => {
                       </li>
                     ) : (
                       <li
-                        className={`has-submenu ${
+                        className={`has-submenu ${mainMenus.base === "listings" ? "propiedades-nav" : ""} ${
                           mainMenus?.menu?.some(
                             (item: any) =>
                               item?.route === location.pathname ||
