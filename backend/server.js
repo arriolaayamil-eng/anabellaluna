@@ -100,6 +100,8 @@ const adminNotificationsRoutes = require('./routes/adminNotifications');
 
 const editorRoutes = require('./routes/editor');
 
+const tasacionesRoutes = require('./routes/tasaciones');
+
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
@@ -248,6 +250,8 @@ app.use('/admin/config', globalConfigRoutes);
 app.use('/files', foldersRoutes);
 
 app.use('/editor', editorRoutes);
+
+app.use('/crm/tasaciones', tasacionesRoutes);
 
 app.use('/contract-templates', contractTemplatesRoutes);
 

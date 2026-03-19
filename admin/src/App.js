@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
-import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria, EditorImagenes } from './pages';
+import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria, EditorImagenes, Tasaciones } from './pages';
 import './App.css';
 import { authService } from './services/authService';
 import { useStateContext } from './contexts/ContextProvider';
@@ -245,6 +245,7 @@ const App = () => {
                 <Route path="/perfil" element={<MiPerfil />} />
                 <Route path="/recompensas" element={<Recompensas />} />
                 <Route path="/mensajeria" element={<Mensajeria />} />
+                <Route path="/tasaciones" element={<Tasaciones />} />
 
                 {/* pages  */}
                 <Route path="/orders" element={<Orders />} />
