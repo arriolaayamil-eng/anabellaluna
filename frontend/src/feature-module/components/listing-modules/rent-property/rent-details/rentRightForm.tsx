@@ -21,7 +21,7 @@ const RentRightForm = ({ agent }: RentRightFormProps) => {
       {/* Items-1 */}
       <div className="card">
         <div className="card-header">
-          <h5 className="mb-0">Provider Details</h5>
+          <h5 className="mb-0">Datos del Agente</h5>
         </div>
         <div className="card-body">
           <div className="card bg-light border-0 rounded shadow-none custom-btn">
@@ -40,7 +40,7 @@ const RentRightForm = ({ agent }: RentRightFormProps) => {
                       {agent?.name || ""}
                     </Link>
                   </h6>
-                  <p className="mb-0 fs-14 text-body">Company Agent</p>
+                  <p className="mb-0 fs-14 text-body">Agente Inmobiliario</p>
                 </div>
               </div>
             </div>

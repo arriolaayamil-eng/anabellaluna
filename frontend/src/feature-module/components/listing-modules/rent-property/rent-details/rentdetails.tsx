@@ -322,9 +322,6 @@ const Rentdetails = () => {
                       className="accordion-collapse collapse show"
                     >
                       <div className="accordion-body">
-                        <p style={{ whiteSpace: 'pre-line' }}>
-                          {property?.description || ""}
-                        </p>
                         <div className="more-menu">
                           <p style={{ whiteSpace: 'pre-line' }}>
                             {property?.description || ""}

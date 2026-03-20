@@ -365,22 +365,16 @@
 .slider-card {
     .slide-part {
         width: 100%;
-        height: 499px;
         overflow: hidden;
         border-radius: $border-radius-lg;
-        @include respond-below(xxl){
-            height: 425px;
-        }
-        @include respond-below(lg){
-            height: 100%;
-        }
         .service-img-wrap {
             width: 100%;
             img{
                 width: 100%;
-                height: 100%;
-                object-fit: cover;
+                height: auto;
+                object-fit: contain;
                 border-radius: $border-radius-lg;
+                display: block;
             }
         }
     }
@@ -388,14 +382,14 @@
         margin: 0 -10px;
         .slick-slide {
             margin: 0px 12px;
-            height: 126px;
             @include respond-below(md) {
                 margin: auto;
             }
             img{
                 border-radius: $border-radius-lg;
-                height: 100%;
                 width: 100%;
+                height: auto;
+                object-fit: contain;
                 @include respond-below(md) {
                     margin: auto;
                 }
@@ -514,10 +508,6 @@
             align-items: center;
             justify-content: center;
             transition: 0.7s;
-        }
-        i {
-
-
         }
     }
 }

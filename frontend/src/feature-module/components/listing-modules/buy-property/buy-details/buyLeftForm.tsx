@@ -208,7 +208,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                           </h6>
                           <p className="mb-0 fs-14 text-body">
                             {" "}
-                            Company Agent{" "}
+                            Agente Inmobiliario{" "}
                           </p>
                         </div>
                       </div>
@@ -288,7 +288,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                           </h6>
                           <p className="mb-0 fs-14 text-body">
                             {" "}
-                            Company Agent{" "}
+                            Agente Inmobiliario{" "}
                           </p>
                         </div>
                       </div>
@@ -415,7 +415,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
           {/* Items-2 */}
           <div className="card">
             <div className="card-header">
-              <h5 className="mb-0">Listing Owner Details</h5>
+              <h5 className="mb-0">Datos del Agente</h5>
             </div>
             <div className="card-body">
               <div className="d-flex align-items-center gap-2 mb-3">
@@ -434,13 +434,13 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                 <ul className="mb-0">
                   {agent?.phone ? (
                     <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-3">
-                      <span className="text-body"> Phone</span>
+                      <span className="text-body">Teléfono</span>
                       {agent.phone}
                     </li>
                   ) : null}
                   {agent?.email ? (
                     <li className="d-flex align-center justify-content-between flex-wrap gap-1 mb-0">
-                      <span className="text-body">Email</span>
+                      <span className="text-body">Correo</span>
                       {agent.email}
                     </li>
                   ) : null}
