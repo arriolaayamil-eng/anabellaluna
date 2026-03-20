@@ -46,6 +46,9 @@ const ClientesCRM = () => {
   // Estados para las vistas
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'detalle'
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [propiedadesList, setPropiedadesList] = useState([]);
+  const [propSearch, setPropSearch] = useState('');
+  const [interesInput, setInteresInput] = useState('');
 
   const createEmptyClienteForm = () => ({
     nombre: '',
@@ -78,6 +81,8 @@ const ClientesCRM = () => {
     tieneHijos: '',
     fechaNacimiento: '',
     preferenciaComunicacion: 'whatsapp',
+    propiedadConsultadaInicial: { id: '', titulo: '', direccion: '' },
+    interesesCliente: [],
   });
 
   // Estado para el formulario de nuevo cliente
@@ -138,6 +143,8 @@ const ClientesCRM = () => {
       tieneHijos: md.tieneHijos || '',
       fechaNacimiento: md.fechaNacimiento || '',
       preferenciaComunicacion: md.preferenciaComunicacion || 'whatsapp',
+      propiedadConsultadaInicial: md.propiedadConsultadaInicial || { id: '', titulo: '', direccion: '' },
+      interesesCliente: Array.isArray(md.interesesCliente) ? md.interesesCliente : [],
       metadata: md,
     };
   }, []);
@@ -181,6 +188,8 @@ const ClientesCRM = () => {
       tieneHijos: cliente?.tieneHijos || '',
       fechaNacimiento: cliente?.fechaNacimiento || '',
       preferenciaComunicacion: cliente?.preferenciaComunicacion || base.preferenciaComunicacion,
+      propiedadConsultadaInicial: cliente?.propiedadConsultadaInicial || { id: '', titulo: '', direccion: '' },
+      interesesCliente: Array.isArray(cliente?.interesesCliente) ? cliente.interesesCliente : [],
     };
   };
 
@@ -219,6 +228,8 @@ const ClientesCRM = () => {
         tieneHijos: form?.tieneHijos || '',
         fechaNacimiento: form?.fechaNacimiento || '',
         preferenciaComunicacion: form?.preferenciaComunicacion || 'whatsapp',
+        propiedadConsultadaInicial: form?.propiedadConsultadaInicial?.id ? form.propiedadConsultadaInicial : null,
+        interesesCliente: Array.isArray(form?.interesesCliente) ? form.interesesCliente : [],
       },
     };
   };
@@ -242,6 +253,16 @@ const ClientesCRM = () => {
     reloadClientes();
     crmService.stats.getDashboard().then(setDashStats).catch(() => {});
   }, [reloadClientes]);
+
+  useEffect(() => {
+    if (showModal) {
+      crmService.propiedades.getAll().then((data) => {
+        setPropiedadesList(Array.isArray(data) ? data : []);
+      }).catch(() => setPropiedadesList([]));
+      setPropSearch('');
+      setInteresInput('');
+    }
+  }, [showModal]);
 
   const openCreateModal = () => {
     setEditingClienteId(null);
@@ -1392,6 +1413,41 @@ const ClientesCRM = () => {
                 </div>
               )}
 
+              {/* Información Comercial */}
+              {(clienteSeleccionado.propiedadConsultadaInicial?.id || (clienteSeleccionado.interesesCliente && clienteSeleccionado.interesesCliente.length > 0)) && (
+                <div className={cardBase}>
+                  <h3 className="text-xl font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaBuilding className="text-orange-500" /> Información Comercial
+                  </h3>
+                  <div className="space-y-4">
+                    {clienteSeleccionado.propiedadConsultadaInicial?.id && (
+                      <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Propiedad por la que consultó primero</p>
+                        <div className="flex items-center gap-2">
+                          <FaBuilding className="text-orange-500" />
+                          <span className="font-semibold dark:text-gray-200">{clienteSeleccionado.propiedadConsultadaInicial.titulo}</span>
+                        </div>
+                        {clienteSeleccionado.propiedadConsultadaInicial.direccion && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{clienteSeleccionado.propiedadConsultadaInicial.direccion}</p>
+                        )}
+                      </div>
+                    )}
+                    {clienteSeleccionado.interesesCliente?.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-3 dark:text-gray-200">Intereses del cliente:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {clienteSeleccionado.interesesCliente.map((interes, idx) => (
+                            <span key={idx} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                              {interes}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Notas */}
               {clienteSeleccionado.notas && (
                 <div className={cardBase}>
@@ -2369,6 +2425,132 @@ const ClientesCRM = () => {
                         <span className="dark:text-gray-200">{caracteristica}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+
+                {/* Información Comercial */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaBuilding className="text-orange-500" /> Información Comercial
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Propiedad por la que consultó primero
+                      </label>
+                      {nuevoCliente.propiedadConsultadaInicial?.id && (
+                        <div className="flex items-center gap-2 mb-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg">
+                          <FaBuilding className="text-orange-500 flex-shrink-0" />
+                          <span className="flex-1 text-sm dark:text-gray-200">{nuevoCliente.propiedadConsultadaInicial.titulo}</span>
+                          <button
+                            type="button"
+                            onClick={() => setNuevoCliente((prev) => ({ ...prev, propiedadConsultadaInicial: { id: '', titulo: '', direccion: '' } }))}
+                            className="text-gray-400 hover:text-red-500"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      )}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={propSearch}
+                          onChange={(e) => setPropSearch(e.target.value)}
+                          placeholder="Buscar por título o dirección..."
+                          className="w-full px-4 py-2 pl-9 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      </div>
+                      {propSearch.trim().length > 1 && (
+                        <div className="mt-1 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+                          {propiedadesList
+                            .filter((p) => {
+                              const q = propSearch.toLowerCase();
+                              return (p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.direccion || '').toLowerCase().includes(q);
+                            })
+                            .slice(0, 8)
+                            .map((p) => (
+                              <button
+                                key={p._id || p.id}
+                                type="button"
+                                onClick={() => {
+                                  setNuevoCliente((prev) => ({
+                                    ...prev,
+                                    propiedadConsultadaInicial: {
+                                      id: String(p._id || p.id),
+                                      titulo: p.titulo || p.nombre || 'Sin título',
+                                      direccion: p.direccion || '',
+                                    },
+                                  }));
+                                  setPropSearch('');
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b dark:border-gray-700 last:border-0 text-sm dark:text-gray-200"
+                              >
+                                <span className="font-medium">{p.titulo || p.nombre || 'Sin título'}</span>
+                                {p.direccion && <span className="text-gray-500 dark:text-gray-400 ml-2 text-xs">{p.direccion}</span>}
+                              </button>
+                            ))}
+                          {propiedadesList.filter((p) => {
+                            const q = propSearch.toLowerCase();
+                            return (p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.direccion || '').toLowerCase().includes(q);
+                          }).length === 0 && (
+                            <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Sin resultados</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                        Intereses del cliente
+                      </label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {nuevoCliente.interesesCliente.map((interes, idx) => (
+                          <span key={idx} className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                            {interes}
+                            <button
+                              type="button"
+                              onClick={() => setNuevoCliente((prev) => ({ ...prev, interesesCliente: prev.interesesCliente.filter((_, i) => i !== idx) }))}
+                              className="text-blue-500 hover:text-red-500 ml-1"
+                            >
+                              <FaTimes className="text-xs" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={interesInput}
+                          onChange={(e) => setInteresInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if ((e.key === 'Enter' || e.key === ',') && interesInput.trim()) {
+                              e.preventDefault();
+                              const val = interesInput.trim().replace(/,$/, '');
+                              if (val && !nuevoCliente.interesesCliente.includes(val)) {
+                                setNuevoCliente((prev) => ({ ...prev, interesesCliente: [...prev.interesesCliente, val] }));
+                              }
+                              setInteresInput('');
+                            }
+                          }}
+                          placeholder="Ej: inversión, alquiler, zona norte... (Enter para agregar)"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = interesInput.trim();
+                            if (val && !nuevoCliente.interesesCliente.includes(val)) {
+                              setNuevoCliente((prev) => ({ ...prev, interesesCliente: [...prev.interesesCliente, val] }));
+                            }
+                            setInteresInput('');
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
