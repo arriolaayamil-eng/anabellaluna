@@ -1837,7 +1837,7 @@ const ClientesCRM = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="field-28" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Nombre *
+                        Nombre
                       </label>
                       <input
                         id="field-28"
@@ -1845,7 +1845,6 @@ const ClientesCRM = () => {
                         name="nombre"
                         value={nuevoCliente.nombre}
                         onChange={handleInputChange}
-                        required
                         placeholder="Juan"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
@@ -1853,7 +1852,7 @@ const ClientesCRM = () => {
 
                     <div>
                       <label htmlFor="field-29" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Apellido *
+                        Apellido
                       </label>
                       <input
                         id="field-29"
@@ -1861,7 +1860,6 @@ const ClientesCRM = () => {
                         name="apellido"
                         value={nuevoCliente.apellido}
                         onChange={handleInputChange}
-                        required
                         placeholder="Pérez"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
@@ -1869,7 +1867,7 @@ const ClientesCRM = () => {
 
                     <div>
                       <label htmlFor="field-30" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Email *
+                        Email
                       </label>
                       <input
                         id="field-30"
@@ -1877,7 +1875,6 @@ const ClientesCRM = () => {
                         name="email"
                         value={nuevoCliente.email}
                         onChange={handleInputChange}
-                        required
                         placeholder="juan@email.com"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
@@ -1885,7 +1882,7 @@ const ClientesCRM = () => {
 
                     <div>
                       <label htmlFor="field-31" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Teléfono *
+                        Teléfono
                       </label>
                       <input
                         id="field-31"
@@ -1893,7 +1890,6 @@ const ClientesCRM = () => {
                         name="telefono"
                         value={nuevoCliente.telefono}
                         onChange={handleInputChange}
-                        required
                         placeholder="+54 11 1234-5678"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       />
@@ -2130,14 +2126,13 @@ const ClientesCRM = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label htmlFor="field-44" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Tipo de Cliente *
+                        Tipo de Cliente
                       </label>
                       <select
                         id="field-44"
                         name="tipoCliente"
                         value={nuevoCliente.tipoCliente}
                         onChange={handleInputChange}
-                        required
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       >
                         <option value="Comprador">Comprador</option>
@@ -2149,14 +2144,13 @@ const ClientesCRM = () => {
 
                     <div>
                       <label htmlFor="field-45" className="block text-sm font-medium mb-2 dark:text-gray-200">
-                        Estado en el Ciclo *
+                        Estado en el Ciclo
                       </label>
                       <select
                         id="field-45"
                         name="estado"
                         value={nuevoCliente.estado}
                         onChange={handleInputChange}
-                        required
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       >
                         <option value="Lead">Lead</option>

@@ -2539,20 +2539,20 @@ const Propiedades = () => {
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre *</label>
-                              <input type="text" name="nombre" value={nuevoCliente.nombre} onChange={handleClienteInputChange} required placeholder="Juan" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre</label>
+                              <input type="text" name="nombre" value={nuevoCliente.nombre} onChange={handleClienteInputChange} placeholder="Juan" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido *</label>
-                              <input type="text" name="apellido" value={nuevoCliente.apellido} onChange={handleClienteInputChange} required placeholder="Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Apellido</label>
+                              <input type="text" name="apellido" value={nuevoCliente.apellido} onChange={handleClienteInputChange} placeholder="Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email *</label>
-                              <input type="email" name="email" value={nuevoCliente.email} onChange={handleClienteInputChange} required placeholder="juan@email.com" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Email</label>
+                              <input type="email" name="email" value={nuevoCliente.email} onChange={handleClienteInputChange} placeholder="juan@email.com" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono *</label>
-                              <input type="tel" name="telefono" value={nuevoCliente.telefono} onChange={handleClienteInputChange} required placeholder="+54 11 1234-5678" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono</label>
+                              <input type="tel" name="telefono" value={nuevoCliente.telefono} onChange={handleClienteInputChange} placeholder="+54 11 1234-5678" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                             </div>
                             <div>
                               <label className="block text-sm font-medium mb-2 dark:text-gray-200">Teléfono Alternativo</label>
