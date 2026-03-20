@@ -53,6 +53,20 @@ router.get('/admins', authenticateToken, requireCRMUser, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.get('/for-assignment', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const agentes = await Agente.find({}).select('_id nombre email cargo').sort({ nombre: 1 }).lean();
+    const admins = await User.find({ role: 'admin' }).select('_id nombre username email cargo').sort({ nombre: 1 }).lean();
+
+    const list = [
+      ...agentes.map((a) => ({ _id: String(a._id), nombre: a.nombre || '', cargo: a.cargo || 'Agente', tipo: 'agente' })),
+      ...admins.map((u) => ({ _id: String(u._id), nombre: u.nombre || u.username || '', cargo: u.cargo || 'Administrador', tipo: 'admin' })),
+    ].filter((x) => x.nombre);
+
+    res.json(list);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
 
   try {

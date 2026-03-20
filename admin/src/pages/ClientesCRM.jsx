@@ -29,6 +29,7 @@ const ClientesCRM = () => {
   const [propiedadesList, setPropiedadesList] = useState([]);
   const [propSearch, setPropSearch] = useState('');
   const [interesInput, setInteresInput] = useState('');
+  const [agentesOptions, setAgentesOptions] = useState([]);
 
   const createEmptyClienteForm = () => ({
     nombre: '',
@@ -55,6 +56,7 @@ const ClientesCRM = () => {
     provincia: 'Buenos Aires',
     ocupacion: '',
     empresa: '',
+    agenteId: '',
     propiedadConsultadaInicial: { id: '', titulo: '', direccion: '' },
     interesesCliente: [],
   });
@@ -110,6 +112,7 @@ const ClientesCRM = () => {
       interacciones: typeof md.interacciones === 'number' ? md.interacciones : Number(md.interacciones || 0),
       propiedadesVistas: typeof md.propiedadesVistas === 'number' ? md.propiedadesVistas : Number(md.propiedadesVistas || 0),
       agenteId: item?.agenteId || '',
+      agenteNombre: md.agente || '',
       propiedadConsultadaInicial: md.propiedadConsultadaInicial || { id: '', titulo: '', direccion: '' },
       interesesCliente: Array.isArray(md.interesesCliente) ? md.interesesCliente : [],
       metadata: md,
@@ -149,6 +152,7 @@ const ClientesCRM = () => {
       provincia: cliente?.provincia || base.provincia,
       ocupacion: cliente?.ocupacion || '',
       empresa: cliente?.empresa || '',
+      agenteId: cliente?.agenteId || '',
       propiedadConsultadaInicial: cliente?.propiedadConsultadaInicial || { id: '', titulo: '', direccion: '' },
       interesesCliente: Array.isArray(cliente?.interesesCliente) ? cliente.interesesCliente : [],
     };
@@ -177,12 +181,13 @@ const ClientesCRM = () => {
         'baños': form?.baños || '',
         caracteristicas: Array.isArray(form?.caracteristicas) ? form.caracteristicas : [],
         origen: form?.origen || 'Web',
-        agente: form?.agente || '',
         scoring: Number(form?.scoring || 50),
         ciudad: form?.ciudad || 'Buenos Aires',
         provincia: form?.provincia || 'Buenos Aires',
         ocupacion: form?.ocupacion || '',
         empresa: form?.empresa || '',
+        agente: form?.agenteNombre || form?.agente || '',
+        agenteId: form?.agenteId || '',
         propiedadConsultadaInicial: form?.propiedadConsultadaInicial?.id ? form.propiedadConsultadaInicial : null,
         interesesCliente: Array.isArray(form?.interesesCliente) ? form.interesesCliente : [],
       },
@@ -213,6 +218,9 @@ const ClientesCRM = () => {
       crmService.propiedades.getAll().then((data) => {
         setPropiedadesList(Array.isArray(data) ? data : []);
       }).catch(() => setPropiedadesList([]));
+      crmService.agentes.forAssignment().then((data) => {
+        setAgentesOptions(Array.isArray(data) ? data : []);
+      }).catch(() => setAgentesOptions([]));
       setPropSearch('');
       setInteresInput('');
     }
@@ -355,6 +363,16 @@ const ClientesCRM = () => {
     setNuevoCliente(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleAgenteChange = (e) => {
+    const id = e.target.value;
+    const found = agentesOptions.find((a) => a._id === id);
+    setNuevoCliente(prev => ({
+      ...prev,
+      agenteId: id,
+      agenteNombre: found ? found.nombre : '',
     }));
   };
 
@@ -1320,16 +1338,14 @@ const ClientesCRM = () => {
                     </label>
                     <select
                       name="agente"
-                      value={nuevoCliente.agente}
-                      onChange={handleInputChange}
+                      value={nuevoCliente.agenteId}
+                      onChange={handleAgenteChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     >
                       <option value="">Sin asignar</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
+                      {agentesOptions.map((a) => (
+                        <option key={a._id} value={a._id}>{a.nombre}{a.cargo ? ` — ${a.cargo}` : ''}</option>
+                      ))}
                     </select>
                   </div>
 
