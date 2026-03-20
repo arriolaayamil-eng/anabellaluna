@@ -28,7 +28,7 @@ router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
     const links = await DocumentLink.find({
       entity_type: 'propiedad',
       entity_id: { $in: propIds },
-    }).populate({ path: 'document', select: 'nombre mimetype url' }).lean();
+    }).sort({ order: 1, created_at: 1 }).populate({ path: 'document', select: 'nombre mimetype url' }).lean();
 
     const byProp = {};
     for (const l of links) {
