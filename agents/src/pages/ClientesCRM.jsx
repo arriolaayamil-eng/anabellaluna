@@ -220,7 +220,6 @@ const ClientesCRM = () => {
         baños: form?.baños || '',
         caracteristicas: Array.isArray(form?.caracteristicas) ? form.caracteristicas : [],
         origen: form?.origen || 'Web',
-        agente: form?.agente || '',
         scoring: Number(form?.scoring || 50),
         ciudad: form?.ciudad || 'Buenos Aires',
         provincia: form?.provincia || 'Buenos Aires',
