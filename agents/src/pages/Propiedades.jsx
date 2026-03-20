@@ -581,7 +581,6 @@ const Propiedades = () => {
     };
   }, []);
 
-
   useEffect(() => {
     const id = propiedadSeleccionada && propiedadSeleccionada.id ? propiedadSeleccionada.id : null;
     if (vistaActual !== 'detalle' || !id) {
