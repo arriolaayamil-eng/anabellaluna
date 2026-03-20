@@ -365,8 +365,11 @@
 .slider-card {
     .slide-part {
         width: 100%;
-        overflow: hidden;
         border-radius: $border-radius-lg;
+        .slick-list {
+            border-radius: $border-radius-lg;
+            transition: height 0.3s ease;
+        }
         .service-img-wrap {
             width: 100%;
             img{

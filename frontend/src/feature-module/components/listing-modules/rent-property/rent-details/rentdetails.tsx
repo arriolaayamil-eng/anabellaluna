@@ -45,6 +45,7 @@ const Rentdetails = () => {
     fade: true,
     arrows: false,
     infinite: true,
+    adaptiveHeight: true,
     asNavFor: thumbSlider,
   };
 
