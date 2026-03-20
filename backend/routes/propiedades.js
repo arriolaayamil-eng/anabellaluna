@@ -1,7 +1,16 @@
 const crypto = require('crypto');
 const express = require('express');
 const Propiedad = require('../models/Propiedad');
+const DocumentLink = require('../models/DocumentLink');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
+
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic']);
+const isImageDoc = (doc) => {
+  if (!doc) return false;
+  if (doc.mimetype && doc.mimetype.startsWith('image/')) return true;
+  const ext = String(doc.nombre || '').split('.').pop().toLowerCase();
+  return IMAGE_EXTS.has(ext);
+};
 
 const router = express.Router();
 
@@ -12,7 +21,30 @@ router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
     const filter = q ? { $or: [ { title: { $regex: q, $options: 'i' } }, { description: { $regex: q, $options: 'i' } } ] } : {};
     if (scopeId) filter.agentId = scopeId;
     const items = await Propiedad.find(filter).sort({ updatedAt: -1 }).limit(1000).lean();
-    res.json(items);
+
+    if (!items.length) return res.json([]);
+
+    const propIds = items.map((p) => String(p._id));
+    const links = await DocumentLink.find({
+      entity_type: 'propiedad',
+      entity_id: { $in: propIds },
+    }).populate({ path: 'document', select: 'nombre mimetype url' }).lean();
+
+    const byProp = {};
+    for (const l of links) {
+      const pid = l.entity_id;
+      if (!byProp[pid]) byProp[pid] = [];
+      if (l.document) byProp[pid].push(l.document);
+    }
+
+    const result = items.map((p) => {
+      const docs = byProp[String(p._id)] || [];
+      const images = docs.filter(isImageDoc);
+      const coverDoc = images[0] || null;
+      return { ...p, coverUrl: coverDoc ? (coverDoc.url || '') : '', imageCount: images.length };
+    });
+
+    res.json(result);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

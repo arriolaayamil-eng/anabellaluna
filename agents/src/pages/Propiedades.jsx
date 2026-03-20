@@ -104,7 +104,6 @@ const Propiedades = () => {
   const [adjuntosError, setAdjuntosError] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [docBlobUrls, setDocBlobUrls] = useState({});
-  const [coverUrls, setCoverUrls] = useState({});
   const [lightboxDoc, setLightboxDoc] = useState(null);
 
   const [filesFotos, setFilesFotos] = useState([]);
@@ -536,7 +535,8 @@ const Propiedades = () => {
             agente: agenteNombre,
             agenteId: meta.agenteId || p.agentId || '',
             visitas: Number(meta.visitas || 0),
-            fotos: Number(meta.fotos || 0),
+            coverUrl: p.coverUrl || '',
+            fotos: p.imageCount != null ? p.imageCount : Number(meta.fotos || 0),
             fechaPublicacion: meta.fechaPublicacion || '',
             comision: Number(meta.comision || 0),
             m2: Number(meta.m2Totales || meta.m2 || 0),
@@ -581,40 +581,6 @@ const Propiedades = () => {
     };
   }, []);
 
-  // Load cover images for property grid cards
-  useEffect(() => {
-    if (!propiedades.length) { setCoverUrls({}); return undefined; }
-    let cancelled = false;
-    const created = [];
-    (async () => {
-      const token = getAuthToken();
-      const result = {};
-      await Promise.allSettled(propiedades.map(async (p) => {
-        if (cancelled) return;
-        try {
-          const links = await crmService.links.getByEntity('propiedad', p.id);
-          if (cancelled || !Array.isArray(links)) return;
-          const firstImg = links
-            .map((l) => l?.document)
-            .find((d) => d && d.url && isImageDoc(d));
-          if (!firstImg) return;
-          const raw = String(firstImg.url);
-          if (raw.startsWith('http')) { result[p.id] = raw; return; }
-          const res = await fetch(`${API_CONFIG.baseURL}${raw}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (cancelled || !res.ok) return;
-          const blob = await res.blob();
-          if (cancelled) return;
-          const blobUrl = URL.createObjectURL(blob);
-          created.push(blobUrl);
-          result[p.id] = blobUrl;
-        } catch { /* skip */ }
-      }));
-      if (!cancelled) setCoverUrls(result);
-    })();
-    return () => { cancelled = true; created.forEach((u) => URL.revokeObjectURL(u)); };
-  }, [propiedades]);
 
   useEffect(() => {
     const id = propiedadSeleccionada && propiedadSeleccionada.id ? propiedadSeleccionada.id : null;
@@ -1805,9 +1771,9 @@ const Propiedades = () => {
                 <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
                   {/* Portada */}
                   <div className="h-48 rounded-lg mb-4 relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
-                    {coverUrls[propiedad.id] ? (
+                    {propiedad.coverUrl ? (
                       <img
-                        src={coverUrls[propiedad.id]}
+                        src={propiedad.coverUrl}
                         alt={propiedad.titulo}
                         className="w-full h-full object-cover"
                         onError={(e) => { e.target.style.display = 'none'; }}

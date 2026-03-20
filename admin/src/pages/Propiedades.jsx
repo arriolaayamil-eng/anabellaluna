@@ -498,7 +498,8 @@ const Propiedades = () => {
             agente: agenteNombre,
             agenteId: meta.agenteId || p.agentId || '',
             visitas: Number(meta.visitas || 0),
-            fotos: Number(meta.fotos || 0),
+            coverUrl: p.coverUrl || '',
+            fotos: p.imageCount != null ? p.imageCount : Number(meta.fotos || 0),
             fechaPublicacion: meta.fechaPublicacion || '',
             comision: Number(meta.comision || 0),
             m2: Number(meta.m2Totales || meta.m2 || 0),
@@ -1267,9 +1268,20 @@ const Propiedades = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {propiedades.map((propiedad) => (
             <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
-              {/* Imagen placeholder */}
-              <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                <FaHome className="text-6xl text-white opacity-30" />
+              {/* Portada */}
+              <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 relative overflow-hidden">
+                {propiedad.coverUrl ? (
+                  <img
+                    src={propiedad.coverUrl}
+                    alt={propiedad.titulo}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FaHome className="text-6xl text-white opacity-30" />
+                  </div>
+                )}
                 <div className="absolute top-3 right-3 flex gap-2">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                     propiedad.estado === 'Disponible' ? 'bg-green-500 text-white' :
