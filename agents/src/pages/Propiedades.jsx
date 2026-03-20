@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 
 import Chart from 'react-apexcharts';
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
-import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaFileAlt, FaDownload, FaLink, FaCopy, FaGlobe, FaLock } from 'react-icons/fa';
+import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaFileAlt, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
 
 import { confirmToast } from '../utils/confirmToast';
@@ -102,6 +102,7 @@ const Propiedades = () => {
   const [adjuntos, setAdjuntos] = useState([]);
   const [adjuntosLoading, setAdjuntosLoading] = useState(false);
   const [adjuntosError, setAdjuntosError] = useState('');
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [docBlobUrls, setDocBlobUrls] = useState({});
   const [coverBlobUrls, setCoverBlobUrls] = useState({});
@@ -113,9 +114,12 @@ const Propiedades = () => {
 
   const [videoUrlDraft, setVideoUrlDraft] = useState('');
 
-  // Drag-and-drop refs for file reordering
+  // Drag-and-drop refs for file reordering (upload form)
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
+  // Drag-and-drop refs for adjuntos reordering (detail view)
+  const adjDragItem = useRef(null);
+  const adjDragOverItem = useRef(null);
 
   const reorderFiles = useCallback((setter) => {
     setter((prev) => {
@@ -407,6 +411,23 @@ const Propiedades = () => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  };
+
+  const saveAdjuntosOrder = async (ordered) => {
+    setIsSavingOrder(true);
+    try {
+      await crmService.links.reorder(ordered.map((l) => String(l._id)));
+    } catch { /* silent — order re-syncs on next load */ }
+    finally { setIsSavingOrder(false); }
+  };
+
+  const reorderAdjuntos = (from, to) => {
+    if (from === null || to === null || from === to) return;
+    const items = [...adjuntos];
+    const [dragged] = items.splice(from, 1);
+    items.splice(to, 0, dragged);
+    setAdjuntos(items);
+    saveAdjuntosOrder(items);
   };
 
   const loadAdjuntos = async (propId) => {
@@ -2051,14 +2072,33 @@ const Propiedades = () => {
                 )}
 
                 {Array.isArray(adjuntos) && adjuntos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {adjuntos.map((l) => {
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><FaGripVertical size={10} /> Arrastrá para reordenar</span>
+                      {isSavingOrder && <span className="text-xs text-blue-500 animate-pulse">Guardando...</span>}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {adjuntos.map((l, adjIdx) => {
                       const d = l && l.document ? l.document : null;
                       const docId = d && d._id ? d._id : null;
                       const isImg = d && isImageDoc(d);
                       const imgSrc = isImg ? getDocImgUrl(d) : null;
                       return (
-                        <div key={l._id} className="group relative rounded-xl overflow-hidden border dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col">
+                        <div
+                          key={l._id}
+                          draggable
+                          onDragStart={() => { adjDragItem.current = adjIdx; }}
+                          onDragEnter={() => { adjDragOverItem.current = adjIdx; }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDragEnd={() => {
+                            const from = adjDragItem.current;
+                            const to = adjDragOverItem.current;
+                            adjDragItem.current = null;
+                            adjDragOverItem.current = null;
+                            reorderAdjuntos(from, to);
+                          }}
+                          className="group relative rounded-xl overflow-hidden border dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col cursor-grab active:cursor-grabbing"
+                        >
                           {/* Thumbnail / icon */}
                           <div className="aspect-square flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-900">
                             {isImg && imgSrc ? (
@@ -2109,7 +2149,8 @@ const Propiedades = () => {
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

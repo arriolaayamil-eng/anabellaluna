@@ -6,6 +6,7 @@ export const crmService = {
     getByEntity: (entityType, entityId) => api.get(`/crm/links?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`),
     link: ({ documentId, entityType, entityId }) => api.post('/crm/link', { documentId, entityType, entityId }),
     unlink: ({ documentId, entityType, entityId }) => api.post('/crm/unlink', { documentId, entityType, entityId }),
+    reorder: (ids) => api.patch('/crm/links/reorder', { ids }),
   },
 
   // ============ PROPIEDADES ============

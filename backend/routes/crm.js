@@ -167,12 +167,34 @@ router.get('/links', authenticateToken, requireCRMUser, async (req, res) => {
     const scopeId = agentScopeId(req);
     const filter = { entity_type: entityType, entity_id: entityId };
     if (scopeId) filter.agenteId = scopeId;
-    const links = await DocumentLink.find(filter).populate('document', 'nombre tipo agenteId url categoria tamano fecha').exec();
+    const links = await DocumentLink.find(filter)
+      .sort({ order: 1, created_at: 1 })
+      .populate('document', 'nombre tipo agenteId url categoria tamano fecha mimetype')
+      .exec();
     if (scopeId) {
       const safe = links.filter((l) => String(l.document && l.document.agenteId ? l.document.agenteId : '') === scopeId);
       return res.json(safe);
     }
     res.json(links);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Reorder links: PATCH /crm/links/reorder { ids: [linkId, ...] } in desired order
+router.patch('/links/reorder', authenticateToken, requireCRMUser, async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'ids array required' });
+  try {
+    const scopeId = agentScopeId(req);
+    const ops = ids.map((id, idx) => ({
+      updateOne: {
+        filter: scopeId ? { _id: id, agenteId: scopeId } : { _id: id },
+        update: { $set: { order: idx } },
+      },
+    }));
+    await DocumentLink.bulkWrite(ops);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

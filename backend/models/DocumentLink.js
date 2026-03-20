@@ -5,6 +5,7 @@ const DocumentLinkSchema = new mongoose.Schema({
   entity_type: String,
   entity_id: String,
   agenteId: { type: String, default: '', index: true },
+  order: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now }
 });
 
