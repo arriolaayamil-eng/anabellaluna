@@ -3,6 +3,10 @@ import { Link, useParams, useSearchParams } from "react-router";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import Lightbox from "yet-another-react-lightbox";
+import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
+import "yet-another-react-lightbox/styles.css";
+import "yet-another-react-lightbox/plugins/thumbnails.css";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import BuyLeftForm from "./buyLeftForm";
 import { all_routes } from "../../../../routes/all_routes";
@@ -23,6 +27,7 @@ const BuyDetails = () => {
 
   const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const mainRef = useRef<SliderType>(null);
   const thumbRef = useRef<SliderType>(null);
@@ -283,7 +288,12 @@ const BuyDetails = () => {
                     >
                       {galleryImages.length ? (
                         galleryImages.map((src, idx) => (
-                          <div key={`${src}-${idx}`} className="service-img-wrap">
+                          <div
+                            key={`${src}-${idx}`}
+                            className="service-img-wrap"
+                            style={{ cursor: "zoom-in" }}
+                            onClick={() => setLightboxIndex(idx)}
+                          >
                             <ImageWithBasePath
                               src={src}
                               className="img-fluid"
@@ -321,6 +331,15 @@ const BuyDetails = () => {
                   </Slider>
                 </div>
                 {/* End slider */}
+                <Lightbox
+                  open={lightboxIndex != null}
+                  close={() => setLightboxIndex(null)}
+                  index={lightboxIndex ?? 0}
+                  slides={galleryImages.map((src) => ({ src }))}
+                  plugins={[Thumbnails]}
+                  thumbnails={{ border: 2, borderRadius: 4, padding: 2, gap: 8, showToggle: false }}
+                  animation={{ fade: 300, swipe: 300 }}
+                />
                 {/* items-2*/}
                 <div className="accordion accordions-items-seperate">
                   {/* descritpion items */}
