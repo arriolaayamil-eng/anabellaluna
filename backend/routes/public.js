@@ -134,7 +134,7 @@ async function getPropertyCoverMap(propertyIds) {
   if (!ids.length) return new Map();
 
   const links = await DocumentLink.find({ entity_type: 'propiedad', entity_id: { $in: ids } })
-    .sort({ created_at: 1 })
+    .sort({ order: 1, created_at: 1 })
     .populate('document', '_id url object_key bucket tipo categoria')
     .lean();
 
@@ -478,7 +478,7 @@ router.get('/properties/:slug', async (req, res) => {
     const agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
 
     const links = await DocumentLink.find({ entity_type: 'propiedad', entity_id: String(prop._id) })
-      .sort({ created_at: 1 })
+      .sort({ order: 1, created_at: 1 })
       .populate('document', '_id url object_key bucket tipo categoria')
       .lean();
 
