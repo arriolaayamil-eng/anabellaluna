@@ -104,6 +104,7 @@ const Propiedades = () => {
   const [adjuntosError, setAdjuntosError] = useState('');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [docBlobUrls, setDocBlobUrls] = useState({});
+  const [coverBlobUrls, setCoverBlobUrls] = useState({});
   const [lightboxDoc, setLightboxDoc] = useState(null);
 
   const [filesFotos, setFilesFotos] = useState([]);
@@ -580,6 +581,36 @@ const Propiedades = () => {
       mounted = false;
     };
   }, []);
+
+  // Load authenticated cover images for property cards
+  useEffect(() => {
+    const propsWithCover = propiedades.filter((p) => p.coverUrl);
+    if (!propsWithCover.length) { setCoverBlobUrls({}); return undefined; }
+    let cancelled = false;
+    const created = [];
+    (async () => {
+      const token = getAuthToken();
+      const result = {};
+      await Promise.allSettled(propsWithCover.map(async (p) => {
+        if (cancelled) return;
+        const raw = String(p.coverUrl);
+        if (raw.startsWith('http')) { result[p.id] = raw; return; }
+        try {
+          const res = await fetch(`${API_CONFIG.baseURL}${raw}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (cancelled || !res.ok) return;
+          const blob = await res.blob();
+          if (cancelled) return;
+          const blobUrl = URL.createObjectURL(blob);
+          created.push(blobUrl);
+          result[p.id] = blobUrl;
+        } catch { /* skip */ }
+      }));
+      if (!cancelled) setCoverBlobUrls(result);
+    })();
+    return () => { cancelled = true; created.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [propiedades]);
 
   useEffect(() => {
     const id = propiedadSeleccionada && propiedadSeleccionada.id ? propiedadSeleccionada.id : null;
@@ -1770,9 +1801,9 @@ const Propiedades = () => {
                 <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
                   {/* Portada */}
                   <div className="h-48 rounded-lg mb-4 relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
-                    {propiedad.coverUrl ? (
+                    {coverBlobUrls[propiedad.id] ? (
                       <img
-                        src={propiedad.coverUrl}
+                        src={coverBlobUrls[propiedad.id]}
                         alt={propiedad.titulo}
                         className="w-full h-full object-cover"
                         onError={(e) => { e.target.style.display = 'none'; }}
