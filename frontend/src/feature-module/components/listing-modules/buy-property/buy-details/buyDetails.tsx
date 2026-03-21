@@ -588,80 +588,122 @@ const BuyDetails = () => {
                       className="accordion-collapse collapse show"
                     >
                       <div className="accordion-body">
-                        {property?.status ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Estado: {property.status}
-                          </p>
-                        ) : null}
-                        {property?.ageYears != null ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Antigüedad (años): {property.ageYears}
-                          </p>
-                        ) : null}
-                        {property?.category ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Categoría: {property.category}
-                          </p>
-                        ) : null}
-                        {property?.propertyCode ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Código: {property.propertyCode}
-                          </p>
-                        ) : null}
-                        {property?.offerPrice != null ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Precio oferta: {property.offerPrice}
-                          </p>
-                        ) : null}
-                        {property?.pricePerM2 != null ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Price / m²: {property.pricePerM2}
-                          </p>
-                        ) : null}
-                        {property?.structureType ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Tipo de estructura: {property.structureType}
-                          </p>
-                        ) : null}
-                        {property?.location?.neighborhood ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Barrio: {property.location.neighborhood}
-                          </p>
-                        ) : null}
-                        {property?.location?.city ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Ciudad: {property.location.city}
-                          </p>
-                        ) : null}
-                        {property?.location?.province ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Provincia: {property.location.province}
-                          </p>
-                        ) : null}
-                        {property?.location?.postalCode ? (
-                          <p className="mb-2">
-                            <i className="fa-solid fa-circle-check text-success me-2 fs-18" />
-                            Código postal: {property.location.postalCode}
-                          </p>
-                        ) : null}
-                        {!property?.status &&
-                        property?.ageYears == null &&
-                        !property?.location?.neighborhood &&
-                        !property?.location?.city &&
-                        !property?.location?.province &&
-                        !property?.location?.postalCode ? (
+                        {!property?.status && property?.ageYears == null && !property?.category && !property?.propertyCode && !property?.offerPrice && !property?.pricePerM2 && !property?.structureType && !property?.location?.neighborhood && !property?.location?.city && !property?.location?.province && !property?.location?.postalCode ? (
                           <p className="mb-0">{isLoading ? "Cargando..." : "Sin detalles adicionales"}</p>
-                        ) : null}
+                        ) : (
+                          <div className="row row-gap-4">
+                            {property?.status ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">verified</i>
+                                    Estado: {property.status}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.ageYears != null ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">history</i>
+                                    Antigüedad: {property.ageYears} años
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.category ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">category</i>
+                                    Categoría: {property.category}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.propertyCode ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">tag</i>
+                                    Código: {property.propertyCode}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.offerPrice != null ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">sell</i>
+                                    Precio oferta: {property.offerPrice}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.pricePerM2 != null ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">square_foot</i>
+                                    Precio / m²: {property.pricePerM2}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.structureType ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">foundation</i>
+                                    Tipo de estructura: {property.structureType}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.location?.neighborhood ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">location_city</i>
+                                    Barrio: {property.location.neighborhood}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.location?.city ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">location_on</i>
+                                    Ciudad: {property.location.city}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.location?.province ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">map</i>
+                                    Provincia: {property.location.province}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                            {property?.location?.postalCode ? (
+                              <div className="col-lg-3 col-md-6">
+                                <div className="buy-property-items">
+                                  <p className="mb-0">
+                                    <i className="material-icons-outlined">markunread_mailbox</i>
+                                    Código postal: {property.location.postalCode}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

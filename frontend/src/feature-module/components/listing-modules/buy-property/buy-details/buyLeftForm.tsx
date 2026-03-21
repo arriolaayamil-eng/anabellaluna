@@ -43,16 +43,16 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
   };
 
   const validateContact = (fullName: string, email: string, phone: string) => {
-    if (!String(fullName || "").trim()) return "Name is required";
+    if (!String(fullName || "").trim()) return "El nombre es obligatorio";
     const e = String(email || "").trim();
     const p = String(phone || "").trim();
-    if (!e && !p) return "Email or Phone is required";
+    if (!e && !p) return "Se requiere email o teléfono";
     return "";
   };
 
   const submitInfo = async () => {
     if (!propertySlug) {
-      setFeedback({ type: "error", message: "Missing property identifier" });
+      setFeedback({ type: "error", message: "Error: propiedad no identificada" });
       return;
     }
     const msg = validateContact(infoName, infoEmail, infoPhone);
@@ -71,10 +71,10 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
         phone: infoPhone || undefined,
         message: infoMessage || undefined,
       });
-      setFeedback({ type: "success", message: "Your enquiry was sent" });
+      setFeedback({ type: "success", message: "Tu consulta fue enviada" });
       setInfoMessage("");
     } catch (e: any) {
-      setFeedback({ type: "error", message: e?.message || "Could not send enquiry" });
+      setFeedback({ type: "error", message: e?.message || "No se pudo enviar la consulta" });
     } finally {
       setIsSubmittingInfo(false);
     }
@@ -82,7 +82,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
 
   const submitVisit = async () => {
     if (!propertySlug) {
-      setFeedback({ type: "error", message: "Missing property identifier" });
+      setFeedback({ type: "error", message: "Error: propiedad no identificada" });
       return;
     }
     const msg = validateContact(visitName, visitEmail, visitPhone);
@@ -91,17 +91,17 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
       return;
     }
     if (!visitDay) {
-      setFeedback({ type: "error", message: "Select Day is required" });
+      setFeedback({ type: "error", message: "Selecciona un día" });
       return;
     }
     if (!visitTime) {
-      setFeedback({ type: "error", message: "Select Time is required" });
+      setFeedback({ type: "error", message: "Selecciona un horario" });
       return;
     }
 
     const startIso = dayjs(`${visitDay} ${visitTime}`, "YYYY-MM-DD HH:mm", true);
     if (!startIso.isValid()) {
-      setFeedback({ type: "error", message: "Invalid date/time" });
+      setFeedback({ type: "error", message: "Fecha u hora inválida" });
       return;
     }
     const endIso = startIso.add(1, "hour");
@@ -118,10 +118,10 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
         start: startIso.toISOString(),
         end: endIso.toISOString(),
       });
-      setFeedback({ type: "success", message: "Visit scheduled" });
+      setFeedback({ type: "success", message: "Visita programada" });
       setVisitMessage("");
     } catch (e: any) {
-      setFeedback({ type: "error", message: e?.message || "Could not schedule visit" });
+      setFeedback({ type: "error", message: e?.message || "No se pudo programar la visita" });
     } finally {
       setIsSubmittingVisit(false);
     }
@@ -136,7 +136,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
           {/* Items-1 */}
           <div className="card">
             <div className="card-header">
-              <h5 className="mb-0">Enquiry</h5>
+              <h5 className="mb-0">Consulta</h5>
             </div>
             <div className="card-body">
               {feedback ? (
@@ -167,7 +167,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                   <i className="material-icons-outlined fs-14 me-1 d-flex align-center">
                     info
                   </i>
-                  Request Info{" "}
+                  Solicitar Info{" "}
                 </Link>
                 <Link
                   to="#"
@@ -182,7 +182,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                   }}
                 >
                   <i className="material-icons-outlined fs-14 me-1">videocam</i>
-                  Schedule a Visit{" "}
+                  Programar Visita{" "}
                 </Link>
               </div>
 
@@ -216,11 +216,11 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                   </div>
                   {/* end card */}
                   <div className="mb-3">
-                    <label className="form-label fw-semibold"> Name </label>
+                    <label className="form-label fw-semibold"> Nombre </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Your Name"
+                      placeholder="Tu nombre"
                       value={infoName}
                       onChange={(e) => setInfoName(e.target.value)}
                     />
@@ -230,24 +230,24 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Your Email"
+                      placeholder="Tu email"
                       value={infoEmail}
                       onChange={(e) => setInfoEmail(e.target.value)}
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold"> Phone </label>
+                    <label className="form-label fw-semibold"> Teléfono </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Your Phone Number"
+                      placeholder="Tu teléfono"
                       value={infoPhone}
                       onChange={(e) => setInfoPhone(e.target.value)}
                     />
                   </div>
                   <div className="mb-4">
                     <label className="form-label fw-semibold">
-                      Description
+                      Mensaje
                     </label>
                     <textarea
                       className="form-control"
@@ -263,7 +263,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                       onClick={submitInfo}
                       disabled={isSubmittingInfo}
                     >
-                      Submit
+                      Enviar
                     </button>
                   </div>
                 </div>
@@ -296,37 +296,37 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                   </div>
                   {/* end card */}
                   <div className="select-date-item">
-                    <h6 className="fs-16 fw-semibold mb-2"> Select Day </h6>
+                    <h6 className="fs-16 fw-semibold mb-2"> Seleccionar Día </h6>
                     <div className="d-flex align-items-center justify-content-between gap-1 flex-wrap">
                       <div className="d-flex flex-column gap-1 border">
-                        <p className="mb-0"> Mon </p>
+                        <p className="mb-0"> Lun </p>
                         <h5 className="mb-0"> 21 </h5>
                         <p className="mb-0"> Feb </p>
                       </div>
                       <div className="d-flex flex-column gap-1 border">
-                        <p className="mb-0"> Tue </p>
+                        <p className="mb-0"> Mar </p>
                         <h5 className="mb-0"> 22 </h5>
                         <p className="mb-0"> Feb </p>
                       </div>
                       <div className="d-flex flex-column gap-1 border">
-                        <p className="mb-0"> Wed </p>
+                        <p className="mb-0"> Mié </p>
                         <h5 className="mb-0"> 23 </h5>
                         <p className="mb-0"> Feb </p>
                       </div>
                       <div className="d-flex flex-column gap-1 border">
-                        <p className="mb-0"> Thu </p>
+                        <p className="mb-0"> Jue </p>
                         <h5 className="mb-0"> 24 </h5>
                         <p className="mb-0"> Feb </p>
                       </div>
                       <div className="d-flex flex-column gap-1 border">
-                        <p className="mb-0"> Fri </p>
+                        <p className="mb-0"> Vie </p>
                         <h5 className="mb-0"> 25 </h5>
                         <p className="mb-0"> Feb </p>
                       </div>
                     </div>
                   </div>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold"> Day </label>
+                    <label className="form-label fw-semibold"> Fecha </label>
                     <input
                       type="date"
                       className="form-control"
@@ -337,7 +337,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                   <div className="mb-3">
                     <label className="form-label fw-semibold">
                       {" "}
-                      Select Time{" "}
+                      Seleccionar Horario{" "}
                     </label>
                     <div className="input-group w-auto input-group-flat">
                       <TimePicker
@@ -355,11 +355,11 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                     </div>
                   </div>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold"> Name </label>
+                    <label className="form-label fw-semibold"> Nombre </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Your Name"
+                      placeholder="Tu nombre"
                       value={visitName}
                       onChange={(e) => setVisitName(e.target.value)}
                     />
@@ -369,17 +369,17 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Your Email"
+                      placeholder="Tu email"
                       value={visitEmail}
                       onChange={(e) => setVisitEmail(e.target.value)}
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold"> Phone </label>
+                    <label className="form-label fw-semibold"> Teléfono </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Your Phone Number"
+                      placeholder="Tu teléfono"
                       value={visitPhone}
                       onChange={(e) => setVisitPhone(e.target.value)}
                     />
@@ -387,7 +387,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                   <div className="mb-4">
                     <label className="form-label fw-semibold">
                       {" "}
-                      Description{" "}
+                      Mensaje{" "}
                     </label>
                     <textarea
                       className="form-control"
@@ -403,7 +403,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
                       onClick={submitVisit}
                       disabled={isSubmittingVisit}
                     >
-                      Submit
+                      Enviar
                     </button>
                   </div>
                 </div>
@@ -453,7 +453,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
           {/* Items-3 */}
           <div className="card">
             <div className="card-header">
-              <h5 className="mb-0">Share Property</h5>
+              <h5 className="mb-0">Compartir Propiedad</h5>
             </div>
             <div className="card-body">
               <div className="buy-social-icons-items d-flex align-center gap-2 flex-wrap">

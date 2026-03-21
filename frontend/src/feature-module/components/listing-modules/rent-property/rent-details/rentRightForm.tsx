@@ -76,15 +76,15 @@ const RentRightForm = ({ agent }: RentRightFormProps) => {
       {/* Items-2 */}
       <div className="card">
         <div className="card-header">
-          <h5 className="mb-0">Enquire Us</h5>
+          <h5 className="mb-0">Realizar Consulta</h5>
         </div>
         <div className="card-body">
           <div className="mb-3">
-            <label className="form-label fw-semibold"> Name </label>
+            <label className="form-label fw-semibold"> Nombre </label>
             <input
               type="text"
               className="form-control"
-              placeholder="Your Name"
+              placeholder="Tu nombre"
             />
           </div>
           <div className="mb-3">
@@ -92,24 +92,24 @@ const RentRightForm = ({ agent }: RentRightFormProps) => {
             <input
               type="text"
               className="form-control"
-              placeholder="Your Email"
+              placeholder="Tu email"
             />
           </div>
           <div className="mb-3">
-            <label className="form-label fw-semibold"> Phone </label>
+            <label className="form-label fw-semibold"> Teléfono </label>
             <input
               type="text"
               className="form-control"
-              placeholder="Your Phone Number"
+              placeholder="Tu teléfono"
             />
           </div>
           <div className="mb-4">
-            <label className="form-label fw-semibold">Description</label>
+            <label className="form-label fw-semibold">Mensaje</label>
             <textarea className="form-control" rows={3} defaultValue={""} />
           </div>
           <div>
             <Link to="#" className="btn btn-dark w-100 py-2 fs-14">
-              Submit
+              Enviar
             </Link>
           </div>
         </div>

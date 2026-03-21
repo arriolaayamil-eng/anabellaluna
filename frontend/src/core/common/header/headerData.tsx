@@ -44,6 +44,7 @@ export const header = [
     tittle: "Agentes",
     showAsTab: false,
     separateRoute: false,
+    directRoute: all_routes.agentGrid,
     base: "agent",
     icon: "expand_more",
     menu: [
@@ -67,6 +68,7 @@ export const header = [
     tittle: "Inmobiliarias",
     showAsTab: false,
     separateRoute: false,
+    directRoute: all_routes.agencyGrid,
     base: "agency",
     icon: "expand_more",
     menu: [
@@ -248,6 +250,7 @@ export const header = [
     tittle: "Blog",
     showAsTab: false,
     separateRoute: false,
+    directRoute: all_routes.blogGrid,
     base: "blog",
     icon: "expand_more",
     menu: [

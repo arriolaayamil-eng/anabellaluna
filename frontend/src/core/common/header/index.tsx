@@ -171,13 +171,13 @@ const Header = () => {
               <ul className={`main-nav  navbar-nav`}>
                 {header.map((mainMenus: any, mainIndex) => (
                   <React.Fragment key={mainIndex}>
-                    {mainMenus.tittle === "Inicio" ? (
+                    {(mainMenus.tittle === "Inicio" || mainMenus.directRoute) ? (
                       <li
                         className={
                           location.pathname === all_routes.index ? "active" : ""
                         }
                       >
-                        <Link to={all_routes.index}>Inicio</Link>
+                        <Link to={mainMenus.directRoute || all_routes.index}>{mainMenus.tittle}</Link>
                       </li>
                     ) : (
                       <li
@@ -473,16 +473,26 @@ const Header = () => {
                     {dataTheme === "light" ? "dark_mode" : "wb_sunny"}
                   </i>
                 </button>
+                <Link
+                  to={isLoggedIn ? all_routes.notification : all_routes.signin}
+                  className={`topbar-link btn btn-light ${
+                    (location.pathname.startsWith("/buy/") ||
+                      location.pathname.startsWith("/rent/") ||
+                      location.pathname === "/buy-details-schedule")
+                      ? "custom-btn-light"
+                      : ""
+                  }`}
+                >
+                  <i className="material-icons-outlined animate-ring">
+                    notifications_none
+                  </i>
+                  {isLoggedIn && <span className="badge-icon bg-orange">4</span>}
+                </Link>
+                {false && (
                 <div className="dropdown">
                   <Link
                     to="#"
-                    className={`topbar-link btn btn-light ${
-                      (location.pathname.startsWith("/buy/") ||
-                        location.pathname.startsWith("/rent/") ||
-                        location.pathname === "/buy-details-schedule")
-                        ? "custom-btn-light"
-                        : ""
-                    }`}
+                    className="topbar-link btn btn-light"
                     data-bs-toggle="dropdown"
                   >
                     <i className="material-icons-outlined animate-ring">
@@ -736,6 +746,7 @@ const Header = () => {
                     </div>
                   </div>
                 </div>
+                )}
                 <Link
                   to={all_routes.cart}
                   className={`topbar-link btn btn-light topbar-cart ${
@@ -747,7 +758,6 @@ const Header = () => {
                   }`}
                 >
                   <i className="material-icons-outlined">shopping_cart</i>
-                  <span className="badge-icon bg-danger">3</span>
                 </Link>
                 {isLoggedIn ? (
                   <div className="dropdown topbar-profile d-flex">
