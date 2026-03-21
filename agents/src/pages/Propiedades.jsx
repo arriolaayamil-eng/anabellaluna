@@ -1333,12 +1333,16 @@ const Propiedades = () => {
 
       {/* Vista Mapa */}
       {vistaActual === 'mapa' && (
-        <PropiedadesMapView
-          propiedades={propiedades}
-          isDark={isDark}
-          verDetalle={verDetalle}
-          cardBase={cardBase}
-        />
+        <div className={`${cardBase} w-full`}>
+          <h2 className="text-xl font-bold mb-6 dark:text-gray-100 flex items-center gap-2">
+            <FaMapMarkerAlt className="text-violet-500" /> Ubicación y Características
+          </h2>
+          <PropiedadesMapView
+            propiedades={propiedades}
+            isDark={isDark}
+            verDetalle={verDetalle}
+          />
+        </div>
       )}
 
       {/* Tabs Estilo Chrome - Solo visibles cuando no estamos en detalle ni en mapa */}
@@ -1590,12 +1594,21 @@ const Propiedades = () => {
             <div className={cardBase}>
               <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📍 Ubicación y Características</h3>
               <div className="space-y-4">
-                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <FaMapMarkerAlt className="text-2xl text-gray-500 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">Mapa Interactivo</p>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setVistaActual('mapa')}
+                  className={`w-full h-32 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors border-2 border-dashed ${
+                    isDark
+                      ? 'bg-gray-800 border-gray-600 hover:border-violet-500 hover:bg-gray-700'
+                      : 'bg-gray-50 border-gray-300 hover:border-violet-400 hover:bg-violet-50'
+                  }`}
+                >
+                  <FaMapMarkerAlt className="text-2xl text-violet-500" />
+                  <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Ver mapa de propiedades</span>
+                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {propiedades.filter((p) => p.lat && p.lng).length} con ubicación
+                  </span>
+                </button>
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" placeholder="M²" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
                   <input type="number" placeholder="Ambientes" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
