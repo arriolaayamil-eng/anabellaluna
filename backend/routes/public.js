@@ -100,6 +100,8 @@ function mapPropertyCard(prop, agent, coverUrl) {
       province: meta.provincia || '',
       postalCode: meta.codigoPostal || '',
       country: meta.pais || meta.country || 'AR',
+      lat: meta.lat != null ? Number(meta.lat) : null,
+      lng: meta.lng != null ? Number(meta.lng) : null,
     },
     media: {
       coverUrl: coverUrl || meta.coverUrl || meta.cover_url || '',

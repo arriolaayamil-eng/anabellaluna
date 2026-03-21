@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
-import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
@@ -13,7 +13,27 @@ import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, I
 
 const ClientesCRM = () => {
   const { currentMode, currentColor } = useStateContext();
-  
+
+  const formatUltimaInteraccion = (value) => {
+    if (!value) return { short: '-/-', full: '-' };
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) {
+      const parts = String(value).split('-');
+      if (parts.length === 3) return { short: `${parts[2]}/${parts[1]}`, full: value };
+      return { short: '-/-', full: String(value) };
+    }
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return { short: `${dd}/${mm}`, full: `${dd}/${mm}/${yyyy}` };
+  };
+
+  // Estado para tabs internas
+  const [activeTab, setActiveTab] = useState('metricas'); // 'metricas', 'clientes'
+
+  // Estado para filtro de tipo de cliente
+  const [filtroTipo, setFiltroTipo] = useState('todos');
+
   // Estado para el modal
   const [showModal, setShowModal] = useState(false);
   
@@ -357,6 +377,15 @@ const ClientesCRM = () => {
   const isDark = currentMode === 'Dark';
   const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
+  // Clientes filtrados por tipo
+  const clientesFiltrados = clientesEjemplo.filter((c) => {
+    if (filtroTipo === 'todos') return true;
+    if (filtroTipo === 'comprador') return c.tipo === 'Comprador';
+    if (filtroTipo === 'propietario') return c.tipo === 'Propietario';
+    if (filtroTipo === 'inversor') return c.tipo === 'Inversor';
+    return true;
+  });
+
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -463,21 +492,55 @@ const ClientesCRM = () => {
         >
           <FaPlus /> Nuevo Cliente
         </button>
-        {vistaActual === 'dashboard' && (
-          <button 
-            onClick={() => setVistaActual('lista')}
+        {vistaActual !== 'detalle' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('clientes')}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
           >
-            <FaThLarge /> Ver Todos
+            <FaUsers /> Ver Clientes
           </button>
         )}
-        <button className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
-          <FaSearch /> Búsqueda Avanzada
-        </button>
       </div>
 
-      {/* Vista Dashboard */}
-      {vistaActual === 'dashboard' && (
+      {/* Tabs - Solo visibles cuando no estamos en detalle */}
+      {vistaActual !== 'detalle' && (
+        <div className="mb-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => setActiveTab('metricas')}
+              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'metricas'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              📊 Métricas de Clientes
+              {activeTab === 'metricas' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('clientes')}
+              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'clientes'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              👥 Clientes
+              {activeTab === 'clientes' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Métricas */}
+      {vistaActual !== 'detalle' && activeTab === 'metricas' && (
         <>
       {/* KPIs de Clientes */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -723,10 +786,81 @@ const ClientesCRM = () => {
         </>
       )}
 
-      {/* Vista Lista de Clientes */}
-      {vistaActual === 'lista' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clientesEjemplo.map((cliente) => (
+      {/* Tab: Clientes con filtros */}
+      {vistaActual !== 'detalle' && activeTab === 'clientes' && (
+        <>
+          {/* Filtro por tipo */}
+          <div className={`${cardBase} mb-6`}>
+            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🔍 Filtrar por tipo de cliente</h3>
+            <div className="flex flex-wrap gap-6">
+              <label htmlFor="filtro-comprador" className="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="filtro-comprador"
+                  type="radio"
+                  name="filtroTipoAdmin"
+                  checked={filtroTipo === 'comprador'}
+                  onChange={() => setFiltroTipo('comprador')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Compradores</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  {clientesEjemplo.filter((c) => c.tipo === 'Comprador').length}
+                </span>
+              </label>
+              <label htmlFor="filtro-propietario" className="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="filtro-propietario"
+                  type="radio"
+                  name="filtroTipoAdmin"
+                  checked={filtroTipo === 'propietario'}
+                  onChange={() => setFiltroTipo('propietario')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Propietarios</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  {clientesEjemplo.filter((c) => c.tipo === 'Propietario').length}
+                </span>
+              </label>
+              <label htmlFor="filtro-inversor" className="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="filtro-inversor"
+                  type="radio"
+                  name="filtroTipoAdmin"
+                  checked={filtroTipo === 'inversor'}
+                  onChange={() => setFiltroTipo('inversor')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Inversores</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                  {clientesEjemplo.filter((c) => c.tipo === 'Inversor').length}
+                </span>
+              </label>
+              <label htmlFor="filtro-todos" className="flex items-center gap-3 cursor-pointer">
+                <input
+                  id="filtro-todos"
+                  type="radio"
+                  name="filtroTipoAdmin"
+                  checked={filtroTipo === 'todos'}
+                  onChange={() => setFiltroTipo('todos')}
+                  className="w-5 h-5 text-blue-600 accent-blue-600"
+                />
+                <span className="text-sm font-medium dark:text-gray-200">Todos</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                  {clientesEjemplo.length}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Lista de clientes filtrados */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {clientesFiltrados.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <FaUsers className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No hay clientes que coincidan con el filtro seleccionado</p>
+              </div>
+            ) : (
+            clientesFiltrados.map((cliente) => (
             <div key={cliente.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(cliente)}>
               {/* Header con avatar */}
               <div className="flex items-center gap-4 mb-4 pb-4 border-b dark:border-gray-700">
@@ -810,13 +944,15 @@ const ClientesCRM = () => {
                 </div>
                 <div className="text-center">
                   <FaCalendar className="text-gray-400 mx-auto mb-1 text-sm" />
-                  <p className="text-xs font-semibold dark:text-gray-200">{cliente.ultimaInteraccion.split('-')[2]}/{cliente.ultimaInteraccion.split('-')[1]}</p>
+                  <p className="text-xs font-semibold dark:text-gray-200">{formatUltimaInteraccion(cliente.ultimaInteraccion).short}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Última</p>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+            ))
+            )}
+          </div>
+        </>
       )}
 
       {/* Vista Detalle de Cliente */}

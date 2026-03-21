@@ -37,6 +37,8 @@ export interface PropertyCard {
     province?: string;
     postalCode?: string;
     country?: string;
+    lat?: number | null;
+    lng?: number | null;
   };
   price?: { amount?: number; currency?: string; unit?: string };
   features?: {

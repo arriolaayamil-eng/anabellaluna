@@ -659,9 +659,15 @@ const ClientesCRM = () => {
         >
           <FaPlus /> Nuevo Cliente
         </button>
-        <button type="button" className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors">
-          <FaSearch /> Búsqueda Avanzada
-        </button>
+        {vistaActual !== 'detalle' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('clientes')}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
+          >
+            <FaUsers /> Ver Clientes
+          </button>
+        )}
       </div>
 
       {/* Tabs Internas - Solo visibles cuando no estamos en detalle */}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import PropiedadesMapView from './PropiedadesMapView';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaList, FaThLarge, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChevronRight, FaChevronLeft, FaFileAlt, FaChartLine, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
@@ -93,6 +94,12 @@ const Propiedades = () => {
   // Drag-and-drop refs for adjuntos reordering (detail view)
   const adjDragItem = useRef(null);
   const adjDragOverItem = useRef(null);
+  // Google Maps refs
+  const addressInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const mapViewRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const mapMarkersRef = useRef([]);
 
   const reorderFiles = useCallback((setter) => {
     setter((prev) => {
@@ -180,6 +187,8 @@ const Propiedades = () => {
     provincia: 'Buenos Aires',
     pais: 'AR',
     codigoPostal: '',
+    lat: '',
+    lng: '',
     m2Totales: '',
     m2Cubiertos: '',
     ambientes: '',
@@ -241,6 +250,8 @@ const Propiedades = () => {
       provincia: 'Buenos Aires',
       pais: 'AR',
       codigoPostal: '',
+      lat: '',
+      lng: '',
       m2Totales: '',
       m2Cubiertos: '',
       ambientes: '',
@@ -302,6 +313,8 @@ const Propiedades = () => {
       provincia: prop.provincia || 'Buenos Aires',
       pais: prop.pais || 'AR',
       codigoPostal: prop.codigoPostal || '',
+      lat: prop.lat != null ? String(prop.lat) : '',
+      lng: prop.lng != null ? String(prop.lng) : '',
       m2Totales: prop.m2 || '',
       m2Cubiertos: prop.m2Cubiertos || '',
       ambientes: prop.ambientes || '',
@@ -464,6 +477,51 @@ const Propiedades = () => {
   // Reset carousel when switching properties
   useEffect(() => { setCarouselIdx(0); }, [propiedadSeleccionada?.id]);
 
+  // Load Google Maps script once
+  useEffect(() => {
+    const key = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    if (!key || (window.google && window.google.maps)) return;
+    if (document.getElementById('gmaps-erp-script')) return;
+    const script = document.createElement('script');
+    script.id = 'gmaps-erp-script';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  // Places Autocomplete on direccion input when modal is open
+  useEffect(() => {
+    if (!showModal) { autocompleteRef.current = null; return; }
+    const timer = setTimeout(() => {
+      if (!addressInputRef.current || !window.google || !window.google.maps || !window.google.maps.places) return;
+      if (autocompleteRef.current) return;
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+        addressInputRef.current,
+        { fields: ['formatted_address', 'geometry', 'address_components'] },
+      );
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (!place || !place.geometry) return;
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const comps = {};
+        (place.address_components || []).forEach((c) => c.types.forEach((t) => { comps[t] = c.long_name; }));
+        setNuevaPropiedad((prev) => ({
+          ...prev,
+          direccion: place.formatted_address || prev.direccion,
+          barrio: comps.neighborhood || comps.sublocality_level_1 || comps.sublocality || prev.barrio,
+          ciudad: comps.locality || prev.ciudad,
+          provincia: comps.administrative_area_level_1 || prev.provincia,
+          pais: comps.country || prev.pais,
+          codigoPostal: comps.postal_code || prev.codigoPostal,
+          lat: String(lat),
+          lng: String(lng),
+        }));
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [showModal]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -510,6 +568,8 @@ const Propiedades = () => {
             provincia: meta.provincia || '',
             pais: meta.pais || meta.country || 'AR',
             codigoPostal: meta.codigoPostal || '',
+            lat: meta.lat != null ? Number(meta.lat) : null,
+            lng: meta.lng != null ? Number(meta.lng) : null,
             descripcion: p.description || meta.descripcion || '',
             amenities: Array.isArray(meta.amenities) ? meta.amenities : [],
             videoUrls: Array.isArray(meta.videoUrls)
@@ -773,6 +833,8 @@ const Propiedades = () => {
           provincia: nuevaPropiedad.provincia,
           pais: nuevaPropiedad.pais,
           codigoPostal: nuevaPropiedad.codigoPostal,
+          lat: nuevaPropiedad.lat ? Number(nuevaPropiedad.lat) : undefined,
+          lng: nuevaPropiedad.lng ? Number(nuevaPropiedad.lng) : undefined,
           m2Totales: Number(nuevaPropiedad.m2Totales || 0),
           m2Cubiertos: Number(nuevaPropiedad.m2Cubiertos || 0),
           ambientes: Number(nuevaPropiedad.ambientes || 0),
@@ -834,6 +896,8 @@ const Propiedades = () => {
         provincia: payload.metadata.provincia,
         pais: payload.metadata.pais,
         codigoPostal: payload.metadata.codigoPostal,
+        lat: payload.metadata.lat || null,
+        lng: payload.metadata.lng || null,
         descripcion: saved.description || payload.metadata.descripcion,
         amenities: payload.metadata.amenities,
         videoUrls: payload.metadata.videoUrls,
@@ -973,6 +1037,8 @@ const Propiedades = () => {
         provincia: 'Buenos Aires',
         pais: 'AR',
         codigoPostal: '',
+        lat: '',
+        lng: '',
         m2Totales: '',
         m2Cubiertos: '',
         ambientes: '',
@@ -1090,6 +1156,14 @@ const Propiedades = () => {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
           >
             <FaThLarge /> Ver Todas
+          </button>
+        )}
+        {(vistaActual === 'dashboard' || vistaActual === 'lista') && (
+          <button
+            onClick={() => setVistaActual('mapa')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-violet-500 hover:bg-violet-600 transition-all shadow-sm hover:shadow-md"
+          >
+            <FaMapMarkerAlt /> Mapa
           </button>
         )}
         <button className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
@@ -1313,6 +1387,19 @@ const Propiedades = () => {
         </div>
       </div>
         </>
+      )}
+
+      {/* Vista Mapa */}
+      {vistaActual === 'mapa' && (
+        <PropiedadesMapView
+          propiedades={propiedades}
+          isDark={currentMode === 'Dark'}
+          verDetalle={verDetalle}
+          cardBase={cardBase}
+          mapViewRef={mapViewRef}
+          mapInstanceRef={mapInstanceRef}
+          mapMarkersRef={mapMarkersRef}
+        />
       )}
 
       {/* Vista Lista de Propiedades */}
@@ -2028,14 +2115,24 @@ const Propiedades = () => {
                           Dirección *
                         </label>
                         <input
+                          ref={addressInputRef}
                           type="text"
                           name="direccion"
                           value={nuevaPropiedad.direccion}
                           onChange={handleInputChange}
                           required
                           placeholder="Av. Santa Fe 1234"
+                          autoComplete="off"
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                         />
+                        {process.env.REACT_APP_GOOGLE_MAPS_API_KEY && (
+                          <p className="text-xs text-blue-400 mt-1 flex items-center gap-1">
+                            <FaMapMarkerAlt size={10} /> Tip: escribí y seleccioná de la lista para autocompletar coordenadas
+                          </p>
+                        )}
+                        {nuevaPropiedad.lat && nuevaPropiedad.lng && (
+                          <p className="text-xs text-emerald-500 mt-1">✓ Coordenadas guardadas ({Number(nuevaPropiedad.lat).toFixed(5)}, {Number(nuevaPropiedad.lng).toFixed(5)})</p>
+                        )}
                       </div>
 
                       <div>
