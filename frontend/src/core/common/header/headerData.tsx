@@ -23,6 +23,7 @@ export const header = [
     icon: "expand_more",
     showAsTab: false,
     separateRoute: false,
+    directRoute: all_routes.propiedades,
     menu: [
       {
         menuValue: "Comprar propiedad",

@@ -52,6 +52,7 @@ import Profile from "../components/pages-modules/profile/profile";
 import UserCreateForm from "../../components/UserCreateForm";
 import RequireAuth from "../../core/auth/RequireAuth";
 import PropiedadRedirect from "../components/propiedad-redirect/PropiedadRedirect";
+import PropiedadesPage from "../components/propiedades-page/propiedadesPage";
 
 const routes = all_routes;
 
@@ -209,6 +210,12 @@ export const publicRoutes = [
     path: routes.agentDetails,
     element: <AgentDetails />,
      meta_title:"Agent Details",
+    route: Route,
+  },
+  {
+    path: routes.propiedades,
+    element: <PropiedadesPage />,
+    meta_title: "Propiedades",
     route: Route,
   },
   {

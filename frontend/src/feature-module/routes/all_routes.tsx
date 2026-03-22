@@ -11,6 +11,9 @@ export const all_routes: any = {
   //Home routes
   index: "/index",
 
+  //Propiedades combined route
+  propiedades: '/propiedades',
+
   //Listing routes
   buyPropertyGrid:'/buy-property-grid',
   buyPropertyList:'/buy-property-list',
