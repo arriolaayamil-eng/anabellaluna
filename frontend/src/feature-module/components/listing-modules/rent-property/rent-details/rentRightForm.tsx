@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import ImageWithBasePath from "../../../../../core/imageWithBasePath";
 import StickyBox from "react-sticky-box";
-import { all_routes } from "../../../../routes/all_routes";
+import publicService from "../../../../../services/publicService";
 
 type AgentInfo = {
   id: string;
@@ -13,9 +14,50 @@ type AgentInfo = {
 
 type RentRightFormProps = {
   agent?: AgentInfo;
+  propertySlug?: string;
 };
 
-const RentRightForm = ({ agent }: RentRightFormProps) => {
+const RentRightForm = ({ agent, propertySlug }: RentRightFormProps) => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const handleSubmit = async () => {
+    if (!propertySlug) {
+      setFeedback({ type: "error", message: "Error: propiedad no identificada" });
+      return;
+    }
+    if (!name.trim()) {
+      setFeedback({ type: "error", message: "El nombre es obligatorio" });
+      return;
+    }
+    if (!email.trim() && !phone.trim()) {
+      setFeedback({ type: "error", message: "Se requiere email o teléfono" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      await publicService.createEnquiry({
+        propertySlug,
+        fullName: name,
+        email: email || undefined,
+        phone: phone || undefined,
+        message: message || undefined,
+      });
+      setFeedback({ type: "success", message: "Tu consulta fue enviada" });
+      setMessage("");
+    } catch (e: any) {
+      setFeedback({ type: "error", message: e?.message || "No se pudo enviar la consulta" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <StickyBox offsetTop={80} offsetBottom={20}>
       {/* Items-1 */}
@@ -79,20 +121,35 @@ const RentRightForm = ({ agent }: RentRightFormProps) => {
           <h5 className="mb-0">Realizar Consulta</h5>
         </div>
         <div className="card-body">
+          {feedback && (
+            <div
+              className={`mb-3 rounded-lg border px-3 py-2 fs-14 ${
+                feedback.type === "success"
+                  ? "border-success bg-success-subtle text-success"
+                  : "border-danger bg-danger-subtle text-danger"
+              }`}
+            >
+              {feedback.message}
+            </div>
+          )}
           <div className="mb-3">
             <label className="form-label fw-semibold"> Nombre </label>
             <input
               type="text"
               className="form-control"
               placeholder="Tu nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div className="mb-3">
             <label className="form-label fw-semibold"> Email </label>
             <input
-              type="text"
+              type="email"
               className="form-control"
               placeholder="Tu email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="mb-3">
@@ -101,96 +158,32 @@ const RentRightForm = ({ agent }: RentRightFormProps) => {
               type="text"
               className="form-control"
               placeholder="Tu teléfono"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
           </div>
           <div className="mb-4">
             <label className="form-label fw-semibold">Mensaje</label>
-            <textarea className="form-control" rows={3} defaultValue={""} />
+            <textarea
+              className="form-control"
+              rows={3}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
           </div>
           <div>
-            <Link to="#" className="btn btn-dark w-100 py-2 fs-14">
-              Enviar
-            </Link>
+            <button
+              type="button"
+              className="btn btn-dark w-100 py-2 fs-14"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+            >
+              {isSubmitting ? "Enviando..." : "Enviar"}
+            </button>
           </div>
         </div>
         {/* end card body*/}
       </div>
-      {/* end card */}
-      {/* Items-3 */}
-      {false && (
-      <div className="card">
-        <div className="card-header">
-          <h5 className="mb-0">Why Book With Us</h5>
-        </div>
-        <div className="card-body">
-          <div className="mb-0">
-            <p className="d-flex align-items-center gap-2 mb-3 text-body">
-              <i className="material-icons-outlined text-secondary">badge</i>
-              Expertise and Experience
-            </p>
-            <p className="d-flex align-items-center gap-2 mb-3 text-body">
-              <i className="material-icons-outlined text-secondary">
-                design_services
-              </i>
-              Tailored Services
-            </p>
-            <p className="d-flex align-items-center gap-2 mb-3 text-body">
-              <i className="material-icons-outlined text-secondary">
-                play_lesson
-              </i>
-              Comprehensive Planning
-            </p>
-            <p className="d-flex align-items-center gap-2 mb-3 text-body">
-              <i className="material-icons-outlined text-secondary">person</i>
-              Client Satisfaction
-            </p>
-            <p className="d-flex align-items-center gap-2 mb-0 text-body">
-              <i className="material-icons-outlined text-secondary">
-                support_agent
-              </i>
-              24/7 Support
-            </p>
-          </div>
-        </div>
-        {/* end card body*/}
-      </div>
-      )}
-      {/* end card */}
-      {/* Items-4 */}
-      {false && (
-      <div className="card mb-0">
-        <div className="custom-map position-relative">
-          <Link to={all_routes.buyGridMap} className="btn btn-dark fw-medium">
-            View Location
-          </Link>
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d9582106.12236644!2d-15.012343587457918!3d54.10244278649341!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x25a3b1142c791a9%3A0xc4f8a0433288257a!2sUnited%20Kingdom!5e0!3m2!1sen!2sin!4v1747587865989!5m2!1sen!2sin"
-            width={600}
-            height={450}
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
-        <div className="card-body">
-          <h6 className="mb-3"> Nearby Landmarks &amp; Visits </h6>
-          <p className="mb-2 text-body">
-            <i className="fa-regular fa-circle-check fs-16 me-2 text-body" />
-            Near By Statue of Liberty
-          </p>
-          <p className="mb-2 text-body">
-            <i className="fa-regular fa-circle-check fs-16 me-2 text-body" />
-            The Metropolitan Museum of Art
-          </p>
-          <p className="mb-0 text-body">
-            <i className="fa-regular fa-circle-check fs-16 me-2 text-body" />
-            Yellowstone National Park
-          </p>
-        </div>
-        {/* end card body*/}
-      </div>
-      )}
       {/* end card */}
     </StickyBox>
   );

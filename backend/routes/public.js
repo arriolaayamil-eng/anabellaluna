@@ -20,6 +20,7 @@ const Cita = require('../models/Cita');
 const googleCalendar = require('../services/googleCalendar');
 const Testimonial = require('../models/Testimonial');
 const ContactMessage = require('../models/ContactMessage');
+const User = require('../models/User');
 const FAQ = require('../models/FAQ');
 const GlobalConfig = require('../models/GlobalConfig');
 const { triggerFollowUpAutomation } = require('../services/automationScheduler');
@@ -55,6 +56,49 @@ function buildMediaUrlFromDoc(doc) {
   const url = String(doc.url || '');
   if (url.startsWith('http')) return url;
   return '';
+}
+
+// When a property has no agentId (created from ERP/admin), build a virtual
+// agent object from the admin user profile so the public site can display it.
+let _adminAgentCache = null;
+let _adminAgentCacheTs = 0;
+const ADMIN_CACHE_TTL = 60_000; // 1 min
+
+async function getAdminFallbackAgent() {
+  const now = Date.now();
+  if (_adminAgentCache && now - _adminAgentCacheTs < ADMIN_CACHE_TTL) return _adminAgentCache;
+
+  // 1. Try admin user → linked Agente record
+  const adminUser = await User.findOne({ role: 'admin' }).lean();
+  if (adminUser && adminUser.agenteId) {
+    const agente = await Agente.findById(adminUser.agenteId).lean();
+    if (agente) { _adminAgentCache = agente; _adminAgentCacheTs = now; return agente; }
+  }
+
+  // 2. Try Agente with role 'admin'
+  const adminAgente = await Agente.findOne({ role: 'admin' }).lean();
+  if (adminAgente) { _adminAgentCache = adminAgente; _adminAgentCacheTs = now; return adminAgente; }
+
+  // 3. Build virtual agent from admin user profile fields
+  if (adminUser) {
+    const virtual = {
+      _id: adminUser._id,
+      nombre: adminUser.nombre || adminUser.username || '',
+      email: adminUser.email || '',
+      telefono: adminUser.telefono || '',
+      avatar: adminUser.avatar || '',
+      cargo: adminUser.cargo || 'Director',
+      bio: adminUser.bio || '',
+      especialidad: '',
+      redesSociales: {},
+      metadata: {},
+    };
+    _adminAgentCache = virtual;
+    _adminAgentCacheTs = now;
+    return virtual;
+  }
+
+  return null;
 }
 
 function mapPropertyCard(prop, agent, coverUrl) {
@@ -435,10 +479,13 @@ router.get('/properties', async (req, res) => {
 
     const coverMap = await getPropertyCoverMap(props.map((p) => p._id));
 
+    // Fallback agent for ERP-created properties (no agentId)
+    const adminFallback = agentIds.length < props.length ? await getAdminFallbackAgent() : null;
+
     const items = props.map((p) => {
-      const agent = p.agentId ? agentsById.get(String(p.agentId)) : null;
+      const agent = p.agentId ? agentsById.get(String(p.agentId)) || null : null;
       const coverUrl = coverMap.get(String(p._id)) || '';
-      return mapPropertyCard(p, agent, coverUrl);
+      return mapPropertyCard(p, agent || adminFallback, coverUrl);
     });
 
     return res.json({ items });
@@ -477,7 +524,8 @@ router.get('/properties/:slug', async (req, res) => {
      const totalVisitors = (await PropertyView.distinct('visitorId')).length;
      const trending = totalVisitors > 0 ? (visitCount / totalVisitors) > 0.1 : false;
 
-    const agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
+    let agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
+    if (!agent) agent = await getAdminFallbackAgent();
 
     const links = await DocumentLink.find({ entity_type: 'propiedad', entity_id: String(prop._id) })
       .sort({ order: 1, created_at: 1 })
@@ -562,7 +610,11 @@ router.post('/enquiries', async (req, res) => {
     const prop = await findPropertyByIdOrSlug({ propertyId, propertySlug });
     if (!prop) return res.status(404).json({ error: 'Property not found' });
 
-    const agentId = prop.agentId ? String(prop.agentId) : '';
+    let agentId = prop.agentId ? String(prop.agentId) : '';
+    if (!agentId) {
+      const fallback = await getAdminFallbackAgent();
+      if (fallback) agentId = String(fallback._id);
+    }
     if (!agentId) return res.status(400).json({ error: 'Property has no agent assigned' });
     const contact = {
       fullName: String(fullName || '').trim(),
@@ -623,7 +675,11 @@ router.post('/visits', async (req, res) => {
     const prop = await findPropertyByIdOrSlug({ propertyId, propertySlug });
     if (!prop) return res.status(404).json({ error: 'Property not found' });
 
-    const agentId = prop.agentId ? String(prop.agentId) : '';
+    let agentId = prop.agentId ? String(prop.agentId) : '';
+    if (!agentId) {
+      const fallback = await getAdminFallbackAgent();
+      if (fallback) agentId = String(fallback._id);
+    }
     if (!agentId) return res.status(400).json({ error: 'Property has no agent assigned' });
     const contact = {
       fullName: String(fullName || '').trim(),
@@ -771,7 +827,8 @@ router.post('/wishlist', authenticateToken, async (req, res) => {
     }
     if (!prop) return res.status(404).json({ error: 'Property not found' });
 
-    const agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
+    let agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
+    if (!agent) agent = await getAdminFallbackAgent();
     const coverMap = await getPropertyCoverMap([prop._id]);
     const snapshot = mapPropertyCard(prop, agent, coverMap.get(String(prop._id)) || '');
 
@@ -829,7 +886,8 @@ router.post('/cart/items', authenticateToken, async (req, res) => {
     }
     if (!prop) return res.status(404).json({ error: 'Property not found' });
 
-    const agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
+    let agent = prop.agentId ? await Agente.findById(prop.agentId).lean() : null;
+    if (!agent) agent = await getAdminFallbackAgent();
     const coverMap = await getPropertyCoverMap([prop._id]);
     const snapshot = mapPropertyCard(prop, agent, coverMap.get(String(prop._id)) || '');
 

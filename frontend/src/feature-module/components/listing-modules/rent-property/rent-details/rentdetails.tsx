@@ -1197,7 +1197,7 @@ const Rentdetails = () => {
               </div>
               {/* col end */}
               <div className="col-xl-4 theiaStickySidebar buy-details-item">
-             <RentRightForm agent={property?.agent} />
+             <RentRightForm agent={property?.agent} propertySlug={property?.slug || property?.id} />
               </div>
               {/* col end */}
             </div>
