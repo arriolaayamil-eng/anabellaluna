@@ -149,7 +149,8 @@ const Automatizacion = () => {
     }
   };
 
-  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   const getColorClasses = (color) => {
     const colors = {

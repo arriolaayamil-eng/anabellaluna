@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
 import { FaChartBar, FaDownload, FaCalendarAlt, FaDollarSign, FaUsers, FaHome, FaChartLine, FaChartPie, FaMapMarkedAlt, FaStar, FaEye, FaTrophy, FaMoneyBillWave, FaClock, FaExclamationTriangle, FaFileAlt, FaBalanceScale, FaCog, FaPaperPlane, FaCheck, FaBuilding, FaPercent, FaClipboardList, FaHistory, FaSync } from 'react-icons/fa';
 
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { exportDashboardToPDF } from '../utils/exportDashboardToPDF';
@@ -548,13 +547,18 @@ const Reportes = () => {
           </div>
         </div>
       )}
-      <Header category="Analítica" title="📊 Reportes y Estadísticas" />
+      <div className="mb-6">
+        <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <FaChartBar className="text-blue-500" /> Reportes y Estadísticas
+        </h2>
+        <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Analítica y reportes del negocio</p>
+      </div>
 
       {/* Tabs de navegación */}
-      <div className="flex flex-wrap gap-2 mb-6 border-b dark:border-gray-700 pb-4">
+      <div className="flex flex-wrap gap-2 mb-6">
         {[
           { id: 'dashboard', label: 'Dashboard', icon: <FaChartBar /> },
-          { id: 'selection', label: 'Selección de Reportes', icon: <FaClipboardList /> },
+          { id: 'selection', label: 'Selección', icon: <FaClipboardList /> },
           { id: 'config', label: 'Configuración', icon: <FaCog /> },
           { id: 'history', label: 'Historial', icon: <FaHistory /> },
         ].map((tab) => (
@@ -562,12 +566,12 @@ const Reportes = () => {
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               activeTab === tab.id
-                ? 'text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                ? 'text-white shadow-lg'
+                : `${isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`
             }`}
-            style={activeTab === tab.id ? { backgroundColor: currentColor } : {}}
+            style={activeTab === tab.id ? { background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 14px ${currentColor}40` } : {}}
           >
             {tab.icon} {tab.label}
           </button>
@@ -614,8 +618,8 @@ const Reportes = () => {
           type="button"
           onClick={() => generateReport('manual', 'download')}
           disabled={generating}
-          className="flex items-center gap-2 px-6 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: currentColor }}
+          className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 shadow-md transition-all"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)` }}
         >
           {generating ? <FaSync className="animate-spin" /> : <FaDownload />}
           Descargar PDF
@@ -624,7 +628,7 @@ const Reportes = () => {
           type="button"
           onClick={() => generateReport('manual', 'send')}
           disabled={generating}
-          className="flex items-center gap-2 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 shadow-md shadow-green-500/30 transition-all"
         >
           {generating ? <FaSync className="animate-spin" /> : <FaPaperPlane />}
           Enviar al ERP

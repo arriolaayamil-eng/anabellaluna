@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { FaPlus, FaPlay, FaPause, FaEdit, FaTrash, FaClock, FaCheckCircle } from 'react-icons/fa';
 import { RiFlowChart } from 'react-icons/ri';
@@ -51,62 +50,48 @@ const Workflows = () => {
     }
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   return (
-    <div className="min-h-screen px-6 lg:px-8 pt-4 pb-6 bg-gray-50 dark:bg-main-dark-bg">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Automatización" title="Workflows" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <RiFlowChart className="text-indigo-500" /> Workflows
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Flujos de automatización</p>
+        </div>
         <button
+          type="button"
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-          style={{ backgroundColor: currentColor }}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium shadow-lg hover:shadow-xl transition-all"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Crear Workflow
         </button>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardBase} border-l-4 border-green-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Workflows Activos</p>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">3</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Workflows Activos', value: 3, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaCheckCircle /> },
+          { label: 'Total Workflows', value: 4, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <RiFlowChart /> },
+          { label: 'Ejecuciones Hoy', value: 67, color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <FaClock /> },
+          { label: 'Tasa de Éxito', value: '98%', color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <FaCheckCircle /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
             </div>
-            <FaCheckCircle className="text-4xl text-green-500" />
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
           </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-blue-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Total Workflows</p>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">4</p>
-            </div>
-            <RiFlowChart className="text-4xl text-blue-500" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-purple-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Ejecuciones Hoy</p>
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">67</p>
-            </div>
-            <FaClock className="text-4xl text-purple-500" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-orange-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Tasa de Éxito</p>
-              <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">98%</p>
-            </div>
-            <FaCheckCircle className="text-4xl text-orange-500" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Lista de Workflows */}
@@ -186,8 +171,8 @@ const Workflows = () => {
             Próximamente: Editor drag-and-drop para crear workflows personalizados
           </p>
           <button
-            className="px-6 py-2 rounded-lg text-white font-medium"
-            style={{ backgroundColor: currentColor }}
+            className="px-6 py-2 rounded-xl text-white font-medium"
+            style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
           >
             Solicitar Demo
           </button>

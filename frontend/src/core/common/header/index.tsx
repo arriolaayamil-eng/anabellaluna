@@ -390,65 +390,7 @@ const Header = () => {
                 )}
               </div>
             </div>
-            {location.pathname === "/index" ||
-            location.pathname === "/index-2" ||
-            location.pathname === "/index-3" ? (
-              <div className="nav header-items">
-                <Link
-                  to="#"
-                  className="topbar-link btn btn-light topbar-search"
-                  data-bs-toggle="modal"
-                  data-bs-target="#search-modal"
-                >
-                  <i className="material-icons-outlined">search</i>
-                </Link>
-                <button
-                  type="button"
-                  className="topbar-link btn btn-light me-2"
-                  onClick={toggleTheme}
-                >
-                  <i className="material-icons-outlined">
-                    {dataTheme === "light" ? "dark_mode" : "wb_sunny"}
-                  </i>
-                </button>
-                {isLoggedIn ? (
-                  <>
-                    <Link
-                      to={all_routes.profile}
-                      className="btn btn-lg btn-primary d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-1">person</i>
-                      Mi Perfil
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="btn btn-lg btn-dark d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-1">logout</i>
-                      Cerrar Sesión
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      to={all_routes.signin}
-                      className="btn btn-lg btn-primary d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-1">lock</i>
-                      Iniciar Sesión
-                    </Link>
-                    <Link
-                      to={all_routes.signup}
-                      className="btn btn-lg btn-dark d-inline-flex align-items-center"
-                    >
-                      <i className="material-icons-outlined me-1">perm_identity</i>
-                      Crear Cuenta
-                    </Link>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="nav header-items">
+            <div className="nav header-items">
                 <Link
                   to="#"
                   className={`topbar-link btn btn-light topbar-search ${
@@ -858,7 +800,6 @@ const Header = () => {
                   </>
                 )}
               </div>
-            )}
           </nav>
         </div>
       </header>

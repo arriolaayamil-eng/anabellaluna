@@ -143,12 +143,22 @@ const Recompensas = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 mb-6">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = activeTab === t.key;
           return (
-            <button type="button" key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${active ? 'border-current' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`} style={active ? { color: currentColor, borderColor: currentColor } : {}}>
+            <button
+              type="button"
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                active
+                  ? 'text-white shadow-lg'
+                  : `${isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`
+              }`}
+              style={active ? { background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 14px ${currentColor}40` } : {}}
+            >
               <Icon /> {t.label}
             </button>
           );

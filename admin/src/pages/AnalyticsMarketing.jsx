@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { FaChartLine, FaUsers, FaEnvelope, FaMousePointer, FaDollarSign, FaTrophy, FaCalendarAlt, FaFilter } from 'react-icons/fa';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, DateTime, Legend, Tooltip } from '@syncfusion/ej2-react-charts';
+import Chart from 'react-apexcharts';
 
 const AnalyticsMarketing = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -40,67 +39,49 @@ const AnalyticsMarketing = () => {
     { canal: 'SEO Orgánico', impresiones: 67000, clicks: 4020, conversiones: 289, costo: 0 }
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   return (
-    <div className="min-h-screen px-6 lg:px-8 pt-4 pb-6 bg-gray-50 dark:bg-main-dark-bg">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Marketing" title="Analytics de Marketing" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaChartLine className="text-emerald-500" /> Analytics de Marketing
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Métricas y rendimiento</p>
+        </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
+          <button type="button" className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
             <FaFilter /> Filtros
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 dark:border-gray-600 font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200">
+          <button type="button" className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
             <FaCalendarAlt /> {periodoSeleccionado === '30dias' ? 'Últimos 30 días' : 'Este mes'}
           </button>
         </div>
       </div>
 
       {/* KPIs Principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardBase} bg-gradient-to-br from-blue-500 to-blue-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm mb-1">Total Enviados</p>
-              <p className="text-4xl font-bold">4,350</p>
-              <p className="text-sm text-blue-100 mt-1">+18% vs anterior</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Total Enviados', value: '4,350', sub: '+18% vs anterior', color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <FaEnvelope /> },
+          { label: 'Tasa Apertura', value: '55%', sub: '+5% vs anterior', color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaUsers /> },
+          { label: 'CTR Promedio', value: '19.4%', sub: '+2.3% vs anterior', color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <FaMousePointer /> },
+          { label: 'ROI Total', value: '285%', sub: '$12.5K generados', color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <FaDollarSign /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
             </div>
-            <FaEnvelope className="text-5xl opacity-30" />
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
+            <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{m.sub}</p>
           </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-green-500 to-green-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm mb-1">Tasa Apertura</p>
-              <p className="text-4xl font-bold">55%</p>
-              <p className="text-sm text-green-100 mt-1">+5% vs anterior</p>
-            </div>
-            <FaUsers className="text-5xl opacity-30" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-purple-500 to-purple-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm mb-1">CTR Promedio</p>
-              <p className="text-4xl font-bold">19.4%</p>
-              <p className="text-sm text-purple-100 mt-1">+2.3% vs anterior</p>
-            </div>
-            <FaMousePointer className="text-5xl opacity-30" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-orange-500 to-orange-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm mb-1">ROI Total</p>
-              <p className="text-4xl font-bold">285%</p>
-              <p className="text-sm text-orange-100 mt-1">$12.5K generados</p>
-            </div>
-            <FaDollarSign className="text-5xl opacity-30" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Gráfico de Rendimiento */}
@@ -122,55 +103,32 @@ const AnalyticsMarketing = () => {
             </span>
           </div>
         </div>
-        <ChartComponent
-          id="rendimiento-chart"
-          primaryXAxis={{
-            valueType: 'DateTime',
-            labelFormat: 'dd/MM',
-            intervalType: 'Days',
-            edgeLabelPlacement: 'Shift'
+        <Chart
+          options={{
+            chart: { type: 'line', toolbar: { show: false }, background: 'transparent', zoom: { enabled: false } },
+            colors: ['#3B82F6', '#10B981', '#8B5CF6'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 3 },
+            markers: { size: 5 },
+            xaxis: {
+              categories: datosRendimiento.map((d) => d.fecha.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })),
+              labels: { style: { colors: isDark ? '#9CA3AF' : '#6B7280', fontSize: '11px' } },
+              axisBorder: { show: false },
+              axisTicks: { show: false },
+            },
+            yaxis: { labels: { style: { colors: isDark ? '#9CA3AF' : '#6B7280', fontSize: '11px' } } },
+            grid: { borderColor: isDark ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+            legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: isDark ? '#9CA3AF' : '#6B7280' } },
+            tooltip: { theme: isDark ? 'dark' : 'light' },
           }}
-          primaryYAxis={{
-            labelFormat: '{value}',
-            title: 'Cantidad'
-          }}
-          tooltip={{ enable: true }}
-          height="350px"
-        >
-          <Inject services={[LineSeries, DateTime, Legend, Tooltip]} />
-          <SeriesCollectionDirective>
-            <SeriesDirective
-              dataSource={datosRendimiento}
-              xName="fecha"
-              yName="enviados"
-              name="Enviados"
-              width="2"
-              marker={{ visible: true, width: 8, height: 8 }}
-              type="Line"
-              fill="#3B82F6"
-            />
-            <SeriesDirective
-              dataSource={datosRendimiento}
-              xName="fecha"
-              yName="abiertos"
-              name="Abiertos"
-              width="2"
-              marker={{ visible: true, width: 8, height: 8 }}
-              type="Line"
-              fill="#10B981"
-            />
-            <SeriesDirective
-              dataSource={datosRendimiento}
-              xName="fecha"
-              yName="clicks"
-              name="Clicks"
-              width="2"
-              marker={{ visible: true, width: 8, height: 8 }}
-              type="Line"
-              fill="#8B5CF6"
-            />
-          </SeriesCollectionDirective>
-        </ChartComponent>
+          series={[
+            { name: 'Enviados', data: datosRendimiento.map((d) => d.enviados) },
+            { name: 'Abiertos', data: datosRendimiento.map((d) => d.abiertos) },
+            { name: 'Clicks', data: datosRendimiento.map((d) => d.clicks) },
+          ]}
+          type="line"
+          height={350}
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">

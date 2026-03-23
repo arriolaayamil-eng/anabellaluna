@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaCalendarAlt, FaTimes, FaSave, FaHome, FaUser, FaMapMarkerAlt, FaClock, FaCheckCircle } from 'react-icons/fa';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
-// ApexCharts for modern visualizations
 import Chart from 'react-apexcharts';
-// Syncfusion Grid only
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const Ventas = () => {
   const { currentMode, currentColor } = useStateContext();

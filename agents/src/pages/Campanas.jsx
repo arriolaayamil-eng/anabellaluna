@@ -78,7 +78,8 @@ const Campanas = () => {
     },
   ];
 
-  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   const getEstadoColor = (estado) => {
     const colors = {
@@ -102,54 +103,33 @@ const Campanas = () => {
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-          style={{ backgroundColor: currentColor }}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium shadow-lg hover:shadow-xl transition-all"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Nueva Campaña
         </button>
       </div>
 
       {/* Estadísticas Generales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardBase} bg-gradient-to-br from-blue-500 to-blue-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm mb-1">Campañas Activas</p>
-              <p className="text-4xl font-bold">2</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Campañas Activas', value: 2, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <MdOutlineEmail /> },
+          { label: 'Tasa Apertura Prom.', value: '57.5%', color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaEye /> },
+          { label: 'Tasa Click Prom.', value: '19.4%', color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <FaMousePointer /> },
+          { label: 'Conversiones', value: 144, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <FaChartLine /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
             </div>
-            <MdOutlineEmail className="text-5xl opacity-30" />
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
           </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-green-500 to-green-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm mb-1">Tasa Apertura Prom.</p>
-              <p className="text-4xl font-bold">57.5%</p>
-            </div>
-            <FaEye className="text-5xl opacity-30" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-purple-500 to-purple-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm mb-1">Tasa Click Prom.</p>
-              <p className="text-4xl font-bold">19.4%</p>
-            </div>
-            <FaMousePointer className="text-5xl opacity-30" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-orange-500 to-orange-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm mb-1">Conversiones</p>
-              <p className="text-4xl font-bold">144</p>
-            </div>
-            <FaChartLine className="text-5xl opacity-30" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Lista de Campañas */}

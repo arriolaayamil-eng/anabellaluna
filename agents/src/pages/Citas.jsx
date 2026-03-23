@@ -495,43 +495,59 @@ const Citas = () => {
         <button
           type="button"
           onClick={() => setShowModalCita(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/30"
         >
           <FaCalendarPlus /> Nueva Cita
         </button>
         <button
           type="button"
           onClick={() => setShowModalKanban(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-md shadow-purple-500/30"
         >
           <FaList /> Todo List (Kanban)
         </button>
       </div>
 
       {/* KPIs de Citas - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-        {kpisCitas.map((kpi, i) => (
-          <div
-            key={i}
-            onClick={() => {
-              if (i === 0) setShowModalCitasHoy(true);
-              else if (i === 1) setShowModalEstaSemana(true);
-              else if (i === 2) setShowModalTasaAsistencia(true);
-              else if (i === 3) setShowModalPendientes(true);
-            }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
-          >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {kpisCitas.map((kpi, i) => {
+          const colorMap = {
+            'from-blue-500 to-blue-600': '#3b82f6',
+            'from-green-500 to-green-600': '#10b981',
+            'from-purple-500 to-purple-600': '#8b5cf6',
+            'from-orange-500 to-orange-600': '#f59e0b',
+          };
+          const bgMap = {
+            'from-blue-500 to-blue-600': 'bg-blue-50 dark:bg-blue-900/20',
+            'from-green-500 to-green-600': 'bg-emerald-50 dark:bg-emerald-900/20',
+            'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20',
+            'from-orange-500 to-orange-600': 'bg-amber-50 dark:bg-amber-900/20',
+          };
+          const accentColor = colorMap[kpi.color] || '#6366f1';
+          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+          return (
+            <div
+              key={i}
+              onClick={() => {
+                if (i === 0) setShowModalCitasHoy(true);
+                else if (i === 1) setShowModalEstaSemana(true);
+                else if (i === 2) setShowModalTasaAsistencia(true);
+                else if (i === 3) setShowModalPendientes(true);
+              }}
+              className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+              style={{ borderLeft: `4px solid ${accentColor}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
+                </div>
               </div>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Gráficos ApexCharts - Métricas de Agenda */}

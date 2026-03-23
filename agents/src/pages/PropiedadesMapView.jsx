@@ -11,7 +11,7 @@ function loadGoogleMapsScript(cb) {
   if (!MAPS_KEY) return;
   const script = document.createElement('script');
   script.id = 'gmaps-crm-script';
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`;
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places&loading=async`;
   script.async = true;
   script.onload = cb;
   document.head.appendChild(script);

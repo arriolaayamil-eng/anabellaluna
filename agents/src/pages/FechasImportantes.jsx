@@ -3,7 +3,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaToggleOn, FaToggleOff, FaEdit, FaSave, FaTimes, FaBell, FaUsers, FaSearch, FaSyncAlt, FaHeart, FaFlag, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
 
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { api } from '../config/api';
 
@@ -112,7 +111,8 @@ const FechasImportantes = () => {
     return matchesSearch && matchesTipo;
   });
 
-  const cardBase = `rounded-xl p-4 shadow-md ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'}`;
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-4 border transition-shadow ${isDark ? 'bg-gray-900 border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`;
 
   const getSegmentacionBadges = (segmentacion) => {
     const badges = [];
@@ -126,58 +126,42 @@ const FechasImportantes = () => {
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-6">
         <button
           type="button"
           onClick={() => navigate('/crm/automatizacion')}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-medium transition-all hover:shadow-md"
-          style={{ borderColor: currentColor, color: currentColor }}
+          className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
         >
-          <FaArrowLeft /> Volver
+          <FaArrowLeft className={isDark ? 'text-gray-300' : 'text-gray-600'} />
         </button>
-        <div className="flex-1">
-          <Header category="CRM" title="Fechas Importantes de Argentina" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaCalendarAlt className="text-purple-500" /> Fechas Importantes de Argentina
+          </h2>
+          <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>CRM · Calendario especial</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className={`${cardBase} flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
-            <FaCalendarAlt className="text-2xl text-blue-500" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Total Fechas', value: fechas.length, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <FaCalendarAlt /> },
+          { label: 'Activas', value: fechas.filter((f) => f.activo).length, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaToggleOn /> },
+          { label: 'Feriados', value: fechas.filter((f) => f.tipo === 'feriado_nacional').length, color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <FaFlag /> },
+          { label: 'Días Especiales', value: fechas.filter((f) => f.tipo === 'dia_especial').length, color: '#ec4899', bg: 'bg-pink-50 dark:bg-pink-900/20', icon: <FaHeart /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
+            </div>
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
           </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Fechas</p>
-          </div>
-        </div>
-        <div className={`${cardBase} flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
-            <FaToggleOn className="text-2xl text-green-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.filter((f) => f.activo).length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Activas</p>
-          </div>
-        </div>
-        <div className={`${cardBase} flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
-            <FaFlag className="text-2xl text-purple-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.filter((f) => f.tipo === 'feriado_nacional').length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Feriados</p>
-          </div>
-        </div>
-        <div className={`${cardBase} flex items-center gap-4`}>
-          <div className="p-3 rounded-full bg-pink-100 dark:bg-pink-900">
-            <FaHeart className="text-2xl text-pink-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold dark:text-white">{fechas.filter((f) => f.tipo === 'dia_especial').length}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Días Especiales</p>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Filters and Actions */}

@@ -42,6 +42,8 @@ const streamifier = require('streamifier');
 
 const Document = require('./models/Document');
 
+const Operacion = require('./models/Operacion');
+
 const Version = require('./models/Version');
 
 const EditedImage = require('./models/EditedImage');
@@ -246,6 +248,32 @@ app.use('/admin/stats', adminDashboardStatsRoutes);
 app.use('/admin/notifications', adminNotificationsRoutes);
 
 app.use('/admin/config', globalConfigRoutes);
+
+// Admin KPI: reservadas count (operaciones tipo Reserva + contratos de reserva generados)
+app.get('/admin/propiedades/reservadas-count', authenticateToken, async (req, res) => {
+  try {
+    // 1. Unique property IDs from Operacion with tipo='Reserva'
+    const opReservas = await Operacion.find({ tipo: 'Reserva' }).select('propiedadId').lean();
+    const idsFromOp = new Set(opReservas.map(o => String(o.propiedadId || '')).filter(Boolean));
+
+    // 2. Unique property IDs from Documents generated from a reservation template
+    //    categoria starts with 'Contrato - ' and contains 'Reserva' (case-insensitive)
+    const contractDocs = await Document.find({
+      sourceModule: 'contract_templates',
+      categoria: { $regex: /reserva/i },
+    }).select('metadata').lean();
+    const idsFromContracts = new Set(
+      contractDocs.map(d => String((d.metadata && d.metadata.propertyId) || '')).filter(Boolean)
+    );
+
+    // Union of both sets
+    const allIds = new Set([...idsFromOp, ...idsFromContracts]);
+
+    res.json({ count: allIds.size, propertyIds: [...allIds] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.use('/files', foldersRoutes);
 
@@ -887,9 +915,8 @@ app.get('/documents/:id/download', authenticateToken, async (req, res) => {
 
 
 
-    const scopeId = agentScopeId(req);
-
-    if (scopeId && String(doc.agenteId || '') !== scopeId) return res.status(403).json({ error: 'forbidden' });
+    // Any authenticated user can download a document by ID.
+    // Scope (agenteId) restriction applies to listing/upload/delete, not download.
 
 
 

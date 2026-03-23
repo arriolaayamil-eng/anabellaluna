@@ -2,17 +2,13 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import PropiedadesMapView from './PropiedadesMapView';
 
 import Chart from 'react-apexcharts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaFileAlt, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
 
 import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { documentService } from '../services/documentService';
 import API_CONFIG, { getAuthToken } from '../config/api';
-
-// Syncfusion Components
 
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic'];
 const isImageDoc = (doc) => {
@@ -24,9 +20,6 @@ const isImageDoc = (doc) => {
 
 const Propiedades = () => {
   const { currentMode, currentColor } = useStateContext();
-
-  // Estado para tabs internas
-  const [activeTab, setActiveTab] = useState('metricas'); // 'metricas', 'propiedades'
 
   // Estado para filtro de operación
   const [filtroOperacion, setFiltroOperacion] = useState('todas'); // 'venta', 'alquiler', 'todas'
@@ -41,7 +34,7 @@ const Propiedades = () => {
   const [showModalFotosSubidas, setShowModalFotosSubidas] = useState(false);
 
   // Estados para las vistas
-  const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'detalle'
+  const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'mapa', 'detalle'
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
 
   const [propiedades, setPropiedades] = useState([]);
@@ -512,7 +505,7 @@ const Propiedades = () => {
     if (document.getElementById('gmaps-crm-script')) return;
     const script = document.createElement('script');
     script.id = 'gmaps-crm-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async`;
     script.async = true;
     document.head.appendChild(script);
   }, []);
@@ -780,7 +773,7 @@ const Propiedades = () => {
     { title: 'Total Propiedades', value: propiedades.length, desc: '3 nuevas esta semana', icon: <FaHome />, color: 'from-blue-500 to-blue-600' },
     { title: 'Valor Total Portfolio', value: `$${(propiedades.reduce((sum, p) => sum + p.precio, 0) / 1000).toFixed(0)}K`, desc: 'Inventario completo', icon: <FaDollarSign />, color: 'from-green-500 to-green-600' },
     { title: 'Visitas Totales', value: propiedades.reduce((sum, p) => sum + p.visitas, 0).toLocaleString(), desc: 'Este mes', icon: <FaEye />, color: 'from-purple-500 to-purple-600' },
-    { title: 'Fotos Subidas', value: propiedades.reduce((sum, p) => sum + p.fotos, 0), desc: 'Galería completa', icon: <FaCamera />, color: 'from-orange-500 to-orange-600' },
+    { title: 'Fotos Subidas', value: propiedades.reduce((sum, p) => sum + (Number(p.fotos) || 0), 0), desc: 'Galería completa', icon: <FaCamera />, color: 'from-orange-500 to-orange-600' },
   ];
 
   // Datos para gráficos
@@ -1298,9 +1291,9 @@ const Propiedades = () => {
         </div>
       )}
 
-      {/* Botones de Acción */}
+      {/* Botones de Acción - siempre visibles */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {vistaActual === 'detalle' && (
+        {vistaActual !== 'dashboard' && (
           <button
             type="button"
             onClick={volverAlDashboard}
@@ -1312,31 +1305,46 @@ const Propiedades = () => {
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Nueva Propiedad
         </button>
-        {vistaActual !== 'detalle' && (
+        {vistaActual === 'dashboard' && (
+          <button
+            type="button"
+            onClick={() => setVistaActual('lista')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
+          >
+            <FaEye /> Ver Todas
+          </button>
+        )}
+        {(vistaActual === 'dashboard' || vistaActual === 'lista') && (
           <button
             type="button"
             onClick={() => setVistaActual('mapa')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm ${
-              vistaActual === 'mapa'
-                ? 'bg-violet-600 text-white'
-                : 'bg-violet-500 hover:bg-violet-600 text-white'
-            }`}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-violet-500 hover:bg-violet-600 transition-all shadow-sm hover:shadow-md"
           >
             <FaMapMarkerAlt /> Mapa
           </button>
         )}
       </div>
 
-      {/* Vista Mapa */}
+      {/* Vista Mapa - exclusiva, nada más se renderiza */}
       {vistaActual === 'mapa' && (
         <div className={`${cardBase} w-full`}>
-          <h2 className="text-xl font-bold mb-6 dark:text-gray-100 flex items-center gap-2">
-            <FaMapMarkerAlt className="text-violet-500" /> Ubicación y Características
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold dark:text-gray-100 flex items-center gap-2">
+              <FaMapMarkerAlt className="text-violet-500" /> Mapa de Propiedades
+            </h2>
+            <button
+              type="button"
+              onClick={() => setVistaActual('dashboard')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+            >
+              <FaArrowLeft /> Volver
+            </button>
+          </div>
           <PropiedadesMapView
             propiedades={propiedades}
             isDark={isDark}
@@ -1345,39 +1353,8 @@ const Propiedades = () => {
         </div>
       )}
 
-      {/* Tabs Estilo Chrome - Solo visibles cuando no estamos en detalle ni en mapa */}
-      {vistaActual !== 'detalle' && vistaActual !== 'mapa' && (
-        <div className="mb-6">
-          <div className="flex items-end gap-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('metricas')}
-              className={`px-5 py-2.5 text-sm font-medium transition-all rounded-t-xl border-t border-l border-r ${
-                activeTab === 'metricas'
-                  ? 'bg-white dark:bg-secondary-dark-bg text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-700 shadow-sm -mb-px z-10'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              📊 Métricas
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('propiedades')}
-              className={`px-5 py-2.5 text-sm font-medium transition-all rounded-t-xl border-t border-l border-r ${
-                activeTab === 'propiedades'
-                  ? 'bg-white dark:bg-secondary-dark-bg text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-700 shadow-sm -mb-px z-10'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              🏠 Propiedades
-            </button>
-          </div>
-          <div className="border-t border-gray-200 dark:border-gray-700" />
-        </div>
-      )}
-
-      {/* Tab: Métricas de Propiedades */}
-      {vistaActual !== 'detalle' && activeTab === 'metricas' && (
+      {/* Vista Dashboard - Métricas */}
+      {vistaActual === 'dashboard' && (
         <>
           {/* KPIs de Propiedades - Clickeables */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -1472,79 +1449,102 @@ const Propiedades = () => {
 
           {/* Gráficos de Estados y Tipos */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            {/* Gráfico de Estados */}
+            {/* Gráfico de Estados - ApexCharts */}
             <div className={cardBase}>
               <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Estados de Propiedades</h3>
-              <AccumulationChartComponent
-                id="estados-chart"
-                tooltip={{ enable: true }}
-                legendSettings={{ visible: true }}
-                height="300px"
-              >
-                <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-                <AccumulationSeriesCollectionDirective>
-                  <AccumulationSeriesDirective
-                    type="Pie"
-                    dataSource={estadosData}
-                    xName="estado"
-                    yName="cantidad"
-                    name="Propiedades"
-                    innerRadius="40%"
-                    dataLabel={{ visible: true, name: 'estado', position: 'Outside' }}
-                  />
-                </AccumulationSeriesCollectionDirective>
-              </AccumulationChartComponent>
+              <Chart
+                options={{
+                  chart: { type: 'donut', background: 'transparent' },
+                  labels: estadosData.map((e) => e.estado),
+                  colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
+                  dataLabels: { enabled: true },
+                  legend: { position: 'bottom', labels: { colors: isDark ? '#9CA3AF' : '#6B7280' } },
+                  stroke: { show: false },
+                  tooltip: { theme: isDark ? 'dark' : 'light' },
+                  plotOptions: { pie: { donut: { size: '50%' } } },
+                }}
+                series={estadosData.map((e) => e.cantidad)}
+                type="donut"
+                height={280}
+              />
             </div>
 
-            {/* Gráfico de Tipos */}
+            {/* Gráfico de Tipos - ApexCharts */}
             <div className={cardBase}>
               <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipos de Propiedades</h3>
-              <ChartComponent
-                id="tipos-chart"
-                primaryXAxis={{ valueType: 'Category', title: 'Tipos' }}
-                primaryYAxis={{ title: 'Cantidad' }}
-                tooltip={{ enable: true }}
-                legendSettings={{ visible: false }}
-                height="300px"
-              >
-                <Inject services={[ColumnSeries, Category, Tooltip]} />
-                <SeriesCollectionDirective>
-                  <SeriesDirective
-                    type="Column"
-                    dataSource={tiposData}
-                    xName="tipo"
-                    yName="cantidad"
-                    name="Cantidad"
-                    fill={currentColor || '#3B82F6'}
-                  />
-                </SeriesCollectionDirective>
-              </ChartComponent>
+              <Chart
+                options={{
+                  chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
+                  colors: [currentColor || '#3B82F6'],
+                  plotOptions: { bar: { borderRadius: 4, distributed: true, barHeight: '70%' } },
+                  dataLabels: { enabled: true, style: { colors: ['#fff'], fontSize: '11px' } },
+                  xaxis: {
+                    categories: tiposData.map((t) => t.tipo),
+                    labels: { style: { colors: isDark ? '#9CA3AF' : '#6B7280', fontSize: '11px' } },
+                    axisBorder: { show: false }, axisTicks: { show: false },
+                  },
+                  yaxis: { labels: { style: { colors: isDark ? '#9CA3AF' : '#6B7280' } } },
+                  grid: { show: false },
+                  legend: { show: false },
+                  tooltip: { theme: isDark ? 'dark' : 'light' },
+                }}
+                series={[{ name: 'Cantidad', data: tiposData.map((t) => t.cantidad) }]}
+                type="bar"
+                height={280}
+              />
             </div>
           </div>
 
           {/* Grid de Propiedades y Galería */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            {/* Grid Principal */}
+            {/* Grid Principal - Tabla nativa */}
             <div className={`xl:col-span-2 ${cardBase}`}>
-              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏠 Listado de Propiedades</h3>
-              <GridComponent
-                dataSource={propiedades}
-                allowPaging
-                pageSettings={{ pageSize: 10 }}
-                allowSorting
-                allowFiltering
-              >
-                <GridInject services={[Page, Sort, Filter]} />
-                <ColumnsDirective>
-                  <ColumnDirective field="titulo" headerText="Propiedad" width="200" />
-                  <ColumnDirective field="tipo" headerText="Tipo" width="120" />
-                  <ColumnDirective field="estado" headerText="Estado" width="120" />
-                  <ColumnDirective field="precio" headerText="Precio" textAlign="Right" width="120" format="C0" />
-                  <ColumnDirective field="m2" headerText="M²" textAlign="Center" width="80" />
-                  <ColumnDirective field="agente" headerText="Agente" width="150" />
-                  <ColumnDirective field="visitas" headerText="Visitas" textAlign="Center" width="100" />
-                </ColumnsDirective>
-              </GridComponent>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold dark:text-gray-100">🏠 Listado de Propiedades</h3>
+                <button
+                  type="button"
+                  onClick={() => setVistaActual('lista')}
+                  className="text-sm text-blue-500 hover:underline"
+                >
+                  Ver todas →
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                      {['Propiedad', 'Tipo', 'Estado', 'Precio', 'M²', 'Agente', 'Visitas'].map((h) => (
+                        <th key={h} className={`text-left py-2 px-3 font-semibold text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {propiedades.slice(0, 8).map((p) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => verDetalle(p)}
+                        className={`border-b cursor-pointer transition-colors ${
+                          isDark ? 'border-gray-700/50 hover:bg-gray-700/40' : 'border-gray-100 hover:bg-gray-50'
+                        }`}
+                      >
+                        <td className={`py-2 px-3 font-medium max-w-[160px] truncate ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{p.titulo}</td>
+                        <td className={`py-2 px-3 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{p.tipo}</td>
+                        <td className="py-2 px-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            p.estado === 'Disponible' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : p.estado === 'Reservada' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          }`}>{p.estado}</span>
+                        </td>
+                        <td className={`py-2 px-3 font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{p.moneda} {p.precio?.toLocaleString()}</td>
+                        <td className={`py-2 px-3 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{p.m2 || '-'}</td>
+                        <td className={`py-2 px-3 truncate max-w-[120px] ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{p.agente || '-'}</td>
+                        <td className={`py-2 px-3 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{p.visitas || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Panel de Galería */}
@@ -1627,8 +1627,8 @@ const Propiedades = () => {
         </>
       )}
 
-      {/* Tab: Propiedades con filtros */}
-      {vistaActual !== 'detalle' && activeTab === 'propiedades' && (
+      {/* Vista Lista: Propiedades con filtros */}
+      {vistaActual === 'lista' && (
         <>
           {/* Barra de Búsqueda Compacta */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -2141,6 +2141,127 @@ const Propiedades = () => {
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{propiedadSeleccionada.descripcion}</p>
               </div>
 
+              {/* Todos los campos completados */}
+              <div className={cardBase}>
+                <h3 className="text-xl font-bold mb-4 dark:text-gray-100">📋 Detalles Completos de la Propiedad</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {propiedadSeleccionada.tipo && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipo}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.categoria && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Categoría</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.categoria}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.operacion && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Operación</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.operacion}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.estado && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Estado</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.estado}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.idPropiedad && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ID Propiedad</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.idPropiedad}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.precioOferta && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precio Oferta</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.moneda} ${Number(propiedadSeleccionada.precioOferta).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.precioPorM2 && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precio por m²</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.moneda} ${Number(propiedadSeleccionada.precioPorM2).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoEstructura && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo de Estructura</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoEstructura}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoCochera && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo de Cochera</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoCochera}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.balcon && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Balcón</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.balcon}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.piso && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Piso</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.piso}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.anioConstruccion && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Año de Construcción</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.anioConstruccion}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoCalefaccion && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Calefacción</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoCalefaccion}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoAguaCaliente && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Agua Caliente</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoAguaCaliente}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoCocina && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cocina</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoCocina}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.nomenclaturaCatastral && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nomenclatura Catastral</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.nomenclaturaCatastral}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.partidaInmobiliaria && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Partida Inmobiliaria</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.partidaInmobiliaria}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.disponibleDesde && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Disponible Desde</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.disponibleDesde}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tamanoGaraje && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tamaño Garaje</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tamanoGaraje}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Amenities */}
               <div className={cardBase}>
                 <h3 className="text-xl font-bold mb-4 dark:text-gray-100">✨ Amenities</h3>
@@ -2256,6 +2377,101 @@ const Propiedades = () => {
 
             {/* Columna Lateral */}
             <div className="space-y-6">
+              {/* Propietario */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaUser className="text-blue-500" /> Propietario
+                </h3>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <FaUser className="text-2xl text-white" />
+                  </div>
+                  <p className="font-semibold dark:text-gray-100 mb-1">{propiedadSeleccionada.propietario || 'Sin asignar'}</p>
+                  {propiedadSeleccionada.clienteId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVistaActual('dashboard');
+                        setTimeout(() => {
+                          window.location.href = `/crm/clientes?id=${propiedadSeleccionada.clienteId}`;
+                        }, 100);
+                      }}
+                      className="mt-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <FaEye /> Ver Cliente
+                    </button>
+                  )}
+                  {!propiedadSeleccionada.clienteId && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No vinculado a cliente</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Ubicación con mapa */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-red-500" /> Ubicación
+                </h3>
+                {propiedadSeleccionada.lat && propiedadSeleccionada.lng && (
+                  <div className="mb-4 h-32 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <FaMapMarkerAlt className="text-4xl text-red-500" />
+                    </div>
+                    <p className="absolute bottom-2 left-2 right-2 text-center text-xs bg-black bg-opacity-60 text-white px-2 py-1 rounded">Lat: {Number(propiedadSeleccionada.lat).toFixed(6)}, Lng: {Number(propiedadSeleccionada.lng).toFixed(6)}</p>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Dirección</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.direccion}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Barrio</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.barrio}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Ciudad</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.ciudad}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Provincia</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.provincia}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Código Postal</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.codigoPostal}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estadísticas */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100">📊 Estadísticas</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaEye className="text-blue-500" />
+                      <span className="text-sm dark:text-gray-200">Visitas</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.visitas}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaCamera className="text-green-500" />
+                      <span className="text-sm dark:text-gray-200">Fotos</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fotos}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaCalendar className="text-purple-500" />
+                      <span className="text-sm dark:text-gray-200">Publicada</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fechaPublicacion}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Publicación y Link Privado */}
               <div className={cardBase}>
                 <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -2347,77 +2563,6 @@ const Propiedades = () => {
                         <FaLink /> Generar link privado
                       </button>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Información de Ubicación */}
-              <div className={cardBase}>
-                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-red-500" /> Ubicación
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Dirección</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.direccion}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Barrio</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.barrio}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Ciudad</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.ciudad}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Provincia</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.provincia}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Código Postal</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.codigoPostal}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Agente Responsable */}
-              <div className={cardBase}>
-                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaUser className="text-purple-500" /> Agente Responsable
-                </h3>
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <FaUser className="text-3xl text-white" />
-                  </div>
-                  <p className="font-bold text-lg dark:text-gray-100">{propiedadSeleccionada.agente}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Agente Inmobiliario</p>
-                </div>
-              </div>
-
-              {/* Estadísticas */}
-              <div className={cardBase}>
-                <h3 className="text-lg font-bold mb-4 dark:text-gray-100">📊 Estadísticas</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FaEye className="text-blue-500" />
-                      <span className="text-sm dark:text-gray-200">Visitas</span>
-                    </div>
-                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.visitas}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FaCamera className="text-green-500" />
-                      <span className="text-sm dark:text-gray-200">Fotos</span>
-                    </div>
-                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fotos}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FaCalendar className="text-purple-500" />
-                      <span className="text-sm dark:text-gray-200">Publicada</span>
-                    </div>
-                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fechaPublicacion}</span>
                   </div>
                 </div>
               </div>
@@ -3652,7 +3797,7 @@ const Propiedades = () => {
                   <FaCamera /> Fotos Subidas
                 </h2>
                 <p className="text-orange-100 text-sm mt-1">
-                  {propiedades.reduce((sum, p) => sum + p.fotos, 0)} fotos en total
+                  {propiedades.reduce((sum, p) => sum + (Number(p.fotos) || 0), 0)} fotos en total
                 </p>
               </div>
               <button type="button" onClick={() => setShowModalFotosSubidas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
@@ -3662,7 +3807,7 @@ const Propiedades = () => {
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-3">
-                {[...propiedades].sort((a, b) => b.fotos - a.fotos).map((prop) => (
+                {[...propiedades].sort((a, b) => (Number(b.fotos) || 0) - (Number(a.fotos) || 0)).map((prop) => (
                   <div key={prop.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-gray-700' : 'border-gray-200'} hover:shadow-md transition-shadow`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -3682,7 +3827,7 @@ const Propiedades = () => {
                       <div className="flex items-center gap-6">
                         <div className="text-center">
                           <FaCamera className="text-4xl text-orange-500 mx-auto mb-1" />
-                          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{prop.fotos}</p>
+                          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{Number(prop.fotos) || 0}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">fotos</p>
                         </div>
                         <div className="text-center">
@@ -3693,7 +3838,7 @@ const Propiedades = () => {
                         <div className="text-center">
                           <p className="text-xs text-gray-500 dark:text-gray-400">Ratio</p>
                           <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                            {Math.round(prop.visitas / prop.fotos)}
+                            {prop.fotos > 0 ? Math.round(prop.visitas / prop.fotos) : '-'}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">visitas/foto</p>
                         </div>
@@ -3703,7 +3848,7 @@ const Propiedades = () => {
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${getPhotoBarColor(prop.fotos)}`}
-                          style={{ width: `${(prop.fotos / 15) * 100}%` }}
+                          style={{ width: `${Math.min(((Number(prop.fotos) || 0) / 15) * 100, 100)}%` }}
                         />
                       </div>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -3719,19 +3864,19 @@ const Propiedades = () => {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Fotos</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {propiedades.reduce((sum, p) => sum + p.fotos, 0)}
+                      {propiedades.reduce((sum, p) => sum + (Number(p.fotos) || 0), 0)}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Promedio por Propiedad</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {Math.round(propiedades.reduce((sum, p) => sum + p.fotos, 0) / propiedades.length)}
+                      {propiedades.length > 0 ? Math.round(propiedades.reduce((sum, p) => sum + (Number(p.fotos) || 0), 0) / propiedades.length) : 0}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Más Fotos</p>
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {Math.max(...propiedades.map((p) => p.fotos))}
+                      {propiedades.length > 0 ? Math.max(...propiedades.map((p) => Number(p.fotos) || 0)) : 0}
                     </p>
                   </div>
                   <div>

@@ -3,13 +3,11 @@ import PropiedadesMapView from './PropiedadesMapView';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaList, FaThLarge, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChevronRight, FaChevronLeft, FaFileAlt, FaChartLine, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { documentService } from '../services/documentService';
 import API_CONFIG, { getAuthToken } from '../config/api';
 import Chart from 'react-apexcharts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic'];
 const isImageDoc = (doc) => {
@@ -25,6 +23,11 @@ const Propiedades = () => {
   // Estado para el modal
   const [showModal, setShowModal] = useState(false);
   
+  // KPI Reservadas: real count from operaciones + contratos de reserva
+  const [reservadasCount, setReservadasCount] = useState(null);
+  const [reservadasPropertyIds, setReservadasPropertyIds] = useState([]);
+  const [showModalReservadas, setShowModalReservadas] = useState(false);
+
   // Estados para modales de estadísticas
   const [showModalTotalPropiedades, setShowModalTotalPropiedades] = useState(false);
   const [showModalValorPortfolio, setShowModalValorPortfolio] = useState(false);
@@ -40,6 +43,23 @@ const Propiedades = () => {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchReservadasCount = async () => {
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_CONFIG.baseURL}/admin/propiedades/reservadas-count`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setReservadasCount(data.count ?? 0);
+          setReservadasPropertyIds(data.propertyIds || []);
+        }
+      } catch { /* silently ignore */ }
+    };
+    fetchReservadasCount();
+  }, []);
   const [formStep, setFormStep] = useState(1);
 
   const createEmptyClienteForm = () => ({
@@ -484,7 +504,7 @@ const Propiedades = () => {
     if (document.getElementById('gmaps-erp-script')) return;
     const script = document.createElement('script');
     script.id = 'gmaps-erp-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async`;
     script.async = true;
     document.head.appendChild(script);
   }, []);
@@ -661,6 +681,8 @@ const Propiedades = () => {
   const totalValorPortfolio = propiedades.reduce((sum, p) => sum + (Number(p.precio || 0) || 0), 0);
   const totalVisitas = propiedades.reduce((sum, p) => sum + (Number(p.visitas || 0) || 0), 0);
   const totalFotos = propiedades.reduce((sum, p) => sum + (Number(p.fotos || 0) || 0), 0);
+  const maxFotos = propiedades.reduce((max, p) => Math.max(max, Number(p.fotos || 0) || 0), 0);
+  const maxVisitas = propiedades.reduce((max, p) => Math.max(max, Number(p.visitas || 0) || 0), 0);
   const disponibles = propiedades.filter(p => p.estado === 'Disponible').length;
   const reservadas = propiedades.filter(p => p.estado === 'Reservada').length;
 
@@ -668,7 +690,7 @@ const Propiedades = () => {
     { title: 'Total Propiedades', value: propiedades.length, desc: `${disponibles} disponibles`, icon: <FaHome />, color: 'from-blue-500 to-blue-600', trend: '+8%' },
     { title: 'Valor Portfolio', value: `$${(totalValorPortfolio / 1000000).toFixed(1)}M`, desc: 'Inventario activo', icon: <FaDollarSign />, color: 'from-emerald-500 to-emerald-600', trend: '+12%' },
     { title: 'Visitas Totales', value: totalVisitas.toLocaleString(), desc: 'Últimos 30 días', icon: <FaEye />, color: 'from-violet-500 to-violet-600', trend: '+15%' },
-    { title: 'Reservadas', value: reservadas, desc: 'Próximas a cerrar', icon: <FaBuilding />, color: 'from-amber-500 to-amber-600', trend: '+5%' },
+    { title: 'Reservadas', value: reservadasCount !== null ? reservadasCount : reservadas, desc: 'Con contrato de reserva', icon: <FaBuilding />, color: 'from-amber-500 to-amber-600', trend: '+5%' },
   ];
 
   // ApexCharts configurations
@@ -1188,7 +1210,7 @@ const Propiedades = () => {
                 if (i === 0) setShowModalTotalPropiedades(true);
                 else if (i === 1) setShowModalValorPortfolio(true);
                 else if (i === 2) setShowModalVisitasTotales(true);
-                else if (i === 3) setShowModalFotosSubidas(true);
+                else if (i === 3) setShowModalReservadas(true);
               }}
               className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
               style={{ borderLeft: `4px solid ${accentColor}` }}
@@ -1297,25 +1319,37 @@ const Propiedades = () => {
         {/* Grid Principal */}
         <div className={`xl:col-span-2 ${cardBase}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏠 Listado de Propiedades</h3>
-          <GridComponent
-            dataSource={propiedades}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-            allowFiltering
-          >
-            <GridInject services={[Page, Sort, Filter]} />
-            <ColumnsDirective>
-              <ColumnDirective field="id" headerText="ID" width="220" />
-              <ColumnDirective field="titulo" headerText="Propiedad" width="200" />
-              <ColumnDirective field="tipo" headerText="Tipo" width="120" />
-              <ColumnDirective field="estado" headerText="Estado" width="120" />
-              <ColumnDirective field="precio" headerText="Precio" textAlign="Right" width="120" format="C0" />
-              <ColumnDirective field="m2" headerText="M²" textAlign="Center" width="80" />
-              <ColumnDirective field="agente" headerText="Agente" width="150" />
-              <ColumnDirective field="visitas" headerText="Visitas" textAlign="Center" width="100" />
-            </ColumnsDirective>
-          </GridComponent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b dark:border-gray-700">
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Propiedad</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Tipo</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Estado</th>
+                  <th className="text-right py-3 px-3 font-semibold dark:text-gray-300">Precio</th>
+                  <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">M²</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Agente</th>
+                  <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">Visitas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {propiedades.slice(0, 10).map((p) => (
+                  <tr key={p.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => verDetalle(p)}>
+                    <td className="py-2.5 px-3 dark:text-gray-200">{p.titulo}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{p.tipo}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{p.estado}</td>
+                    <td className="py-2.5 px-3 text-right dark:text-gray-300">${p.precio?.toLocaleString() || 0}</td>
+                    <td className="py-2.5 px-3 text-center dark:text-gray-300">{p.m2}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{p.agente}</td>
+                    <td className="py-2.5 px-3 text-center dark:text-gray-300">{p.visitas}</td>
+                  </tr>
+                ))}
+                {propiedades.length === 0 && (
+                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">No hay propiedades registradas</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Panel de Galería */}
@@ -1647,6 +1681,127 @@ const Propiedades = () => {
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{propiedadSeleccionada.descripcion}</p>
               </div>
 
+              {/* Todos los campos completados */}
+              <div className={cardBase}>
+                <h3 className="text-xl font-bold mb-4 dark:text-gray-100">📋 Detalles Completos de la Propiedad</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {propiedadSeleccionada.tipo && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipo}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.categoria && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Categoría</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.categoria}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.operacion && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Operación</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.operacion}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.estado && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Estado</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.estado}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.idPropiedad && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ID Propiedad</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.idPropiedad}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.precioOferta && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precio Oferta</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.moneda} ${Number(propiedadSeleccionada.precioOferta).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.precioPorM2 && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precio por m²</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.moneda} ${Number(propiedadSeleccionada.precioPorM2).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoEstructura && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo de Estructura</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoEstructura}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoCochera && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo de Cochera</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoCochera}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.balcon && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Balcón</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.balcon}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.piso && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Piso</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.piso}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.anioConstruccion && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Año de Construcción</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.anioConstruccion}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoCalefaccion && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Calefacción</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoCalefaccion}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoAguaCaliente && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Agua Caliente</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoAguaCaliente}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tipoCocina && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cocina</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tipoCocina}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.nomenclaturaCatastral && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nomenclatura Catastral</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.nomenclaturaCatastral}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.partidaInmobiliaria && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Partida Inmobiliaria</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.partidaInmobiliaria}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.disponibleDesde && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Disponible Desde</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.disponibleDesde}</p>
+                    </div>
+                  )}
+                  {propiedadSeleccionada.tamanoGaraje && (
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tamaño Garaje</p>
+                      <p className="font-semibold dark:text-gray-100">{propiedadSeleccionada.tamanoGaraje}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Amenities */}
               <div className={cardBase}>
                 <h3 className="text-xl font-bold mb-4 dark:text-gray-100">✨ Amenities</h3>
@@ -1759,6 +1914,115 @@ const Propiedades = () => {
 
             {/* Columna Lateral */}
             <div className="space-y-6">
+              {/* Agente Responsable */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaUser className="text-purple-500" /> Agente Responsable
+                </h3>
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <FaUser className="text-3xl text-white" />
+                  </div>
+                  <p className="font-bold text-lg dark:text-gray-100">{propiedadSeleccionada.agente}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Agente Inmobiliario</p>
+                </div>
+              </div>
+
+              {/* Propietario */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaUser className="text-blue-500" /> Propietario
+                </h3>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <FaUser className="text-2xl text-white" />
+                  </div>
+                  <p className="font-semibold dark:text-gray-100 mb-1">{propiedadSeleccionada.propietario || 'Sin asignar'}</p>
+                  {propiedadSeleccionada.clienteId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVistaActual('dashboard');
+                        setTimeout(() => {
+                          window.location.href = `/clientes?id=${propiedadSeleccionada.clienteId}`;
+                        }, 100);
+                      }}
+                      className="mt-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <FaEye /> Ver Cliente
+                    </button>
+                  )}
+                  {!propiedadSeleccionada.clienteId && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No vinculado a cliente</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Ubicación con mapa */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-red-500" /> Ubicación
+                </h3>
+                {propiedadSeleccionada.lat && propiedadSeleccionada.lng && (
+                  <div className="mb-4 h-32 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <FaMapMarkerAlt className="text-4xl text-red-500" />
+                    </div>
+                    <p className="absolute bottom-2 left-2 right-2 text-center text-xs bg-black bg-opacity-60 text-white px-2 py-1 rounded">Lat: {Number(propiedadSeleccionada.lat).toFixed(6)}, Lng: {Number(propiedadSeleccionada.lng).toFixed(6)}</p>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Dirección</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.direccion}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Barrio</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.barrio}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Ciudad</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.ciudad}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Provincia</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.provincia}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Código Postal</p>
+                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.codigoPostal}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estadísticas */}
+              <div className={cardBase}>
+                <h3 className="text-lg font-bold mb-4 dark:text-gray-100">📊 Estadísticas</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaEye className="text-blue-500" />
+                      <span className="text-sm dark:text-gray-200">Visitas</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.visitas}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaCamera className="text-green-500" />
+                      <span className="text-sm dark:text-gray-200">Fotos</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fotos}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaCalendar className="text-purple-500" />
+                      <span className="text-sm dark:text-gray-200">Publicada</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fechaPublicacion}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Publicación y Link Privado */}
               <div className={cardBase}>
                 <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -1846,77 +2110,6 @@ const Propiedades = () => {
                         <FaLink /> Generar link privado
                       </button>
                     )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Información de Ubicación */}
-              <div className={cardBase}>
-                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-red-500" /> Ubicación
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Dirección</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.direccion}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Barrio</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.barrio}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Ciudad</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.ciudad}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Provincia</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.provincia}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Código Postal</p>
-                    <p className="font-semibold dark:text-gray-200">{propiedadSeleccionada.codigoPostal}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Agente Responsable */}
-              <div className={cardBase}>
-                <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <FaUser className="text-purple-500" /> Agente Responsable
-                </h3>
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <FaUser className="text-3xl text-white" />
-                  </div>
-                  <p className="font-bold text-lg dark:text-gray-100">{propiedadSeleccionada.agente}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Agente Inmobiliario</p>
-                </div>
-              </div>
-
-              {/* Estadísticas */}
-              <div className={cardBase}>
-                <h3 className="text-lg font-bold mb-4 dark:text-gray-100">📊 Estadísticas</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FaEye className="text-blue-500" />
-                      <span className="text-sm dark:text-gray-200">Visitas</span>
-                    </div>
-                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.visitas}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FaCamera className="text-green-500" />
-                      <span className="text-sm dark:text-gray-200">Fotos</span>
-                    </div>
-                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fotos}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FaCalendar className="text-purple-500" />
-                      <span className="text-sm dark:text-gray-200">Publicada</span>
-                    </div>
-                    <span className="font-bold dark:text-gray-100">{propiedadSeleccionada.fechaPublicacion}</span>
                   </div>
                 </div>
               </div>
@@ -3099,6 +3292,82 @@ const Propiedades = () => {
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                       {maxVisitas.toLocaleString()}
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Reservadas */}
+      {showModalReservadas && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
+            <div className="sticky top-0 bg-gradient-to-r from-amber-500 to-amber-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  <FaBuilding /> Propiedades Reservadas
+                </h2>
+                <p className="text-amber-100 text-sm mt-1">
+                  {reservadasCount !== null ? reservadasCount : reservadas} propiedades con contrato de reserva
+                </p>
+              </div>
+              <button type="button" onClick={() => setShowModalReservadas(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                <FaTimes className="text-2xl" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {(() => {
+                const reservadas_list = reservadasPropertyIds.length > 0
+                  ? propiedades.filter(p => reservadasPropertyIds.includes(String(p.id)))
+                  : propiedades.filter(p => p.estado === 'Reservada');
+                if (!reservadas_list.length) {
+                  return (
+                    <div className="text-center py-16 text-gray-400">
+                      <FaBuilding className="text-5xl mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium">No hay propiedades reservadas</p>
+                      <p className="text-sm mt-1">Las reservas aparecerán aquí cuando se registre una operación de reserva o se emita un contrato de reserva.</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {reservadas_list.map((prop) => (
+                      <div key={prop.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border ${currentMode === 'Dark' ? 'border-amber-700/40' : 'border-amber-200'} hover:shadow-md transition-shadow`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg dark:text-gray-100">{prop.titulo}</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{prop.tipo} • {prop.barrio}{prop.ciudad ? `, ${prop.ciudad}` : ''}</p>
+                            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                              <span className="text-gray-500 dark:text-gray-400">Publicada: {prop.fechaPublicacion}</span>
+                              <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-medium">{prop.estado}</span>
+                              {prop.operacion && <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{prop.operacion}</span>}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{prop.moneda} {Number(prop.precio || 0).toLocaleString()}</p>
+                            {prop.agente && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Agente: {prop.agente}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-amber-900/20' : 'bg-amber-50'} rounded-lg border-2 border-amber-500`}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Reservadas</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{reservadasCount !== null ? reservadasCount : reservadas}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Por Operación Registrada</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{propiedades.filter(p => p.estado === 'Reservada').length}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Por Contrato Emitido</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{Math.max(0, (reservadasCount ?? 0) - propiedades.filter(p => p.estado === 'Reservada').length)}</p>
                   </div>
                 </div>
               </div>

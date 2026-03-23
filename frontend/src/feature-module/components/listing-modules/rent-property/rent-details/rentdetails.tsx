@@ -358,176 +358,78 @@ const Rentdetails = () => {
                       </div>
                     </div>
                   </div>
-                  {/* Property items */}
-                  <div className="accordion-item">
-                    <div className="accordion-header">
-                      <button
-                        className="accordion-button"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#accordion-2"
-                        aria-expanded="true"
-                      >
-                        Características
-                      </button>
-                    </div>
-                    <div
-                      id="accordion-2"
-                      className="accordion-collapse collapse show"
-                    >
-                      <div className="accordion-body">
-                        {/* start row */}
-                        <div className="row row-gap-4">
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">bed</i>
-                                Dormitorios: {property?.features?.beds ?? ""}
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">bathtub</i>
-                                Baños: {property?.features?.baths ?? ""}
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">meeting_room</i>
-                                Ambientes: {property?.features?.rooms ?? ""}
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">
-                                  directions_car_filled
-                                </i>
-                                Cocheras: {property?.features?.parking ?? ""}{property?.features?.parkingType ? ` (${property.features.parkingType})` : ""}
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                          <div className="col-lg-3 col-md-6">
-                            <div className="buy-property-items">
-                              <p>
-                                <i className="material-icons-outlined">straighten</i>
-                                Superficie total: {property?.features?.areaSqFt ?? ""} m²
-                              </p>
-                              <p className="mb-lg-0">
-                                <i className="material-icons-outlined">crop_square</i>
-                                Superficie cubierta: {property?.features?.coveredAreaSqFt ?? ""} m²
-                              </p>
-                            </div>
-                          </div>
-                          {/* end col */}
-                        </div>
+                  {/* Property details — unified */}
+                  {(() => {
+                    const items: { icon: string; label: string; value: string | number }[] = [];
+                    // Core features
+                    if (property?.features?.beds != null) items.push({ icon: 'bed', label: 'Dormitorios', value: property.features.beds });
+                    if (property?.features?.baths != null) items.push({ icon: 'bathtub', label: 'Baños', value: property.features.baths });
+                    if (property?.features?.rooms != null) items.push({ icon: 'meeting_room', label: 'Ambientes', value: property.features.rooms });
+                    if (property?.features?.parking != null) items.push({ icon: 'directions_car_filled', label: 'Cocheras', value: `${property.features.parking}${property.features.parkingType ? ` (${property.features.parkingType})` : ''}` });
+                    if (property?.features?.areaSqFt != null) items.push({ icon: 'straighten', label: 'Superficie total', value: `${property.features.areaSqFt} m²` });
+                    if (property?.features?.coveredAreaSqFt != null) items.push({ icon: 'crop_square', label: 'Superficie cubierta', value: `${property.features.coveredAreaSqFt} m²` });
+                    // About property
+                    if (property?.status) items.push({ icon: 'verified', label: 'Estado', value: property.status });
+                    if (property?.ageYears != null) items.push({ icon: 'history', label: 'Antigüedad', value: `${property.ageYears} años` });
+                    if (property?.category) items.push({ icon: 'category', label: 'Categoría', value: property.category });
+                    if (property?.propertyCode) items.push({ icon: 'tag', label: 'Código', value: property.propertyCode });
+                    if (property?.offerPrice != null) items.push({ icon: 'sell', label: 'Precio oferta', value: property.offerPrice });
+                    if (property?.pricePerM2 != null) items.push({ icon: 'square_foot', label: 'Precio / m²', value: property.pricePerM2 });
+                    if (property?.structureType) items.push({ icon: 'foundation', label: 'Tipo de estructura', value: property.structureType });
+                    if (property?.location?.neighborhood) items.push({ icon: 'location_city', label: 'Barrio', value: property.location.neighborhood });
+                    if (property?.location?.city) items.push({ icon: 'location_on', label: 'Ciudad', value: property.location.city });
+                    if (property?.location?.province) items.push({ icon: 'map', label: 'Provincia', value: property.location.province });
+                    if (property?.location?.postalCode) items.push({ icon: 'markunread_mailbox', label: 'Código postal', value: property.location.postalCode });
+                    // Extra features
+                    if (extraFeatures?.floor) items.push({ icon: 'door_sliding', label: 'Piso', value: extraFeatures.floor });
+                    if (extraFeatures?.heating) items.push({ icon: 'local_fire_department', label: 'Calefacción', value: extraFeatures.heating });
+                    if (extraFeatures?.hotWater) items.push({ icon: 'hot_tub', label: 'Agua caliente', value: extraFeatures.hotWater });
+                    if (extraFeatures?.ac) items.push({ icon: 'ac_unit', label: 'Aire acondicionado', value: extraFeatures.ac });
+                    if (extraFeatures?.balcony) items.push({ icon: 'corporate_fare', label: 'Balcón', value: extraFeatures.balcony });
+                    if (extraFeatures?.stove) items.push({ icon: 'countertops', label: 'Cocina', value: extraFeatures.stove });
+                    if (extraFeatures?.fridge) items.push({ icon: 'kitchen', label: 'Heladera', value: extraFeatures.fridge });
+                    if (extraFeatures?.microwave) items.push({ icon: 'microwave', label: 'Microondas', value: extraFeatures.microwave });
+                    if (extraFeatures?.tv) items.push({ icon: 'tv', label: 'TV', value: extraFeatures.tv });
+                    if (extraFeatures?.waterPurifier) items.push({ icon: 'water', label: 'Purificador de agua', value: extraFeatures.waterPurifier });
+                    if (extraFeatures?.curtains) items.push({ icon: 'checkroom', label: 'Cortinas', value: extraFeatures.curtains });
 
-                        {extraFeatures ? (
-                          <div className="row row-gap-4">
-                            {extraFeatures.floor ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">door_sliding</i> Piso: {extraFeatures.floor}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.microwave ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">microwave</i> Microondas: {extraFeatures.microwave}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.ac ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">ac_unit</i> AC: {extraFeatures.ac}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.tv ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">tv</i> TV: {extraFeatures.tv}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.fridge ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">kitchen</i> Heladera: {extraFeatures.fridge}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.balcony ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">corporate_fare</i> Balcón: {extraFeatures.balcony}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.waterPurifier ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">water</i> Purificador de agua: {extraFeatures.waterPurifier}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.curtains ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">checkroom</i> Cortinas: {extraFeatures.curtains}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.heating ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">local_fire_department</i> Calefacción: {extraFeatures.heating}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.hotWater ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">hot_tub</i> Agua caliente: {extraFeatures.hotWater}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                            {extraFeatures.stove ? (
-                              <div className="col-lg-3 col-md-6">
-                                <div className="buy-property-items">
-                                  <p><i className="material-icons-outlined">countertops</i> Cocina: {extraFeatures.stove}</p>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {/* end row */}
-                      </div>
-                    </div>
-                  </div>
-                  {/* about property items */}
-                  {false && (
-                    <div className="accordion-item">
-                      <div className="accordion-header">
-                        <button
-                          className="accordion-button"
-                          type="button"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#accordion-3"
-                          aria-expanded="true"
+                    if (!items.length) return null;
+
+                    return (
+                      <div className="accordion-item">
+                        <div className="accordion-header">
+                          <button
+                            className="accordion-button"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#accordion-2"
+                            aria-expanded="true"
+                          >
+                            Características de la propiedad
+                          </button>
+                        </div>
+                        <div
+                          id="accordion-2"
+                          className="accordion-collapse collapse show"
                         >
-                          Acerca de la propiedad
-                        </button>
+                          <div className="accordion-body">
+                            <div className="row row-gap-4">
+                              {items.map((item, idx) => (
+                                <div key={idx} className="col-lg-3 col-md-6">
+                                  <div className="buy-property-items">
+                                    <p className="mb-0">
+                                      <i className="material-icons-outlined">{item.icon}</i>
+                                      {item.label}: {item.value}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div
-                        id="accordion-3"
-                        className="accordion-collapse collapse show"
-                      >
-                        <div className="accordion-body" />
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   {/* amenities items */}
                   <div className="accordion-item">
                     <div className="accordion-header">
@@ -1823,8 +1725,8 @@ const Rentdetails = () => {
                 referrerPolicy="no-referrer-when-downgrade"
                 src={
                   property?.location?.lat && property?.location?.lng
-                    ? `https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&q=${property.location.lat},${property.location.lng}`
-                    : `https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&q=${encodeURIComponent(locationLabel)}`
+                    ? `https://www.google.com/maps?q=${property.location.lat},${property.location.lng}&z=15&output=embed`
+                    : `https://www.google.com/maps?q=${encodeURIComponent(locationLabel)}&z=15&output=embed`
                 }
               />
             </div>

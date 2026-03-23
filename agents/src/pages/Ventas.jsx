@@ -2,17 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaCalendarAlt, FaTimes, FaSave, FaHome, FaClock, FaCheckCircle, FaFunnelDollar } from 'react-icons/fa';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
 
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
-// Syncfusion Components
-
 const Ventas = () => {
-  const { currentMode } = useStateContext();
+  const { currentMode, currentColor } = useStateContext();
 
   // Estados para los modales
   const [showModalVenta, setShowModalVenta] = useState(false);
@@ -300,51 +296,62 @@ const Ventas = () => {
         <button
           type="button"
           onClick={() => setShowModalVenta(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-green-500 to-emerald-600"
         >
           <FaPlus /> Nueva Venta
         </button>
         <button
           type="button"
           onClick={() => setShowModalAlquiler(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-blue-500 to-blue-600"
         >
           <FaHandshake /> Nuevo Alquiler
         </button>
         <button
           type="button"
           onClick={() => setShowModalSeguimiento(true)}
-          className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
         >
           <FaCalendarAlt /> Programar Seguimiento
         </button>
       </div>
 
       {/* KPIs de Operaciones - Clickeables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-        {kpisVentas.map((kpi, i) => (
-          <div
-            key={i}
-            onClick={() => {
-              if (i === 0) setShowModalVentasMes(true);
-              else if (i === 1) setShowModalOperacionesActivas(true);
-              else if (i === 2) setShowModalComisiones(true);
-              else if (i === 3) setShowModalTasaCierre(true);
-            }}
-            className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
-          >
-            <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-            <div className="flex items-center gap-4 mt-3">
-              <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
-              </div>
-            </div>
+      {(() => {
+        const colorMap = {
+          'from-green-500 to-green-600': { hex: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+          'from-blue-500 to-blue-600': { hex: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          'from-purple-500 to-purple-600': { hex: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+          'from-orange-500 to-orange-600': { hex: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+        };
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {kpisVentas.map((kpi, i) => {
+              const cm = colorMap[kpi.color] || { hex: '#6366f1', bg: 'bg-indigo-50 dark:bg-indigo-900/20' };
+              return (
+                <div
+                  key={i}
+                  onClick={() => {
+                    if (i === 0) setShowModalVentasMes(true);
+                    else if (i === 1) setShowModalOperacionesActivas(true);
+                    else if (i === 2) setShowModalComisiones(true);
+                    else if (i === 3) setShowModalTasaCierre(true);
+                  }}
+                  className={`rounded-2xl p-5 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+                  style={{ borderLeft: `4px solid ${cm.hex}` }}
+                >
+                  <div className={`w-9 h-9 rounded-xl ${cm.bg} flex items-center justify-center mb-3`} style={{ color: cm.hex }}>
+                    {kpi.icon}
+                  </div>
+                  <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+                  <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{kpi.title}</p>
+                  <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{kpi.desc}</p>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Gráficos ApexCharts - Métricas Financieras */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">

@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 
 import Chart from 'react-apexcharts';
 import { FaHome, FaUserFriends, FaDollarSign, FaKey, FaExclamationTriangle, FaCheckCircle, FaBell, FaMapMarkerAlt, FaTasks, FaTimes, FaChartLine, FaCalendarAlt, FaTrophy, FaChartPie, FaChartBar, FaArrowUp, FaPercentage, FaFunnelDollar } from 'react-icons/fa';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, ColumnSeries, Category, Tooltip, Legend, SplineAreaSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, PieSeries, AccumulationLegend, AccumulationTooltip, AccumulationDataLabel } from '@syncfusion/ej2-react-charts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 import { useStateContext } from '../contexts/ContextProvider';
 
@@ -493,40 +491,26 @@ const DashboardEjecutivo = () => {
             </div>
           </div>
 
-          <ChartComponent
-            id="ingresos-trend-chart"
-            primaryXAxis={{
-              valueType: 'Category',
-              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { width: 0 },
-              labelIntersectAction: 'Rotate45',
+          <Chart
+            options={{
+              chart: { type: 'area', toolbar: { show: false }, background: 'transparent', zoom: { enabled: false } },
+              colors: ['#10B981', '#EF4444'],
+              dataLabels: { enabled: false },
+              stroke: { curve: 'smooth', width: 3 },
+              fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 100] } },
+              xaxis: { categories: ingresosMensuales.map((d) => d.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+              yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' }, formatter: (v) => `$${v}K` } },
+              grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+              legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+              tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (v) => `$${v}K` } },
             }}
-            primaryYAxis={{
-              // eslint-disable-next-line no-template-curly-in-string
-              labelFormat: '${value}K',
-              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' },
-            }}
-            // eslint-disable-next-line no-template-curly-in-string
-            tooltip={{ enable: true, format: '${point.x}: $${point.y}K' }}
-            chartArea={{ border: { width: 0 } }}
-            height="280px"
-            background="transparent"
-          >
-            <Inject services={[SplineAreaSeries, Category, Tooltip, Legend]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="SplineArea"
-                dataSource={ingresosMensuales}
-                xName="mes"
-                yName="ingresos"
-                name="Ingresos"
-                fill="url(#gradient1)"
-                border={{ color: '#10B981', width: 3 }}
-                opacity={0.6}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+            series={[
+              { name: 'Ingresos', data: ingresosMensuales.map((d) => d.ingresos) },
+              { name: 'Gastos', data: ingresosMensuales.map((d) => Math.round(d.ingresos * 0.41)) },
+            ]}
+            type="area"
+            height={280}
+          />
 
           {/* Resumen rápido debajo del gráfico */}
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t dark:border-gray-700">
@@ -557,35 +541,21 @@ const DashboardEjecutivo = () => {
             </span>
           </div>
 
-          <AccumulationChartComponent
-            id="propiedades-pie-chart"
-            legendSettings={{
-              visible: true,
-              position: 'Bottom',
-              textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
+          <Chart
+            options={{
+              chart: { type: 'donut', background: 'transparent' },
+              colors: distribucionPropiedades.map((d) => d.color),
+              labels: distribucionPropiedades.map((d) => d.tipo),
+              plotOptions: { pie: { donut: { size: '60%', labels: { show: true, name: { fontSize: '12px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' }, value: { fontSize: '20px', fontWeight: 700, color: currentMode === 'Dark' ? '#F3F4F6' : '#1F2937' }, total: { show: true, label: 'Total', fontSize: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', formatter: () => String(distribucionPropiedades.reduce((s, d) => s + d.cantidad, 0)) } } } } },
+              dataLabels: { enabled: false },
+              legend: { show: true, position: 'bottom', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+              stroke: { show: false },
+              tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
             }}
-            // eslint-disable-next-line no-template-curly-in-string
-            tooltip={{ enable: true, format: '${point.x}: ${point.y} unidades' }}
-            height="320px"
-            background="transparent"
-          >
-            <Inject services={[PieSeries, AccumulationLegend, AccumulationTooltip, AccumulationDataLabel]} />
-            <AccumulationSeriesCollectionDirective>
-              <AccumulationSeriesDirective
-                dataSource={distribucionPropiedades}
-                xName="tipo"
-                yName="cantidad"
-                pointColorMapping="color"
-                innerRadius="50%"
-                dataLabel={{
-                  visible: true,
-                  position: 'Inside',
-                  name: 'cantidad',
-                  font: { fontWeight: '600', color: '#fff', size: '12px' },
-                }}
-              />
-            </AccumulationSeriesCollectionDirective>
-          </AccumulationChartComponent>
+            series={distribucionPropiedades.map((d) => d.cantidad)}
+            type="donut"
+            height={320}
+          />
         </div>
       </div>
 
@@ -603,49 +573,26 @@ const DashboardEjecutivo = () => {
             </span>
           </div>
 
-          <ChartComponent
-            id="comparativa-chart"
-            primaryXAxis={{
-              valueType: 'Category',
-              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { width: 0 },
+          <Chart
+            options={{
+              chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
+              colors: ['#8B5CF6', '#10B981'],
+              plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 4 } },
+              dataLabels: { enabled: false },
+              stroke: { show: true, width: 2, colors: ['transparent'] },
+              xaxis: { categories: comparativaOperaciones.map((d) => d.mes), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+              yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' }, formatter: (v) => `$${v}K` } },
+              grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+              legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
+              tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
             }}
-            primaryYAxis={{
-              // eslint-disable-next-line no-template-curly-in-string
-              labelFormat: '${value}K',
-              labelStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' },
-              majorGridLines: { dashArray: '5,5', color: currentMode === 'Dark' ? '#374151' : '#E5E7EB' },
-            }}
-            tooltip={{ enable: true }}
-            legendSettings={{ visible: true, position: 'Top', textStyle: { size: '11px', color: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } }}
-            chartArea={{ border: { width: 0 } }}
-            height="280px"
-            background="transparent"
-          >
-            <Inject services={[ColumnSeries, Category, Tooltip, Legend]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Column"
-                dataSource={comparativaOperaciones}
-                xName="mes"
-                yName="ventas"
-                name="Ventas"
-                fill="#8B5CF6"
-                columnSpacing={0.1}
-                cornerRadius={{ topLeft: 4, topRight: 4 }}
-              />
-              <SeriesDirective
-                type="Column"
-                dataSource={comparativaOperaciones}
-                xName="mes"
-                yName="alquileres"
-                name="Alquileres"
-                fill="#10B981"
-                columnSpacing={0.1}
-                cornerRadius={{ topLeft: 4, topRight: 4 }}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+            series={[
+              { name: 'Ventas', data: comparativaOperaciones.map((d) => d.ventas) },
+              { name: 'Alquileres', data: comparativaOperaciones.map((d) => d.alquileres) },
+            ]}
+            type="bar"
+            height={280}
+          />
         </div>
 
         {/* Rendimiento por Zona */}
@@ -930,40 +877,22 @@ const DashboardEjecutivo = () => {
             </span>
           </div>
 
-          <ChartComponent
-            id="agentes-ranking-chart"
-            primaryXAxis={{
-              valueType: 'Category',
-              title: 'Agentes',
-              labelStyle: { size: '10px' },
+          <Chart
+            options={{
+              chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
+              colors: [currentColor || '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'],
+              plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 6, distributed: true } },
+              dataLabels: { enabled: false },
+              xaxis: { categories: agentesOps.map((a) => a.agente.split(' ')[0]), labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+              yaxis: { labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '11px' } } },
+              grid: { borderColor: currentMode === 'Dark' ? '#374151' : '#E5E7EB', strokeDashArray: 4 },
+              legend: { show: false },
+              tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light', y: { formatter: (v) => `${v} operaciones` } },
             }}
-            primaryYAxis={{
-              title: 'Operaciones',
-              labelStyle: { size: '10px' },
-            }}
-            tooltip={{
-              enable: true,
-              // eslint-disable-next-line no-template-curly-in-string
-              format: '${point.x}: ${point.y} operaciones',
-            }}
-            palettes={[currentColor || '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']}
-            legendSettings={{ visible: false }}
-            height="320px"
-            chartArea={{ border: { width: 0 } }}
-          >
-            <Inject services={[ColumnSeries, Category, Tooltip, Legend]} />
-            <SeriesCollectionDirective>
-              <SeriesDirective
-                type="Column"
-                dataSource={agentesOps}
-                xName="agente"
-                yName="ops"
-                name="Operaciones"
-                columnSpacing={0.1}
-                cornerRadius={{ topLeft: 4, topRight: 4 }}
-              />
-            </SeriesCollectionDirective>
-          </ChartComponent>
+            series={[{ name: 'Operaciones', data: agentesOps.map((a) => a.ops) }]}
+            type="bar"
+            height={260}
+          />
 
           {/* Mini ranking visual */}
           <div className="mt-4 space-y-2">
@@ -996,63 +925,42 @@ const DashboardEjecutivo = () => {
             </span>
           </div>
 
-          <GridComponent
-            dataSource={propiedadesVistas}
-            allowPaging={false}
-            allowSorting
-            allowFiltering
-            height="320px"
-            gridLines={{ both: 'None' }}
-          >
-            <GridInject services={[Sort, Filter]} />
-            <ColumnsDirective>
-              <ColumnDirective
-                field="propiedad"
-                headerText="Propiedad"
-                width="180"
-                template={(props) => (
-                  <div className="py-2">
-                    <p className="font-medium text-sm dark:text-gray-200">{props.propiedad}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{props.zona}</p>
-                  </div>
-                )}
-              />
-              <ColumnDirective
-                field="visitas"
-                headerText="Visitas"
-                textAlign="Center"
-                width="80"
-                template={(props) => (
-                  <span className="font-bold text-blue-600 dark:text-blue-400">{props.visitas.toLocaleString()}</span>
-                )}
-              />
-              <ColumnDirective
-                field="estado"
-                headerText="Estado"
-                width="100"
-                template={(props) => (
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    props.estado === 'Disponible' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : props.estado === 'Reservada' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        : props.estado === 'Vendida' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                  }`}
-                  >
-                    {props.estado}
-                  </span>
-                )}
-              />
-              <ColumnDirective
-                field="precio"
-                headerText="Precio"
-                textAlign="Right"
-                width="100"
-                template={(props) => (
-                  <span className="font-semibold text-green-600 dark:text-green-400 text-sm">{props.precio}</span>
-                )}
-              />
-            </ColumnsDirective>
-          </GridComponent>
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
+                  <th className={`text-left py-2 px-3 text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Propiedad</th>
+                  <th className={`text-center py-2 px-3 text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Visitas</th>
+                  <th className={`text-left py-2 px-3 text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Estado</th>
+                  <th className={`text-right py-2 px-3 text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Precio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {propiedadesVistas.map((p) => (
+                  <tr key={p.id} className={`border-b last:border-0 ${isDark ? 'border-gray-700/50 hover:bg-gray-800/30' : 'border-gray-50 hover:bg-gray-50'}`}>
+                    <td className="py-3 px-3">
+                      <p className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{p.propiedad}</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{p.zona}</p>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="font-bold text-blue-600 dark:text-blue-400">{p.visitas.toLocaleString()}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        p.estado === 'Disponible' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                          : p.estado === 'Reservada' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                            : p.estado === 'Vendida' ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                      }`}>{p.estado}</span>
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{p.precio}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

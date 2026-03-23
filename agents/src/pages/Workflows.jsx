@@ -50,7 +50,8 @@ const Workflows = () => {
     },
   ];
 
-  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${currentMode === 'Dark' ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -64,60 +65,39 @@ const Workflows = () => {
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-          style={{ backgroundColor: currentColor }}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium shadow-lg hover:shadow-xl transition-all"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Crear Workflow
         </button>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardBase} border-l-4 border-green-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Workflows Activos</p>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">3</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Workflows Activos', value: 3, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaCheckCircle /> },
+          { label: 'Total Workflows', value: 4, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <RiFlowChart /> },
+          { label: 'Ejecuciones Hoy', value: 67, color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <FaClock /> },
+          { label: 'Tasa de Éxito', value: '98%', color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <FaCheckCircle /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
             </div>
-            <FaCheckCircle className="text-4xl text-green-500" />
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
           </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-blue-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Total Workflows</p>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">4</p>
-            </div>
-            <RiFlowChart className="text-4xl text-blue-500" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-purple-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Ejecuciones Hoy</p>
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">67</p>
-            </div>
-            <FaClock className="text-4xl text-purple-500" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-orange-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Tasa de Éxito</p>
-              <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">98%</p>
-            </div>
-            <FaCheckCircle className="text-4xl text-orange-500" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Lista de Workflows */}
       <div className="space-y-4">
         {workflows.map((workflow) => (
-          <div key={workflow.id} className={cardBase}>
+          <div key={workflow.id} className={`${cardBase}`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
@@ -186,18 +166,18 @@ const Workflows = () => {
         ))}
       </div>
 
-      {/* Plantilla de mensaje para próximas implementaciones */}
-      <div className={`${cardBase} mt-8 border-2 border-dashed border-gray-300 dark:border-gray-600`}>
-        <div className="text-center py-8">
-          <RiFlowChart className="text-6xl mx-auto mb-4 text-gray-400" />
-          <h3 className="text-xl font-bold mb-2 dark:text-gray-200">Constructor Visual de Workflows</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+      {/* Constructor visual - próximamente */}
+      <div className={`mt-6 rounded-2xl p-8 border-2 border-dashed ${isDark ? 'border-gray-700 bg-secondary-dark-bg' : 'border-gray-200 bg-white'}`}>
+        <div className="text-center">
+          <RiFlowChart className={`text-5xl mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
+          <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Constructor Visual de Workflows</h3>
+          <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             Próximamente: Editor drag-and-drop para crear workflows personalizados
           </p>
           <button
             type="button"
-            className="px-6 py-2 rounded-lg text-white font-medium"
-            style={{ backgroundColor: currentColor }}
+            className="px-6 py-2 rounded-xl text-white font-medium text-sm"
+            style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)` }}
           >
             Solicitar Demo
           </button>

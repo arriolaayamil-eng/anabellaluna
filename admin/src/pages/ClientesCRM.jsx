@@ -2,14 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
-// ApexCharts for modern visualizations
 import Chart from 'react-apexcharts';
-// Syncfusion Grid only
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 
 const ClientesCRM = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -486,9 +482,11 @@ const ClientesCRM = () => {
             <FaArrowLeft /> Volver
           </button>
         )}
-        <button 
+        <button
+          type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Nuevo Cliente
         </button>
@@ -506,35 +504,22 @@ const ClientesCRM = () => {
       {/* Tabs - Solo visibles cuando no estamos en detalle */}
       {vistaActual !== 'detalle' && (
         <div className="mb-6">
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => setActiveTab('metricas')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'metricas'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              📊 Métricas de Clientes
-              {activeTab === 'metricas' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('clientes')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'clientes'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              👥 Clientes
-              {activeTab === 'clientes' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-              )}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {[{ id: 'metricas', label: '📊 Métricas' }, { id: 'clientes', label: '👥 Clientes' }].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === t.id
+                    ? 'text-white shadow-lg'
+                    : `${isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`
+                }`}
+                style={activeTab === t.id ? { background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 14px ${currentColor}40` } : {}}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
       )}

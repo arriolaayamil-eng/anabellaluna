@@ -237,7 +237,7 @@ const MiPerfil = () => {
           <p className="text-gray-500 dark:text-gray-400">{formData.cargo}</p>
         </div>
         {/* Información Personal */}
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+        <div className={`rounded-2xl p-6 border ${currentMode === 'Dark' ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
             <FaUser style={{ color: currentColor }} /> Información Personal
           </h3>
@@ -322,7 +322,7 @@ const MiPerfil = () => {
           </div>
         </div>
         {/* Información de Contacto */}
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+        <div className={`rounded-2xl p-6 border ${currentMode === 'Dark' ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
             <FaEnvelope style={{ color: currentColor }} /> Información de Contacto
           </h3>
@@ -359,7 +359,7 @@ const MiPerfil = () => {
           </div>
         </div>
         {/* Redes Sociales */}
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+        <div className={`rounded-2xl p-6 border ${currentMode === 'Dark' ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100 shadow-md'}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
             <FaPhone style={{ color: currentColor }} /> Redes Sociales
           </h3>
@@ -413,8 +413,8 @@ const MiPerfil = () => {
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-8 py-3 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
-            style={{ backgroundColor: currentColor }}
+            className="flex items-center gap-2 px-8 py-3 text-white rounded-xl font-semibold transition-all disabled:opacity-50 shadow-md"
+            style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
           >
             {saving ? (
               <>

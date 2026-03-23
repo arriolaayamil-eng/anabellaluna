@@ -1,15 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import Chart from 'react-apexcharts';
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Filter, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase, FaPercentage, FaFunnelDollar, FaArrowUp, FaHeart, FaUserClock, FaThermometerHalf, FaGlobe, FaDesktop, FaMobileAlt, FaLink, FaMousePointer } from 'react-icons/fa';
-import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, Category, Tooltip, ColumnSeries, AccumulationChartComponent, AccumulationSeriesCollectionDirective, AccumulationSeriesDirective, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip, PieSeries } from '@syncfusion/ej2-react-charts';
 
 import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
-
-// Syncfusion Components
 
 const ClientesCRM = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -655,7 +651,8 @@ const ClientesCRM = () => {
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Nuevo Cliente
         </button>
@@ -663,7 +660,7 @@ const ClientesCRM = () => {
           <button
             type="button"
             onClick={() => setActiveTab('clientes')}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-emerald-500 to-emerald-600"
           >
             <FaUsers /> Ver Clientes
           </button>
@@ -673,35 +670,22 @@ const ClientesCRM = () => {
       {/* Tabs Internas - Solo visibles cuando no estamos en detalle */}
       {vistaActual !== 'detalle' && (
         <div className="mb-6">
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => setActiveTab('metricas')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'metricas'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              📊 Métricas de Clientes
-              {activeTab === 'metricas' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('clientes')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'clientes'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              👥 Clientes
-              {activeTab === 'clientes' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-              )}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {[{ id: 'metricas', label: '📊 Métricas' }, { id: 'clientes', label: '👥 Clientes' }].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === t.id
+                    ? 'text-white shadow-lg'
+                    : `${isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`
+                }`}
+                style={activeTab === t.id ? { background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 14px ${currentColor}40` } : {}}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -710,30 +694,41 @@ const ClientesCRM = () => {
       {vistaActual !== 'detalle' && activeTab === 'metricas' && (
         <>
           {/* KPIs de Clientes - Clickeables */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-            {kpisClientes.map((kpi, i) => (
-              <div
-                key={i}
-                onClick={() => {
-                  if (i === 0) setShowModalTotalClientes(true);
-                  else if (i === 1) setShowModalLeadsCalientes(true);
-                  else if (i === 2) setShowModalEnNegociacion(true);
-                  else if (i === 3) setShowModalConversion(true);
-                }}
-                className={`${cardBase} overflow-hidden cursor-pointer hover:shadow-xl`}
-              >
-                <div className={`h-2 w-full bg-gradient-to-r ${kpi.color}`} />
-                <div className="flex items-center gap-4 mt-3">
-                  <div className={`text-3xl text-white p-3 rounded-lg bg-gradient-to-br ${kpi.color}`}>{kpi.icon}</div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{kpi.title}</p>
-                    <p className="text-2xl font-semibold dark:text-gray-100 truncate">{kpi.value}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{kpi.desc}</p>
-                  </div>
-                </div>
+          {(() => {
+            const colorMap = {
+              'from-blue-500 to-blue-600': { hex: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              'from-red-500 to-red-600': { hex: '#ef4444', bg: 'bg-red-50 dark:bg-red-900/20' },
+              'from-green-500 to-green-600': { hex: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+              'from-purple-500 to-purple-600': { hex: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+            };
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {kpisClientes.map((kpi, i) => {
+                  const cm = colorMap[kpi.color] || { hex: '#6366f1', bg: 'bg-indigo-50 dark:bg-indigo-900/20' };
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        if (i === 0) setShowModalTotalClientes(true);
+                        else if (i === 1) setShowModalLeadsCalientes(true);
+                        else if (i === 2) setShowModalEnNegociacion(true);
+                        else if (i === 3) setShowModalConversion(true);
+                      }}
+                      className={`rounded-2xl p-5 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+                      style={{ borderLeft: `4px solid ${cm.hex}` }}
+                    >
+                      <div className={`w-9 h-9 rounded-xl ${cm.bg} flex items-center justify-center mb-3`} style={{ color: cm.hex }}>
+                        {kpi.icon}
+                      </div>
+                      <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+                      <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{kpi.title}</p>
+                      <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{kpi.desc}</p>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           {/* Gráfico Principal - Ciclo de Vida del Lead */}
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 mb-6">
@@ -965,50 +960,13 @@ const ClientesCRM = () => {
             {/* Gráfico de Ciclo de Vida */}
             <div className={cardBase}>
               <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📊 Ciclo de Vida (Lead → Cerrado)</h3>
-              <AccumulationChartComponent
-                id="ciclo-vida-chart"
-                tooltip={{ enable: true }}
-                legendSettings={{ visible: true }}
-                height="300px"
-              >
-                <Inject services={[PieSeries, AccumulationLegend, AccumulationDataLabel, AccumulationTooltip]} />
-                <AccumulationSeriesCollectionDirective>
-                  <AccumulationSeriesDirective
-                    type="Pie"
-                    dataSource={cicloVidaData}
-                    xName="etapa"
-                    yName="cantidad"
-                    name="Clientes"
-                    innerRadius="40%"
-                    dataLabel={{ visible: true, name: 'etapa', position: 'Outside' }}
-                  />
-                </AccumulationSeriesCollectionDirective>
-              </AccumulationChartComponent>
+              <Chart options={cicloVidaPieOptions} series={cicloVidaPieSeries} type="pie" height={280} />
             </div>
 
             {/* Gráfico de Segmentación */}
             <div className={cardBase}>
               <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🎯 Segmentación por Tipo</h3>
-              <ChartComponent
-                id="segmentacion-chart"
-                primaryXAxis={{ valueType: 'Category', title: 'Tipo de Cliente' }}
-                primaryYAxis={{ title: 'Cantidad' }}
-                tooltip={{ enable: true }}
-                legendSettings={{ visible: false }}
-                height="300px"
-              >
-                <Inject services={[ColumnSeries, Category, Tooltip]} />
-                <SeriesCollectionDirective>
-                  <SeriesDirective
-                    type="Column"
-                    dataSource={segmentacionData}
-                    xName="tipo"
-                    yName="cantidad"
-                    name="Cantidad"
-                    fill={currentColor || '#3B82F6'}
-                  />
-                </SeriesCollectionDirective>
-              </ChartComponent>
+              <Chart options={segmentacionDonutOptions} series={segmentacionDonutSeries} type="donut" height={200} />
             </div>
           </div>
 
@@ -1017,23 +975,41 @@ const ClientesCRM = () => {
             {/* Grid Principal */}
             <div className={`xl:col-span-2 ${cardBase}`}>
               <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">👥 Base de Datos de Clientes</h3>
-              <GridComponent
-                dataSource={clientesEjemplo}
-                allowPaging
-                pageSettings={{ pageSize: 10 }}
-                allowSorting
-                allowFiltering
-              >
-                <GridInject services={[Page, Sort, Filter]} />
-                <ColumnsDirective>
-                  <ColumnDirective field="nombre" headerText="Cliente" width="150" />
-                  <ColumnDirective field="tipo" headerText="Tipo" width="120" />
-                  <ColumnDirective field="estado" headerText="Estado" width="120" />
-                  <ColumnDirective field="presupuesto" headerText="Presupuesto" textAlign="Right" width="120" format="C0" />
-                  <ColumnDirective field="zona" headerText="Zona" width="120" />
-                  <ColumnDirective field="scoring" headerText="Scoring" textAlign="Center" width="100" />
-                </ColumnsDirective>
-              </GridComponent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b dark:border-gray-700">
+                      <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Cliente</th>
+                      <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Tipo</th>
+                      <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Estado</th>
+                      <th className="text-right py-3 px-3 font-semibold dark:text-gray-300">Presupuesto</th>
+                      <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Zona</th>
+                      <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">Scoring</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientesEjemplo.slice(0, 10).map((c) => (
+                      <tr key={c.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => verDetalleCliente(c)}>
+                        <td className="py-2.5 px-3 dark:text-gray-200">{c.nombre}</td>
+                        <td className="py-2.5 px-3 dark:text-gray-300">{c.tipo}</td>
+                        <td className="py-2.5 px-3 dark:text-gray-300">{c.estado}</td>
+                        <td className="py-2.5 px-3 text-right dark:text-gray-300">${c.presupuesto?.toLocaleString() || 0}</td>
+                        <td className="py-2.5 px-3 dark:text-gray-300">{c.zona}</td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            c.scoring >= 80 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                              : c.scoring >= 60 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                          }`}>{c.scoring}</span>
+                        </td>
+                      </tr>
+                    ))}
+                    {clientesEjemplo.length === 0 && (
+                      <tr><td colSpan={6} className="py-8 text-center text-gray-400">No hay clientes registrados</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Panel de Lead Scoring */}

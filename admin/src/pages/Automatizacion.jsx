@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
 import { FaRobot, FaPlus, FaCog, FaChartLine, FaBolt, FaEnvelope, FaSms, FaBell } from 'react-icons/fa';
 
@@ -53,7 +52,8 @@ const Automatizacion = () => {
     }
   ];
 
-  const cardBase = `bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg`;
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   const getColorClasses = (color) => {
     const colors = {
@@ -66,58 +66,42 @@ const Automatizacion = () => {
   };
 
   return (
-    <div className="min-h-screen px-6 lg:px-8 pt-4 pb-6 bg-gray-50 dark:bg-main-dark-bg">
+    <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
       <div className="flex justify-between items-center mb-6">
-        <Header category="Automatización" title="Centro de Automatización" />
+        <div>
+          <h2 className={`text-lg font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <FaRobot className="text-indigo-500" /> Centro de Automatización
+          </h2>
+          <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Reglas y flujos automatizados</p>
+        </div>
         <button
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-          style={{ backgroundColor: currentColor }}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium shadow-lg hover:shadow-xl transition-all"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Nueva Automatización
         </button>
       </div>
 
       {/* Estadísticas Generales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardBase} bg-gradient-to-br from-blue-500 to-blue-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm mb-1">Automatizaciones Activas</p>
-              <p className="text-4xl font-bold">4</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Automatizaciones Activas', value: 4, color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <FaRobot /> },
+          { label: 'Disparos Hoy', value: 127, color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaBolt /> },
+          { label: 'Tasa de Éxito', value: '94%', color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <FaChartLine /> },
+          { label: 'Tiempo Ahorrado', value: '45h', color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <FaCog /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
             </div>
-            <FaRobot className="text-5xl opacity-30" />
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
           </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-green-500 to-green-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm mb-1">Disparos Hoy</p>
-              <p className="text-4xl font-bold">127</p>
-            </div>
-            <FaBolt className="text-5xl opacity-30" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-purple-500 to-purple-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm mb-1">Tasa de Éxito</p>
-              <p className="text-4xl font-bold">94%</p>
-            </div>
-            <FaChartLine className="text-5xl opacity-30" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} bg-gradient-to-br from-orange-500 to-orange-600 text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm mb-1">Tiempo Ahorrado</p>
-              <p className="text-4xl font-bold">45h</p>
-            </div>
-            <FaCog className="text-5xl opacity-30 animate-spin-slow" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Grid de Automatizaciones */}

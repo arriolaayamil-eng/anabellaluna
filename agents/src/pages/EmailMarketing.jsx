@@ -112,7 +112,8 @@ const EmailMarketing = () => {
     },
   ];
 
-  const cardBase = 'bg-white dark:bg-secondary-dark-bg rounded-2xl p-6 shadow-lg';
+  const isDark = currentMode === 'Dark';
+  const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
   const getColorClasses = (color) => {
     const colors = {
@@ -137,98 +138,57 @@ const EmailMarketing = () => {
         </div>
         <button
           type="button"
-          className="flex items-center gap-2 px-6 py-3 rounded-lg text-white font-medium shadow-lg hover:shadow-xl transition-all"
-          style={{ backgroundColor: currentColor }}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium shadow-lg hover:shadow-xl transition-all"
+          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
         >
           <FaPlus /> Crear Email
         </button>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardBase} border-l-4 border-blue-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Emails Enviados</p>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">3,350</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Este mes</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Emails Enviados', value: '3,350', sub: 'Este mes', color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <FaPaperPlane /> },
+          { label: 'Tasa Apertura', value: '57.5%', sub: '+5% vs anterior', color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/20', icon: <FaEye /> },
+          { label: 'Plantillas', value: plantillas.length, sub: 'Disponibles', color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', icon: <MdOutlineEmail /> },
+          { label: 'Suscriptores', value: '4,567', sub: '+234 este mes', color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <FaUsers /> },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className={`rounded-2xl p-5 border shadow-sm ${isDark ? 'bg-secondary-dark-bg border-gray-700/50' : 'bg-white border-gray-100'}`}
+            style={{ borderLeft: `4px solid ${m.color}` }}
+          >
+            <div className={`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center mb-3`} style={{ color: m.color }}>
+              {m.icon}
             </div>
-            <FaPaperPlane className="text-4xl text-blue-500" />
+            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.value}</p>
+            <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</p>
+            <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{m.sub}</p>
           </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-green-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Tasa Apertura</p>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">57.5%</p>
-              <p className="text-xs text-green-600 dark:text-green-400 mt-1">+5% vs anterior</p>
-            </div>
-            <FaEye className="text-4xl text-green-500" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-purple-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Plantillas</p>
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{plantillas.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Disponibles</p>
-            </div>
-            <MdOutlineEmail className="text-4xl text-purple-500" />
-          </div>
-        </div>
-
-        <div className={`${cardBase} border-l-4 border-orange-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Suscriptores</p>
-              <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">4,567</p>
-              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">+234 este mes</p>
-            </div>
-            <FaUsers className="text-4xl text-orange-500" />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Tabs de Navegación */}
-      <div className="flex gap-2 mb-6">
-        <button
-          type="button"
-          onClick={() => setVistaActual('plantillas')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            vistaActual === 'plantillas'
-              ? 'text-white shadow-lg'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-          style={vistaActual === 'plantillas' ? { backgroundColor: currentColor } : {}}
-        >
-          📋 Plantillas ({plantillas.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setVistaActual('borradores')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            vistaActual === 'borradores'
-              ? 'text-white shadow-lg'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-          style={vistaActual === 'borradores' ? { backgroundColor: currentColor } : {}}
-        >
-          📝 Borradores ({borradores.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setVistaActual('enviados')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            vistaActual === 'enviados'
-              ? 'text-white shadow-lg'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-          style={vistaActual === 'enviados' ? { backgroundColor: currentColor } : {}}
-        >
-          ✉️ Enviados ({enviados.length})
-        </button>
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { id: 'plantillas', label: `Plantillas (${plantillas.length})` },
+          { id: 'borradores', label: `Borradores (${borradores.length})` },
+          { id: 'enviados', label: 'Enviados' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setVistaActual(tab.id)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              vistaActual === tab.id
+                ? 'text-white shadow-lg'
+                : `${isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`
+            }`}
+            style={vistaActual === tab.id ? { background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 14px ${currentColor}40` } : {}}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Contenido según vista activa */}
