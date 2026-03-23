@@ -93,6 +93,15 @@ const Citas = () => {
     }
   }, [showModalKanban]);
 
+  // Agentes desde DB
+  const [agentesLista, setAgentesLista] = useState([]);
+
+  useEffect(() => {
+    crmService.agentes?.getAll?.().then(data => {
+      setAgentesLista(Array.isArray(data) ? data : []);
+    }).catch(() => {});
+  }, []);
+
   // Estado para citas del backend
   const [citasItems, setCitasItems] = useState([]);
   const [citasLoading, setCitasLoading] = useState(false);
@@ -151,6 +160,7 @@ const Citas = () => {
     { tipo: 'Reunión', cantidad: citasData.filter(c => c.tipo === 'Reunión').length, fill: '#10B981' },
     { tipo: 'Firma', cantidad: citasData.filter(c => c.tipo === 'Firma').length, fill: '#F59E0B' },
     { tipo: 'Llamada', cantidad: citasData.filter(c => c.tipo === 'Llamada').length, fill: '#8B5CF6' },
+    { tipo: 'Foto/Video', cantidad: citasData.filter(c => c.tipo === 'Foto/Video').length, fill: '#EC4899' },
   ];
 
   const citasPorDia = [
@@ -238,11 +248,12 @@ const Citas = () => {
     setCitasError('');
 
     try {
-      const startStr = `${nuevaCita.fecha}T${nuevaCita.horaInicio}`;
+      const hora = nuevaCita.horaInicio || '00:00';
+      const startStr = `${nuevaCita.fecha}T${hora}`;
       const endStr = nuevaCita.horaFin ? `${nuevaCita.fecha}T${nuevaCita.horaFin}` : '';
       const start = new Date(startStr);
       const end = endStr ? new Date(endStr) : new Date(start.getTime() + 60 * 60 * 1000);
-      if (Number.isNaN(start.getTime())) throw new Error('Fecha/hora inválida');
+      if (Number.isNaN(start.getTime())) throw new Error('Fecha inválida');
 
       await crmService.citas.create({
         fecha: start.toISOString(),
@@ -815,6 +826,7 @@ const Citas = () => {
                       <option value="Firma">Firma de Contrato</option>
                       <option value="Llamada">Llamada</option>
                       <option value="Videollamada">Videollamada</option>
+                      <option value="Foto/Video">Foto/Video de Propiedad</option>
                     </select>
                   </div>
                   <div>
@@ -833,11 +845,9 @@ const Citas = () => {
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
                     <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
                       <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
+                      {agentesLista.map(a => (
+                        <option key={a._id || a.id} value={a.nombre}>{a.nombre}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -845,12 +855,12 @@ const Citas = () => {
                     <input type="date" name="fecha" value={nuevaCita.fecha} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Inicio *</label>
-                    <input type="time" name="horaInicio" value={nuevaCita.horaInicio} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Inicio</label>
+                    <input type="time" name="horaInicio" value={nuevaCita.horaInicio} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Fin *</label>
-                    <input type="time" name="horaFin" value={nuevaCita.horaFin} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Fin</label>
+                    <input type="time" name="horaFin" value={nuevaCita.horaFin} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ubicación</label>
