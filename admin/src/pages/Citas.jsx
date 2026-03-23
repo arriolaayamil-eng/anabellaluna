@@ -655,20 +655,37 @@ const Citas = () => {
       <div className="mb-6">
         <div className={cardBase}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🕒 Todas las Citas</h3>
-          <GridComponent
-            dataSource={citasData}
-            allowPaging
-            pageSettings={{ pageSize: 5 }}
-            allowSorting
-          >
-            <GridInject services={[Page, Sort]} />
-            <ColumnsDirective>
-              <ColumnDirective field="Subject" headerText="Cita" width="200" />
-              <ColumnDirective field="tipo" headerText="Tipo" width="100" />
-              <ColumnDirective field="cliente" headerText="Cliente" width="150" />
-              <ColumnDirective field="estado" headerText="Estado" width="100" />
-            </ColumnsDirective>
-          </GridComponent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Cita</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Tipo</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Cliente</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {citasData.slice(0, 10).map((cita, idx) => (
+                  <tr key={idx} className={`border-b ${isDark ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-100 hover:bg-gray-50'}`}>
+                    <td className="py-2.5 px-3 dark:text-gray-200">{cita.Subject}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{cita.tipo}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{cita.cliente}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        cita.estado === 'Confirmada' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : cita.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>{cita.estado}</span>
+                    </td>
+                  </tr>
+                ))}
+                {!citasData.length && (
+                  <tr><td colSpan={4} className="py-8 text-center text-gray-400">No hay citas registradas</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

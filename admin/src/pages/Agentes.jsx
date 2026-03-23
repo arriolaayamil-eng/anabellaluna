@@ -7,8 +7,7 @@ import { api } from '../config/api';
 
 // ApexCharts for modern visualizations
 import Chart from 'react-apexcharts';
-// Syncfusion Grid only
-import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Inject as GridInject } from '@syncfusion/ej2-react-grids';
+
 
 const Agentes = () => {
   const { currentMode, currentColor } = useStateContext();
@@ -736,22 +735,35 @@ const Agentes = () => {
         {/* Tabla de Comisiones */}
         <div className={`xl:col-span-2 ${cardBase}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">💰 Comisiones y Asignaciones</h3>
-          <GridComponent
-            dataSource={agentes}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-          >
-            <GridInject services={[Page, Sort]} />
-            <ColumnsDirective>
-              <ColumnDirective field="nombre" headerText="Agente" width="150" />
-              <ColumnDirective field="propiedades" headerText="Propiedades" textAlign="Center" width="100" />
-              <ColumnDirective field="clientes" headerText="Clientes" textAlign="Center" width="100" />
-              <ColumnDirective field="ventas" headerText="Ventas" textAlign="Center" width="80" />
-              <ColumnDirective field="comisiones" headerText="Comisiones" textAlign="Right" width="120" format="C0" />
-              <ColumnDirective field="zona" headerText="Zonas" width="200" />
-            </ColumnsDirective>
-          </GridComponent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Agente</th>
+                  <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">Propiedades</th>
+                  <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">Clientes</th>
+                  <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">Ventas</th>
+                  <th className="text-right py-3 px-3 font-semibold dark:text-gray-300">Comisiones</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Zonas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agentes.slice(0, 10).map((ag, idx) => (
+                  <tr key={idx} className={`border-b ${isDark ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-100 hover:bg-gray-50'} cursor-pointer`} onClick={() => verDetalle(ag)}>
+                    <td className="py-2.5 px-3 font-medium dark:text-gray-200">{ag.nombre}</td>
+                    <td className="py-2.5 px-3 text-center dark:text-gray-300">{ag.propiedades}</td>
+                    <td className="py-2.5 px-3 text-center dark:text-gray-300">{ag.clientes}</td>
+                    <td className="py-2.5 px-3 text-center dark:text-gray-300">{ag.ventas}</td>
+                    <td className="py-2.5 px-3 text-right dark:text-gray-300">${Number(ag.comisiones || 0).toLocaleString()}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{ag.zona}</td>
+                  </tr>
+                ))}
+                {!agentes.length && (
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">No hay agentes registrados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Roles y Permisos */}

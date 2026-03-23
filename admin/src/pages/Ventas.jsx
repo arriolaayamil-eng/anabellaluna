@@ -401,24 +401,43 @@ const Ventas = () => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
         <div className={`xl:col-span-2 ${cardBase}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">💼 Operaciones Activas</h3>
-          <GridComponent
-            dataSource={operaciones}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-            allowFiltering
-          >
-            <GridInject services={[Page, Sort, Filter]} />
-            <ColumnsDirective>
-              <ColumnDirective field="tipo" headerText="Tipo" width="100" />
-              <ColumnDirective field="propiedad" headerText="Propiedad" width="180" />
-              <ColumnDirective field="cliente" headerText="Cliente" width="150" />
-              <ColumnDirective field="monto" headerText="Monto" textAlign="Right" width="120" format="C0" />
-              <ColumnDirective field="estado" headerText="Estado" width="120" />
-              <ColumnDirective field="agente" headerText="Agente" width="130" />
-              <ColumnDirective field="comision" headerText="Comisión" textAlign="Right" width="120" format="C0" />
-            </ColumnsDirective>
-          </GridComponent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Tipo</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Propiedad</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Cliente</th>
+                  <th className="text-right py-3 px-3 font-semibold dark:text-gray-300">Monto</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Estado</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Agente</th>
+                  <th className="text-right py-3 px-3 font-semibold dark:text-gray-300">Comisión</th>
+                </tr>
+              </thead>
+              <tbody>
+                {operaciones.slice(0, 10).map((op, idx) => (
+                  <tr key={idx} className={`border-b ${isDark ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-100 hover:bg-gray-50'}`}>
+                    <td className="py-2.5 px-3 dark:text-gray-200">{op.tipo}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-200">{op.propiedad}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{op.cliente}</td>
+                    <td className="py-2.5 px-3 text-right dark:text-gray-300">${Number(op.monto || 0).toLocaleString()}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        op.estado === 'Cerrada' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : op.estado === 'Reservada' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>{op.estado}</span>
+                    </td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{op.agente}</td>
+                    <td className="py-2.5 px-3 text-right dark:text-gray-300">${Number(op.comision || 0).toLocaleString()}</td>
+                  </tr>
+                ))}
+                {!operaciones.length && (
+                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">No hay operaciones registradas</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Panel de Comisiones */}

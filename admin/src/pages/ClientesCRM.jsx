@@ -664,24 +664,48 @@ const ClientesCRM = () => {
         {/* Grid Principal */}
         <div className={`xl:col-span-2 ${cardBase}`}>
           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">👥 Base de Datos de Clientes</h3>
-          <GridComponent
-            dataSource={clientesEjemplo}
-            allowPaging
-            pageSettings={{ pageSize: 10 }}
-            allowSorting
-            allowFiltering
-          >
-            <GridInject services={[Page, Sort, Filter]} />
-            <ColumnsDirective>
-              <ColumnDirective field="id" headerText="ID" width="220" />
-              <ColumnDirective field="nombre" headerText="Cliente" width="150" />
-              <ColumnDirective field="tipo" headerText="Tipo" width="120" />
-              <ColumnDirective field="estado" headerText="Estado" width="120" />
-              <ColumnDirective field="presupuesto" headerText="Presupuesto" textAlign="Right" width="120" format="C0" />
-              <ColumnDirective field="zona" headerText="Zona" width="120" />
-              <ColumnDirective field="scoring" headerText="Scoring" textAlign="Center" width="100" />
-            </ColumnsDirective>
-          </GridComponent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Cliente</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Tipo</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Estado</th>
+                  <th className="text-right py-3 px-3 font-semibold dark:text-gray-300">Presupuesto</th>
+                  <th className="text-left py-3 px-3 font-semibold dark:text-gray-300">Zona</th>
+                  <th className="text-center py-3 px-3 font-semibold dark:text-gray-300">Scoring</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientesEjemplo.slice(0, 10).map((c) => (
+                  <tr key={c.id} className={`border-b ${isDark ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-100 hover:bg-gray-50'} cursor-pointer`} onClick={() => verDetalle(c)}>
+                    <td className="py-2.5 px-3 dark:text-gray-200">{c.nombre}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{c.tipo}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        c.estado === 'Lead' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : c.estado === 'Negociación' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                        : c.estado === 'Cerrado' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>{c.estado}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right dark:text-gray-300">${Number(c.presupuesto || 0).toLocaleString()}</td>
+                    <td className="py-2.5 px-3 dark:text-gray-300">{c.zona}</td>
+                    <td className="py-2.5 px-3 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                        c.scoring >= 80 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                        : c.scoring >= 60 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>{c.scoring}</span>
+                    </td>
+                  </tr>
+                ))}
+                {!clientesEjemplo.length && (
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">No hay clientes registrados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Panel de Lead Scoring */}
