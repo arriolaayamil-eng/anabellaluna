@@ -104,6 +104,8 @@ const editorRoutes = require('./routes/editor');
 
 const tasacionesRoutes = require('./routes/tasaciones');
 
+const inmobiliariasRoutes = require('./routes/inmobiliarias');
+
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
@@ -280,6 +282,8 @@ app.use('/files', foldersRoutes);
 app.use('/editor', editorRoutes);
 
 app.use('/crm/tasaciones', tasacionesRoutes);
+
+app.use('/crm/inmobiliarias', inmobiliariasRoutes);
 
 app.use('/contract-templates', contractTemplatesRoutes);
 

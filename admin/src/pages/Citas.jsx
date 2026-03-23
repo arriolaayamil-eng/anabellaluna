@@ -29,7 +29,9 @@ const Citas = () => {
     tipo: 'Visita',
     titulo: '',
     cliente: '',
+    clienteId: '',
     propiedad: '',
+    propiedadId: '',
     agente: '',
     fecha: '',
     horaInicio: '',
@@ -38,6 +40,45 @@ const Citas = () => {
     descripcion: '',
     recordatorio: '24h',
   });
+
+  // Autocomplete: clients & properties from DB
+  const [clientesLista, setClientesLista] = useState([]);
+  const [propiedadesLista, setPropiedadesLista] = useState([]);
+  const [clienteQuery, setClienteQuery] = useState('');
+  const [propQuery, setPropQuery] = useState('');
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const [showPropDropdown, setShowPropDropdown] = useState(false);
+  const clienteRef = React.useRef(null);
+  const propRef = React.useRef(null);
+
+  useEffect(() => {
+    crmService.clientes.getAll().then(data => setClientesLista(Array.isArray(data) ? data : [])).catch(() => {});
+    crmService.propiedades.getAll().then(data => setPropiedadesLista(Array.isArray(data) ? data : [])).catch(() => {});
+  }, []);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (clienteRef.current && !clienteRef.current.contains(e.target)) setShowClienteDropdown(false);
+      if (propRef.current && !propRef.current.contains(e.target)) setShowPropDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredClientes = clienteQuery.length >= 1
+    ? clientesLista.filter(c => {
+        const nombre = (c.nombre || '') + ' ' + (c.apellido || '');
+        return nombre.toLowerCase().includes(clienteQuery.toLowerCase());
+      }).slice(0, 8)
+    : clientesLista.slice(0, 8);
+
+  const filteredProps = propQuery.length >= 1
+    ? propiedadesLista.filter(p => {
+        const text = (p.titulo || '') + ' ' + (p.direccion || '') + ' ' + (p.barrio || '');
+        return text.toLowerCase().includes(propQuery.toLowerCase());
+      }).slice(0, 8)
+    : propiedadesLista.slice(0, 8);
   
   // Estado para Kanban (Todo List) - Conectado al backend
   const [columnas, setColumnas] = useState([]);
@@ -93,14 +134,35 @@ const Citas = () => {
     }
   }, [showModalKanban]);
 
-  // Agentes desde DB
+  // Agentes e Inmobiliarias desde DB
   const [agentesLista, setAgentesLista] = useState([]);
+  const [inmobiliariasLista, setInmobiliariasLista] = useState([]);
+  const [asignadoTipo, setAsignadoTipo] = useState('agente'); // 'agente' | 'inmobiliaria'
+  const [inmoQuery, setInmoQuery] = useState('');
+  const [showInmoDropdown, setShowInmoDropdown] = useState(false);
+  const inmoRef = React.useRef(null);
 
   useEffect(() => {
     crmService.agentes?.getAll?.().then(data => {
       setAgentesLista(Array.isArray(data) ? data : []);
     }).catch(() => {});
+    crmService.inmobiliarias?.getAll?.().then(data => {
+      setInmobiliariasLista(Array.isArray(data) ? data : []);
+    }).catch(() => {});
   }, []);
+
+  // Close inmobiliaria dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (inmoRef.current && !inmoRef.current.contains(e.target)) setShowInmoDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredInmobiliarias = inmoQuery.length >= 1
+    ? inmobiliariasLista.filter(i => (i.nombre || '').toLowerCase().includes(inmoQuery.toLowerCase())).slice(0, 8)
+    : inmobiliariasLista.slice(0, 8);
 
   // Estado para citas del backend
   const [citasItems, setCitasItems] = useState([]);
@@ -255,6 +317,18 @@ const Citas = () => {
       const end = endStr ? new Date(endStr) : new Date(start.getTime() + 60 * 60 * 1000);
       if (Number.isNaN(start.getTime())) throw new Error('Fecha inválida');
 
+      // If inmobiliaria mode and new name (no ID), auto-create it
+      let inmobiliariaId = nuevaCita.inmobiliariaId || null;
+      let inmobiliariaNombre = nuevaCita.inmobiliaria || null;
+      if (asignadoTipo === 'inmobiliaria' && inmobiliariaNombre && !inmobiliariaId) {
+        try {
+          const created = await crmService.inmobiliarias.create({ nombre: inmobiliariaNombre });
+          inmobiliariaId = created._id || created.id || null;
+          // Refresh list for future autocomplete
+          setInmobiliariasLista(prev => [...prev, created]);
+        } catch (_e) { /* will still save cita with name only */ }
+      }
+
       await crmService.citas.create({
         fecha: start.toISOString(),
         fechaFin: end.toISOString(),
@@ -263,21 +337,40 @@ const Citas = () => {
         ubicacion: nuevaCita.ubicacion,
         notas: nuevaCita.descripcion,
         estado: 'Programada',
+        agenteNombre: asignadoTipo === 'agente' ? nuevaCita.agente : null,
         metadata: {
           clienteNombre: nuevaCita.cliente,
+          clienteId: nuevaCita.clienteId || null,
           propiedadNombre: nuevaCita.propiedad,
+          propiedadId: nuevaCita.propiedadId || null,
+          asignadoTipo,
+          agenteNombre: asignadoTipo === 'agente' ? nuevaCita.agente : null,
+          inmobiliariaNombre: asignadoTipo === 'inmobiliaria' ? inmobiliariaNombre : null,
+          inmobiliariaId: asignadoTipo === 'inmobiliaria' ? inmobiliariaId : null,
+          recordatorio: nuevaCita.recordatorio,
+          horaInicio: nuevaCita.horaInicio || null,
+          horaFin: nuevaCita.horaFin || null,
+          source: 'admin_manual',
         },
       });
 
       await reloadCitas();
       toast.success('¡Cita agendada exitosamente!');
       setShowModalCita(false);
+      setClienteQuery('');
+      setPropQuery('');
+      setInmoQuery('');
+      setAsignadoTipo('agente');
       setNuevaCita({
         tipo: 'Visita',
         titulo: '',
         cliente: '',
+        clienteId: '',
         propiedad: '',
+        propiedadId: '',
         agente: '',
+        inmobiliaria: '',
+        inmobiliariaId: '',
         fecha: '',
         horaInicio: '',
         horaFin: '',
@@ -833,22 +926,177 @@ const Citas = () => {
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Título *</label>
                     <input type="text" name="titulo" value={nuevaCita.titulo} onChange={handleCitaChange} required placeholder="Ej: Visita Depto Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
-                  <div>
+                  <div ref={clienteRef} className="relative">
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input type="text" name="cliente" value={nuevaCita.cliente} onChange={handleCitaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={clienteQuery || nuevaCita.cliente}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setClienteQuery(v);
+                        setNuevaCita(prev => ({ ...prev, cliente: v, clienteId: '' }));
+                        setShowClienteDropdown(true);
+                      }}
+                      onFocus={() => setShowClienteDropdown(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && filteredClientes.length > 0 && showClienteDropdown) {
+                          e.preventDefault();
+                          const c = filteredClientes[0];
+                          const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+                          setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
+                          setClienteQuery('');
+                          setShowClienteDropdown(false);
+                        }
+                      }}
+                      required
+                      placeholder="Buscar cliente..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    {showClienteDropdown && filteredClientes.length > 0 && (
+                      <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                        {filteredClientes.map(c => {
+                          const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+                          return (
+                            <div
+                              key={c._id || c.id}
+                              onClick={() => {
+                                setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
+                                setClienteQuery('');
+                                setShowClienteDropdown(false);
+                              }}
+                              className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                            >
+                              <span className="font-medium">{nombre}</span>
+                              {c.email && <span className="text-xs text-gray-400 ml-2">{c.email}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {nuevaCita.clienteId && <p className="text-xs text-green-500 mt-1">ID: {nuevaCita.clienteId}</p>}
                   </div>
-                  <div>
+                  <div ref={propRef} className="relative">
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
-                    <input type="text" name="propiedad" value={nuevaCita.propiedad} onChange={handleCitaChange} placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={propQuery || nuevaCita.propiedad}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPropQuery(v);
+                        setNuevaCita(prev => ({ ...prev, propiedad: v, propiedadId: '' }));
+                        setShowPropDropdown(true);
+                      }}
+                      onFocus={() => setShowPropDropdown(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && filteredProps.length > 0 && showPropDropdown) {
+                          e.preventDefault();
+                          const p = filteredProps[0];
+                          const label = p.titulo || p.direccion || 'Propiedad';
+                          setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
+                          setPropQuery('');
+                          setShowPropDropdown(false);
+                        }
+                      }}
+                      placeholder="Buscar propiedad..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    {showPropDropdown && filteredProps.length > 0 && (
+                      <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                        {filteredProps.map(p => {
+                          const label = p.titulo || p.direccion || 'Propiedad';
+                          return (
+                            <div
+                              key={p._id || p.id}
+                              onClick={() => {
+                                setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
+                                setPropQuery('');
+                                setShowPropDropdown(false);
+                              }}
+                              className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                            >
+                              <span className="font-medium">{label}</span>
+                              {p.direccion && p.titulo && <span className="text-xs text-gray-400 ml-2">{p.direccion}</span>}
+                              {p.barrio && <span className="text-xs text-gray-400 ml-1">({p.barrio})</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {nuevaCita.propiedadId && <p className="text-xs text-green-500 mt-1">ID: {nuevaCita.propiedadId}</p>}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                    <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="">Seleccionar agente</option>
-                      {agentesLista.map(a => (
-                        <option key={a._id || a.id} value={a.nombre}>{a.nombre}</option>
-                      ))}
-                    </select>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Asignar a *</label>
+                    <div className="flex items-center gap-4 mb-3">
+                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${asignadoTipo === 'agente' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
+                        <input type="radio" name="asignadoTipo" value="agente" checked={asignadoTipo === 'agente'} onChange={() => { setAsignadoTipo('agente'); setNuevaCita(prev => ({ ...prev, agente: '', inmobiliaria: '', inmobiliariaId: '' })); setInmoQuery(''); }} className="accent-blue-500" />
+                        Agente
+                      </label>
+                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${asignadoTipo === 'inmobiliaria' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
+                        <input type="radio" name="asignadoTipo" value="inmobiliaria" checked={asignadoTipo === 'inmobiliaria'} onChange={() => { setAsignadoTipo('inmobiliaria'); setNuevaCita(prev => ({ ...prev, agente: '', inmobiliaria: '', inmobiliariaId: '' })); setInmoQuery(''); }} className="accent-purple-500" />
+                        Inmobiliaria
+                      </label>
+                    </div>
+
+                    {asignadoTipo === 'agente' ? (
+                      <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar agente</option>
+                        {agentesLista.map(a => (
+                          <option key={a._id || a.id} value={a.nombre}>{a.nombre}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div ref={inmoRef} className="relative">
+                        <input
+                          type="text"
+                          autoComplete="off"
+                          value={inmoQuery || nuevaCita.inmobiliaria || ''}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setInmoQuery(v);
+                            setNuevaCita(prev => ({ ...prev, inmobiliaria: v, inmobiliariaId: '' }));
+                            setShowInmoDropdown(true);
+                          }}
+                          onFocus={() => setShowInmoDropdown(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && showInmoDropdown && filteredInmobiliarias.length > 0) {
+                              e.preventDefault();
+                              const i = filteredInmobiliarias[0];
+                              setNuevaCita(prev => ({ ...prev, inmobiliaria: i.nombre, inmobiliariaId: i._id || i.id || '' }));
+                              setInmoQuery('');
+                              setShowInmoDropdown(false);
+                            }
+                          }}
+                          required
+                          placeholder="Buscar o escribir nombre de inmobiliaria..."
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                        {showInmoDropdown && (inmoQuery.length >= 1) && (
+                          <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                            {filteredInmobiliarias.length > 0 ? filteredInmobiliarias.map(i => (
+                              <div
+                                key={i._id || i.id}
+                                onClick={() => {
+                                  setNuevaCita(prev => ({ ...prev, inmobiliaria: i.nombre, inmobiliariaId: i._id || i.id || '' }));
+                                  setInmoQuery('');
+                                  setShowInmoDropdown(false);
+                                }}
+                                className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-purple-50 text-gray-800'}`}
+                              >
+                                <span className="font-medium">{i.nombre}</span>
+                              </div>
+                            )) : (
+                              <div className={`px-4 py-2 text-sm ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                No encontrada — se guardará como nueva inmobiliaria
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {nuevaCita.inmobiliariaId && <p className="text-xs text-green-500 mt-1">ID: {nuevaCita.inmobiliariaId}</p>}
+                        {nuevaCita.inmobiliaria && !nuevaCita.inmobiliariaId && !inmoQuery && <p className="text-xs text-amber-500 mt-1">Nueva inmobiliaria (se creará al guardar)</p>}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>

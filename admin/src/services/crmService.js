@@ -41,6 +41,12 @@ export const crmService = {
     forAssignment: () => api.get('/crm/agentes/for-assignment'),
   },
 
+  // ============ INMOBILIARIAS ============
+  inmobiliarias: {
+    getAll: () => api.get('/crm/inmobiliarias'),
+    create: (data) => api.post('/crm/inmobiliarias', data),
+  },
+
   // ============ OPERACIONES/VENTAS ============
   operaciones: {
     getAll: () => api.get('/crm/operaciones'),
