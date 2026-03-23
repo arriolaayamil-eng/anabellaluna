@@ -10,6 +10,10 @@ import Chart from 'react-apexcharts';
 const Citas = () => {
   const { currentMode, currentColor } = useStateContext();
   
+  // Estado para calendario nativo
+  const [calDate, setCalDate] = useState(new Date());
+  const [calSelectedDay, setCalSelectedDay] = useState(null);
+
   // Estados para modales
   const [showModalCita, setShowModalCita] = useState(false);
   const [showModalKanban, setShowModalKanban] = useState(false);
@@ -602,18 +606,109 @@ const Citas = () => {
               {citasError}
             </div>
           )}
-          <ScheduleComponent
-            height="650px"
-            eventSettings={{ dataSource: citasData }}
-            selectedDate={new Date()}
-            startHour="09:00"
-            endHour="21:00"
-            firstDayOfWeek={1}
-            workDays={[0, 1, 2, 3, 4, 5, 6]}
-            cssClass={currentMode === 'Dark' ? 'e-schedule-dark' : 'e-schedule-light'}
-          >
-            <Inject services={[Day, Week, WorkWeek, Month, Agenda]} />
-          </ScheduleComponent>
+          {/* Native Monthly Calendar */}
+          {(() => {
+            const year = calDate.getFullYear();
+            const month = calDate.getMonth();
+            const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const dayNames = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+            const firstDay = new Date(year, month, 1);
+            // Shift so week starts Monday (0=Mon)
+            const startDow = (firstDay.getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const cells = [];
+            for (let i = 0; i < startDow; i++) cells.push(null);
+            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+            while (cells.length % 7 !== 0) cells.push(null);
+            const today = new Date();
+            const typeColor = { 'Visita': '#3B82F6', 'Reunión': '#10B981', 'Firma': '#F59E0B', 'Llamada': '#8B5CF6' };
+            return (
+              <div style={{ minHeight: 520 }}>
+                {/* Month navigation */}
+                <div className="flex items-center justify-between mb-4">
+                  <button type="button" onClick={() => setCalDate(new Date(year, month - 1, 1))} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isDark ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>‹ Ant.</button>
+                  <span className={`font-semibold text-base ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>{monthNames[month]} {year}</span>
+                  <button type="button" onClick={() => setCalDate(new Date(year, month + 1, 1))} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isDark ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Sig. ›</button>
+                </div>
+                {/* Day headers */}
+                <div className="grid grid-cols-7 mb-1">
+                  {dayNames.map(d => (
+                    <div key={d} className={`text-center text-xs font-semibold py-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{d}</div>
+                  ))}
+                </div>
+                {/* Calendar grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {cells.map((day, idx) => {
+                    if (!day) return <div key={idx} />;
+                    const cellDate = new Date(year, month, day);
+                    const isToday = cellDate.toDateString() === today.toDateString();
+                    const isSelected = calSelectedDay && cellDate.toDateString() === calSelectedDay.toDateString();
+                    const dayCitas = citasData.filter(c => c.StartTime.toDateString() === cellDate.toDateString());
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setCalSelectedDay(isSelected ? null : cellDate)}
+                        className={`relative rounded-lg p-1 min-h-[70px] cursor-pointer border transition-all ${
+                          isSelected ? 'border-blue-500 ring-2 ring-blue-300' :
+                          isToday ? 'border-blue-400' :
+                          isDark ? 'border-gray-700 hover:border-gray-500' : 'border-gray-100 hover:border-gray-300'
+                        } ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                      >
+                        <span className={`text-xs font-bold block mb-1 ${
+                          isToday ? 'bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-center' :
+                          isDark ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{day}</span>
+                        <div className="space-y-0.5">
+                          {dayCitas.slice(0, 3).map((c, ci) => (
+                            <div key={ci} className="text-xs truncate rounded px-1 py-0.5 text-white font-medium" style={{ backgroundColor: typeColor[c.tipo] || '#6B7280', fontSize: '10px' }}>
+                              {c.StartTime.getHours()}:{c.StartTime.getMinutes().toString().padStart(2,'0')} {c.Subject}
+                            </div>
+                          ))}
+                          {dayCitas.length > 3 && (
+                            <div className="text-xs text-gray-400 pl-1">+{dayCitas.length - 3} más</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Selected day detail */}
+                {calSelectedDay && (() => {
+                  const sel = citasData.filter(c => c.StartTime.toDateString() === calSelectedDay.toDateString()).sort((a,b) => a.StartTime - b.StartTime);
+                  return (
+                    <div className={`mt-4 p-4 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className={`font-semibold text-sm ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                          Citas del {calSelectedDay.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </h4>
+                        <button type="button" onClick={() => setCalSelectedDay(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                      </div>
+                      {sel.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-2">No hay citas este día</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {sel.map((c, i) => (
+                            <div key={i} className={`flex items-center gap-3 p-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-white'} border ${isDark ? 'border-gray-600' : 'border-gray-200'}`}>
+                              <div className="w-2 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: typeColor[c.tipo] || '#6B7280' }} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>{c.Subject}</p>
+                                <p className="text-xs text-gray-400">{c.tipo} · {c.cliente || ''} · {c.StartTime.getHours()}:{c.StartTime.getMinutes().toString().padStart(2,'0')}–{c.EndTime.getHours()}:{c.EndTime.getMinutes().toString().padStart(2,'0')}</p>
+                              </div>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                                c.estado === 'Confirmada' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : c.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700'
+                                : 'bg-blue-100 text-blue-700'
+                              }`}>{c.estado || 'Programada'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Próximas Citas - Panel lateral */}
