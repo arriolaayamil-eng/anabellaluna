@@ -75,7 +75,7 @@ const Citas = () => {
 
   const filteredProps = propQuery.length >= 1
     ? propiedadesLista.filter(p => {
-        const text = (p.titulo || '') + ' ' + (p.direccion || '') + ' ' + (p.barrio || '');
+        const text = (p.title || '') + ' ' + (p.address || '') + ' ' + (p.metadata?.barrio || '');
         return text.toLowerCase().includes(propQuery.toLowerCase());
       }).slice(0, 8)
     : propiedadesLista.slice(0, 8);
@@ -137,7 +137,7 @@ const Citas = () => {
   // Agentes e Inmobiliarias desde DB
   const [agentesLista, setAgentesLista] = useState([]);
   const [inmobiliariasLista, setInmobiliariasLista] = useState([]);
-  const [asignadoTipo, setAsignadoTipo] = useState('agente'); // 'agente' | 'inmobiliaria'
+  const [contactoTipo, setContactoTipo] = useState('cliente'); // 'cliente' | 'inmobiliaria'
   const [inmoQuery, setInmoQuery] = useState('');
   const [showInmoDropdown, setShowInmoDropdown] = useState(false);
   const inmoRef = React.useRef(null);
@@ -320,11 +320,10 @@ const Citas = () => {
       // If inmobiliaria mode and new name (no ID), auto-create it
       let inmobiliariaId = nuevaCita.inmobiliariaId || null;
       let inmobiliariaNombre = nuevaCita.inmobiliaria || null;
-      if (asignadoTipo === 'inmobiliaria' && inmobiliariaNombre && !inmobiliariaId) {
+      if (contactoTipo === 'inmobiliaria' && inmobiliariaNombre && !inmobiliariaId) {
         try {
           const created = await crmService.inmobiliarias.create({ nombre: inmobiliariaNombre });
           inmobiliariaId = created._id || created.id || null;
-          // Refresh list for future autocomplete
           setInmobiliariasLista(prev => [...prev, created]);
         } catch (_e) { /* will still save cita with name only */ }
       }
@@ -337,16 +336,16 @@ const Citas = () => {
         ubicacion: nuevaCita.ubicacion,
         notas: nuevaCita.descripcion,
         estado: 'Programada',
-        agenteNombre: asignadoTipo === 'agente' ? nuevaCita.agente : null,
+        agenteNombre: nuevaCita.agente || null,
         metadata: {
-          clienteNombre: nuevaCita.cliente,
-          clienteId: nuevaCita.clienteId || null,
+          contactoTipo,
+          clienteNombre: contactoTipo === 'cliente' ? nuevaCita.cliente : null,
+          clienteId: contactoTipo === 'cliente' ? (nuevaCita.clienteId || null) : null,
+          inmobiliariaNombre: contactoTipo === 'inmobiliaria' ? inmobiliariaNombre : null,
+          inmobiliariaId: contactoTipo === 'inmobiliaria' ? inmobiliariaId : null,
           propiedadNombre: nuevaCita.propiedad,
           propiedadId: nuevaCita.propiedadId || null,
-          asignadoTipo,
-          agenteNombre: asignadoTipo === 'agente' ? nuevaCita.agente : null,
-          inmobiliariaNombre: asignadoTipo === 'inmobiliaria' ? inmobiliariaNombre : null,
-          inmobiliariaId: asignadoTipo === 'inmobiliaria' ? inmobiliariaId : null,
+          agenteNombre: nuevaCita.agente || null,
           recordatorio: nuevaCita.recordatorio,
           horaInicio: nuevaCita.horaInicio || null,
           horaFin: nuevaCita.horaFin || null,
@@ -360,7 +359,7 @@ const Citas = () => {
       setClienteQuery('');
       setPropQuery('');
       setInmoQuery('');
-      setAsignadoTipo('agente');
+      setContactoTipo('cliente');
       setNuevaCita({
         tipo: 'Visita',
         titulo: '',
@@ -926,126 +925,69 @@ const Citas = () => {
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Título *</label>
                     <input type="text" name="titulo" value={nuevaCita.titulo} onChange={handleCitaChange} required placeholder="Ej: Visita Depto Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
-                  <div ref={clienteRef} className="relative">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      value={clienteQuery || nuevaCita.cliente}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setClienteQuery(v);
-                        setNuevaCita(prev => ({ ...prev, cliente: v, clienteId: '' }));
-                        setShowClienteDropdown(true);
-                      }}
-                      onFocus={() => setShowClienteDropdown(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && filteredClientes.length > 0 && showClienteDropdown) {
-                          e.preventDefault();
-                          const c = filteredClientes[0];
-                          const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
-                          setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
-                          setClienteQuery('');
-                          setShowClienteDropdown(false);
-                        }
-                      }}
-                      required
-                      placeholder="Buscar cliente..."
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                    {showClienteDropdown && filteredClientes.length > 0 && (
-                      <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-                        {filteredClientes.map(c => {
-                          const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
-                          return (
-                            <div
-                              key={c._id || c.id}
-                              onClick={() => {
-                                setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
-                                setClienteQuery('');
-                                setShowClienteDropdown(false);
-                              }}
-                              className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
-                            >
-                              <span className="font-medium">{nombre}</span>
-                              {c.email && <span className="text-xs text-gray-400 ml-2">{c.email}</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {nuevaCita.clienteId && <p className="text-xs text-green-500 mt-1">ID: {nuevaCita.clienteId}</p>}
-                  </div>
-                  <div ref={propRef} className="relative">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      value={propQuery || nuevaCita.propiedad}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setPropQuery(v);
-                        setNuevaCita(prev => ({ ...prev, propiedad: v, propiedadId: '' }));
-                        setShowPropDropdown(true);
-                      }}
-                      onFocus={() => setShowPropDropdown(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && filteredProps.length > 0 && showPropDropdown) {
-                          e.preventDefault();
-                          const p = filteredProps[0];
-                          const label = p.titulo || p.direccion || 'Propiedad';
-                          setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
-                          setPropQuery('');
-                          setShowPropDropdown(false);
-                        }
-                      }}
-                      placeholder="Buscar propiedad..."
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
-                    />
-                    {showPropDropdown && filteredProps.length > 0 && (
-                      <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-                        {filteredProps.map(p => {
-                          const label = p.titulo || p.direccion || 'Propiedad';
-                          return (
-                            <div
-                              key={p._id || p.id}
-                              onClick={() => {
-                                setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
-                                setPropQuery('');
-                                setShowPropDropdown(false);
-                              }}
-                              className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
-                            >
-                              <span className="font-medium">{label}</span>
-                              {p.direccion && p.titulo && <span className="text-xs text-gray-400 ml-2">{p.direccion}</span>}
-                              {p.barrio && <span className="text-xs text-gray-400 ml-1">({p.barrio})</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {nuevaCita.propiedadId && <p className="text-xs text-green-500 mt-1">ID: {nuevaCita.propiedadId}</p>}
-                  </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Asignar a *</label>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Contacto *</label>
                     <div className="flex items-center gap-4 mb-3">
-                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${asignadoTipo === 'agente' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
-                        <input type="radio" name="asignadoTipo" value="agente" checked={asignadoTipo === 'agente'} onChange={() => { setAsignadoTipo('agente'); setNuevaCita(prev => ({ ...prev, agente: '', inmobiliaria: '', inmobiliariaId: '' })); setInmoQuery(''); }} className="accent-blue-500" />
-                        Agente
+                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${contactoTipo === 'cliente' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
+                        <input type="radio" name="contactoTipo" value="cliente" checked={contactoTipo === 'cliente'} onChange={() => { setContactoTipo('cliente'); setNuevaCita(prev => ({ ...prev, cliente: '', clienteId: '', inmobiliaria: '', inmobiliariaId: '' })); setClienteQuery(''); setInmoQuery(''); }} className="accent-blue-500" />
+                        Cliente
                       </label>
-                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${asignadoTipo === 'inmobiliaria' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
-                        <input type="radio" name="asignadoTipo" value="inmobiliaria" checked={asignadoTipo === 'inmobiliaria'} onChange={() => { setAsignadoTipo('inmobiliaria'); setNuevaCita(prev => ({ ...prev, agente: '', inmobiliaria: '', inmobiliariaId: '' })); setInmoQuery(''); }} className="accent-purple-500" />
+                      <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${contactoTipo === 'inmobiliaria' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
+                        <input type="radio" name="contactoTipo" value="inmobiliaria" checked={contactoTipo === 'inmobiliaria'} onChange={() => { setContactoTipo('inmobiliaria'); setNuevaCita(prev => ({ ...prev, cliente: '', clienteId: '', inmobiliaria: '', inmobiliariaId: '' })); setClienteQuery(''); setInmoQuery(''); }} className="accent-purple-500" />
                         Inmobiliaria
                       </label>
                     </div>
 
-                    {asignadoTipo === 'agente' ? (
-                      <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                        <option value="">Seleccionar agente</option>
-                        {agentesLista.map(a => (
-                          <option key={a._id || a.id} value={a.nombre}>{a.nombre}</option>
-                        ))}
-                      </select>
+                    {contactoTipo === 'cliente' ? (
+                      <div ref={clienteRef} className="relative">
+                        <input
+                          type="text"
+                          autoComplete="off"
+                          value={clienteQuery || nuevaCita.cliente}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setClienteQuery(v);
+                            setNuevaCita(prev => ({ ...prev, cliente: v, clienteId: '' }));
+                            setShowClienteDropdown(true);
+                          }}
+                          onFocus={() => setShowClienteDropdown(true)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && filteredClientes.length > 0 && showClienteDropdown) {
+                              e.preventDefault();
+                              const c = filteredClientes[0];
+                              const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+                              setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
+                              setClienteQuery('');
+                              setShowClienteDropdown(false);
+                            }
+                          }}
+                          required
+                          placeholder="Buscar cliente..."
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                        {showClienteDropdown && filteredClientes.length > 0 && (
+                          <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                            {filteredClientes.map(c => {
+                              const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+                              return (
+                                <div
+                                  key={c._id || c.id}
+                                  onClick={() => {
+                                    setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
+                                    setClienteQuery('');
+                                    setShowClienteDropdown(false);
+                                  }}
+                                  className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                                >
+                                  <span className="font-medium">{nombre}</span>
+                                  {c.email && <span className="text-xs text-gray-400 ml-2">{c.email}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {nuevaCita.clienteId && <p className="text-xs text-green-500 mt-1">Vinculado: {nuevaCita.clienteId}</p>}
+                      </div>
                     ) : (
                       <div ref={inmoRef} className="relative">
                         <input
@@ -1093,10 +1035,69 @@ const Citas = () => {
                             )}
                           </div>
                         )}
-                        {nuevaCita.inmobiliariaId && <p className="text-xs text-green-500 mt-1">ID: {nuevaCita.inmobiliariaId}</p>}
+                        {nuevaCita.inmobiliariaId && <p className="text-xs text-green-500 mt-1">Vinculado: {nuevaCita.inmobiliariaId}</p>}
                         {nuevaCita.inmobiliaria && !nuevaCita.inmobiliariaId && !inmoQuery && <p className="text-xs text-amber-500 mt-1">Nueva inmobiliaria (se creará al guardar)</p>}
                       </div>
                     )}
+                  </div>
+                  <div ref={propRef} className="relative">
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={propQuery || nuevaCita.propiedad}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPropQuery(v);
+                        setNuevaCita(prev => ({ ...prev, propiedad: v, propiedadId: '' }));
+                        setShowPropDropdown(true);
+                      }}
+                      onFocus={() => setShowPropDropdown(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && filteredProps.length > 0 && showPropDropdown) {
+                          e.preventDefault();
+                          const p = filteredProps[0];
+                          const label = p.title || p.address || 'Sin título';
+                          setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
+                          setPropQuery('');
+                          setShowPropDropdown(false);
+                        }
+                      }}
+                      placeholder="Buscar propiedad..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    {showPropDropdown && filteredProps.length > 0 && (
+                      <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                        {filteredProps.map(p => {
+                          const label = p.title || p.address || 'Sin título';
+                          return (
+                            <div
+                              key={p._id || p.id}
+                              onClick={() => {
+                                setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
+                                setPropQuery('');
+                                setShowPropDropdown(false);
+                              }}
+                              className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                            >
+                              <span className="font-medium">{label}</span>
+                              {p.address && p.title && <span className="text-xs text-gray-400 ml-2">{p.address}</span>}
+                              {p.metadata?.barrio && <span className="text-xs text-gray-400 ml-1">({p.metadata.barrio})</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {nuevaCita.propiedadId && <p className="text-xs text-green-500 mt-1">Vinculado: {nuevaCita.propiedadId}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
+                    <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                      <option value="">Seleccionar agente</option>
+                      {agentesLista.map(a => (
+                        <option key={a._id || a.id} value={a.nombre}>{a.nombre}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>

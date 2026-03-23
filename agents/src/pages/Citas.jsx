@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { toast } from 'react-toastify';
-import { ScheduleComponent, Day, Week, WorkWeek, Month, Agenda, Inject } from '@syncfusion/ej2-react-schedule';
 import Chart from 'react-apexcharts';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaPlus, FaTrash, FaChartLine, FaArrowUp, FaPercentage, FaCalendarAlt } from 'react-icons/fa';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaPlus, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt, FaGripVertical, FaEdit, FaMapMarkerAlt } from 'react-icons/fa';
 
 import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -11,6 +10,10 @@ import { crmService } from '../services/crmService';
 
 const Citas = () => {
   const { currentMode } = useStateContext();
+
+  // Estado para calendario nativo
+  const [calDate, setCalDate] = useState(new Date());
+  const [calSelectedDay, setCalSelectedDay] = useState(null);
 
   // Estados para modales
   const [showModalCita, setShowModalCita] = useState(false);
@@ -27,8 +30,12 @@ const Citas = () => {
     tipo: 'Visita',
     titulo: '',
     cliente: '',
+    clienteId: '',
     propiedad: '',
+    propiedadId: '',
     agente: '',
+    inmobiliaria: '',
+    inmobiliariaId: '',
     fecha: '',
     horaInicio: '',
     horaFin: '',
@@ -36,6 +43,45 @@ const Citas = () => {
     descripcion: '',
     recordatorio: '24h',
   });
+
+  // Autocomplete: clients & properties from DB
+  const [clientesLista, setClientesLista] = useState([]);
+  const [propiedadesLista, setPropiedadesLista] = useState([]);
+  const [clienteQuery, setClienteQuery] = useState('');
+  const [propQuery, setPropQuery] = useState('');
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const [showPropDropdown, setShowPropDropdown] = useState(false);
+  const clienteRef = React.useRef(null);
+  const propRef = React.useRef(null);
+
+  useEffect(() => {
+    crmService.clientes.getAll().then(data => setClientesLista(Array.isArray(data) ? data : [])).catch(() => {});
+    crmService.propiedades.getAll().then(data => setPropiedadesLista(Array.isArray(data) ? data : [])).catch(() => {});
+  }, []);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (clienteRef.current && !clienteRef.current.contains(e.target)) setShowClienteDropdown(false);
+      if (propRef.current && !propRef.current.contains(e.target)) setShowPropDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredClientes = clienteQuery.length >= 1
+    ? clientesLista.filter(c => {
+        const nombre = (c.nombre || '') + ' ' + (c.apellido || '');
+        return nombre.toLowerCase().includes(clienteQuery.toLowerCase());
+      }).slice(0, 8)
+    : clientesLista.slice(0, 8);
+
+  const filteredProps = propQuery.length >= 1
+    ? propiedadesLista.filter(p => {
+        const text = (p.title || '') + ' ' + (p.address || '') + ' ' + (p.metadata?.barrio || '');
+        return text.toLowerCase().includes(propQuery.toLowerCase());
+      }).slice(0, 8)
+    : propiedadesLista.slice(0, 8);
 
   // Estado para Kanban (Todo List) - Conectado al backend
   const [columnas, setColumnas] = useState([]);
@@ -91,6 +137,36 @@ const Citas = () => {
       loadKanbanData();
     }
   }, [showModalKanban]);
+
+  // Agentes e Inmobiliarias desde DB
+  const [agentesLista, setAgentesLista] = useState([]);
+  const [inmobiliariasLista, setInmobiliariasLista] = useState([]);
+  const [contactoTipo, setContactoTipo] = useState('cliente'); // 'cliente' | 'inmobiliaria'
+  const [inmoQuery, setInmoQuery] = useState('');
+  const [showInmoDropdown, setShowInmoDropdown] = useState(false);
+  const inmoRef = React.useRef(null);
+
+  useEffect(() => {
+    crmService.agentes?.getAll?.().then(data => {
+      setAgentesLista(Array.isArray(data) ? data : []);
+    }).catch(() => {});
+    crmService.inmobiliarias?.getAll?.().then(data => {
+      setInmobiliariasLista(Array.isArray(data) ? data : []);
+    }).catch(() => {});
+  }, []);
+
+  // Close inmobiliaria dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (inmoRef.current && !inmoRef.current.contains(e.target)) setShowInmoDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredInmobiliarias = inmoQuery.length >= 1
+    ? inmobiliariasLista.filter(i => (i.nombre || '').toLowerCase().includes(inmoQuery.toLowerCase())).slice(0, 8)
+    : inmobiliariasLista.slice(0, 8);
 
   const [citasItems, setCitasItems] = useState([]);
   const [citasLoading, setCitasLoading] = useState(false);
@@ -235,11 +311,23 @@ const Citas = () => {
     setCitasError('');
 
     try {
-      const startStr = `${nuevaCita.fecha}T${nuevaCita.horaInicio}`;
+      const hora = nuevaCita.horaInicio || '00:00';
+      const startStr = `${nuevaCita.fecha}T${hora}`;
       const endStr = nuevaCita.horaFin ? `${nuevaCita.fecha}T${nuevaCita.horaFin}` : '';
       const start = new Date(startStr);
       const end = endStr ? new Date(endStr) : new Date(start.getTime() + 60 * 60 * 1000);
-      if (Number.isNaN(start.getTime())) throw new Error('Fecha/hora inválida');
+      if (Number.isNaN(start.getTime())) throw new Error('Fecha inválida');
+
+      // If inmobiliaria mode and new name (no ID), auto-create it
+      let inmobiliariaId = nuevaCita.inmobiliariaId || null;
+      let inmobiliariaNombre = nuevaCita.inmobiliaria || null;
+      if (contactoTipo === 'inmobiliaria' && inmobiliariaNombre && !inmobiliariaId) {
+        try {
+          const created = await crmService.inmobiliarias.create({ nombre: inmobiliariaNombre });
+          inmobiliariaId = created._id || created.id || null;
+          setInmobiliariasLista(prev => [...prev, created]);
+        } catch (_e) { /* will still save cita with name only */ }
+      }
 
       await crmService.citas.create({
         fecha: start.toISOString(),
@@ -249,9 +337,20 @@ const Citas = () => {
         ubicacion: nuevaCita.ubicacion,
         notas: nuevaCita.descripcion,
         estado: 'Programada',
+        agenteNombre: nuevaCita.agente || null,
         metadata: {
-          clienteNombre: nuevaCita.cliente,
+          contactoTipo,
+          clienteNombre: contactoTipo === 'cliente' ? nuevaCita.cliente : null,
+          clienteId: contactoTipo === 'cliente' ? (nuevaCita.clienteId || null) : null,
+          inmobiliariaNombre: contactoTipo === 'inmobiliaria' ? inmobiliariaNombre : null,
+          inmobiliariaId: contactoTipo === 'inmobiliaria' ? inmobiliariaId : null,
           propiedadNombre: nuevaCita.propiedad,
+          propiedadId: nuevaCita.propiedadId || null,
+          agenteNombre: nuevaCita.agente || null,
+          recordatorio: nuevaCita.recordatorio,
+          horaInicio: nuevaCita.horaInicio || null,
+          horaFin: nuevaCita.horaFin || null,
+          source: 'crm_agent',
         },
       });
 
@@ -260,12 +359,20 @@ const Citas = () => {
       crmService.rewards.checkMilestones('appointment').catch(() => {});
       toast.success('¡Cita agendada exitosamente!');
       setShowModalCita(false);
+      setClienteQuery('');
+      setPropQuery('');
+      setInmoQuery('');
+      setContactoTipo('cliente');
       setNuevaCita({
         tipo: 'Visita',
         titulo: '',
         cliente: '',
+        clienteId: '',
         propiedad: '',
+        propiedadId: '',
         agente: '',
+        inmobiliaria: '',
+        inmobiliariaId: '',
         fecha: '',
         horaInicio: '',
         horaFin: '',
@@ -611,40 +718,147 @@ const Citas = () => {
         </div>
       </div>
 
-      {/* Calendario Principal - Ancho completo y altura expandida */}
-      <div className={`${cardBase} mb-6`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold dark:text-gray-100">📅 Calendario Completo</h3>
-          <button
-            type="button"
-            onClick={reloadCitas}
-            disabled={citasLoading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-          >
-            <FaSync className={citasLoading ? 'animate-spin' : ''} />
-            {citasLoading ? 'Cargando...' : 'Actualizar'}
-          </button>
-        </div>
-        {citasError && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
-            {citasError}
+      {/* Calendario Principal y Próximas Citas */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <div className={`xl:col-span-2 ${cardBase}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold dark:text-gray-100">📅 Calendario Completo</h3>
+            <button
+              type="button"
+              onClick={reloadCitas}
+              disabled={citasLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <FaSync className={citasLoading ? 'animate-spin' : ''} />
+              {citasLoading ? 'Cargando...' : 'Actualizar'}
+            </button>
           </div>
-        )}
-        <ScheduleComponent
-          height="650px"
-          width="100%"
-          eventSettings={{ dataSource: citasData }}
-          selectedDate={new Date()}
-          startHour="09:00"
-          endHour="21:00"
-          showTimeIndicator
-          timeScale={{ enable: true, interval: 60, slotCount: 2 }}
-          firstDayOfWeek={1}
-          workDays={[0, 1, 2, 3, 4, 5, 6]}
-          cssClass={currentMode === 'Dark' ? 'e-schedule-dark' : 'e-schedule-light'}
-        >
-          <Inject services={[Day, Week, WorkWeek, Month, Agenda]} />
-        </ScheduleComponent>
+          {citasError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
+              {citasError}
+            </div>
+          )}
+          {/* Native Monthly Calendar */}
+          {(() => {
+            const year = calDate.getFullYear();
+            const month = calDate.getMonth();
+            const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const dayNames = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+            const firstDay = new Date(year, month, 1);
+            const startDow = (firstDay.getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const cells = [];
+            for (let i = 0; i < startDow; i++) cells.push(null);
+            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+            while (cells.length % 7 !== 0) cells.push(null);
+            const today = new Date();
+            const typeColor = { 'Visita': '#3B82F6', 'Reunión': '#10B981', 'Firma': '#F59E0B', 'Llamada': '#8B5CF6', 'Foto/Video': '#EC4899' };
+            return (
+              <div style={{ minHeight: 520 }}>
+                <div className="flex items-center justify-between mb-4">
+                  <button type="button" onClick={() => setCalDate(new Date(year, month - 1, 1))} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isDark ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>‹ Ant.</button>
+                  <span className={`font-semibold text-base ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>{monthNames[month]} {year}</span>
+                  <button type="button" onClick={() => setCalDate(new Date(year, month + 1, 1))} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isDark ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Sig. ›</button>
+                </div>
+                <div className="grid grid-cols-7 mb-1">
+                  {dayNames.map(d => (
+                    <div key={d} className={`text-center text-xs font-semibold py-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {cells.map((day, idx) => {
+                    if (!day) return <div key={idx} />;
+                    const cellDate = new Date(year, month, day);
+                    const isToday = cellDate.toDateString() === today.toDateString();
+                    const isSelected = calSelectedDay && cellDate.toDateString() === calSelectedDay.toDateString();
+                    const dayCitas = citasData.filter(c => c.StartTime.toDateString() === cellDate.toDateString());
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setCalSelectedDay(isSelected ? null : cellDate)}
+                        className={`relative rounded-lg p-1 min-h-[70px] cursor-pointer border transition-all ${
+                          isSelected ? 'border-blue-500 ring-2 ring-blue-300' :
+                          isToday ? 'border-blue-400' :
+                          isDark ? 'border-gray-700 hover:border-gray-500' : 'border-gray-100 hover:border-gray-300'
+                        } ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                      >
+                        <span className={`text-xs font-bold block mb-1 ${
+                          isToday ? 'bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-center' :
+                          isDark ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{day}</span>
+                        <div className="space-y-0.5">
+                          {dayCitas.slice(0, 3).map((c, ci) => (
+                            <div key={ci} className="text-xs truncate rounded px-1 py-0.5 text-white font-medium" style={{ backgroundColor: typeColor[c.tipo] || '#6B7280', fontSize: '10px' }}>
+                              {c.StartTime.getHours()}:{c.StartTime.getMinutes().toString().padStart(2,'0')} {c.Subject}
+                            </div>
+                          ))}
+                          {dayCitas.length > 3 && (
+                            <div className="text-xs text-gray-400 pl-1">+{dayCitas.length - 3} más</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {calSelectedDay && (() => {
+                  const sel = citasData.filter(c => c.StartTime.toDateString() === calSelectedDay.toDateString()).sort((a,b) => a.StartTime - b.StartTime);
+                  return (
+                    <div className={`mt-4 p-4 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className={`font-semibold text-sm ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                          Citas del {calSelectedDay.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </h4>
+                        <button type="button" onClick={() => setCalSelectedDay(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                      </div>
+                      {sel.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-2">No hay citas este día</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {sel.map((c, i) => (
+                            <div key={i} className={`flex items-center gap-3 p-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-white'} border ${isDark ? 'border-gray-600' : 'border-gray-200'}`}>
+                              <div className="w-2 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: typeColor[c.tipo] || '#6B7280' }} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>{c.Subject}</p>
+                                <p className="text-xs text-gray-400">{c.tipo} · {c.cliente || ''} · {c.StartTime.getHours()}:{c.StartTime.getMinutes().toString().padStart(2,'0')}–{c.EndTime.getHours()}:{c.EndTime.getMinutes().toString().padStart(2,'0')}</p>
+                              </div>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                                c.estado === 'Confirmada' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : c.estado === 'Pendiente' ? 'bg-amber-100 text-amber-700'
+                                : 'bg-blue-100 text-blue-700'
+                              }`}>{c.estado || 'Programada'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Próximas citas */}
+        <div className={cardBase}>
+          <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📋 Próximas Citas</h3>
+          <div className="space-y-3">
+            {citasData
+              .filter(c => c.StartTime >= new Date())
+              .sort((a, b) => a.StartTime - b.StartTime)
+              .slice(0, 6)
+              .map((c, i) => (
+                <div key={i} className={`p-3 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                  <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>{c.Subject}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {c.StartTime.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} · {c.StartTime.getHours()}:{c.StartTime.getMinutes().toString().padStart(2,'0')} · {c.tipo}
+                  </p>
+                </div>
+              ))}
+            {citasData.filter(c => c.StartTime >= new Date()).length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">No hay citas próximas</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Panel de Seguimiento Post-Cita */}
@@ -717,57 +931,213 @@ const Citas = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="field-13" className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cita *</label>
-                      <select id="field-13" name="tipo" value={nuevaCita.tipo} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Tipo de Cita *</label>
+                      <select name="tipo" value={nuevaCita.tipo} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
                         <option value="Visita">Visita a Propiedad</option>
                         <option value="Reunión">Reunión</option>
                         <option value="Firma">Firma de Contrato</option>
                         <option value="Llamada">Llamada</option>
                         <option value="Videollamada">Videollamada</option>
+                        <option value="Foto/Video">Foto/Video de Propiedad</option>
                       </select>
                     </div>
                     <div>
-                      <label htmlFor="field-14" className="block text-sm font-medium mb-2 dark:text-gray-200">Título *</label>
-                      <input id="field-14" type="text" name="titulo" value={nuevaCita.titulo} onChange={handleCitaChange} required placeholder="Ej: Visita Depto Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                    </div>
-                    <div>
-                      <label htmlFor="field-15" className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                      <input id="field-15" type="text" name="cliente" value={nuevaCita.cliente} onChange={handleCitaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                    </div>
-                    <div>
-                      <label htmlFor="field-16" className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
-                      <input id="field-16" type="text" name="propiedad" value={nuevaCita.propiedad} onChange={handleCitaChange} placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                    </div>
-                    <div>
-                      <label htmlFor="field-17" className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                      <select id="field-17" name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
-                        <option value="">Seleccionar agente</option>
-                        <option value="Ana López">Ana López</option>
-                        <option value="Carlos Ruiz">Carlos Ruiz</option>
-                        <option value="Laura Fernández">Laura Fernández</option>
-                        <option value="Sofía Torres">Sofía Torres</option>
-                        <option value="Marcos Silva">Marcos Silva</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="field-18" className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>
-                      <input id="field-18" type="date" name="fecha" value={nuevaCita.fecha} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                    </div>
-                    <div>
-                      <label htmlFor="field-19" className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Inicio *</label>
-                      <input id="field-19" type="time" name="horaInicio" value={nuevaCita.horaInicio} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
-                    </div>
-                    <div>
-                      <label htmlFor="field-20" className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Fin *</label>
-                      <input id="field-20" type="time" name="horaFin" value={nuevaCita.horaFin} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Título *</label>
+                      <input type="text" name="titulo" value={nuevaCita.titulo} onChange={handleCitaChange} required placeholder="Ej: Visita Depto Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                     </div>
                     <div className="md:col-span-2">
-                      <label htmlFor="field-21" className="block text-sm font-medium mb-2 dark:text-gray-200">Ubicación</label>
-                      <input id="field-21" type="text" name="ubicacion" value={nuevaCita.ubicacion} onChange={handleCitaChange} placeholder="Av. Santa Fe 1234, Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Contacto *</label>
+                      <div className="flex items-center gap-4 mb-3">
+                        <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${contactoTipo === 'cliente' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
+                          <input type="radio" name="contactoTipo" value="cliente" checked={contactoTipo === 'cliente'} onChange={() => { setContactoTipo('cliente'); setNuevaCita(prev => ({ ...prev, cliente: '', clienteId: '', inmobiliaria: '', inmobiliariaId: '' })); setClienteQuery(''); setInmoQuery(''); }} className="accent-blue-500" />
+                          Cliente
+                        </label>
+                        <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border transition-colors ${contactoTipo === 'inmobiliaria' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'border-gray-300 dark:border-gray-600 dark:text-gray-400'}`}>
+                          <input type="radio" name="contactoTipo" value="inmobiliaria" checked={contactoTipo === 'inmobiliaria'} onChange={() => { setContactoTipo('inmobiliaria'); setNuevaCita(prev => ({ ...prev, cliente: '', clienteId: '', inmobiliaria: '', inmobiliariaId: '' })); setClienteQuery(''); setInmoQuery(''); }} className="accent-purple-500" />
+                          Inmobiliaria
+                        </label>
+                      </div>
+
+                      {contactoTipo === 'cliente' ? (
+                        <div ref={clienteRef} className="relative">
+                          <input
+                            type="text"
+                            autoComplete="off"
+                            value={clienteQuery || nuevaCita.cliente}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setClienteQuery(v);
+                              setNuevaCita(prev => ({ ...prev, cliente: v, clienteId: '' }));
+                              setShowClienteDropdown(true);
+                            }}
+                            onFocus={() => setShowClienteDropdown(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && filteredClientes.length > 0 && showClienteDropdown) {
+                                e.preventDefault();
+                                const c = filteredClientes[0];
+                                const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+                                setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
+                                setClienteQuery('');
+                                setShowClienteDropdown(false);
+                              }
+                            }}
+                            required
+                            placeholder="Buscar cliente..."
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          {showClienteDropdown && filteredClientes.length > 0 && (
+                            <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                              {filteredClientes.map(c => {
+                                const nombre = ((c.nombre || '') + ' ' + (c.apellido || '')).trim();
+                                return (
+                                  <div
+                                    key={c._id || c.id}
+                                    onClick={() => {
+                                      setNuevaCita(prev => ({ ...prev, cliente: nombre, clienteId: c._id || c.id || '' }));
+                                      setClienteQuery('');
+                                      setShowClienteDropdown(false);
+                                    }}
+                                    className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                                  >
+                                    <span className="font-medium">{nombre}</span>
+                                    {c.email && <span className="text-xs text-gray-400 ml-2">{c.email}</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {nuevaCita.clienteId && <p className="text-xs text-green-500 mt-1">Vinculado: {nuevaCita.clienteId}</p>}
+                        </div>
+                      ) : (
+                        <div ref={inmoRef} className="relative">
+                          <input
+                            type="text"
+                            autoComplete="off"
+                            value={inmoQuery || nuevaCita.inmobiliaria || ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setInmoQuery(v);
+                              setNuevaCita(prev => ({ ...prev, inmobiliaria: v, inmobiliariaId: '' }));
+                              setShowInmoDropdown(true);
+                            }}
+                            onFocus={() => setShowInmoDropdown(true)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && showInmoDropdown && filteredInmobiliarias.length > 0) {
+                                e.preventDefault();
+                                const i = filteredInmobiliarias[0];
+                                setNuevaCita(prev => ({ ...prev, inmobiliaria: i.nombre, inmobiliariaId: i._id || i.id || '' }));
+                                setInmoQuery('');
+                                setShowInmoDropdown(false);
+                              }
+                            }}
+                            required
+                            placeholder="Buscar o escribir nombre de inmobiliaria..."
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
+                          />
+                          {showInmoDropdown && (inmoQuery.length >= 1) && (
+                            <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                              {filteredInmobiliarias.length > 0 ? filteredInmobiliarias.map(i => (
+                                <div
+                                  key={i._id || i.id}
+                                  onClick={() => {
+                                    setNuevaCita(prev => ({ ...prev, inmobiliaria: i.nombre, inmobiliariaId: i._id || i.id || '' }));
+                                    setInmoQuery('');
+                                    setShowInmoDropdown(false);
+                                  }}
+                                  className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-purple-50 text-gray-800'}`}
+                                >
+                                  <span className="font-medium">{i.nombre}</span>
+                                </div>
+                              )) : (
+                                <div className={`px-4 py-2 text-sm ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  No encontrada — se guardará como nueva inmobiliaria
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {nuevaCita.inmobiliariaId && <p className="text-xs text-green-500 mt-1">Vinculado: {nuevaCita.inmobiliariaId}</p>}
+                          {nuevaCita.inmobiliaria && !nuevaCita.inmobiliariaId && !inmoQuery && <p className="text-xs text-amber-500 mt-1">Nueva inmobiliaria (se creará al guardar)</p>}
+                        </div>
+                      )}
+                    </div>
+                    <div ref={propRef} className="relative">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad</label>
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        value={propQuery || nuevaCita.propiedad}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setPropQuery(v);
+                          setNuevaCita(prev => ({ ...prev, propiedad: v, propiedadId: '' }));
+                          setShowPropDropdown(true);
+                        }}
+                        onFocus={() => setShowPropDropdown(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && filteredProps.length > 0 && showPropDropdown) {
+                            e.preventDefault();
+                            const p = filteredProps[0];
+                            const label = p.title || p.address || 'Sin título';
+                            setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
+                            setPropQuery('');
+                            setShowPropDropdown(false);
+                          }
+                        }}
+                        placeholder="Buscar propiedad..."
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      />
+                      {showPropDropdown && filteredProps.length > 0 && (
+                        <div className={`absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg border shadow-lg ${currentMode === 'Dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                          {filteredProps.map(p => {
+                            const label = p.title || p.address || 'Sin título';
+                            return (
+                              <div
+                                key={p._id || p.id}
+                                onClick={() => {
+                                  setNuevaCita(prev => ({ ...prev, propiedad: label, propiedadId: p._id || p.id || '' }));
+                                  setPropQuery('');
+                                  setShowPropDropdown(false);
+                                }}
+                                className={`px-4 py-2 cursor-pointer text-sm ${currentMode === 'Dark' ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-800'}`}
+                              >
+                                <span className="font-medium">{label}</span>
+                                {p.address && p.title && <span className="text-xs text-gray-400 ml-2">{p.address}</span>}
+                                {p.metadata?.barrio && <span className="text-xs text-gray-400 ml-1">({p.metadata.barrio})</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {nuevaCita.propiedadId && <p className="text-xs text-green-500 mt-1">Vinculado: {nuevaCita.propiedadId}</p>}
                     </div>
                     <div>
-                      <label htmlFor="field-22" className="block text-sm font-medium mb-2 dark:text-gray-200">Recordatorio</label>
-                      <select id="field-22" name="recordatorio" value={nuevaCita.recordatorio} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
+                      <select name="agente" value={nuevaCita.agente} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar agente</option>
+                        {agentesLista.map(a => (
+                          <option key={a._id || a.id} value={a.nombre}>{a.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha *</label>
+                      <input type="date" name="fecha" value={nuevaCita.fecha} onChange={handleCitaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Inicio</label>
+                      <input type="time" name="horaInicio" value={nuevaCita.horaInicio} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Hora Fin</label>
+                      <input type="time" name="horaFin" value={nuevaCita.horaFin} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Ubicación</label>
+                      <input type="text" name="ubicacion" value={nuevaCita.ubicacion} onChange={handleCitaChange} placeholder="Av. Santa Fe 1234, Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Recordatorio</label>
+                      <select name="recordatorio" value={nuevaCita.recordatorio} onChange={handleCitaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
                         <option value="24h">24 horas antes</option>
                         <option value="12h">12 horas antes</option>
                         <option value="2h">2 horas antes</option>
@@ -779,8 +1149,8 @@ const Citas = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="field-23" className="block text-sm font-medium mb-2 dark:text-gray-200">Descripción</label>
-                  <textarea id="field-23" name="descripcion" value={nuevaCita.descripcion} onChange={handleCitaChange} rows="3" placeholder="Detalles adicionales de la cita..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">Descripción</label>
+                  <textarea name="descripcion" value={nuevaCita.descripcion} onChange={handleCitaChange} rows="3" placeholder="Detalles adicionales de la cita..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                 </div>
 
                 <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
