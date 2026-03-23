@@ -989,7 +989,7 @@ const ClientesCRM = () => {
                   </thead>
                   <tbody>
                     {clientesEjemplo.slice(0, 10).map((c) => (
-                      <tr key={c.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => verDetalleCliente(c)}>
+                      <tr key={c.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => verDetalle(c)}>
                         <td className="py-2.5 px-3 dark:text-gray-200">{c.nombre}</td>
                         <td className="py-2.5 px-3 dark:text-gray-300">{c.tipo}</td>
                         <td className="py-2.5 px-3 dark:text-gray-300">{c.estado}</td>
