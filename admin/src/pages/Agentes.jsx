@@ -550,16 +550,20 @@ const Agentes = () => {
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Equipo comercial y rendimiento</p>
       </div>
       
-      {/* Botones de Acción */}
+      {/* Botones de Navegación */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {vistaActual !== 'dashboard' && (
-          <button 
-            onClick={volverAlDashboard}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
-          >
-            <FaArrowLeft /> Volver
-          </button>
-        )}
+        <button 
+          onClick={volverAlDashboard}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'dashboard' ? 'bg-blue-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaChartLine /> Métricas de Agentes
+        </button>
+        <button 
+          onClick={() => setVistaActual('lista')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'lista' ? 'bg-emerald-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaThLarge /> Ver Todos los Agentes
+        </button>
         <button 
           onClick={() => {
             setShowModal(true);
@@ -570,14 +574,6 @@ const Agentes = () => {
         >
           <FaUserPlus /> Crear Cuenta
         </button>
-        {vistaActual === 'dashboard' && (
-          <button 
-            onClick={() => setVistaActual('lista')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
-          >
-            <FaThLarge /> Ver Todos
-          </button>
-        )}
       </div>
 
       {/* Vista Dashboard */}

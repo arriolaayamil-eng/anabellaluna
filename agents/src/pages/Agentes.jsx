@@ -340,33 +340,29 @@ const Agentes = () => {
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Equipo comercial y rendimiento</p>
       </div>
 
-      {/* Botones de Acción */}
+      {/* Botones de Navegación */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {vistaActual !== 'dashboard' && (
-          <button
-            type="button"
-            onClick={volverAlDashboard}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
-          >
-            <FaArrowLeft /> Volver
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={volverAlDashboard}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'dashboard' ? 'bg-blue-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaChartLine /> Métricas de Agentes
+        </button>
+        <button
+          type="button"
+          onClick={() => setVistaActual('lista')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'lista' ? 'bg-emerald-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaThLarge /> Ver Todos los Agentes
+        </button>
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-indigo-500 hover:bg-indigo-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaUserPlus /> Nuevo Agente
         </button>
-        {vistaActual === 'dashboard' && (
-          <button
-            type="button"
-            onClick={() => setVistaActual('lista')}
-            className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
-          >
-            <FaThLarge /> Ver Todos los Agentes
-          </button>
-        )}
       </div>
 
       {/* Vista Dashboard */}

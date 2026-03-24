@@ -291,26 +291,26 @@ const Ventas = () => {
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ventas, alquileres y seguimiento</p>
       </div>
 
-      {/* Botones de Acción */}
+      {/* Botones de Navegación */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           type="button"
           onClick={() => setShowModalVenta(true)}
-          className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-green-500 to-emerald-600"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaPlus /> Nueva Venta
         </button>
         <button
           type="button"
           onClick={() => setShowModalAlquiler(true)}
-          className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-blue-500 to-blue-600"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaHandshake /> Nuevo Alquiler
         </button>
         <button
           type="button"
           onClick={() => setShowModalSeguimiento(true)}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all shadow-sm hover:shadow-md ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
         >
           <FaCalendarAlt /> Programar Seguimiento
         </button>

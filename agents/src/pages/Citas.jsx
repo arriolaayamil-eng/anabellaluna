@@ -597,19 +597,19 @@ const Citas = () => {
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión de citas, calendario y tareas</p>
       </div>
 
-      {/* Botones de Acción */}
+      {/* Botones de Navegación */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           type="button"
           onClick={() => setShowModalCita(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/30"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaCalendarPlus /> Nueva Cita
         </button>
         <button
           type="button"
           onClick={() => setShowModalKanban(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-md shadow-purple-500/30"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-purple-500 hover:bg-purple-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaList /> Todo List (Kanban)
         </button>

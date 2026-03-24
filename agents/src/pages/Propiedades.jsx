@@ -1291,43 +1291,36 @@ const Propiedades = () => {
         </div>
       )}
 
-      {/* Botones de Acción - siempre visibles */}
+      {/* Botones de Navegación */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {vistaActual !== 'dashboard' && (
-          <button
-            type="button"
-            onClick={volverAlDashboard}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium border transition-all ${isDark ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}
-          >
-            <FaArrowLeft /> Volver
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={volverAlDashboard}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'dashboard' ? 'bg-blue-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaChartLine /> Métricas
+        </button>
+        <button
+          type="button"
+          onClick={() => setVistaActual('lista')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'lista' ? 'bg-emerald-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaEye /> Todas las Propiedades
+        </button>
+        <button
+          type="button"
+          onClick={() => setVistaActual('mapa')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual === 'mapa' ? 'bg-violet-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaMapMarkerAlt /> Mapa
+        </button>
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-all shadow-sm hover:shadow-md"
-          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaPlus /> Nueva Propiedad
         </button>
-        {vistaActual === 'dashboard' && (
-          <button
-            type="button"
-            onClick={() => setVistaActual('lista')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
-          >
-            <FaEye /> Ver Todas
-          </button>
-        )}
-        {(vistaActual === 'dashboard' || vistaActual === 'lista') && (
-          <button
-            type="button"
-            onClick={() => setVistaActual('mapa')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-violet-500 hover:bg-violet-600 transition-all shadow-sm hover:shadow-md"
-          >
-            <FaMapMarkerAlt /> Mapa
-          </button>
-        )}
       </div>
 
       {/* Vista Mapa - exclusiva, nada más se renderiza */}
@@ -1495,10 +1488,9 @@ const Propiedades = () => {
             </div>
           </div>
 
-          {/* Grid de Propiedades y Galería */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            {/* Grid Principal - Tabla nativa */}
-            <div className={`xl:col-span-2 ${cardBase}`}>
+          {/* Grid de Propiedades */}
+          <div className="mb-6">
+            <div className={cardBase}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold dark:text-gray-100">🏠 Listado de Propiedades</h3>
                 <button
@@ -1544,83 +1536,6 @@ const Propiedades = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-
-            {/* Panel de Galería */}
-            <div className={cardBase}>
-              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📸 Galería y Multimedia</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="aspect-square border-2 border-dashed dark:border-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-xs">
-                      <FaCamera className="text-gray-400" />
-                    </div>
-                  ))}
-                </div>
-                <div className="text-center">
-                  <button type="button" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
-                    <FaUpload className="inline mr-2" />Subir Fotos
-                  </button>
-                </div>
-                <div>
-                  <h4 className="font-bold mb-2 dark:text-gray-200 text-sm">Videos Integrados</h4>
-                  <input
-                    type="text"
-                    placeholder="URL de YouTube/Vimeo..."
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tipología y Características */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            {/* Tipología */}
-            <div className={cardBase}>
-              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🏗️ Tipología Completa</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {['Casa', 'Departamento', 'Lote', 'Local', 'Oficina', 'Cochera'].map((tipo) => (
-                  <div key={tipo} className="p-4 border dark:border-gray-700 rounded-lg text-center hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
-                    <FaBuilding className="text-2xl mx-auto mb-2 text-blue-500" />
-                    <p className="font-medium dark:text-gray-200 text-sm">{tipo}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Características y Ubicación */}
-            <div className={cardBase}>
-              <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">📍 Ubicación y Características</h3>
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setVistaActual('mapa')}
-                  className={`w-full h-32 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors border-2 border-dashed ${
-                    isDark
-                      ? 'bg-gray-800 border-gray-600 hover:border-violet-500 hover:bg-gray-700'
-                      : 'bg-gray-50 border-gray-300 hover:border-violet-400 hover:bg-violet-50'
-                  }`}
-                >
-                  <FaMapMarkerAlt className="text-2xl text-violet-500" />
-                  <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Ver mapa de propiedades</span>
-                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {propiedades.filter((p) => p.lat && p.lng).length} con ubicación
-                  </span>
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="number" placeholder="M²" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
-                  <input type="number" placeholder="Ambientes" className="px-3 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-200 text-sm" />
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  {['Piscina', 'Gym', 'Seguridad', 'Parrilla'].map((amenity) => (
-                    <label htmlFor="field-81" key={amenity} className="flex items-center gap-2 text-sm">
-                      <input id="field-81" type="checkbox" className="w-3 h-3" />
-                      <span className="dark:text-gray-200">{amenity}</span>
-                    </label>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

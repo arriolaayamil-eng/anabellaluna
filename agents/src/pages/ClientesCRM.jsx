@@ -637,58 +637,30 @@ const ClientesCRM = () => {
         </div>
       )}
 
-      {/* Botones de Acción */}
+      {/* Botones de Navegación */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {vistaActual === 'detalle' && (
-          <button
-            type="button"
-            onClick={volverAlDashboard}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors"
-          >
-            <FaArrowLeft /> Volver
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => { volverAlDashboard(); setActiveTab('metricas'); }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual !== 'detalle' && activeTab === 'metricas' ? 'bg-blue-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaChartLine /> Métricas de Clientes
+        </button>
+        <button
+          type="button"
+          onClick={() => { volverAlDashboard(); setActiveTab('clientes'); }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md ${vistaActual !== 'detalle' && activeTab === 'clientes' ? 'bg-emerald-500 text-white' : isDark ? 'border border-gray-600 text-gray-200 hover:bg-gray-700' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          <FaUsers /> Ver Clientes
+        </button>
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg"
-          style={{ background: `linear-gradient(to right, ${currentColor}, ${currentColor}dd)` }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaPlus /> Nuevo Cliente
         </button>
-        {vistaActual !== 'detalle' && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('clientes')}
-            className="flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-emerald-500 to-emerald-600"
-          >
-            <FaUsers /> Ver Clientes
-          </button>
-        )}
       </div>
-
-      {/* Tabs Internas - Solo visibles cuando no estamos en detalle */}
-      {vistaActual !== 'detalle' && (
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2">
-            {[{ id: 'metricas', label: '📊 Métricas' }, { id: 'clientes', label: '👥 Clientes' }].map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveTab(t.id)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  activeTab === t.id
-                    ? 'text-white shadow-lg'
-                    : `${isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`
-                }`}
-                style={activeTab === t.id ? { background: `linear-gradient(to right, ${currentColor}, ${currentColor}cc)`, boxShadow: `0 4px 14px ${currentColor}40` } : {}}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Tab: Métricas de Clientes */}
       {vistaActual !== 'detalle' && activeTab === 'metricas' && (
