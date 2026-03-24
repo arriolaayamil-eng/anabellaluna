@@ -106,6 +106,8 @@ const tasacionesRoutes = require('./routes/tasaciones');
 
 const inmobiliariasRoutes = require('./routes/inmobiliarias');
 
+const pushRoutes = require('./routes/push');
+
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
@@ -287,7 +289,7 @@ app.use('/crm/inmobiliarias', inmobiliariasRoutes);
 
 app.use('/contract-templates', contractTemplatesRoutes);
 
-
+app.use('/api/push', pushRoutes);
 
 // Generic CRM routes (links) - MUST come after specific routes
 

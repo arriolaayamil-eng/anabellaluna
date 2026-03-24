@@ -3,6 +3,7 @@ const express = require('express');
 const Propiedad = require('../models/Propiedad');
 const DocumentLink = require('../models/DocumentLink');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
+const { sendNotification, sendToRole } = require('../services/pushService');
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic']);
 const isImageDoc = (doc) => {
@@ -98,6 +99,18 @@ router.patch('/:id/publish', authenticateToken, requireCRMUser, async (req, res)
     const published = req.body.published != null ? !!req.body.published : !prop.published;
     prop.published = published;
     await prop.save();
+
+    // Push notification on status change
+    const propTitle = prop.title || (prop.metadata && prop.metadata.titulo) || 'Propiedad';
+    const statusMsg = published ? 'publicada' : 'despublicada';
+    if (prop.agentId) {
+      sendNotification(String(prop.agentId), {
+        title: `Propiedad ${statusMsg}`,
+        body: `${propTitle} fue ${statusMsg}`,
+        url: '/crm/propiedades',
+      }).catch(() => {});
+    }
+
     res.json({ published: prop.published });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

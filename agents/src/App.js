@@ -14,6 +14,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
 import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes, EditorImagenes, Tasaciones } from './pages';
 import LoginAgente from './pages/LoginAgente';
+import InstallPrompt from './components/pwa/InstallPrompt';
+import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
 
 import { useStateContext } from './contexts/ContextProvider';
@@ -43,6 +45,8 @@ const CrmLayout = () => {
           <div className="bg-main-bg dark:bg-main-dark-bg navbar w-full">
             <Navbar />
           </div>
+          <InstallPrompt />
+          <NotificationPrompt />
           <div className="pt-16 md:pt-0 pb-20 md:pb-0">
             {themeSettings && (<ThemeSettings />)}
             <Outlet />

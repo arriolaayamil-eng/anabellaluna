@@ -18,6 +18,7 @@ const BlogPost = require('../models/BlogPost');
 const minio = require('../minio');
 const Cita = require('../models/Cita');
 const googleCalendar = require('../services/googleCalendar');
+const { sendNotification, sendToRole } = require('../services/pushService');
 const Testimonial = require('../models/Testimonial');
 const ContactMessage = require('../models/ContactMessage');
 const User = require('../models/User');
@@ -662,6 +663,19 @@ router.post('/enquiries', async (req, res) => {
       }
     }
 
+    // Push notification to agent
+    const propTitle = prop.title || (prop.metadata && prop.metadata.titulo) || 'una propiedad';
+    sendNotification(agentId, {
+      title: 'Nueva consulta',
+      body: `${contact.fullName} consultó por ${propTitle}`,
+      url: '/crm/clientes',
+    }).catch(() => {});
+    sendToRole('admin', {
+      title: 'Nueva consulta web',
+      body: `${contact.fullName} consultó por ${propTitle}`,
+      url: '/clientes',
+    }).catch(() => {});
+
     return res.status(201).json({ ok: true, enquiry });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -793,6 +807,19 @@ router.post('/visits', async (req, res) => {
         triggerFollowUpAutomation(cliente, agentId).catch(console.error);
       }
     }
+
+    // Push notification to agent
+    const visitPropTitle = prop.title || (prop.metadata && prop.metadata.titulo) || 'una propiedad';
+    sendNotification(agentId, {
+      title: 'Nueva visita agendada',
+      body: `${contact.fullName} agendó visita a ${visitPropTitle}`,
+      url: '/crm/citas',
+    }).catch(() => {});
+    sendToRole('admin', {
+      title: 'Nueva visita web',
+      body: `${contact.fullName} agendó visita a ${visitPropTitle}`,
+      url: '/citas',
+    }).catch(() => {});
 
     return res.status(201).json({ ok: true, cita, activity: visitActivity });
   } catch (err) {

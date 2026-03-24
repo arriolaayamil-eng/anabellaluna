@@ -6,6 +6,8 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
 import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Tareas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria, EditorImagenes, Tasaciones } from './pages';
+import InstallPrompt from './components/pwa/InstallPrompt';
+import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
 import { authService } from './services/authService';
 import { useStateContext } from './contexts/ContextProvider';
@@ -219,6 +221,8 @@ const App = () => {
             <div className="bg-main-bg dark:bg-main-dark-bg navbar w-full">
               <Navbar />
             </div>
+            <InstallPrompt />
+            <NotificationPrompt />
             <div className="pt-16 md:pt-0 pb-20 md:pb-0">
               {themeSettings && (<ThemeSettings />)}
 

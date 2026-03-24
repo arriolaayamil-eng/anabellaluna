@@ -2,6 +2,8 @@ import Header from "../../core/common/header";
 import Footer from "../../core/common/footer";
 import { Outlet, useLocation } from "react-router";
 import CommonModal from "../../core/common/Common-modal/CommonModal";
+import InstallPrompt from "../../components/pwa/InstallPrompt";
+import NotificationPrompt from "../../components/pwa/NotificationPrompt";
 
 const Feature = () => {
   const location = useLocation();
@@ -30,6 +32,8 @@ const Feature = () => {
         <Outlet />
         <Footer />
         <CommonModal/>
+        <InstallPrompt />
+        <NotificationPrompt />
       </div>
     </>
   );

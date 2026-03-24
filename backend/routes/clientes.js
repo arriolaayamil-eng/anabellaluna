@@ -2,6 +2,7 @@ const express = require('express');
 const Cliente = require('../models/Cliente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const { triggerWelcomeAutomation } = require('../services/automationScheduler');
+const { sendNotification, sendToRole } = require('../services/pushService');
 
 const router = express.Router();
 
@@ -37,6 +38,14 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
     if (created.agenteId) {
       triggerWelcomeAutomation(created, created.agenteId).catch(console.error);
     }
+
+    // Push notification to admin
+    const clientName = created.nombre || 'Nuevo cliente';
+    sendToRole('admin', {
+      title: 'Nuevo lead',
+      body: `Se registró ${clientName}`,
+      url: '/clientes',
+    }).catch(() => {});
     
     res.status(201).json(created);
   } catch (err) { res.status(400).json({ error: err.message }); }

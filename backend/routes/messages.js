@@ -5,6 +5,7 @@ const Message = require('../models/Message');
 const Agente = require('../models/Agente');
 const User = require('../models/User');
 const { authenticateToken, requireCRMUser } = require('../auth');
+const { sendNotification } = require('../services/pushService');
 
 // Helper to validate ObjectId
 function isValidObjectId(id) {
@@ -314,6 +315,13 @@ router.post('/send', authenticateToken, requireCRMUser, async (req, res) => {
     
     await message.save();
     
+    // Push notification to receiver
+    sendNotification(receiverId, {
+      title: 'Nuevo mensaje',
+      body: content.trim().substring(0, 100),
+      url: '/crm/mensajeria',
+    }).catch(() => {});
+
     // Populate sender info for response
     await message.populate('senderId', 'nombre avatar');
     await message.populate('receiverId', 'nombre avatar');
