@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const Propiedad = require('../models/Propiedad');
 const DocumentLink = require('../models/DocumentLink');
+const Cliente = require('../models/Cliente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const { sendNotification, sendToRole } = require('../services/pushService');
 
@@ -38,11 +39,25 @@ router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
       if (l.document) byProp[pid].push(l.document);
     }
 
+    // Populate owner (client) data
+    const ownerIds = [...new Set(items.filter((p) => p.ownerId).map((p) => String(p.ownerId)))];
+    const ownersById = {};
+    if (ownerIds.length) {
+      const owners = await Cliente.find({ _id: { $in: ownerIds } }).select('nombre email telefono metadata').lean();
+      for (const o of owners) ownersById[String(o._id)] = o;
+    }
+
     const result = items.map((p) => {
       const docs = byProp[String(p._id)] || [];
       const images = docs.filter(isImageDoc);
       const coverDoc = images[0] || null;
-      return { ...p, coverUrl: coverDoc ? (coverDoc.url || '') : '', imageCount: images.length };
+      const owner = p.ownerId ? (ownersById[String(p.ownerId)] || null) : null;
+      return {
+        ...p,
+        coverUrl: coverDoc ? (coverDoc.url || '') : '',
+        imageCount: images.length,
+        ownerData: owner ? { _id: owner._id, nombre: owner.nombre || '', email: owner.email || '', telefono: owner.telefono || '' } : null,
+      };
     });
 
     res.json(result);

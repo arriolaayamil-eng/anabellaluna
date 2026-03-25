@@ -92,6 +92,13 @@ const Propiedades = () => {
   const [nuevoCliente, setNuevoCliente] = useState(createEmptyClienteForm);
   const [incluirCliente, setIncluirCliente] = useState(false);
 
+  // Client/owner autocomplete for property form
+  const [clientesBusqueda, setClientesBusqueda] = useState([]);
+  const [clienteQuery, setClienteQuery] = useState('');
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState(null);
+  const clienteSearchRef = React.useRef(null);
+
   const [editingPropiedadId, setEditingPropiedadId] = useState(null);
   const [adjuntos, setAdjuntos] = useState([]);
   const [adjuntosLoading, setAdjuntosLoading] = useState(false);
@@ -251,6 +258,8 @@ const Propiedades = () => {
     setFormStep(1);
     setIncluirCliente(false);
     setNuevoCliente(createEmptyClienteForm());
+    setSelectedCliente(null);
+    setClienteQuery('');
     setNuevaPropiedad({
       titulo: '',
       tipo: 'Departamento',
@@ -370,6 +379,8 @@ const Propiedades = () => {
     setFormStep(1);
     setIncluirCliente(false);
     setNuevoCliente(createEmptyClienteForm());
+    setSelectedCliente(prop.ownerData || null);
+    setClienteQuery('');
     setShowModal(true);
   };
 
@@ -628,6 +639,8 @@ const Propiedades = () => {
             adminId: meta.adminId || '',
             adminNombre: meta.adminNombre || '',
             estado: p.status || meta.estado || 'Disponible',
+            ownerId: p.ownerId || '',
+            ownerData: p.ownerData || null,
           };
         });
 
@@ -813,6 +826,31 @@ const Propiedades = () => {
     }));
   };
 
+  // Client autocomplete search for property owner
+  const searchClientes = React.useCallback(async (query) => {
+    if (!query || query.length < 2) { setClientesBusqueda([]); setShowClienteDropdown(false); return; }
+    try {
+      const results = await crmService.clientes.getAll(query);
+      setClientesBusqueda(Array.isArray(results) ? results : []);
+      setShowClienteDropdown(true);
+    } catch { setClientesBusqueda([]); }
+  }, []);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => searchClientes(clienteQuery), 300);
+    return () => clearTimeout(timer);
+  }, [clienteQuery, searchClientes]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (clienteSearchRef.current && !clienteSearchRef.current.contains(e.target)) {
+        setShowClienteDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Función para manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -828,6 +866,19 @@ const Propiedades = () => {
       const adminDoc = rawAdminId ? admins.find((a) => String(a._id) === rawAdminId) : null;
       const adminNombre = adminDoc ? adminDoc.nombre : '';
 
+      // Resolve ownerId: from autocomplete selection, or create new inline client
+      let resolvedOwnerId = selectedCliente ? String(selectedCliente._id) : '';
+      if (!resolvedOwnerId && incluirCliente && nuevoCliente.nombre) {
+        try {
+          const clientePayload = { ...nuevoCliente, agenteId: rawAgentId || rawAdminId || '' };
+          const createdCliente = await crmService.clientes.create(clientePayload);
+          resolvedOwnerId = String(createdCliente._id);
+          setSelectedCliente(createdCliente);
+        } catch (ce) {
+          console.error('Error creating inline client:', ce);
+        }
+      }
+
       const payload = {
         title: nuevaPropiedad.titulo,
         description: nuevaPropiedad.descripcion,
@@ -837,6 +888,7 @@ const Propiedades = () => {
         featured: !!nuevaPropiedad.featured,
         status: nuevaPropiedad.estado,
         agentId: rawAgentId || rawAdminId || undefined,
+        ownerId: resolvedOwnerId || undefined,
         metadata: {
           titulo: nuevaPropiedad.titulo,
           tipo: nuevaPropiedad.tipo,
@@ -957,6 +1009,8 @@ const Propiedades = () => {
         adminId: payload.metadata.adminId,
         adminNombre: payload.metadata.adminNombre,
         estado: saved.status || payload.metadata.estado,
+        ownerId: resolvedOwnerId || '',
+        ownerData: selectedCliente ? { _id: selectedCliente._id, nombre: selectedCliente.nombre || '', email: selectedCliente.email || '', telefono: selectedCliente.telefono || '' } : null,
       };
 
       setPropiedades((prev) => {
@@ -971,41 +1025,7 @@ const Propiedades = () => {
         setPropiedadSeleccionada(mapped);
       }
 
-      // Create client if included
-      if (incluirCliente && nuevoCliente.nombre) {
-        try {
-          const fullName = [nuevoCliente.nombre, nuevoCliente.apellido].filter(Boolean).join(' ').trim();
-          await crmService.clientes.create({
-            nombre: fullName || nuevoCliente.nombre,
-            email: nuevoCliente.email || '',
-            telefono: nuevoCliente.telefono || '',
-            direccion: nuevoCliente.direccion || '',
-            notas: nuevoCliente.notas || '',
-            metadata: {
-              apellido: nuevoCliente.apellido || '',
-              telefonoAlternativo: nuevoCliente.telefonoAlternativo || '',
-              tipoCliente: nuevoCliente.tipoCliente || 'Comprador',
-              estado: nuevoCliente.estado || 'Lead',
-              presupuesto: nuevoCliente.presupuesto === '' ? 0 : Number(nuevoCliente.presupuesto || 0),
-              moneda: nuevoCliente.moneda || 'USD',
-              zonaInteres: nuevoCliente.zonaInteres || '',
-              tipoPropiedad: nuevoCliente.tipoPropiedad || 'Departamento',
-              ambientes: nuevoCliente.ambientes || '',
-              dormitorios: nuevoCliente.dormitorios || '',
-              baños: nuevoCliente.baños || '',
-              caracteristicas: Array.isArray(nuevoCliente.caracteristicas) ? nuevoCliente.caracteristicas : [],
-              origen: nuevoCliente.origen || 'Web',
-              agente: nuevoCliente.agente || '',
-              scoring: Number(nuevoCliente.scoring || 50),
-              ciudad: nuevoCliente.ciudad || 'Buenos Aires',
-              provincia: nuevoCliente.provincia || 'Buenos Aires',
-              ocupacion: nuevoCliente.ocupacion || '',
-              empresa: nuevoCliente.empresa || '',
-              propiedadAsociada: mapped.id,
-            },
-          });
-        } catch (_clientErr) { /* non-blocking */ }
-      }
+      // Client creation now handled before payload (resolvedOwnerId)
 
       const uploadGroup = async (files, categoria) => {
         const arr = Array.isArray(files) ? files : [];
@@ -1751,29 +1771,37 @@ const Propiedades = () => {
                 <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
                   <FaUser className="text-blue-500" /> Propietario
                 </h3>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <FaUser className="text-2xl text-white" />
-                  </div>
-                  <p className="font-semibold dark:text-gray-100 mb-1">{propiedadSeleccionada.propietario || 'Sin asignar'}</p>
-                  {propiedadSeleccionada.clienteId && (
+                {propiedadSeleccionada.ownerData ? (
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center">
+                      <span className="text-xl font-bold text-white">{(propiedadSeleccionada.ownerData.nombre || '?')[0].toUpperCase()}</span>
+                    </div>
+                    <p className="font-semibold dark:text-gray-100 mb-1">{propiedadSeleccionada.ownerData.nombre}</p>
+                    {propiedadSeleccionada.ownerData.email && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{propiedadSeleccionada.ownerData.email}</p>
+                    )}
+                    {propiedadSeleccionada.ownerData.telefono && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{propiedadSeleccionada.ownerData.telefono}</p>
+                    )}
                     <button
                       type="button"
                       onClick={() => {
-                        setVistaActual('dashboard');
-                        setTimeout(() => {
-                          window.location.href = `/clientes?id=${propiedadSeleccionada.clienteId}`;
-                        }, 100);
+                        window.location.href = `/clientes?id=${propiedadSeleccionada.ownerId}`;
                       }}
-                      className="mt-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
+                      className="mt-3 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
                     >
                       <FaEye /> Ver Cliente
                     </button>
-                  )}
-                  {!propiedadSeleccionada.clienteId && (
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-3 flex items-center justify-center">
+                      <FaUser className="text-2xl text-gray-400" />
+                    </div>
+                    <p className="font-semibold text-gray-400 dark:text-gray-500 mb-1">Sin asignar</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No vinculado a cliente</p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Ubicación con mapa */}
@@ -2722,26 +2750,91 @@ const Propiedades = () => {
 
                 {formStep === 2 && (
                   <>
-                    {/* Toggle incluir cliente */}
-                    <div className="flex items-center gap-3 p-4 rounded-lg border dark:border-gray-700 bg-blue-50 dark:bg-gray-800">
-                      <input
-                        type="checkbox"
-                        id="incluirClienteAdmin"
-                        checked={incluirCliente}
-                        onChange={(e) => setIncluirCliente(e.target.checked)}
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <label htmlFor="incluirClienteAdmin" className="text-sm font-medium dark:text-gray-200">
-                        Agregar un cliente asociado a esta propiedad
-                      </label>
+                    {/* Propietario / Cliente */}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold dark:text-gray-100 flex items-center gap-2">
+                        <FaUser className="text-blue-500" /> Propietario / Cliente
+                      </h3>
+
+                      {/* Autocomplete search */}
+                      <div ref={clienteSearchRef} className="relative">
+                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">Buscar cliente existente</label>
+                        {selectedCliente ? (
+                          <div className="flex items-center gap-3 p-3 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                              {(selectedCliente.nombre || '?')[0].toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium dark:text-gray-100 truncate">{selectedCliente.nombre}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{selectedCliente.email || selectedCliente.telefono || ''}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedCliente(null); setClienteQuery(''); }}
+                              className="text-red-500 hover:text-red-700 text-sm font-medium"
+                            >✕</button>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              type="text"
+                              value={clienteQuery}
+                              onChange={(e) => setClienteQuery(e.target.value)}
+                              placeholder="Escribí nombre, email o teléfono..."
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                            />
+                            {showClienteDropdown && clientesBusqueda.length > 0 && (
+                              <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                {clientesBusqueda.map((c) => (
+                                  <button
+                                    key={c._id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCliente(c);
+                                      setClienteQuery('');
+                                      setShowClienteDropdown(false);
+                                      setIncluirCliente(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                  >
+                                    <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                      {(c.nombre || '?')[0].toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium dark:text-gray-100 truncate">{c.nombre}</p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{[c.email, c.telefono].filter(Boolean).join(' · ')}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Or create new client */}
+                      {!selectedCliente && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                          <input
+                            type="checkbox"
+                            id="incluirClienteAdmin"
+                            checked={incluirCliente}
+                            onChange={(e) => setIncluirCliente(e.target.checked)}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <label htmlFor="incluirClienteAdmin" className="text-sm font-medium dark:text-gray-200">
+                            Crear nuevo cliente
+                          </label>
+                        </div>
+                      )}
                     </div>
 
-                    {incluirCliente && (
+                    {incluirCliente && !selectedCliente && (
                       <>
                         {/* Información Personal del Cliente */}
                         <div>
                           <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                            <FaUser className="text-blue-500" /> Información Personal
+                            <FaUser className="text-blue-500" /> Información del Nuevo Cliente
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
