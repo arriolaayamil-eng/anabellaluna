@@ -23,7 +23,7 @@ export const crmService = {
 
   // ============ CLIENTES ============
   clientes: {
-    getAll: () => api.get('/crm/clientes'),
+    getAll: (q) => api.get(q ? `/crm/clientes?q=${encodeURIComponent(q)}` : '/crm/clientes'),
     getById: (id) => api.get(`/crm/clientes/${id}`),
     create: (data) => api.post('/crm/clientes', data),
     update: (id, data) => api.put(`/crm/clientes/${id}`, data),

@@ -10,8 +10,13 @@ router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { q } = req.query;
     const scopeId = agentScopeId(req);
-    const filter = q ? { nombre: { $regex: q, $options: 'i' } } : {};
-    if (scopeId) filter.agenteId = scopeId;
+    const clauses = [];
+    if (q) {
+      const rx = { $regex: q, $options: 'i' };
+      clauses.push({ $or: [{ nombre: rx }, { email: rx }, { telefono: rx }] });
+    }
+    if (scopeId) clauses.push({ agenteId: scopeId });
+    const filter = clauses.length > 1 ? { $and: clauses } : (clauses[0] || {});
     const items = await Cliente.find(filter).sort({ updatedAt: -1 }).limit(1000).lean();
     res.json(items);
   } catch (err) { res.status(500).json({ error: err.message }); }

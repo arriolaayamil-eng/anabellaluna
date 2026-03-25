@@ -229,6 +229,22 @@ const ClientesCRM = () => {
     reloadClientes();
   }, [reloadClientes]);
 
+  // Auto-open client detail when navigating via ?id=
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const clienteId = params.get('id');
+    if (clienteId && clientesEjemplo.length > 0) {
+      const found = clientesEjemplo.find((c) => String(c.id) === clienteId || String(c._id) === clienteId);
+      if (found) {
+        setClienteSeleccionado(found);
+        setVistaActual('detalle');
+        setActiveTab('clientes');
+        // Clean the URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [clientesEjemplo]);
+
   useEffect(() => {
     if (showModal) {
       crmService.propiedades.getAll().then((data) => {

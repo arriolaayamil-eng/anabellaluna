@@ -70,7 +70,13 @@ router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
     if (!item) return res.status(404).json({ error: 'Not found' });
     const scopeId = agentScopeId(req);
     if (scopeId && String(item.agentId || '') !== scopeId) return res.status(403).json({ error: 'forbidden' });
-    res.json(item);
+    // Populate owner data
+    let ownerData = null;
+    if (item.ownerId) {
+      const owner = await Cliente.findById(item.ownerId).select('nombre email telefono metadata').lean();
+      if (owner) ownerData = { _id: owner._id, nombre: owner.nombre || '', email: owner.email || '', telefono: owner.telefono || '' };
+    }
+    res.json({ ...item, ownerData });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
