@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import {
@@ -7,6 +7,7 @@ import {
   FaCalendarAlt, FaList, FaColumns, FaChartBar, FaSearch,
   FaFilter, FaFlag, FaCheck, FaPaperPlane, FaHistory,
   FaExclamationCircle, FaBan, FaClipboardList, FaAngleRight,
+  FaChevronLeft, FaChevronRight,
 } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
@@ -31,7 +32,6 @@ const VIEWS = [
   { id: 'kanban', icon: FaColumns, label: 'Kanban' },
   { id: 'list', icon: FaList, label: 'Lista' },
   { id: 'calendar', icon: FaCalendarAlt, label: 'Calendario' },
-  { id: 'dashboard', icon: FaChartBar, label: 'Resumen' },
 ];
 
 function isOverdue(t) { return t.dueDate && new Date(t.dueDate) < new Date() && !['completada', 'cancelada', 'Close'].includes(t.status); }
@@ -76,6 +76,18 @@ const Tareas = ({ embedded = false }) => {
 
   const [draggedTask, setDraggedTask] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
+
+  // kanban mobile carousel
+  const kanbanRef = useRef(null);
+  const [activeColIdx, setActiveColIdx] = useState(0);
+  const touchStart = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check(); window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
@@ -203,6 +215,9 @@ const Tareas = ({ embedded = false }) => {
     } catch { toast.error('Error al mover'); loadData(); }
     setDraggedTask(null);
   };
+
+  // ── KANBAN COLUMNS (memoized) ───────────────────────────────────
+  const kanbanCols = useMemo(() => columns.length ? columns : STATUSES.map(s => ({ id: s, nombre: statusInfo(s).label, color: statusInfo(s).color })), [columns]);
 
   // ── FILTERED ──────────────────────────────────────────────────────
   const filtered = tareas.filter(t => {
@@ -350,109 +365,127 @@ const Tareas = ({ embedded = false }) => {
             <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Productividad y seguimiento</p>
           </div>
         )}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className={`flex rounded-xl overflow-hidden border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-            {VIEWS.map(v => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${view === v.id ? 'bg-indigo-500 text-white' : isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
-                <v.icon /> {v.label}
-              </button>
-            ))}
-          </div>
-          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md text-sm font-medium"><FaPlus /> Nueva Tarea</button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {VIEWS.map(v => (
+            <button key={v.id} onClick={() => setView(v.id)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all border ${view === v.id
+                ? isDark ? 'bg-gray-700 border-gray-600 text-white shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-800 shadow-sm'
+                : isDark ? 'border-gray-700/50 text-gray-500 hover:text-gray-300 hover:border-gray-600' : 'border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'}`}>
+              <v.icon /> {v.label}
+            </button>
+          ))}
+          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md text-sm font-medium"><FaPlus /> Nueva Tarea</button>
         </div>
       </div>
 
       {/* Search + Filters */}
-      {view !== 'dashboard' && (
-        <div className="flex items-center gap-3 mb-5 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-            <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Buscar tareas..." className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`} />
-          </div>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={`px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`}>
-            <option value="">Estado</option>
-            {STATUSES.map(s => <option key={s} value={s}>{statusInfo(s).label}</option>)}
-          </select>
-          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className={`px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`}>
-            <option value="">Prioridad</option>
-            {PRIORITIES.map(p => <option key={p} value={p}>{priorityInfo(p).label}</option>)}
-          </select>
-          {(filterStatus || filterPriority) && <button onClick={() => { setFilterStatus(''); setFilterPriority(''); }} className="text-xs text-red-500 hover:underline">Limpiar</button>}
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Buscar tareas..." className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`} />
         </div>
-      )}
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={`px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`}>
+          <option value="">Estado</option>
+          {STATUSES.map(s => <option key={s} value={s}>{statusInfo(s).label}</option>)}
+        </select>
+        <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className={`px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`}>
+          <option value="">Prioridad</option>
+          {PRIORITIES.map(p => <option key={p} value={p}>{priorityInfo(p).label}</option>)}
+        </select>
+        {(filterStatus || filterPriority) && <button onClick={() => { setFilterStatus(''); setFilterPriority(''); }} className="text-xs text-red-500 hover:underline">Limpiar</button>}
+      </div>
 
       {loading && <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500" /></div>}
 
-      {/* DASHBOARD */}
-      {!loading && view === 'dashboard' && stats && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: 'Activas', value: (stats.total || 0) - (stats.byStatus?.completada || 0) - (stats.byStatus?.cancelada || 0), color: '#6366f1', icon: FaTasks },
-              { label: 'Vencidas', value: stats.overdue || 0, color: '#EF4444', icon: FaExclamationCircle },
-              { label: 'Completadas (7d)', value: stats.completedLast7 || 0, color: '#10B981', icon: FaCheckCircle },
-              { label: 'Total', value: stats.total || 0, color: '#8B5CF6', icon: FaChartBar },
-            ].map(k => (
-              <div key={k.label} className={`${cardBase} !p-5`} style={{ borderLeft: `4px solid ${k.color}` }}>
-                <div className="flex items-center justify-between">
-                  <div><p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{k.value}</p><p className={`text-xs font-medium mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{k.label}</p></div>
-                  <k.icon style={{ color: k.color }} className="text-2xl opacity-30" />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className={cardBase}>
-            <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Por Estado</h3>
-            <div className="space-y-3">
-              {STATUSES.map(s => {
-                const count = stats.byStatus?.[s] || 0;
-                const pct = stats.total ? Math.round((count / stats.total) * 100) : 0;
-                const si = statusInfo(s);
-                return (<div key={s}><div className="flex justify-between text-sm mb-1"><span className={isDark ? 'text-gray-300' : 'text-gray-600'}>{si.label}</span><span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{count} ({pct}%)</span></div><div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: si.color }} /></div></div>);
-              })}
-            </div>
-          </div>
-        </>
-      )}
-
       {/* KANBAN */}
-      {!loading && view === 'kanban' && (
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns.length || 5}, minmax(200px, 1fr))` }}>
-          {(columns.length ? columns : STATUSES.map(s => ({ id: s, nombre: statusInfo(s).label, color: statusInfo(s).color }))).map(col => {
-            const colTasks = (kanbanData[col.id] || []).filter(t => {
-              if (searchQ && !(t.title || '').toLowerCase().includes(searchQ.toLowerCase())) return false;
-              return true;
-            });
-            return (
-              <div key={col.id} onDragOver={e => { e.preventDefault(); setDropTarget(col.id); }} onDragLeave={() => setDropTarget(null)} onDrop={e => handleDrop(e, col.id)}
-                className={`rounded-2xl border transition-all min-h-[300px] ${dropTarget === col.id ? 'border-2 border-dashed border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10' : isDark ? 'border-gray-700/50 bg-secondary-dark-bg' : 'border-gray-100 bg-white shadow-md'}`}>
-                <div className="p-3 border-b dark:border-gray-700 flex items-center justify-between">
-                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} /><span className={`font-semibold text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.nombre}</span></div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{colTasks.length}</span>
-                </div>
-                <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
-                  {colTasks.map(t => {
-                    const tid = t._id || t.id;
-                    return (
-                      <div key={tid} draggable onDragStart={e => handleDragStart(e, t, col.id)} onDragEnd={e => { e.target.style.opacity = '1'; setDraggedTask(null); }}
-                        className={`group p-3 rounded-xl border cursor-grab active:cursor-grabbing transition-all hover:shadow-md ${isDark ? 'bg-gray-800/60 border-gray-700 hover:border-indigo-500/50' : 'bg-white border-gray-200 hover:border-indigo-300'}`}
-                        onClick={() => openDetail(t)}>
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.title}</p>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <PriorityBadge priority={t.priority} />
-                          {t.dueDate && <span className={`text-xs ${isOverdue(t) ? 'text-red-500 font-medium' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>{fmtShort(t.dueDate)}</span>}
-                        </div>
-                        {(t.checklist || []).length > 0 && <div className="flex items-center gap-1 mt-1.5"><FaCheck className="text-[10px] text-gray-400" /><span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{(t.checklist || []).filter(c => c.done).length}/{(t.checklist || []).length}</span></div>}
-                      </div>
-                    );
-                  })}
-                  {colTasks.length === 0 && <div className={`flex items-center justify-center h-20 rounded-xl border-2 border-dashed ${isDark ? 'border-gray-700 text-gray-600' : 'border-gray-200 text-gray-400'}`}><p className="text-xs">Arrastra aquí</p></div>}
-                </div>
+      {!loading && view === 'kanban' && (() => {
+        const renderCol = (col) => {
+          const colTasks = (kanbanData[col.id] || []).filter(t => {
+            if (searchQ && !(t.title || '').toLowerCase().includes(searchQ.toLowerCase())) return false;
+            return true;
+          });
+          return (
+            <div key={col.id} onDragOver={e => { e.preventDefault(); setDropTarget(col.id); }} onDragLeave={() => setDropTarget(null)} onDrop={e => handleDrop(e, col.id)}
+              className={`rounded-2xl border transition-all min-h-[300px] ${isMobile ? 'w-full flex-shrink-0' : ''} ${dropTarget === col.id ? 'border-2 border-dashed border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10' : isDark ? 'border-gray-700/50 bg-secondary-dark-bg' : 'border-gray-100 bg-white shadow-md'}`}>
+              <div className="p-3 border-b dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} /><span className={`font-semibold text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.nombre}</span></div>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{colTasks.length}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-340px)]">
+                {colTasks.map(t => {
+                  const tid = t._id || t.id;
+                  return (
+                    <div key={tid} draggable={!isMobile} onDragStart={e => handleDragStart(e, t, col.id)} onDragEnd={e => { e.target.style.opacity = '1'; setDraggedTask(null); }}
+                      className={`group p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md ${isDark ? 'bg-gray-800/60 border-gray-700 hover:border-indigo-500/50' : 'bg-white border-gray-200 hover:border-indigo-300'} ${!isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      onClick={() => openDetail(t)}>
+                      <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.title}</p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <PriorityBadge priority={t.priority} />
+                        {t.dueDate && <span className={`text-xs ${isOverdue(t) ? 'text-red-500 font-medium' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>{fmtShort(t.dueDate)}</span>}
+                      </div>
+                      {(t.checklist || []).length > 0 && <div className="flex items-center gap-1 mt-1.5"><FaCheck className="text-[10px] text-gray-400" /><span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{(t.checklist || []).filter(c => c.done).length}/{(t.checklist || []).length}</span></div>}
+                      {/* Mobile: quick move buttons */}
+                      {isMobile && (
+                        <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
+                          {kanbanCols.filter(c => c.id !== col.id).map(dest => (
+                            <button key={dest.id}
+                              onClick={(ev) => { ev.stopPropagation(); quickStatus(tid, dest.id); }}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${isDark ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                              style={{ borderColor: dest.color + '60' }}
+                            >→ {dest.nombre}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {colTasks.length === 0 && <div className={`flex items-center justify-center h-20 rounded-xl border-2 border-dashed ${isDark ? 'border-gray-700 text-gray-600' : 'border-gray-200 text-gray-400'}`}><p className="text-xs">{isMobile ? 'Sin tareas' : 'Arrastra aquí'}</p></div>}
+              </div>
+            </div>
+          );
+        };
+
+        if (isMobile) {
+          return (
+            <div className="relative overflow-hidden">
+              <div className="flex justify-center gap-1.5 mb-3">
+                {kanbanCols.map((col, idx) => (
+                  <button key={col.id} onClick={() => setActiveColIdx(idx)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${activeColIdx === idx ? 'text-white shadow-sm' : isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}
+                    style={activeColIdx === idx ? { backgroundColor: col.color } : {}}
+                  >{col.nombre} ({(kanbanData[col.id] || []).length})</button>
+                ))}
+              </div>
+              <div ref={kanbanRef}
+                onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
+                onTouchEnd={e => {
+                  if (touchStart.current === null) return;
+                  const diff = touchStart.current - e.changedTouches[0].clientX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0 && activeColIdx < kanbanCols.length - 1) setActiveColIdx(i => i + 1);
+                    else if (diff < 0 && activeColIdx > 0) setActiveColIdx(i => i - 1);
+                  }
+                  touchStart.current = null;
+                }}
+              >
+                {renderCol(kanbanCols[activeColIdx] || kanbanCols[0])}
+              </div>
+              <div className="flex justify-between mt-3">
+                <button disabled={activeColIdx === 0} onClick={() => setActiveColIdx(i => i - 1)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}><FaChevronLeft /> Anterior</button>
+                <button disabled={activeColIdx >= kanbanCols.length - 1} onClick={() => setActiveColIdx(i => i + 1)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>Siguiente <FaChevronRight /></button>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${kanbanCols.length}, minmax(200px, 1fr))` }}>
+            {kanbanCols.map(col => renderCol(col))}
+          </div>
+        );
+      })()}
 
       {/* LIST */}
       {!loading && view === 'list' && (

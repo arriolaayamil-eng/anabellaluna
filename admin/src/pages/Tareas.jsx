@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import {
@@ -7,6 +7,7 @@ import {
   FaCalendarAlt, FaList, FaColumns, FaChartBar, FaUsers, FaSearch,
   FaFilter, FaFlag, FaCheck, FaPaperPlane, FaHistory, FaChevronDown,
   FaExclamationCircle, FaBan, FaClipboardList, FaUserPlus, FaAngleRight,
+  FaChevronLeft, FaChevronRight,
 } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
@@ -28,7 +29,6 @@ const PRIORITY_MAP = {
 const STATUSES = ['pendiente', 'en_progreso', 'en_revision', 'completada', 'cancelada'];
 const PRIORITIES = ['urgente', 'alta', 'media', 'baja'];
 const VIEWS = [
-  { id: 'dashboard', icon: FaChartBar, label: 'Dashboard' },
   { id: 'kanban', icon: FaColumns, label: 'Kanban' },
   { id: 'list', icon: FaList, label: 'Lista' },
   { id: 'calendar', icon: FaCalendarAlt, label: 'Calendario' },
@@ -66,7 +66,7 @@ const Tareas = ({ embedded = false }) => {
   const [kanbanData, setKanbanData] = useState({});
 
   // views
-  const [view, setView] = useState('dashboard');
+  const [view, setView] = useState('kanban');
   const [selectedTask, setSelectedTask] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -87,9 +87,26 @@ const Tareas = ({ embedded = false }) => {
   const [filterTeam, setFilterTeam] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  // team creation inline
+  const [showNewTeam, setShowNewTeam] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamSaving, setNewTeamSaving] = useState(false);
+
   // kanban drag
   const [draggedTask, setDraggedTask] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
+
+  // kanban mobile carousel
+  const kanbanRef = useRef(null);
+  const [activeColIdx, setActiveColIdx] = useState(0);
+  const touchStart = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check(); window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // calendar
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
@@ -232,6 +249,24 @@ const Tareas = ({ embedded = false }) => {
     catch { toast.error('Error al mover'); loadData(); }
     setDraggedTask(null);
   };
+
+  // ── CREATE TEAM INLINE ───────────────────────────────────────────
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) return;
+    setNewTeamSaving(true);
+    try {
+      const created = await crmService.teams.create({ nombre: newTeamName.trim() });
+      setTeams(prev => [...prev, created]);
+      setForm(f => ({ ...f, teamId: created._id, teamName: created.nombre }));
+      setNewTeamName('');
+      setShowNewTeam(false);
+      toast.success('Equipo creado');
+    } catch (err) { toast.error(err?.response?.data?.error || 'Error al crear equipo'); }
+    finally { setNewTeamSaving(false); }
+  };
+
+  // ── KANBAN COLUMNS (memoized) ───────────────────────────────────
+  const kanbanCols = useMemo(() => columns.length ? columns : STATUSES.map(s => ({ id: s, nombre: statusInfo(s).label, color: statusInfo(s).color })), [columns]);
 
   // ── FILTERED DATA ─────────────────────────────────────────────────
   const filtered = tareas.filter(t => {
@@ -409,22 +444,21 @@ const Tareas = ({ embedded = false }) => {
             <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Asignar → Ejecutar → Monitorear → Cerrar → Medir</p>
           </div>
         )}
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* View switcher */}
-          <div className={`flex rounded-xl overflow-hidden border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-            {VIEWS.map(v => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${view === v.id ? 'bg-indigo-500 text-white' : isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
-                <v.icon /> {v.label}
-              </button>
-            ))}
-          </div>
-          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md text-sm font-medium"><FaPlus /> Nueva Tarea</button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {VIEWS.map(v => (
+            <button key={v.id} onClick={() => setView(v.id)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all border ${view === v.id
+                ? isDark ? 'bg-gray-700 border-gray-600 text-white shadow-sm' : 'bg-gray-100 border-gray-300 text-gray-800 shadow-sm'
+                : isDark ? 'border-gray-700/50 text-gray-500 hover:text-gray-300 hover:border-gray-600' : 'border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'}`}>
+              <v.icon /> {v.label}
+            </button>
+          ))}
+          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md text-sm font-medium"><FaPlus /> Nueva Tarea</button>
         </div>
       </div>
 
       {/* Search + Filters bar */}
-      {view !== 'dashboard' && (
-        <div className="flex items-center gap-3 mb-5 flex-wrap">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-md">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
             <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Buscar tareas..." className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`} />
@@ -433,9 +467,8 @@ const Tareas = ({ embedded = false }) => {
           {(filterStatus || filterPriority || filterAssignee || filterTeam) && (
             <button onClick={() => { setFilterStatus(''); setFilterPriority(''); setFilterAssignee(''); setFilterTeam(''); }} className="text-xs text-red-500 hover:underline">Limpiar filtros</button>
           )}
-        </div>
-      )}
-      {showFilters && view !== 'dashboard' && (
+      </div>
+      {showFilters && (
         <div className={`${cardBase} mb-5 grid grid-cols-2 md:grid-cols-4 gap-4`}>
           <div>
             <label className={`text-xs font-medium mb-1 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Estado</label>
@@ -470,139 +503,115 @@ const Tareas = ({ embedded = false }) => {
 
       {loading && <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500" /></div>}
 
-      {!loading && view === 'dashboard' && stats && (
-        <>
-          {/* KPI row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: 'Total Activas', value: (stats.total || 0) - (stats.byStatus?.completada || 0) - (stats.byStatus?.cancelada || 0), color: '#6366f1', icon: FaTasks },
-              { label: 'Vencidas', value: stats.overdue || 0, color: '#EF4444', icon: FaExclamationCircle },
-              { label: 'Completadas (7d)', value: stats.completedLast7 || 0, color: '#10B981', icon: FaCheckCircle },
-              { label: 'Total', value: stats.total || 0, color: '#8B5CF6', icon: FaChartBar },
-            ].map(k => (
-              <div key={k.label} className={`${cardBase} !p-5`} style={{ borderLeft: `4px solid ${k.color}` }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{k.value}</p>
-                    <p className={`text-xs font-medium mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{k.label}</p>
-                  </div>
-                  <k.icon style={{ color: k.color }} className="text-2xl opacity-30" />
+      {/* KANBAN VIEW */}
+      {!loading && view === 'kanban' && (() => {
+        const renderCol = (col) => {
+          const colTasks = (kanbanData[col.id] || []).filter(t => {
+            if (filterAssignee && t.assigneeId !== filterAssignee) return false;
+            if (filterTeam && t.teamId !== filterTeam) return false;
+            if (searchQ && !(t.title || '').toLowerCase().includes(searchQ.toLowerCase())) return false;
+            return true;
+          });
+          return (
+            <div key={col.id}
+              onDragOver={e => { e.preventDefault(); setDropTarget(col.id); }}
+              onDragLeave={() => setDropTarget(null)}
+              onDrop={e => handleDrop(e, col.id)}
+              className={`rounded-2xl border transition-all min-h-[300px] ${isMobile ? 'w-full flex-shrink-0' : ''} ${dropTarget === col.id ? 'border-2 border-dashed border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10' : isDark ? 'border-gray-700/50 bg-secondary-dark-bg' : 'border-gray-100 bg-white shadow-md'}`}
+            >
+              <div className="p-3 border-b dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} />
+                  <span className={`font-semibold text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.nombre}</span>
                 </div>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{colTasks.length}</span>
               </div>
-            ))}
-          </div>
-          {/* By status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className={cardBase}>
-              <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Por Estado</h3>
-              <div className="space-y-3">
-                {STATUSES.map(s => {
-                  const count = stats.byStatus?.[s] || 0;
-                  const pct = stats.total ? Math.round((count / stats.total) * 100) : 0;
-                  const si = statusInfo(s);
+              <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-340px)]">
+                {colTasks.map(t => {
+                  const tid = t._id || t.id;
                   return (
-                    <div key={s}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>{si.label}</span>
-                        <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{count} ({pct}%)</span>
+                    <div key={tid} draggable={!isMobile} onDragStart={e => handleDragStart(e, t, col.id)} onDragEnd={e => { e.target.style.opacity = '1'; setDraggedTask(null); }}
+                      className={`group p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md ${isDark ? 'bg-gray-800/60 border-gray-700 hover:border-indigo-500/50' : 'bg-white border-gray-200 hover:border-indigo-300'} ${!isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      onClick={() => openDetail(t)}
+                    >
+                      <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.title}</p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <PriorityBadge priority={t.priority} />
+                        {t.assigneeName && <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.assigneeName}</span>}
+                        {t.dueDate && <span className={`text-xs ${isOverdue(t) ? 'text-red-500 font-medium' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>{fmtShort(t.dueDate)}</span>}
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: si.color }} />
-                      </div>
+                      {(t.checklist || []).length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5"><FaCheck className="text-[10px] text-gray-400" /><span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{(t.checklist || []).filter(c => c.done).length}/{(t.checklist || []).length}</span></div>
+                      )}
+                      {/* Mobile: quick move buttons */}
+                      {isMobile && (
+                        <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
+                          {kanbanCols.filter(c => c.id !== col.id).map(dest => (
+                            <button key={dest.id}
+                              onClick={(ev) => { ev.stopPropagation(); quickStatus(tid, dest.id); }}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${isDark ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                              style={{ borderColor: dest.color + '60' }}
+                            >
+                              → {dest.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+                {colTasks.length === 0 && <div className={`flex items-center justify-center h-20 rounded-xl border-2 border-dashed ${isDark ? 'border-gray-700 text-gray-600' : 'border-gray-200 text-gray-400'}`}><p className="text-xs">{isMobile ? 'Sin tareas' : 'Arrastra aquí'}</p></div>}
               </div>
             </div>
-            <div className={cardBase}>
-              <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Por Responsable</h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {Object.entries(stats.byAssignee || {}).sort((a, b) => b[1].total - a[1].total).map(([name, data]) => (
-                  <div key={name} className={`flex items-center justify-between p-3 rounded-lg ${isDark ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center"><FaUser className="text-indigo-500 text-xs" /></div>
-                      <div>
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{name}</p>
-                        <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{data.completadas} completadas · {data.vencidas > 0 ? <span className="text-red-500">{data.vencidas} vencidas</span> : '0 vencidas'}</p>
-                      </div>
-                    </div>
-                    <span className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{data.total}</span>
-                  </div>
-                ))}
-                {Object.keys(stats.byAssignee || {}).length === 0 && <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Sin datos</p>}
-              </div>
-            </div>
-          </div>
-          {/* By team */}
-          {Object.keys(stats.byTeam || {}).length > 0 && (
-            <div className={`${cardBase} mb-6`}>
-              <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Por Equipo</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(stats.byTeam).map(([name, data]) => (
-                  <div key={name} className={`p-4 rounded-xl border text-center ${isDark ? 'border-gray-700 bg-gray-800/30' : 'border-gray-100 bg-gray-50'}`}>
-                    <FaUsers className="text-2xl text-indigo-500 mx-auto mb-2" />
-                    <p className={`font-medium text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{name}</p>
-                    <p className={`text-lg font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{data.total}</p>
-                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{data.completadas} completadas</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+          );
+        };
 
-      {/* KANBAN VIEW */}
-      {!loading && view === 'kanban' && (
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns.length || 5}, minmax(220px, 1fr))` }}>
-          {(columns.length ? columns : STATUSES.map(s => ({ id: s, nombre: statusInfo(s).label, color: statusInfo(s).color }))).map(col => {
-            const colTasks = (kanbanData[col.id] || []).filter(t => {
-              if (filterAssignee && t.assigneeId !== filterAssignee) return false;
-              if (filterTeam && t.teamId !== filterTeam) return false;
-              if (searchQ && !(t.title || '').toLowerCase().includes(searchQ.toLowerCase())) return false;
-              return true;
-            });
-            return (
-              <div key={col.id}
-                onDragOver={e => { e.preventDefault(); setDropTarget(col.id); }}
-                onDragLeave={() => setDropTarget(null)}
-                onDrop={e => handleDrop(e, col.id)}
-                className={`rounded-2xl border transition-all min-h-[300px] ${dropTarget === col.id ? 'border-2 border-dashed border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10' : isDark ? 'border-gray-700/50 bg-secondary-dark-bg' : 'border-gray-100 bg-white shadow-md'}`}
-              >
-                <div className="p-3 border-b dark:border-gray-700 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} />
-                    <span className={`font-semibold text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.nombre}</span>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{colTasks.length}</span>
-                </div>
-                <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
-                  {colTasks.map(t => {
-                    const tid = t._id || t.id;
-                    return (
-                      <div key={tid} draggable onDragStart={e => handleDragStart(e, t, col.id)} onDragEnd={e => { e.target.style.opacity = '1'; setDraggedTask(null); }}
-                        className={`group p-3 rounded-xl border cursor-grab active:cursor-grabbing transition-all hover:shadow-md ${isDark ? 'bg-gray-800/60 border-gray-700 hover:border-indigo-500/50' : 'bg-white border-gray-200 hover:border-indigo-300'}`}
-                        onClick={() => openDetail(t)}
-                      >
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.title}</p>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <PriorityBadge priority={t.priority} />
-                          {t.assigneeName && <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t.assigneeName}</span>}
-                          {t.dueDate && <span className={`text-xs ${isOverdue(t) ? 'text-red-500 font-medium' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>{fmtShort(t.dueDate)}</span>}
-                        </div>
-                        {(t.checklist || []).length > 0 && (
-                          <div className="flex items-center gap-1 mt-1.5"><FaCheck className="text-[10px] text-gray-400" /><span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{(t.checklist || []).filter(c => c.done).length}/{(t.checklist || []).length}</span></div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {colTasks.length === 0 && <div className={`flex items-center justify-center h-20 rounded-xl border-2 border-dashed ${isDark ? 'border-gray-700 text-gray-600' : 'border-gray-200 text-gray-400'}`}><p className="text-xs">Arrastra aquí</p></div>}
-                </div>
+        // Mobile: carousel with swipe
+        if (isMobile) {
+          return (
+            <div className="relative overflow-hidden">
+              {/* Column indicators */}
+              <div className="flex justify-center gap-1.5 mb-3">
+                {kanbanCols.map((col, idx) => (
+                  <button key={col.id} onClick={() => setActiveColIdx(idx)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${activeColIdx === idx ? 'text-white shadow-sm' : isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}
+                    style={activeColIdx === idx ? { backgroundColor: col.color } : {}}
+                  >{col.nombre} ({(kanbanData[col.id] || []).length})</button>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      )}
+              {/* Carousel container */}
+              <div ref={kanbanRef}
+                onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
+                onTouchEnd={e => {
+                  if (touchStart.current === null) return;
+                  const diff = touchStart.current - e.changedTouches[0].clientX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0 && activeColIdx < kanbanCols.length - 1) setActiveColIdx(i => i + 1);
+                    else if (diff < 0 && activeColIdx > 0) setActiveColIdx(i => i - 1);
+                  }
+                  touchStart.current = null;
+                }}
+              >
+                {renderCol(kanbanCols[activeColIdx] || kanbanCols[0])}
+              </div>
+              {/* Nav arrows */}
+              <div className="flex justify-between mt-3">
+                <button disabled={activeColIdx === 0} onClick={() => setActiveColIdx(i => i - 1)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}><FaChevronLeft /> Anterior</button>
+                <button disabled={activeColIdx >= kanbanCols.length - 1} onClick={() => setActiveColIdx(i => i + 1)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>Siguiente <FaChevronRight /></button>
+              </div>
+            </div>
+          );
+        }
+
+        // Desktop: normal grid
+        return (
+          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${kanbanCols.length}, minmax(220px, 1fr))` }}>
+            {kanbanCols.map(col => renderCol(col))}
+          </div>
+        );
+      })()}
 
       {/* LIST VIEW */}
       {!loading && view === 'list' && (
@@ -719,7 +728,18 @@ const Tareas = ({ embedded = false }) => {
                   </select>
                 </div>
                 <div>
-                  <label className={`text-xs font-medium mb-1 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Equipo</label>
+                  <label className={`text-xs font-medium mb-1 flex items-center justify-between ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <span>Equipo</span>
+                    <button type="button" onClick={() => setShowNewTeam(!showNewTeam)} className="text-indigo-500 hover:text-indigo-600 flex items-center gap-1 text-[10px] font-semibold"><FaPlus /> Crear grupo</button>
+                  </label>
+                  {showNewTeam && (
+                    <div className="flex gap-2 mb-2">
+                      <input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="Nombre del equipo..." onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateTeam(); } }}
+                        className={`flex-1 px-3 py-1.5 border rounded-lg text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`} />
+                      <button type="button" onClick={handleCreateTeam} disabled={newTeamSaving || !newTeamName.trim()}
+                        className="px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-xs font-medium hover:bg-indigo-600 disabled:opacity-50">{newTeamSaving ? '...' : 'Crear'}</button>
+                    </div>
+                  )}
                   <select value={form.teamId} onChange={e => { const tm = teams.find(t => t._id === e.target.value); setForm(f => ({ ...f, teamId: e.target.value, teamName: tm?.nombre || '' })); }} className={`w-full px-3 py-2 border rounded-lg text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-200' : 'border-gray-200'}`}>
                     <option value="">Sin equipo</option>
                     {teams.map(t => <option key={t._id} value={t._id}>{t.nombre}</option>)}

@@ -372,7 +372,7 @@ const Citas = () => {
       </div>
 
       {/* KPIs de Citas + Tareas - Clickeables */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6">
         {kpisCitas.map((kpi, i) => {
           const colorMap = {
             'from-blue-500 to-blue-600': '#3b82f6',
@@ -415,10 +415,12 @@ const Citas = () => {
         {taskStats && [
           { title: 'Tareas Activas', value: (taskStats.total || 0) - (taskStats.byStatus?.completada || 0) - (taskStats.byStatus?.cancelada || 0), desc: 'En curso', icon: <FaTasks />, color: 'from-violet-500 to-violet-600' },
           { title: 'Tareas Vencidas', value: taskStats.overdue || 0, desc: 'Requieren atención', icon: <FaExclamationCircle />, color: 'from-red-500 to-red-600' },
+          { title: 'Completadas (7d)', value: taskStats.completedLast7 || 0, desc: 'Última semana', icon: <FaCheckCircle />, color: 'from-emerald-500 to-emerald-600' },
+          { title: 'Total Tareas', value: taskStats.total || 0, desc: 'Todas las tareas', icon: <FaChartLine />, color: 'from-purple-500 to-purple-600' },
         ].map((kpi, i) => {
-          const colorMap = { 'from-violet-500 to-violet-600': '#8b5cf6', 'from-red-500 to-red-600': '#ef4444' };
+          const colorMap = { 'from-violet-500 to-violet-600': '#8b5cf6', 'from-red-500 to-red-600': '#ef4444', 'from-emerald-500 to-emerald-600': '#10b981', 'from-purple-500 to-purple-600': '#8b5cf6' };
           const accentColor = colorMap[kpi.color] || '#6366f1';
-          const bgMap = { 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20' };
+          const bgMap = { 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20' };
           const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
           return (
             <div key={`task-${i}`}
