@@ -58,6 +58,8 @@ const auditRoutes = require('./routes/audit');
 
 const tareasRoutes = require('./routes/tareas');
 
+const teamsRoutes = require('./routes/teams');
+
 const propiedadesRoutes = require('./routes/propiedades');
 
 const clientesRoutes = require('./routes/clientes');
@@ -113,6 +115,8 @@ const { initReportScheduler } = require('./services/reportScheduler');
 const { initAutomationScheduler } = require('./services/automationScheduler');
 
 const { initRewardsScheduler } = require('./services/rewardsScheduler');
+
+const { initTaskAutomationScheduler } = require('./services/taskAutomationService');
 
 
 
@@ -216,6 +220,8 @@ app.use('/audit', auditRoutes);
 // CRM entity routes (specific routes MUST come before generic /crm)
 
 app.use('/crm/tareas', tareasRoutes);
+
+app.use('/crm/teams', teamsRoutes);
 
 app.use('/crm/propiedades', propiedadesRoutes);
 
@@ -1155,6 +1161,9 @@ if (require.main === module) {
 
       // Initialize rewards V2 scheduler (weekly badge, quarterly awards, annual tiers)
       initRewardsScheduler();
+
+      // Initialize task automation scheduler (overdue alerts, inactive task reminders)
+      initTaskAutomationScheduler();
 
     });
 

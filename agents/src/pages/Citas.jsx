@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaPlus, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt, FaGripVertical, FaEdit, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaPlus, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt, FaGripVertical, FaEdit, FaMapMarkerAlt, FaTasks, FaExclamationCircle } from 'react-icons/fa';
 
 import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
+import { Tareas } from './Tareas';
 
 const Citas = () => {
   const { currentMode } = useStateContext();
@@ -17,7 +18,10 @@ const Citas = () => {
 
   // Estados para modales
   const [showModalCita, setShowModalCita] = useState(false);
-  const [showModalKanban, setShowModalKanban] = useState(false);
+
+  // Sección activa: agenda o tareas
+  const [activeSection, setActiveSection] = useState('agenda');
+  const [taskStats, setTaskStats] = useState(null);
 
   // Estados para modales de estadísticas
   const [showModalCitasHoy, setShowModalCitasHoy] = useState(false);
@@ -83,60 +87,15 @@ const Citas = () => {
       }).slice(0, 8)
     : propiedadesLista.slice(0, 8);
 
-  // Estado para Kanban (Todo List) - Conectado al backend
-  const [columnas, setColumnas] = useState([]);
-  const [tareas, setTareas] = useState({});
-  const [kanbanLoading, setKanbanLoading] = useState(false);
-  const [kanbanSaving, setKanbanSaving] = useState(false);
-
-  const [nuevaTarea, setNuevaTarea] = useState({
-    titulo: '',
-    prioridad: 'Media',
-    fecha: '',
-    columna: 'pendiente',
-  });
-
-  const [nuevaColumna, setNuevaColumna] = useState({
-    nombre: '',
-    color: '#8B5CF6',
-  });
-
-  const [draggedTask, setDraggedTask] = useState(null);
-  const [dropTargetColumn, setDropTargetColumn] = useState(null);
-
-  // Cargar datos del Kanban desde el backend
-  const loadKanbanData = async () => {
-    setKanbanLoading(true);
+  // Cargar estadísticas de tareas para las KPIs
+  const loadTaskStats = async () => {
     try {
-      const [columnsData, tasksData] = await Promise.all([
-        crmService.tareas.getKanbanColumns(),
-        crmService.tareas.getKanban(),
-      ]);
-      setColumnas(Array.isArray(columnsData) ? columnsData : [
-        { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
-        { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
-        { id: 'completado', nombre: 'Completado', color: '#10B981' },
-      ]);
-      setTareas(tasksData || {});
-    } catch (e) {
-      console.error('Error loading kanban:', e);
-      // Usar columnas por defecto si hay error
-      setColumnas([
-        { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
-        { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
-        { id: 'completado', nombre: 'Completado', color: '#10B981' },
-      ]);
-    } finally {
-      setKanbanLoading(false);
-    }
+      const stats = await crmService.tareas.getStats();
+      setTaskStats(stats || {});
+    } catch { setTaskStats({}); }
   };
 
-  // Cargar Kanban cuando se abre el modal
-  useEffect(() => {
-    if (showModalKanban) {
-      loadKanbanData();
-    }
-  }, [showModalKanban]);
+  useEffect(() => { loadTaskStats(); }, []);
 
   // Agentes e Inmobiliarias desde DB
   const [agentesLista, setAgentesLista] = useState([]);
@@ -385,208 +344,6 @@ const Citas = () => {
     }
   };
 
-  // Funciones para Kanban - Conectadas al backend con auto-guardado
-  const handleTareaChange = (e) => {
-    const { name, value } = e.target;
-    setNuevaTarea((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const agregarTarea = async (e) => {
-    e.preventDefault();
-    setKanbanSaving(true);
-    try {
-      const newTask = await crmService.tareas.create({
-        title: nuevaTarea.titulo,
-        priority: nuevaTarea.prioridad,
-        dueDate: nuevaTarea.fecha ? new Date(nuevaTarea.fecha).toISOString() : null,
-        kanbanColumn: nuevaTarea.columna,
-        position: (tareas[nuevaTarea.columna]?.length || 0),
-      });
-
-      // Actualizar estado local
-      setTareas((prev) => ({
-        ...prev,
-        [nuevaTarea.columna]: [...(prev[nuevaTarea.columna] || []), newTask],
-      }));
-
-      setNuevaTarea({
-        titulo: '',
-        prioridad: 'Media',
-        fecha: '',
-        columna: columnas[0]?.id || 'pendiente',
-      });
-    } catch (createErr) {
-      console.error('Error creating task:', createErr);
-      toast.error('Error al crear tarea');
-    } finally {
-      setKanbanSaving(false);
-    }
-  };
-
-  const eliminarTarea = async (columna, id) => {
-    setKanbanSaving(true);
-    try {
-      await crmService.tareas.delete(id);
-      setTareas((prev) => ({
-        ...prev,
-        [columna]: prev[columna].filter((t) => (t._id || t.id) !== id),
-      }));
-    } catch (e) {
-      console.error('Error deleting task:', e);
-      toast.error('Error al eliminar tarea');
-    } finally {
-      setKanbanSaving(false);
-    }
-  };
-
-  // Funciones Drag and Drop con auto-guardado
-  const handleDragStart = (e, tarea, columnaId) => {
-    setDraggedTask({ tarea, columnaOrigen: columnaId });
-    e.dataTransfer.effectAllowed = 'move';
-    // Agregar efecto visual al elemento arrastrado
-    e.target.style.opacity = '0.5';
-  };
-
-  const handleDragOver = (e, columnaId) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    // Resaltar la columna destino
-    if (columnaId !== dropTargetColumn) {
-      setDropTargetColumn(columnaId);
-    }
-  };
-
-  const handleDragLeave = (e, columnaId) => {
-    // Solo limpiar si salimos de la columna actual
-    if (dropTargetColumn === columnaId) {
-      setDropTargetColumn(null);
-    }
-  };
-
-  const handleDrop = async (e, columnaDestino) => {
-    e.preventDefault();
-    setDropTargetColumn(null);
-    if (!draggedTask) return;
-
-    const { tarea, columnaOrigen } = draggedTask;
-    const tareaId = tarea._id || tarea.id;
-
-    if (columnaOrigen !== columnaDestino) {
-      setKanbanSaving(true);
-
-      // Actualizar UI inmediatamente (optimistic update)
-      setTareas((prev) => ({
-        ...prev,
-        [columnaOrigen]: (prev[columnaOrigen] || []).filter((t) => (t._id || t.id) !== tareaId),
-        [columnaDestino]: [...(prev[columnaDestino] || []), { ...tarea, kanbanColumn: columnaDestino }],
-      }));
-
-      // Guardar en backend
-      try {
-        await crmService.tareas.moveTask(tareaId, columnaDestino, (tareas[columnaDestino]?.length || 0));
-        console.log(`✅ Tarea movida a columna: ${columnaDestino}`);
-      } catch (err) {
-        console.error('Error moving task:', err);
-        toast.error('Error al mover tarea. Reintentando...');
-        // Revertir si hay error
-        setTareas((prev) => ({
-          ...prev,
-          [columnaDestino]: (prev[columnaDestino] || []).filter((t) => (t._id || t.id) !== tareaId),
-          [columnaOrigen]: [...(prev[columnaOrigen] || []), tarea],
-        }));
-      } finally {
-        setKanbanSaving(false);
-      }
-    }
-
-    setDraggedTask(null);
-  };
-
-  const handleDragEnd = (e) => {
-    // Restaurar opacidad
-    e.target.style.opacity = '1';
-    setDraggedTask(null);
-    setDropTargetColumn(null);
-  };
-
-  // Funciones para gestión de columnas con auto-guardado
-  const agregarColumna = async (e) => {
-    e.preventDefault();
-    if (!nuevaColumna.nombre.trim()) {
-      toast.warn('Ingresa un nombre para la columna');
-      return;
-    }
-
-    setKanbanSaving(true);
-    const nuevaCol = {
-      id: `col_${Date.now()}`,
-      nombre: nuevaColumna.nombre.trim(),
-      color: nuevaColumna.color,
-    };
-
-    const newColumnas = [...columnas, nuevaCol];
-    setColumnas(newColumnas);
-    setTareas((prev) => ({ ...prev, [nuevaCol.id]: [] }));
-    setNuevaColumna({ nombre: '', color: '#8B5CF6' });
-
-    // Guardar en backend
-    try {
-      await crmService.tareas.saveKanbanColumns(newColumnas);
-      console.log(`✅ Columna "${nuevaCol.nombre}" creada`);
-    } catch (err) {
-      console.error('Error saving columns:', err);
-      toast.error('Error al guardar la columna');
-      // Revertir
-      setColumnas(columnas);
-    } finally {
-      setKanbanSaving(false);
-    }
-  };
-
-  const eliminarColumna = async (columnaId) => {
-    if (columnas.length <= 1) {
-      toast.warn('Debe haber al menos una columna');
-      return;
-    }
-
-    const columnaAEliminar = columnas.find((c) => c.id === columnaId);
-    const tareasEnColumna = tareas[columnaId]?.length || 0;
-    if (tareasEnColumna > 0) {
-      if (!(await confirmToast(`La columna "${columnaAEliminar?.nombre}" tiene ${tareasEnColumna} tarea(s). ¿Desea eliminarla?`))) {
-        return;
-      }
-    }
-
-    setKanbanSaving(true);
-
-    // Eliminar las tareas de la columna si hay
-    if (tareasEnColumna > 0) {
-      await Promise.all(tareas[columnaId].map(async (tarea) => {
-        try {
-          await crmService.tareas.delete(tarea._id || tarea.id);
-        } catch (err) {
-          console.error('Error deleting task:', err);
-        }
-      }));
-    }
-
-    const newColumnas = columnas.filter((col) => col.id !== columnaId);
-    setColumnas(newColumnas);
-    const newTareas = { ...tareas };
-    delete newTareas[columnaId];
-    setTareas(newTareas);
-
-    // Guardar en backend
-    try {
-      await crmService.tareas.saveKanbanColumns(newColumnas);
-      console.log(`✅ Columna "${columnaAEliminar?.nombre}" eliminada`);
-    } catch (err) {
-      console.error('Error saving columns:', err);
-      toast.error('Error al eliminar la columna');
-    } finally {
-      setKanbanSaving(false);
-    }
-  };
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -597,26 +354,25 @@ const Citas = () => {
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Gestión de citas, calendario y tareas</p>
       </div>
 
-      {/* Botones de Navegación */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => setShowModalCita(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
-        >
-          <FaCalendarPlus /> Nueva Cita
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowModalKanban(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-purple-500 hover:bg-purple-600 transition-all shadow-sm hover:shadow-md"
-        >
-          <FaList /> Todo List (Kanban)
-        </button>
+      {/* Tab Switcher + Acciones */}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <div className={`flex rounded-xl overflow-hidden border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <button onClick={() => setActiveSection('agenda')} className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-colors ${activeSection === 'agenda' ? 'bg-blue-500 text-white' : isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
+            <FaCalendarAlt /> Agenda y Citas
+          </button>
+          <button onClick={() => setActiveSection('tareas')} className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-colors ${activeSection === 'tareas' ? 'bg-indigo-500 text-white' : isDark ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-50'}`}>
+            <FaTasks /> Gestión de Tareas
+          </button>
+        </div>
+        {activeSection === 'agenda' && (
+          <button type="button" onClick={() => setShowModalCita(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition-all shadow-sm hover:shadow-md">
+            <FaCalendarPlus /> Nueva Cita
+          </button>
+        )}
       </div>
 
-      {/* KPIs de Citas - Clickeables */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* KPIs de Citas + Tareas - Clickeables */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
         {kpisCitas.map((kpi, i) => {
           const colorMap = {
             'from-blue-500 to-blue-600': '#3b82f6',
@@ -655,7 +411,41 @@ const Citas = () => {
             </div>
           );
         })}
+        {/* Task KPIs */}
+        {taskStats && [
+          { title: 'Tareas Activas', value: (taskStats.total || 0) - (taskStats.byStatus?.completada || 0) - (taskStats.byStatus?.cancelada || 0), desc: 'En curso', icon: <FaTasks />, color: 'from-violet-500 to-violet-600' },
+          { title: 'Tareas Vencidas', value: taskStats.overdue || 0, desc: 'Requieren atención', icon: <FaExclamationCircle />, color: 'from-red-500 to-red-600' },
+        ].map((kpi, i) => {
+          const colorMap = { 'from-violet-500 to-violet-600': '#8b5cf6', 'from-red-500 to-red-600': '#ef4444' };
+          const accentColor = colorMap[kpi.color] || '#6366f1';
+          const bgMap = { 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20' };
+          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
+          return (
+            <div key={`task-${i}`}
+              onClick={() => setActiveSection('tareas')}
+              className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
+              style={{ borderLeft: `4px solid ${accentColor}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
+                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
+                </div>
+              </div>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
+              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
+            </div>
+          );
+        })}
       </div>
+
+      {/* ===== TAREAS SECTION ===== */}
+      {activeSection === 'tareas' && (
+        <Tareas embedded />
+      )}
+
+      {/* ===== AGENDA SECTION ===== */}
+      {activeSection === 'agenda' && (<>
 
       {/* Gráficos ApexCharts - Métricas de Agenda */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-6">
@@ -906,6 +696,9 @@ const Citas = () => {
           </div>
         </div>
       </div>
+
+      </>)}
+      {/* END AGENDA SECTION */}
 
       {/* Modal de Nueva Cita */}
       {showModalCita && (
@@ -1167,213 +960,6 @@ const Citas = () => {
         </div>
       )}
 
-      {/* Modal de Kanban (Todo List) - Diseño Minimalista */}
-      {showModalKanban && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-xl shadow-2xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col`}>
-            {/* Header Minimalista */}
-            <div className={`${currentMode === 'Dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-4 flex justify-between items-center`}>
-              <div className="flex items-center gap-3">
-                <FaList className="text-purple-500 text-xl" />
-                <h2 className="text-xl font-semibold dark:text-gray-100">Tablero Kanban</h2>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {Object.values(tareas).flat().length} tareas
-                </span>
-                {kanbanSaving && (
-                  <span className="text-xs text-purple-500 flex items-center gap-1">
-                    <FaSync className="animate-spin" /> Guardando...
-                  </span>
-                )}
-                {kanbanLoading && (
-                  <span className="text-xs text-blue-500 flex items-center gap-1">
-                    <FaSync className="animate-spin" /> Cargando...
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={loadKanbanData}
-                  disabled={kanbanLoading}
-                  className="text-gray-400 hover:text-purple-500 transition-colors p-2"
-                  title="Recargar"
-                >
-                  <FaSync className={kanbanLoading ? 'animate-spin' : ''} />
-                </button>
-                <button type="button" onClick={() => setShowModalKanban(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                  <FaTimes className="text-xl" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ backgroundColor: currentMode === 'Dark' ? '#1a1a1a' : '#f8f9fa' }}>
-              {/* Loading State */}
-              {kanbanLoading && columnas.length === 0 && (
-                <div className="flex items-center justify-center h-64">
-                  <div className="text-center">
-                    <FaSync className="animate-spin text-4xl text-purple-500 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">Cargando tablero...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Formulario Minimalista para Nueva Tarea */}
-              {!kanbanLoading && (
-              <form onSubmit={agregarTarea} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm`}>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="text"
-                    name="titulo"
-                    value={nuevaTarea.titulo}
-                    onChange={handleTareaChange}
-                    required
-                    placeholder="+ Nueva tarea..."
-                    className={`flex-1 px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}
-                  />
-                  <select name="prioridad" value={nuevaTarea.prioridad} onChange={handleTareaChange} className={`px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}>
-                    <option value="Baja">🟢 Baja</option>
-                    <option value="Media">🟡 Media</option>
-                    <option value="Alta">🔴 Alta</option>
-                  </select>
-                  <input
-                    type="date"
-                    name="fecha"
-                    value={nuevaTarea.fecha}
-                    onChange={handleTareaChange}
-                    required
-                    className={`px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}
-                  />
-                  <select name="columna" value={nuevaTarea.columna} onChange={handleTareaChange} className={`px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}>
-                    {columnas.map((col) => (
-                      <option key={col.id} value={col.id}>{col.nombre}</option>
-                    ))}
-                  </select>
-                  <button type="submit" className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors text-sm font-medium">
-                    Agregar
-                  </button>
-                </div>
-              </form>
-              )}
-
-              {/* Formulario para Nueva Columna */}
-              {!kanbanLoading && (
-              <form onSubmit={agregarColumna} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm`}>
-                <div className="flex gap-3 items-center">
-                  <FaPlus className="text-gray-400" />
-                  <input
-                    type="text"
-                    value={nuevaColumna.nombre}
-                    onChange={(e) => setNuevaColumna((prev) => ({ ...prev, nombre: e.target.value }))}
-                    required
-                    placeholder="Nueva columna..."
-                    className={`flex-1 px-3 py-2 text-sm border-0 focus:ring-1 focus:ring-purple-500 rounded ${currentMode === 'Dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-50'}`}
-                  />
-                  <input
-                    type="color"
-                    value={nuevaColumna.color}
-                    onChange={(e) => setNuevaColumna((prev) => ({ ...prev, color: e.target.value }))}
-                    className="w-12 h-9 rounded cursor-pointer"
-                  />
-                  <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm font-medium">
-                    + Columna
-                  </button>
-                </div>
-              </form>
-              )}
-
-              {/* Tablero Kanban con Drag and Drop */}
-              {!kanbanLoading && (
-              <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '500px' }}>
-                {columnas.map((columna) => (
-                  <div
-                    key={columna.id}
-                    onDragOver={(e) => handleDragOver(e, columna.id)}
-                    onDragLeave={(e) => handleDragLeave(e, columna.id)}
-                    onDrop={(e) => handleDrop(e, columna.id)}
-                    className={`flex-shrink-0 w-80 rounded-lg p-4 shadow-sm transition-all duration-200
-                      ${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-white'}
-                      ${dropTargetColumn === columna.id ? 'ring-2 ring-purple-500 ring-opacity-50 scale-[1.02]' : ''}
-                    `}
-                    style={{
-                      borderTop: `3px solid ${columna.color}`,
-                      backgroundColor: dropTargetColumn === columna.id
-                        ? (currentMode === 'Dark' ? '#374151' : '#f3f4f6')
-                        : undefined,
-                    }}
-                  >
-                    {/* Header de Columna */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: columna.color }} />
-                        <h3 className="font-semibold dark:text-gray-100">{columna.nombre}</h3>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {(tareas[columna.id] || []).length}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => eliminarColumna(columna.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                        title="Eliminar columna"
-                      >
-                        <FaTrash className="text-xs" />
-                      </button>
-                    </div>
-
-                    {/* Tareas con Drag and Drop */}
-                    <div className="space-y-2 min-h-[400px]">
-                      {(tareas[columna.id] || []).map((tarea) => {
-                        const tareaId = tarea._id || tarea.id;
-                        const titulo = tarea.title || tarea.titulo || 'Sin título';
-                        const prioridad = tarea.priority || tarea.prioridad || 'Media';
-                        const fecha = tarea.dueDate ? new Date(tarea.dueDate).toLocaleDateString('es-AR') : (tarea.fecha || '');
-                        return (
-                          <div
-                            key={tareaId}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, tarea, columna.id)}
-                            onDragEnd={handleDragEnd}
-                            className={`${currentMode === 'Dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-3 cursor-move hover:shadow-md transition-shadow border ${currentMode === 'Dark' ? 'border-gray-600' : 'border-gray-200'}`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="text-sm font-medium dark:text-gray-100 flex-1">{titulo}</h4>
-                              <button
-                                type="button"
-                                onClick={() => eliminarTarea(columna.id, tareaId)}
-                                className="text-gray-400 hover:text-red-500 transition-colors"
-                              >
-                                <FaTrash className="text-xs" />
-                              </button>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                prioridad === 'Alta' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                  : prioridad === 'Media' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                              }`}
-                              >
-                                {prioridad === 'Alta' ? '🔴' : prioridad === 'Media' ? '🟡' : '🟢'} {prioridad}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{fecha}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {(tareas[columna.id] || []).length === 0 && (
-                        <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
-                          Arrastra tareas aquí
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal Citas Hoy */}
       {showModalCitasHoy && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -1612,15 +1198,13 @@ const Citas = () => {
       {/* Modal Pendientes */}
       {showModalPendientes && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col`}>
+          <div className={`${currentMode === 'Dark' ? 'bg-gray-900' : 'bg-white'} rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col`}>
             <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaBell /> Tareas Pendientes
+                  <FaBell /> Pendientes
                 </h2>
-                <p className="text-orange-100 text-sm mt-1">
-                  {(tareas.pendiente || []).length + (tareas.enProgreso || []).length} tareas activas
-                </p>
+                <p className="text-orange-100 text-sm mt-1">Resumen de tareas</p>
               </div>
               <button type="button" onClick={() => setShowModalPendientes(false)} className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
                 <FaTimes className="text-2xl" />
@@ -1628,84 +1212,26 @@ const Citas = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              {/* Tareas Pendientes */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-yellow-500" />
-                  Pendientes ({(tareas.pendiente || []).length})
-                </h3>
-                <div className="space-y-2">
-                  {(tareas.pendiente || []).map((tarea) => (
-                    <div key={tarea.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-yellow-500 hover:shadow-md transition-shadow`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-bold dark:text-gray-100">{tarea.titulo}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tarea.descripcion}</p>
-                          {tarea.fecha && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                              📅 {tarea.fecha}
-                            </p>
-                          )}
-                        </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
-                          Pendiente
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tareas En Progreso */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-blue-500" />
-                  En Progreso ({(tareas.enProgreso || []).length})
-                </h3>
-                <div className="space-y-2">
-                  {(tareas.enProgreso || []).map((tarea) => (
-                    <div key={tarea.id} className={`${currentMode === 'Dark' ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-blue-500 hover:shadow-md transition-shadow`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-bold dark:text-gray-100">{tarea.titulo}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tarea.descripcion}</p>
-                          {tarea.fecha && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                              📅 {tarea.fecha}
-                            </p>
-                          )}
-                        </div>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                          En Progreso
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Resumen */}
-              <div className={`mt-6 p-4 ${currentMode === 'Dark' ? 'bg-orange-900/20' : 'bg-orange-50'} rounded-lg border-2 border-orange-500`}>
+              <div className={`p-4 ${currentMode === 'Dark' ? 'bg-orange-900/20' : 'bg-orange-50'} rounded-lg border-2 border-orange-500 mb-6`}>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Pendientes</p>
-                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {(tareas.pendiente || []).length}
-                    </p>
+                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{taskStats?.byStatus?.pendiente || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">En Progreso</p>
-                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                      {(tareas.enProgreso || []).length}
-                    </p>
+                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{taskStats?.byStatus?.en_progreso || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Completadas</p>
-                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                      {(tareas.completado || []).length}
-                    </p>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">{taskStats?.byStatus?.completada || 0}</p>
                   </div>
                 </div>
+              </div>
+              <div className="text-center">
+                <button type="button" onClick={() => { setShowModalPendientes(false); setActiveSection('tareas'); }} className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors font-medium flex items-center gap-2 mx-auto">
+                  <FaTasks /> Ver Gestión de Tareas
+                </button>
               </div>
             </div>
           </div>

@@ -12,7 +12,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
-import { AgentDashboard, Propiedades, ClientesCRM, Citas, Tareas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes, EditorImagenes, Tasaciones } from './pages';
+import { AgentDashboard, Propiedades, ClientesCRM, Citas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes, EditorImagenes, Tasaciones } from './pages';
 import LoginAgente from './pages/LoginAgente';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import NotificationPrompt from './components/pwa/NotificationPrompt';
@@ -125,7 +125,7 @@ const App = () => {
         <Route path="/propiedades" element={<Navigate to="/crm/propiedades" replace />} />
         <Route path="/clientes" element={<Navigate to="/crm/clientes" replace />} />
         <Route path="/citas" element={<Navigate to="/crm/citas" replace />} />
-        <Route path="/tareas" element={<Navigate to="/crm/tareas" replace />} />
+        <Route path="/tareas" element={<Navigate to="/crm/citas" replace />} />
         <Route path="/operaciones" element={<Navigate to="/crm/operaciones" replace />} />
         <Route path="/documentos" element={<Navigate to="/crm/archivos" replace />} />
         <Route path="/archivos" element={<Navigate to="/crm/archivos" replace />} />
@@ -149,7 +149,7 @@ const App = () => {
           <Route path="propiedades" element={<Propiedades />} />
           <Route path="clientes" element={<ClientesCRM />} />
           <Route path="citas" element={<Citas />} />
-          <Route path="tareas" element={<Tareas />} />
+          <Route path="tareas" element={<Navigate to="/crm/citas" replace />} />
           <Route path="operaciones" element={<Ventas />} />
           <Route path="documentos" element={<Navigate to="/crm/archivos" replace />} />
           <Route path="archivos" element={<Documentos />} />

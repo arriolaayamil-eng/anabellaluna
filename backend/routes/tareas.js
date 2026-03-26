@@ -1,178 +1,314 @@
 const express = require('express');
 const Tarea = require('../models/Tarea');
+const TaskActivity = require('../models/TaskActivity');
+const Team = require('../models/Team');
 const Agente = require('../models/Agente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
 
-// Default kanban columns
+// ── helpers ──────────────────────────────────────────────────────────
+function callerId(req) {
+  if (req.user?.agenteId) return String(req.user.agenteId);
+  return req.user?.sub ? String(req.user.sub) : '';
+}
+function callerName(req) { return req.user?.username || ''; }
+
+async function logActivity(taskId, req, action, extra = {}) {
+  try {
+    await TaskActivity.create({
+      taskId,
+      userId: callerId(req),
+      userName: callerName(req),
+      action,
+      ...extra,
+    });
+  } catch { /* non-blocking */ }
+}
+
+// Build visibility filter: admin sees all; agent sees own + team tasks
+async function visibilityFilter(req) {
+  const scopeId = agentScopeId(req);
+  if (!scopeId) return {}; // admin
+  // Agent can see tasks assigned to them, created by them, or in their teams
+  const teams = await Team.find({ 'miembros.userId': scopeId, activo: true }).select('_id').lean();
+  const teamIds = teams.map(t => String(t._id));
+  return {
+    $or: [
+      { assigneeId: scopeId },
+      { agenteId: scopeId },
+      { creatorId: scopeId },
+      ...(teamIds.length ? [{ teamId: { $in: teamIds } }] : []),
+    ],
+  };
+}
+
+// ── STATS / DASHBOARD ────────────────────────────────────────────────
+router.get('/stats', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const vis = await visibilityFilter(req);
+    const now = new Date();
+    const tareas = await Tarea.find(vis).lean();
+    const total = tareas.length;
+    const byStatus = {};
+    const byPriority = {};
+    const byAssignee = {};
+    const byTeam = {};
+    let overdue = 0;
+    let completedLast7 = 0;
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+
+    tareas.forEach(t => {
+      byStatus[t.status] = (byStatus[t.status] || 0) + 1;
+      byPriority[t.priority] = (byPriority[t.priority] || 0) + 1;
+      const aName = t.assigneeName || t.agente || 'Sin asignar';
+      if (!byAssignee[aName]) byAssignee[aName] = { total: 0, completadas: 0, pendientes: 0, enProgreso: 0, vencidas: 0 };
+      byAssignee[aName].total += 1;
+      if (['completada', 'Close'].includes(t.status)) byAssignee[aName].completadas += 1;
+      else if (['pendiente', 'Open'].includes(t.status)) byAssignee[aName].pendientes += 1;
+      else if (['en_progreso', 'InProgress'].includes(t.status)) byAssignee[aName].enProgreso += 1;
+      if (t.dueDate && new Date(t.dueDate) < now && !['completada', 'Close', 'cancelada'].includes(t.status)) {
+        overdue += 1;
+        byAssignee[aName].vencidas += 1;
+      }
+      if (t.teamName) {
+        if (!byTeam[t.teamName]) byTeam[t.teamName] = { total: 0, completadas: 0 };
+        byTeam[t.teamName].total += 1;
+        if (['completada', 'Close'].includes(t.status)) byTeam[t.teamName].completadas += 1;
+      }
+      if (['completada', 'Close'].includes(t.status) && t.completedAt && new Date(t.completedAt) >= sevenDaysAgo) {
+        completedLast7 += 1;
+      }
+    });
+
+    res.json({ total, overdue, completedLast7, byStatus, byPriority, byAssignee, byTeam });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── KANBAN ────────────────────────────────────────────────────────────
 const DEFAULT_KANBAN_COLUMNS = [
   { id: 'pendiente', nombre: 'Pendiente', color: '#F59E0B' },
-  { id: 'enProgreso', nombre: 'En Progreso', color: '#3B82F6' },
-  { id: 'completado', nombre: 'Completado', color: '#10B981' },
+  { id: 'en_progreso', nombre: 'En Progreso', color: '#3B82F6' },
+  { id: 'en_revision', nombre: 'En Revisión', color: '#8B5CF6' },
+  { id: 'completada', nombre: 'Completada', color: '#10B981' },
+  { id: 'cancelada', nombre: 'Cancelada', color: '#EF4444' },
 ];
 
-// ============ KANBAN COLUMNS CONFIG ============
-
-// Get kanban columns for current agent
-router.get('/kanban/columns', authenticateToken, requireCRMUser, async (req, res) => {
-  try {
-    const scopeId = agentScopeId(req);
-    if (!scopeId) {
-      return res.json(DEFAULT_KANBAN_COLUMNS);
-    }
-    const agente = await Agente.findById(scopeId).lean();
-    const columns = agente?.metadata?.kanbanColumns || DEFAULT_KANBAN_COLUMNS;
-    res.json(columns);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+router.get('/kanban/columns', authenticateToken, requireCRMUser, async (_req, res) => {
+  res.json(DEFAULT_KANBAN_COLUMNS);
 });
 
-// Save kanban columns for current agent
-router.put('/kanban/columns', authenticateToken, requireCRMUser, async (req, res) => {
-  try {
-    const columns = req.body.columns || [];
-    
-    // Get agent ID - for agents use their agenteId, for admins try to get from body or use a default
-    let agentId = req.user && req.user.agenteId ? String(req.user.agenteId) : null;
-    
-    if (!agentId) {
-      // For admin users or users without agenteId, store in a global config or return success
-      // For now, just return success since admin might not have an agent profile
-      console.log('Kanban columns saved (no agent profile):', columns);
-      return res.json({ ok: true, columns, note: 'No agent profile - columns not persisted' });
-    }
-    
-    await Agente.findByIdAndUpdate(agentId, {
-      $set: { 'metadata.kanbanColumns': columns }
-    });
-    res.json({ ok: true, columns });
-  } catch (err) {
-    console.error('Error saving kanban columns:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Move task to different column (auto-save)
 router.put('/kanban/move/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { kanbanColumn, position } = req.body;
-    const scopeId = agentScopeId(req);
-    const filter = { _id: req.params.id };
-    if (scopeId) filter.agenteId = scopeId;
-    
-    const updated = await Tarea.findOneAndUpdate(
-      filter,
-      { kanbanColumn, position: position || 0 },
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ error: 'Not found' });
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+    const tarea = await Tarea.findById(req.params.id);
+    if (!tarea) return res.status(404).json({ error: 'Not found' });
+    const prevStatus = tarea.status;
+    tarea.status = kanbanColumn;
+    tarea.kanbanColumn = kanbanColumn;
+    tarea.position = position || 0;
+    if (['completada', 'Close'].includes(kanbanColumn) && !tarea.completedAt) {
+      tarea.completedAt = new Date();
+      tarea.completed = true;
+    }
+    if (!['completada', 'Close', 'cancelada'].includes(kanbanColumn)) {
+      tarea.completed = false;
+      tarea.completedAt = undefined;
+    }
+    await tarea.save();
+    if (prevStatus !== kanbanColumn) {
+      logActivity(tarea._id, req, 'status_changed', { previousValue: prevStatus, newValue: kanbanColumn });
+    }
+    res.json(tarea);
+  } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-// Get all tasks grouped by kanban column
 router.get('/kanban', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const scopeId = agentScopeId(req);
-    const filter = {};
-    if (scopeId) filter.agenteId = scopeId;
-    
-    const tareas = await Tarea.find(filter).sort({ position: 1, updatedAt: -1 }).lean();
-    
-    // Group by kanbanColumn
+    const vis = await visibilityFilter(req);
+    const tareas = await Tarea.find(vis).sort({ position: 1, updatedAt: -1 }).lean();
     const grouped = {};
     tareas.forEach(t => {
-      const col = t.kanbanColumn || 'pendiente';
+      const col = t.status || t.kanbanColumn || 'pendiente';
       if (!grouped[col]) grouped[col] = [];
       grouped[col].push(t);
     });
-    
     res.json(grouped);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ============ STANDARD CRUD ============
-
-// Listar tareas con filtros opcionales ?status=Open&priority=Alta
+// ── LIST (advanced filters) ──────────────────────────────────────────
 router.get('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const { status, priority, q } = req.query;
-    const filter = {};
-    const scopeId = agentScopeId(req);
-    if (scopeId) filter.agenteId = scopeId;
+    const { status, priority, q, assigneeId, teamId, clienteId, propiedadId, creatorId, overdue, inactive } = req.query;
+    const vis = await visibilityFilter(req);
+    const filter = { ...vis };
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
-    if (q) filter.$or = [
-      { title: { $regex: q, $options: 'i' } },
-      { summary: { $regex: q, $options: 'i' } }
-    ];
-    const tareas = await Tarea.find(filter).sort({ position: 1, updatedAt: -1 }).limit(1000).lean();
+    if (assigneeId) filter.assigneeId = assigneeId;
+    if (teamId) filter.teamId = teamId;
+    if (clienteId) filter.clienteId = clienteId;
+    if (propiedadId) filter.propiedadId = propiedadId;
+    if (creatorId) filter.creatorId = creatorId;
+    if (q) {
+      const rx = { $regex: q, $options: 'i' };
+      const searchOr = [{ title: rx }, { description: rx }, { summary: rx }];
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: searchOr }];
+        delete filter.$or;
+      } else {
+        filter.$or = searchOr;
+      }
+    }
+    if (overdue === 'true') {
+      filter.dueDate = { $lt: new Date() };
+      filter.status = { $nin: ['completada', 'Close', 'cancelada'] };
+    }
+    if (inactive) {
+      const days = parseInt(inactive, 10) || 3;
+      filter.updatedAt = { $lt: new Date(Date.now() - days * 86400000) };
+      filter.status = { $nin: ['completada', 'Close', 'cancelada'] };
+    }
+    const tareas = await Tarea.find(filter).sort({ position: 1, updatedAt: -1 }).limit(2000).lean();
     res.json(tareas);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Obtener una tarea
+// ── GET ONE ──────────────────────────────────────────────────────────
 router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const tarea = await Tarea.findById(req.params.id).lean();
     if (!tarea) return res.status(404).json({ error: 'Not found' });
-    const scopeId = agentScopeId(req);
-    if (scopeId && String(tarea.agenteId || '') !== scopeId) return res.status(403).json({ error: 'forbidden' });
     res.json(tarea);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Crear tarea
+// ── CREATE ───────────────────────────────────────────────────────────
 router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const body = req.body || {};
+    const body = { ...(req.body || {}) };
     const scopeId = agentScopeId(req);
-    if (scopeId) body.agenteId = scopeId;
+    if (!body.creatorId) body.creatorId = callerId(req);
+    if (!body.creatorName) body.creatorName = callerName(req);
+    // For agents, default assignee to self if not specified
+    if (scopeId && !body.assigneeId) {
+      body.assigneeId = scopeId;
+      body.agenteId = scopeId;
+    }
+    // Sync kanbanColumn with status
+    if (!body.kanbanColumn) body.kanbanColumn = body.status || 'pendiente';
     const tarea = await Tarea.create(body);
+    logActivity(tarea._id, req, 'created', { details: `Tarea "${tarea.title}" creada` });
     res.status(201).json(tarea);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-// Actualizar tarea
+// ── UPDATE ───────────────────────────────────────────────────────────
 router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const scopeId = agentScopeId(req);
-    const filter = { _id: req.params.id };
-    if (scopeId) filter.agenteId = scopeId;
+    const prev = await Tarea.findById(req.params.id);
+    if (!prev) return res.status(404).json({ error: 'Not found' });
     const body = { ...(req.body || {}) };
-    if (scopeId) body.agenteId = scopeId;
-    const updated = await Tarea.findOneAndUpdate(filter, body, { new: true, runValidators: true });
-    if (!updated) return res.status(404).json({ error: 'Not found' });
+    // Sync kanbanColumn with status
+    if (body.status && !body.kanbanColumn) body.kanbanColumn = body.status;
+    if (body.status && ['completada', 'Close'].includes(body.status) && !prev.completedAt) {
+      body.completedAt = new Date();
+      body.completed = true;
+    }
+    const updated = await Tarea.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
+    // Log changes
+    if (body.status && body.status !== prev.status) {
+      logActivity(updated._id, req, 'status_changed', { previousValue: prev.status, newValue: body.status });
+    }
+    if (body.priority && body.priority !== prev.priority) {
+      logActivity(updated._id, req, 'priority_changed', { previousValue: prev.priority, newValue: body.priority });
+    }
+    if (body.assigneeId && body.assigneeId !== prev.assigneeId) {
+      logActivity(updated._id, req, 'assigned', { details: `Asignado a ${body.assigneeName || body.assigneeId}`, newValue: body.assigneeId });
+    }
+    if (body.dueDate && String(body.dueDate) !== String(prev.dueDate)) {
+      logActivity(updated._id, req, 'due_date_changed', { newValue: body.dueDate });
+    }
     res.json(updated);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+  } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-// Eliminar tarea
+// ── DELETE ────────────────────────────────────────────────────────────
 router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const scopeId = agentScopeId(req);
-    const filter = { _id: req.params.id };
-    if (scopeId) filter.agenteId = scopeId;
-    const deleted = await Tarea.findOneAndDelete(filter);
+    const deleted = await Tarea.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Not found' });
+    await TaskActivity.deleteMany({ taskId: req.params.id });
     res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── DELEGATE ─────────────────────────────────────────────────────────
+router.post('/:id/delegate', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const { toUserId, toUserName, reason } = req.body || {};
+    if (!toUserId) return res.status(400).json({ error: 'toUserId required' });
+    const tarea = await Tarea.findById(req.params.id);
+    if (!tarea) return res.status(404).json({ error: 'Not found' });
+    const delegation = {
+      fromUserId: callerId(req),
+      fromUserName: callerName(req),
+      toUserId,
+      toUserName: toUserName || '',
+      reason: reason || '',
+    };
+    tarea.delegations.push(delegation);
+    tarea.assigneeId = toUserId;
+    tarea.assigneeName = toUserName || '';
+    tarea.agenteId = toUserId;
+    await tarea.save();
+    logActivity(tarea._id, req, 'delegated', { details: `Delegado a ${toUserName || toUserId}`, newValue: toUserId });
+    res.json(tarea);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// ── COMMENTS (via activity log) ──────────────────────────────────────
+router.get('/:id/activity', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const items = await TaskActivity.find({ taskId: req.params.id }).sort({ createdAt: -1 }).limit(200).lean();
+    res.json(items);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/:id/comment', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const { text } = req.body || {};
+    if (!text) return res.status(400).json({ error: 'text required' });
+    const tarea = await Tarea.findById(req.params.id);
+    if (!tarea) return res.status(404).json({ error: 'Not found' });
+    const activity = await TaskActivity.create({
+      taskId: req.params.id,
+      userId: callerId(req),
+      userName: callerName(req),
+      action: 'comment',
+      details: text,
+    });
+    // Touch updatedAt
+    tarea.updatedAt = new Date();
+    await tarea.save();
+    res.status(201).json(activity);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// ── CHECKLIST toggle ─────────────────────────────────────────────────
+router.patch('/:id/checklist/:itemId', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const tarea = await Tarea.findById(req.params.id);
+    if (!tarea) return res.status(404).json({ error: 'Not found' });
+    const item = tarea.checklist.id(req.params.itemId);
+    if (!item) return res.status(404).json({ error: 'Checklist item not found' });
+    item.done = !item.done;
+    item.doneAt = item.done ? new Date() : undefined;
+    item.doneBy = item.done ? callerId(req) : undefined;
+    await tarea.save();
+    logActivity(tarea._id, req, 'checklist_toggled', { details: `${item.done ? '✓' : '○'} ${item.text}` });
+    res.json(tarea);
+  } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 module.exports = router;

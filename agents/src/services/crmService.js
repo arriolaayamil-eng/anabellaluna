@@ -67,16 +67,30 @@ export const crmService = {
 
   // ============ TAREAS ============
   tareas: {
-    getAll: () => api.get('/crm/tareas'),
+    getAll: (params) => api.get('/crm/tareas', { params }),
     getById: (id) => api.get(`/crm/tareas/${id}`),
     create: (data) => api.post('/crm/tareas', data),
     update: (id, data) => api.put(`/crm/tareas/${id}`, data),
     delete: (id) => api.delete(`/crm/tareas/${id}`),
-    // Kanban endpoints
+    getStats: () => api.get('/crm/tareas/stats'),
     getKanban: () => api.get('/crm/tareas/kanban'),
     getKanbanColumns: () => api.get('/crm/tareas/kanban/columns'),
-    saveKanbanColumns: (columns) => api.put('/crm/tareas/kanban/columns', { columns }),
     moveTask: (id, kanbanColumn, position) => api.put(`/crm/tareas/kanban/move/${id}`, { kanbanColumn, position }),
+    delegate: (id, data) => api.post(`/crm/tareas/${id}/delegate`, data),
+    getActivity: (id) => api.get(`/crm/tareas/${id}/activity`),
+    addComment: (id, text) => api.post(`/crm/tareas/${id}/comment`, { text }),
+    toggleChecklist: (id, itemId) => api.patch(`/crm/tareas/${id}/checklist/${itemId}`),
+  },
+
+  // ============ EQUIPOS ============
+  teams: {
+    getAll: () => api.get('/crm/teams'),
+    getById: (id) => api.get(`/crm/teams/${id}`),
+    create: (data) => api.post('/crm/teams', data),
+    update: (id, data) => api.put(`/crm/teams/${id}`, data),
+    delete: (id) => api.delete(`/crm/teams/${id}`),
+    addMember: (id, data) => api.post(`/crm/teams/${id}/members`, data),
+    removeMember: (id, userId) => api.delete(`/crm/teams/${id}/members/${userId}`),
   },
 
   // ============ ESTADÍSTICAS ============
