@@ -1,13 +1,11 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MdDarkMode, MdLightMode, MdKeyboardArrowDown, MdSpaceDashboard } from 'react-icons/md';
-import { FiSettings } from 'react-icons/fi';
 import { FaBars, FaBuilding, FaTasks, FaBell, FaComments, FaTrophy, FaGift } from 'react-icons/fa';
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import avatar from '../data/avatar.png';
 import { Propiedades, Tareas, Alertas, ChatInterno, UserProfile, RewardsPanel, triggerTestCelebration } from '.';
-import { themeColors } from '../data/dummy';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { authService } from '../services/authService';
@@ -51,10 +49,8 @@ const Navbar = () => {
     setScreenSize,
     screenSize,
     setMode,
-    setColor,
   } = useStateContext();
 
-  const [showColorMenu, setShowColorMenu] = useState(false);
   const [topBarVisible, setTopBarVisible] = useState(true);
   const lastScrollY = useRef(0);
   const navigate = useNavigate();
@@ -171,43 +167,6 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMobile]);
 
-  const colorPicker = (
-    <div className="relative">
-      <NavButton
-        title="Tema de color"
-        customFunc={() => setShowColorMenu((prev) => !prev)}
-        color={currentColor}
-        icon={<FiSettings />}
-      />
-      {showColorMenu && (
-        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-secondary-dark-bg shadow-lg rounded-lg p-3 z-50 border border-gray-100 dark:border-gray-700">
-          <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
-            Colores del tema
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {themeColors.map((item) => (
-              <button
-                key={item.name}
-                type="button"
-                className="h-8 w-8 rounded-full border-2 flex items-center justify-center transition-transform hover:scale-105"
-                style={{ borderColor: item.color === currentColor ? item.color : 'transparent' }}
-                onClick={() => {
-                  setColor(item.color);
-                  setShowColorMenu(false);
-                }}
-              >
-                <span
-                  className="h-6 w-6 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   const themeToggle = (
     <NavButton
       title={currentMode === 'Dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
@@ -299,7 +258,6 @@ const Navbar = () => {
             <NavButton title="Probar Celebración" customFunc={() => triggerTestCelebration()} color={currentColor} icon={<FaGift />} />
             <div className="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1" />
             {themeToggle}
-            {colorPicker}
             <TooltipComponent content="Mi Perfil" position="BottomCenter">
               <div
                 className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
@@ -329,7 +287,6 @@ const Navbar = () => {
         {isMobile && (
           <div className="flex items-center gap-1">
             {themeToggle}
-            {colorPicker}
           </div>
         )}
       </div>
