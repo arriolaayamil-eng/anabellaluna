@@ -166,7 +166,7 @@ const Navbar = () => {
             <NavButton title={`Propiedades (${navbarStats.propiedades?.disponibles || 0} disponibles)`} customFunc={() => handleClick('propiedades')} color={currentColor} icon={<FaBuilding />} badgeCount={navbarStats.propiedades?.disponibles || 0} isActive={isClicked.propiedades} />
             <NavButton title={`Tareas (${navbarStats.tareas?.total || 0} pendientes)`} customFunc={() => handleClick('tareas')} color={currentColor} icon={<FaTasks />} badgeCount={navbarStats.tareas?.total || 0} dotColor={navbarStats.tareas?.hoy > 0 ? '#EF4444' : 'transparent'} isActive={isClicked.tareas} />
             <NavButton title={`Chat (${navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0} sin leer)`} customFunc={() => handleClick('chatInterno')} color={currentColor} icon={<FaComments />} badgeCount={navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0} isActive={isClicked.chatInterno} />
-            <NavButton title={`Alertas (${navbarStats.notificaciones?.noLeidas || 0} sin leer)`} customFunc={() => handleClick('alertas')} color={currentColor} icon={<FaBell />} badgeCount={navbarStats.notificaciones?.noLeidas || 0} isActive={isClicked.alertas} />
+            <NavButton title={`Alertas (${navbarStats.notificaciones?.noLeidas || 0} sin leer)`} customFunc={() => { handleClick('alertas'); setNavbarStats(prev => ({ ...prev, notificaciones: { ...prev.notificaciones, noLeidas: 0 } })); }} color={currentColor} icon={<FaBell />} badgeCount={navbarStats.notificaciones?.noLeidas || 0} isActive={isClicked.alertas} />
             <div className="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1" />
             {themeToggle}
             <TooltipComponent content="Mi Perfil" position="BottomCenter">
@@ -201,6 +201,11 @@ const Navbar = () => {
           </div>
         )}
       </div>
+
+      {/* Backdrop — click outside to close any panel */}
+      {(isClicked.propiedades || isClicked.tareas || isClicked.chatInterno || isClicked.alertas || isClicked.userProfile) && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsClicked(initialState)} />
+      )}
 
       {/* Panels */}
       {isClicked.propiedades && (<Propiedades />)}

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MdOutlineCancel } from 'react-icons/md';
 import { FaComments, FaPaperPlane, FaCircle, FaSearch, FaSync, FaHome, FaEnvelope, FaPhone, FaCalendarAlt, FaUsers, FaGlobe } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
-import { Button } from '.';
 import chatService from '../services/chatService';
 import { crmService } from '../services/crmService';
 
@@ -200,8 +198,6 @@ const ChatInterno = () => {
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Actualizar">
             <FaSync className={`text-gray-500 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <Button icon={<MdOutlineCancel />} color="rgb(153, 171, 180)" bgHoverColor="light-gray" size="2xl" borderRadius="50%"
-            onClick={() => setIsClicked(initialState)} />
         </div>
       </div>
 

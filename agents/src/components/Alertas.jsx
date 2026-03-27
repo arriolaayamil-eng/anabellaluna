@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MdOutlineCancel } from 'react-icons/md';
 import { FaBell, FaExclamationTriangle, FaInfoCircle, FaCheckCircle, FaTimesCircle, FaBirthdayCake, FaUserPlus, FaHandshake, FaFileAlt, FaClock, FaStar, FaCalendarAlt, FaBuilding, FaDollarSign, FaChartLine, FaClipboardList } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
-import { Button } from '.';
 import notificationService from '../services/notificationService';
 
 const Alertas = () => {
@@ -67,12 +65,10 @@ const Alertas = () => {
   const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const [response, countResponse] = await Promise.all([
-        notificationService.getNotifications({ limite: 20 }),
-        notificationService.getUnreadCount(),
-      ]);
+      const response = await notificationService.getNotifications({ limite: 20 });
       setAlertas(response?.items || []);
-      setUnreadCount(countResponse?.count || 0);
+      setUnreadCount(0);
+      notificationService.markAllAsRead().catch(() => {});
     } catch (err) {
       console.error('Error loading notifications:', err);
     } finally {
@@ -125,14 +121,6 @@ const Alertas = () => {
             </p>
           </div>
         </div>
-        <Button
-          icon={<MdOutlineCancel />}
-          color="rgb(153, 171, 180)"
-          bgHoverColor="light-gray"
-          size="2xl"
-          borderRadius="50%"
-          onClick={() => setIsClicked(initialState)}
-        />
       </div>
 
       <div className="space-y-3 max-h-96 overflow-y-auto">

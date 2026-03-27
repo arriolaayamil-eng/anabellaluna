@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MdOutlineCancel } from 'react-icons/md';
 import { FaHome, FaMapMarkerAlt, FaDollarSign, FaEye, FaSync } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
-import { Button } from '.';
 import { crmService } from '../services/crmService';
 
 const Propiedades = () => {
@@ -99,14 +97,6 @@ const Propiedades = () => {
           >
             <FaSync className={`text-gray-500 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <Button
-            icon={<MdOutlineCancel />}
-            color="rgb(153, 171, 180)"
-            bgHoverColor="light-gray"
-            size="2xl"
-            borderRadius="50%"
-            onClick={() => setIsClicked(initialState)}
-          />
         </div>
       </div>
 

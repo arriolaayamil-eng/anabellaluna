@@ -241,7 +241,7 @@ const Navbar = () => {
             />
             <NavButton
               title={`Alertas (${navbarStats.notificaciones.noLeidas} sin leer)`}
-              customFunc={() => handleClick('alertas')}
+              customFunc={() => { handleClick('alertas'); setNavbarStats(prev => ({ ...prev, notificaciones: { ...prev.notificaciones, noLeidas: 0 } })); }}
               color={currentColor}
               icon={<FaBell />}
               badgeCount={navbarStats.notificaciones.noLeidas}
@@ -290,6 +290,11 @@ const Navbar = () => {
           </div>
         )}
       </div>
+
+      {/* Backdrop — click outside to close any panel */}
+      {(isClicked.propiedades || isClicked.tareas || isClicked.chatInterno || isClicked.alertas || isClicked.userProfile) && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsClicked(initialState)} />
+      )}
 
       {/* Panels */}
       {isClicked.propiedades && (<Propiedades />)}
