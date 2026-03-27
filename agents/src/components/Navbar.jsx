@@ -49,6 +49,8 @@ const Navbar = () => {
     setScreenSize,
     screenSize,
     setMode,
+    setIsClicked,
+    initialState,
   } = useStateContext();
 
   const [topBarVisible, setTopBarVisible] = useState(true);
