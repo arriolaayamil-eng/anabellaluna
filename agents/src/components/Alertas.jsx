@@ -103,7 +103,7 @@ const Alertas = () => {
   const alertasNoLeidas = unreadCount;
 
   return (
-    <div className="nav-item absolute right-5 md:right-40 top-16 bg-white dark:bg-[#42464D] p-6 rounded-lg w-96 shadow-xl">
+    <div className="nav-item fixed inset-x-4 top-20 mx-auto md:absolute md:inset-x-auto md:right-40 md:top-16 md:mx-0 bg-white dark:bg-[#42464D] p-6 rounded-lg max-w-96 w-auto md:w-96 shadow-xl z-50">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">

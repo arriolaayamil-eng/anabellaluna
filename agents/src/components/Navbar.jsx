@@ -5,7 +5,7 @@ import { FaBars, FaBuilding, FaTasks, FaBell, FaComments, FaTrophy, FaGift } fro
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import avatar from '../data/avatar.png';
-import { Propiedades, Tareas, Alertas, ChatInterno, UserProfile, RewardsPanel, triggerTestCelebration } from '.';
+import { Propiedades, Tareas, Alertas, ChatInterno, RewardsPanel, triggerTestCelebration } from '.';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { authService } from '../services/authService';
@@ -88,11 +88,25 @@ const Navbar = () => {
   const userName = capitalize(currentUser?.nombre || currentUser?.username || 'Usuario');
   const userAvatar = currentUser?.avatar || avatar;
 
+  const prevNoLeidas = useRef(0);
+
   const loadNavbarStats = useCallback(async () => {
     try {
       const summary = await crmService.navbar.getSummary();
       setApiOffline(false);
       if (summary) {
+        const newCount = summary.notificaciones?.noLeidas || 0;
+        // Fire native notification when new unread notifications arrive
+        if (newCount > prevNoLeidas.current && prevNoLeidas.current >= 0 && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          const diff = newCount - prevNoLeidas.current;
+          new Notification('Anabella Luna', {
+            body: `Tenés ${diff} nueva${diff > 1 ? 's' : ''} notificaci${diff > 1 ? 'ones' : 'ón'}`,
+            icon: '/icons/icon-192.png',
+            tag: 'navbar-alert',
+            renotify: true,
+          });
+        }
+        prevNoLeidas.current = newCount;
         setNavbarStats(summary);
         setUnreadCount(summary.mensajes?.total || 0);
       }
@@ -181,9 +195,9 @@ const Navbar = () => {
   const bottomNavItems = [
     { icon: <MdSpaceDashboard size={22} />, label: 'Inicio', action: () => navigate('/crm'), active: location.pathname === '/crm', badge: 0 },
     { icon: <FaTasks size={20} />, label: 'Tareas', action: () => handleClick('tareas'), active: isClicked.tareas, badge: navbarStats.tareas.total },
-    { icon: <FaComments size={20} />, label: 'Chat', action: () => { handleClick('chatInterno'); loadNavbarStats(); }, active: isClicked.chatInterno, badge: navbarStats.mensajes.total },
-    { icon: <FaBell size={20} />, label: 'Alertas', action: () => handleClick('alertas'), active: isClicked.alertas, badge: navbarStats.notificaciones.noLeidas },
-    { icon: null, label: 'Perfil', action: () => handleClick('userProfile'), active: isClicked.userProfile, isProfile: true, badge: 0 },
+    { icon: <FaComments size={20} />, label: 'Chat', action: () => { setIsClicked(initialState); navigate('/crm/consultas'); }, active: location.pathname === '/crm/consultas', badge: navbarStats.mensajes.total },
+    { icon: <FaBell size={20} />, label: 'Alertas', action: () => { handleClick('alertas'); setNavbarStats(prev => ({ ...prev, notificaciones: { ...prev.notificaciones, noLeidas: 0 } })); }, active: isClicked.alertas, badge: navbarStats.notificaciones.noLeidas },
+    { icon: null, label: 'Perfil', action: () => { setIsClicked(initialState); navigate('/crm/perfil'); }, active: location.pathname === '/crm/perfil', isProfile: true, badge: 0 },
   ];
 
   return (
@@ -235,11 +249,10 @@ const Navbar = () => {
             />
             <NavButton
               title={`Mensajes (${navbarStats.mensajes.total} sin leer)`}
-              customFunc={() => { handleClick('chatInterno'); loadNavbarStats(); }}
+              customFunc={() => { setIsClicked(initialState); navigate('/crm/consultas'); }}
               color={currentColor}
               icon={<FaComments />}
               badgeCount={navbarStats.mensajes.total}
-              isActive={isClicked.chatInterno}
             />
             <NavButton
               title={`Alertas (${navbarStats.notificaciones.noLeidas} sin leer)`}
@@ -263,7 +276,7 @@ const Navbar = () => {
             <TooltipComponent content="Mi Perfil" position="BottomCenter">
               <div
                 className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
-                onClick={() => handleClick('userProfile')}
+                onClick={() => { setIsClicked(initialState); navigate('/crm/perfil'); }}
               >
                 <img
                   className="rounded-full w-10 h-10 object-cover ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
@@ -294,7 +307,7 @@ const Navbar = () => {
       </div>
 
       {/* Backdrop — click outside to close any panel */}
-      {(isClicked.propiedades || isClicked.tareas || isClicked.chatInterno || isClicked.alertas || isClicked.userProfile) && (
+      {(isClicked.propiedades || isClicked.tareas || isClicked.chatInterno || isClicked.alertas) && (
         <div className="fixed inset-0 z-40" onClick={() => setIsClicked(initialState)} />
       )}
 
@@ -304,7 +317,6 @@ const Navbar = () => {
       {isClicked.chatInterno && (<ChatInterno />)}
       {isClicked.alertas && (<Alertas />)}
       {isClicked.rewards && (<RewardsPanel onClose={() => handleClick('')} />)}
-      {isClicked.userProfile && (<UserProfile />)}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (

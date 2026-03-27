@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaArrowLeft, FaSignOutAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -324,6 +324,17 @@ const MiPerfil = () => {
           </button>
         </div>
       </form>
+
+      {/* Cerrar Sesión */}
+      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <button
+          type="button"
+          onClick={() => { authService.logout(); window.location.reload(); }}
+          className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <FaSignOutAlt /> Cerrar Sesión
+        </button>
+      </div>
     </div>
   );
 };

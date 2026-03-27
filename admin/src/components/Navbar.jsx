@@ -5,7 +5,7 @@ import { FaBars, FaBuilding, FaTasks, FaBell, FaComments } from 'react-icons/fa'
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
 import avatar from '../data/avatar.png';
-import { Propiedades, Tareas, Alertas, ChatInterno, UserProfile } from '.';
+import { Propiedades, Tareas, Alertas, ChatInterno } from '.';
 import { useStateContext } from '../contexts/ContextProvider';
 import { authService } from '../services/authService';
 import notificationService from '../services/notificationService';
@@ -45,6 +45,8 @@ const Navbar = () => {
     setActiveMenu,
     handleClick,
     isClicked,
+    setIsClicked,
+    initialState,
     setScreenSize,
     screenSize,
     setMode,
@@ -68,10 +70,26 @@ const Navbar = () => {
     notificaciones: { noLeidas: 0 },
   });
 
+  const prevNoLeidas = useRef(0);
+
   const loadNavbarStats = useCallback(async () => {
     try {
       const summary = await notificationService.getNavbarSummary();
-      if (summary) setNavbarStats(summary);
+      if (summary) {
+        const newCount = summary.notificaciones?.noLeidas || 0;
+        // Fire native notification when new unread notifications arrive
+        if (newCount > prevNoLeidas.current && prevNoLeidas.current >= 0 && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          const diff = newCount - prevNoLeidas.current;
+          new Notification('Anabella Luna', {
+            body: `Tenés ${diff} nueva${diff > 1 ? 's' : ''} notificaci${diff > 1 ? 'ones' : 'ón'}`,
+            icon: '/icons/icon-192.png',
+            tag: 'navbar-alert',
+            renotify: true,
+          });
+        }
+        prevNoLeidas.current = newCount;
+        setNavbarStats(summary);
+      }
     } catch (e) {
       console.error('Error loading navbar stats:', e);
     }
@@ -134,9 +152,9 @@ const Navbar = () => {
   const bottomNavItems = [
     { icon: <MdSpaceDashboard size={22} />, label: 'Inicio', action: () => navigate('/'), isRoute: true, active: location.pathname === '/', badge: 0 },
     { icon: <FaBuilding size={20} />, label: 'Propiedades', action: () => handleClick('propiedades'), active: isClicked.propiedades, badge: navbarStats.propiedades?.disponibles || 0 },
-    { icon: <FaComments size={20} />, label: 'Chat', action: () => handleClick('chatInterno'), active: isClicked.chatInterno, badge: navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0 },
-    { icon: <FaBell size={20} />, label: 'Alertas', action: () => handleClick('alertas'), active: isClicked.alertas, badge: navbarStats.notificaciones?.noLeidas || 0 },
-    { icon: null, label: 'Perfil', action: () => handleClick('userProfile'), active: isClicked.userProfile, isProfile: true, badge: 0 },
+    { icon: <FaComments size={20} />, label: 'Chat', action: () => { setIsClicked(initialState); navigate('/mensajeria'); }, active: location.pathname === '/mensajeria', badge: navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0 },
+    { icon: <FaBell size={20} />, label: 'Alertas', action: () => { handleClick('alertas'); setNavbarStats(prev => ({ ...prev, notificaciones: { ...prev.notificaciones, noLeidas: 0 } })); }, active: isClicked.alertas, badge: navbarStats.notificaciones?.noLeidas || 0 },
+    { icon: null, label: 'Perfil', action: () => { setIsClicked(initialState); navigate('/perfil'); }, active: location.pathname === '/perfil', isProfile: true, badge: 0 },
   ];
 
   return (
@@ -165,14 +183,14 @@ const Navbar = () => {
           <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-2xl px-2 py-1 shadow-sm">
             <NavButton title={`Propiedades (${navbarStats.propiedades?.disponibles || 0} disponibles)`} customFunc={() => handleClick('propiedades')} color={currentColor} icon={<FaBuilding />} badgeCount={navbarStats.propiedades?.disponibles || 0} isActive={isClicked.propiedades} />
             <NavButton title={`Tareas (${navbarStats.tareas?.total || 0} pendientes)`} customFunc={() => handleClick('tareas')} color={currentColor} icon={<FaTasks />} badgeCount={navbarStats.tareas?.total || 0} dotColor={navbarStats.tareas?.hoy > 0 ? '#EF4444' : 'transparent'} isActive={isClicked.tareas} />
-            <NavButton title={`Chat (${navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0} sin leer)`} customFunc={() => handleClick('chatInterno')} color={currentColor} icon={<FaComments />} badgeCount={navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0} isActive={isClicked.chatInterno} />
+            <NavButton title={`Chat (${navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0} sin leer)`} customFunc={() => { setIsClicked(initialState); navigate('/mensajeria'); }} color={currentColor} icon={<FaComments />} badgeCount={navbarStats.mensajes?.total || navbarStats.consultas?.noLeidas || 0} />
             <NavButton title={`Alertas (${navbarStats.notificaciones?.noLeidas || 0} sin leer)`} customFunc={() => { handleClick('alertas'); setNavbarStats(prev => ({ ...prev, notificaciones: { ...prev.notificaciones, noLeidas: 0 } })); }} color={currentColor} icon={<FaBell />} badgeCount={navbarStats.notificaciones?.noLeidas || 0} isActive={isClicked.alertas} />
             <div className="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1" />
             {themeToggle}
             <TooltipComponent content="Mi Perfil" position="BottomCenter">
               <div
                 className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
-                onClick={() => handleClick('userProfile')}
+                onClick={() => { setIsClicked(initialState); navigate('/perfil'); }}
               >
                 <img
                   className="rounded-full w-10 h-10 object-cover ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
@@ -203,7 +221,7 @@ const Navbar = () => {
       </div>
 
       {/* Backdrop — click outside to close any panel */}
-      {(isClicked.propiedades || isClicked.tareas || isClicked.chatInterno || isClicked.alertas || isClicked.userProfile) && (
+      {(isClicked.propiedades || isClicked.tareas || isClicked.chatInterno || isClicked.alertas) && (
         <div className="fixed inset-0 z-40" onClick={() => setIsClicked(initialState)} />
       )}
 
@@ -212,7 +230,6 @@ const Navbar = () => {
       {isClicked.tareas && (<Tareas />)}
       {isClicked.chatInterno && (<ChatInterno />)}
       {isClicked.alertas && (<Alertas />)}
-      {isClicked.userProfile && (<UserProfile />)}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
