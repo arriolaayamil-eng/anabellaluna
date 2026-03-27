@@ -406,12 +406,13 @@ const Tareas = ({ embedded = false }) => {
           });
           return (
             <div key={col.id} onDragOver={e => { e.preventDefault(); setDropTarget(col.id); }} onDragLeave={() => setDropTarget(null)} onDrop={e => handleDrop(e, col.id)}
-              className={`rounded-2xl border transition-all min-h-[300px] ${isMobile ? 'w-full flex-shrink-0' : ''} ${dropTarget === col.id ? 'border-2 border-dashed border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10' : isDark ? 'border-gray-700/50 bg-secondary-dark-bg' : 'border-gray-100 bg-white shadow-md'}`}>
+              className={`rounded-2xl border transition-all min-h-[300px] ${dropTarget === col.id ? 'border-2 border-dashed border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10' : isDark ? 'border-gray-700/50 bg-secondary-dark-bg' : 'border-gray-100 bg-white shadow-md'}`}
+              style={isMobile ? { minWidth: '85vw', maxWidth: '85vw', scrollSnapAlign: 'start' } : {}}>
               <div className="p-3 border-b dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} /><span className={`font-semibold text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{col.nombre}</span></div>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{colTasks.length}</span>
               </div>
-              <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-340px)]">
+              <div className="p-2 space-y-2 overflow-y-auto" style={{ maxHeight: isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 340px)' }}>
                 {colTasks.map(t => {
                   const tid = t._id || t.id;
                   return (
@@ -424,7 +425,6 @@ const Tareas = ({ embedded = false }) => {
                         {t.dueDate && <span className={`text-xs ${isOverdue(t) ? 'text-red-500 font-medium' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>{fmtShort(t.dueDate)}</span>}
                       </div>
                       {(t.checklist || []).length > 0 && <div className="flex items-center gap-1 mt-1.5"><FaCheck className="text-[10px] text-gray-400" /><span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{(t.checklist || []).filter(c => c.done).length}/{(t.checklist || []).length}</span></div>}
-                      {/* Mobile: quick move buttons */}
                       {isMobile && (
                         <div className="flex gap-1 mt-2 flex-wrap" onClick={e => e.stopPropagation()}>
                           {kanbanCols.filter(c => c.id !== col.id).map(dest => (
@@ -445,37 +445,52 @@ const Tareas = ({ embedded = false }) => {
           );
         };
 
+        // Mobile: horizontal scroll-snap carousel
         if (isMobile) {
           return (
-            <div className="relative overflow-hidden">
-              <div className="flex justify-center gap-1.5 mb-3">
+            <div className="overflow-hidden">
+              <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
                 {kanbanCols.map((col, idx) => (
-                  <button key={col.id} onClick={() => setActiveColIdx(idx)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${activeColIdx === idx ? 'text-white shadow-sm' : isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}
+                  <button key={col.id}
+                    onClick={() => {
+                      setActiveColIdx(idx);
+                      if (kanbanRef.current) {
+                        const colW = kanbanRef.current.firstChild?.offsetWidth || 0;
+                        kanbanRef.current.scrollTo({ left: idx * (colW + 12), behavior: 'smooth' });
+                      }
+                    }}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all flex-shrink-0 ${activeColIdx === idx ? 'text-white shadow-sm' : isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}
                     style={activeColIdx === idx ? { backgroundColor: col.color } : {}}
                   >{col.nombre} ({(kanbanData[col.id] || []).length})</button>
                 ))}
               </div>
               <div ref={kanbanRef}
-                onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
-                onTouchEnd={e => {
-                  if (touchStart.current === null) return;
-                  const diff = touchStart.current - e.changedTouches[0].clientX;
-                  if (Math.abs(diff) > 50) {
-                    if (diff > 0 && activeColIdx < kanbanCols.length - 1) setActiveColIdx(i => i + 1);
-                    else if (diff < 0 && activeColIdx > 0) setActiveColIdx(i => i - 1);
-                  }
-                  touchStart.current = null;
+                className="flex gap-3 overflow-x-auto pb-3"
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                }}
+                onScroll={(e) => {
+                  const el = e.target;
+                  const colW = el.firstChild?.offsetWidth || 1;
+                  const idx = Math.round(el.scrollLeft / (colW + 12));
+                  if (idx !== activeColIdx && idx >= 0 && idx < kanbanCols.length) setActiveColIdx(idx);
                 }}
               >
-                {renderCol(kanbanCols[activeColIdx] || kanbanCols[0])}
+                {kanbanCols.map(col => renderCol(col))}
               </div>
-              <div className="flex justify-between mt-3">
-                <button disabled={activeColIdx === 0} onClick={() => setActiveColIdx(i => i - 1)}
+              <div className="flex justify-between mt-2">
+                <button disabled={activeColIdx === 0}
+                  onClick={() => { const ni = activeColIdx - 1; setActiveColIdx(ni); if (kanbanRef.current) { const colW = kanbanRef.current.firstChild?.offsetWidth || 0; kanbanRef.current.scrollTo({ left: ni * (colW + 12), behavior: 'smooth' }); } }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}><FaChevronLeft /> Anterior</button>
-                <button disabled={activeColIdx >= kanbanCols.length - 1} onClick={() => setActiveColIdx(i => i + 1)}
+                <span className={`text-xs self-center font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{activeColIdx + 1} / {kanbanCols.length}</span>
+                <button disabled={activeColIdx >= kanbanCols.length - 1}
+                  onClick={() => { const ni = activeColIdx + 1; setActiveColIdx(ni); if (kanbanRef.current) { const colW = kanbanRef.current.firstChild?.offsetWidth || 0; kanbanRef.current.scrollTo({ left: ni * (colW + 12), behavior: 'smooth' }); } }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-30 ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>Siguiente <FaChevronRight /></button>
               </div>
+              <style>{`div[style*="scroll-snap-type"]::-webkit-scrollbar { display: none; }`}</style>
             </div>
           );
         }
