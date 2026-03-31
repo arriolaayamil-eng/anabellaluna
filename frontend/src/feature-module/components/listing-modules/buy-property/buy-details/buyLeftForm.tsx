@@ -130,7 +130,7 @@ const BuyLeftForm = ({ agent, propertySlug }: BuyLeftFormProps) => {
     <>
       {/* col end */}
 
-      <div className="col-xl-4 theiaStickySidebar buy-details-item">
+      <div className="col-xl-4 d-none d-xl-block theiaStickySidebar buy-details-item">
         {/* Items-1 */}
         <StickyBox offsetTop={80} offsetBottom={20}>
           {/* Items-1 */}

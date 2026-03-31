@@ -44,6 +44,42 @@ header {
             color: var(--gray-900);
         }
     }
+    &.header-hero {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        z-index: 1050;
+        transition: background 0.4s ease, box-shadow 0.4s ease;
+        .header-nav .main-nav > li > a,
+        .header-nav .main-nav > li > a:hover,
+        .navbar-brand,
+        .header__hamburger .sidebar-menu {
+            color: #fff !important;
+        }
+        .header-logo {
+            &.logo-dark { display: none; }
+            &.logo-white { display: block; }
+        }
+        &.fixed {
+            background: rgba(10, 20, 40, 0.95) !important;
+            background-color: rgba(10, 20, 40, 0.95) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 2px 24px rgba(0,0,0,0.25) !important;
+            animation: none;
+            .header-nav .main-nav > li > a {
+                color: #fff !important;
+            }
+            .header-logo {
+                &.logo-dark { display: none; }
+                &.logo-white { display: block; }
+            }
+        }
+    }
     .header-logo {
         .logo {
             a {

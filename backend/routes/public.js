@@ -596,6 +596,7 @@ router.get('/properties/:slug', async (req, res) => {
             : [];
         return urls.filter(Boolean);
       })(),
+      funnelSettings: (prop.metadata && prop.metadata.funnelSettings) || null,
     };
 
     return res.json({ item });

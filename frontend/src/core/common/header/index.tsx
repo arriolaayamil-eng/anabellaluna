@@ -15,6 +15,7 @@ const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isFixed, setIsFixed] = useState(false);
+  const isHeroPage = /^\/buy\/[^/]+|^\/rent\/[^/]+/.test(location.pathname);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
@@ -56,14 +57,14 @@ const Header = () => {
     }
   };
   useEffect(() => {
+    setIsFixed(false);
     const handleScroll = () => {
-      if (window.scrollY > 0) {
+      if (window.scrollY > 60) {
         setIsFixed(true);
       } else {
         setIsFixed(false);
       }
     };
-    // Listen for scroll on every page
     window.addEventListener("scroll", handleScroll);
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -111,7 +112,7 @@ const Header = () => {
   return (
     <>
       {/* Header Start */}
-      <header className={`header${isFixed ? " fixed" : ""}`}>
+      <header className={`header${isFixed ? " fixed" : ""}${isHeroPage ? " header-hero" : ""}`}>
         <div className="container-fluid">
           <nav className="navbar navbar-expand-lg header-nav">
             <div className="navbar-header">

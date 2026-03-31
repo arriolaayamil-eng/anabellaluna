@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import FunnelDesignEditor from '../components/FunnelDesignEditor';
 import PropiedadesMapView from './PropiedadesMapView';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
@@ -61,6 +62,7 @@ const Propiedades = () => {
     fetchReservadasCount();
   }, []);
   const [formStep, setFormStep] = useState(1);
+  const [funnelEditorOpen, setFunnelEditorOpen] = useState(false);
 
   const createEmptyClienteForm = () => ({
     nombre: '',
@@ -247,6 +249,7 @@ const Propiedades = () => {
     videoUrls: [],
     agente: '',
     comision: '3',
+    funnelSettings: {},
   });
 
   const openCreateModal = () => {
@@ -312,6 +315,7 @@ const Propiedades = () => {
       videoUrls: [],
       agente: '',
       comision: '3',
+      funnelSettings: {},
     });
     setShowModal(true);
   };
@@ -375,6 +379,7 @@ const Propiedades = () => {
       videoUrls: Array.isArray(prop.videoUrls) ? prop.videoUrls : [],
       agente: prop.adminId && !prop.agenteId ? `admin:${prop.adminId}` : (prop.agenteId || ''),
       comision: String(prop.comision ?? '3'),
+      funnelSettings: prop.funnelSettings || {},
     });
     setFormStep(1);
     setIncluirCliente(false);
@@ -641,6 +646,7 @@ const Propiedades = () => {
             estado: p.status || meta.estado || 'Disponible',
             ownerId: p.ownerId || '',
             ownerData: p.ownerData || null,
+            funnelSettings: meta.funnelSettings || null,
           };
         });
 
@@ -943,6 +949,7 @@ const Propiedades = () => {
           adminId: rawAdminId,
           adminNombre,
           comision: Number(nuevaPropiedad.comision || 0),
+          funnelSettings: nuevaPropiedad.funnelSettings || {},
         },
       };
 
@@ -1011,6 +1018,7 @@ const Propiedades = () => {
         estado: saved.status || payload.metadata.estado,
         ownerId: resolvedOwnerId || '',
         ownerData: selectedCliente ? { _id: selectedCliente._id, nombre: selectedCliente.nombre || '', email: selectedCliente.email || '', telefono: selectedCliente.telefono || '' } : null,
+        funnelSettings: payload.metadata.funnelSettings || {},
       };
 
       setPropiedades((prev) => {
@@ -1748,6 +1756,148 @@ const Propiedades = () => {
                 </div>
               </div>
 
+              {/* Galería de Fotos — D&D reordering */}
+              {fotoAdjuntos.length > 0 && (
+                <div className={cardBase}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xl font-bold dark:text-gray-100">📷 Galería de Fotos</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                        <FaGripVertical size={10} /> Arrastrá para reordenar
+                      </span>
+                      {isSavingOrder && <span className="text-xs text-blue-500 animate-pulse">Guardando...</span>}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">La primera imagen (⭐) es la portada de la propiedad.</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                    {fotoAdjuntos.map((l, fotoIdx) => {
+                      const adjIdx = adjuntos.findIndex((x) => String(x._id) === String(l._id));
+                      const d = l?.document;
+                      const imgSrc = d ? getDocImgUrl(d) : null;
+                      return (
+                        <div
+                          key={l._id}
+                          draggable
+                          onDragStart={() => { adjDragItem.current = adjIdx; }}
+                          onDragEnter={() => { adjDragOverItem.current = adjIdx; }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDragEnd={() => {
+                            const from = adjDragItem.current;
+                            const to = adjDragOverItem.current;
+                            adjDragItem.current = null;
+                            adjDragOverItem.current = null;
+                            reorderAdjuntos(from, to);
+                          }}
+                          className="group relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-600 cursor-grab active:cursor-grabbing hover:border-blue-400 transition-all bg-gray-50 dark:bg-gray-800"
+                        >
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc}
+                              alt={d?.nombre || 'Foto'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="animate-pulse w-full h-full bg-gray-200 dark:bg-gray-700" />
+                          )}
+                          <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            {fotoIdx === 0 ? '⭐' : fotoIdx + 1}
+                          </div>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => setLightboxDoc({ doc: d, link: l })}
+                              className="p-1.5 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors"
+                              title="Ver"
+                            >
+                              <FaEye size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              title="Quitar"
+                              onClick={async () => {
+                                if (!d?._id) return;
+                                const ok = await confirmToast('¿Desvincular esta foto?');
+                                if (!ok) return;
+                                try {
+                                  await crmService.links.unlink({ documentId: d._id, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
+                                  setAdjuntos((prev) => prev.filter((x) => String(x._id) !== String(l._id)));
+                                } catch (e) {
+                                  setAdjuntosError(e?.message || 'Error al desvincular foto');
+                                }
+                              }}
+                              className="p-1.5 rounded-full bg-red-500/90 text-white hover:bg-red-500 transition-colors"
+                            >
+                              <FaTimes size={12} />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 h-5 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-0.5">
+                            <span className="text-[9px] text-white/80">arrastrá</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Archivos adjuntos (no imágenes) */}
+              {adjuntosLoading && (
+                <div className={cardBase}>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Cargando archivos...</p>
+                </div>
+              )}
+              {!adjuntosLoading && adjuntos.filter((l) => l?.document && !isImageDoc(l.document)).length > 0 && (
+                <div className={cardBase}>
+                  <h3 className="text-xl font-bold mb-4 dark:text-gray-100">📎 Documentos y Planos</h3>
+                  {adjuntosError && (
+                    <div className="mb-3 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">{adjuntosError}</div>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {adjuntos.filter((l) => l?.document && !isImageDoc(l.document)).map((l) => {
+                      const d = l?.document;
+                      return (
+                        <div
+                          key={l._id}
+                          className="group relative rounded-xl overflow-hidden border dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col"
+                        >
+                          <div className="aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+                            <FaFileAlt className="text-3xl text-gray-400" />
+                          </div>
+                          <div className="p-2">
+                            <p className="text-xs font-medium dark:text-gray-200 truncate" title={d?.nombre}>{d?.nombre || 'Documento'}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{d?.categoria || d?.tipo || ''}</p>
+                          </div>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                            <button type="button" onClick={() => setLightboxDoc({ doc: d, link: l })} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Ver">
+                              <FaEye size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              title="Quitar"
+                              onClick={async () => {
+                                if (!d?._id) return;
+                                const ok = await confirmToast('¿Desvincular este archivo?');
+                                if (!ok) return;
+                                try {
+                                  await crmService.links.unlink({ documentId: d._id, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
+                                  setAdjuntos((prev) => prev.filter((x) => String(x._id) !== String(l._id)));
+                                } catch (e) {
+                                  setAdjuntosError(e?.message || 'Error al desvincular archivo');
+                                }
+                              }}
+                              className="p-2 rounded-full bg-red-500/90 text-white hover:bg-red-500 transition-colors"
+                            >
+                              <FaTimes size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Columna Lateral */}
@@ -1963,6 +2113,47 @@ const Propiedades = () => {
           </div>
         </div>
       )}
+
+      {/* Lightbox modal for file preview */}
+      {lightboxDoc && (() => {
+        const d = lightboxDoc.doc;
+        const l = lightboxDoc.link;
+        const isImg = d && isImageDoc(d);
+        const imgSrc = isImg ? getDocImgUrl(d) : null;
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70" onClick={() => setLightboxDoc(null)}>
+            <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b dark:border-gray-700">
+                <div>
+                  <p className="font-semibold dark:text-gray-100 truncate">{d?.nombre || 'Archivo'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{d?.categoria || d?.tipo || ''}</p>
+                </div>
+                <button type="button" onClick={() => setLightboxDoc(null)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <FaTimes className="text-lg dark:text-gray-300" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto flex items-center justify-center bg-gray-50 dark:bg-gray-950 min-h-[300px]">
+                {isImg && imgSrc ? (
+                  <img src={imgSrc} alt={d?.nombre} className="max-w-full max-h-[70vh] object-contain" />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 p-10 text-gray-400">
+                    <FaFileAlt className="text-6xl" />
+                    <p className="text-sm">{d?.nombre}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-3 px-5 py-3 border-t dark:border-gray-700">
+                <button type="button" onClick={() => downloadOrOpenDoc(d, 'download')} className="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2">
+                  <FaDownload size={12} /> Descargar
+                </button>
+                <button type="button" onClick={() => setLightboxDoc(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors dark:text-gray-200">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal de Nueva Propiedad */}
       {showModal && (
@@ -2725,6 +2916,40 @@ const Propiedades = () => {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* ── DISEÑO DEL FUNNEL ──────────────────────────────────── */}
+                  <div className="border dark:border-gray-700 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFunnelEditorOpen((v) => !v)}
+                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span style={{ fontSize: 20 }}>🎨</span>
+                        <div>
+                          <div className="font-semibold dark:text-gray-100 text-sm">Diseño del Funnel</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Personaliza el fondo, colores y la imagen del hero de la página de detalle</div>
+                        </div>
+                      </div>
+                      <span className="text-gray-400 text-lg" style={{ transform: funnelEditorOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
+                    </button>
+                    {funnelEditorOpen && (
+                      <div className="px-5 pb-5 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
+                        <div className="pt-4">
+                          <FunnelDesignEditor
+                            value={nuevaPropiedad.funnelSettings || {}}
+                            onChange={(fs) => setNuevaPropiedad((prev) => ({ ...prev, funnelSettings: fs }))}
+                            previewTitle={nuevaPropiedad.titulo || 'Título de la propiedad'}
+                            previewCoverUrl={
+                              filesFotos.length > 0 && filesFotos[0].type?.startsWith('image/')
+                                ? URL.createObjectURL(filesFotos[0])
+                                : ''
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Botones Paso 1 */}

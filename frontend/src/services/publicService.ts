@@ -77,6 +77,7 @@ export interface PropertyDetail extends PropertyCard {
   ageYears?: number;
   trending?: boolean;
   visitCount?: number;
+  funnelSettings?: import('../feature-module/components/listing-modules/common/funnelSettings').FunnelSettings | null;
 }
 
 export interface BookingContact {

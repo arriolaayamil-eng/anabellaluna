@@ -2210,34 +2210,24 @@ const Propiedades = () => {
                 </div>
               </div>
 
-              <div className={cardBase}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold dark:text-gray-100">📎 Archivos</h3>
-                  {adjuntosLoading && <span className="text-sm text-gray-500 dark:text-gray-400">Cargando...</span>}
-                </div>
-
-                {adjuntosError && (
-                  <div className="mb-3 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
-                    {adjuntosError}
-                  </div>
-                )}
-
-                {!adjuntosLoading && (!adjuntos || adjuntos.length === 0) && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Sin archivos vinculados.</div>
-                )}
-
-                {Array.isArray(adjuntos) && adjuntos.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><FaGripVertical size={10} /> Arrastrá para reordenar</span>
+              {/* Galería de Fotos — D&D reordering */}
+              {fotoAdjuntos.length > 0 && (
+                <div className={cardBase}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xl font-bold dark:text-gray-100">📷 Galería de Fotos</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                        <FaGripVertical size={10} /> Arrastrá para reordenar
+                      </span>
                       {isSavingOrder && <span className="text-xs text-blue-500 animate-pulse">Guardando...</span>}
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {adjuntos.map((l, adjIdx) => {
-                      const d = l && l.document ? l.document : null;
-                      const docId = d && d._id ? d._id : null;
-                      const isImg = d && isImageDoc(d);
-                      const imgSrc = isImg ? getDocImgUrl(d) : null;
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">La primera imagen (⭐) es la portada de la propiedad.</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                    {fotoAdjuntos.map((l, fotoIdx) => {
+                      const adjIdx = adjuntos.findIndex((x) => String(x._id) === String(l._id));
+                      const d = l?.document;
+                      const imgSrc = d ? getDocImgUrl(d) : null;
                       return (
                         <div
                           key={l._id}
@@ -2252,62 +2242,123 @@ const Propiedades = () => {
                             adjDragOverItem.current = null;
                             reorderAdjuntos(from, to);
                           }}
-                          className="group relative rounded-xl overflow-hidden border dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col cursor-grab active:cursor-grabbing"
+                          className="group relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-600 cursor-grab active:cursor-grabbing hover:border-blue-400 transition-all bg-gray-50 dark:bg-gray-800"
                         >
-                          {/* Thumbnail / icon */}
-                          <div className="aspect-square flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-900">
-                            {isImg && imgSrc ? (
-                              <img
-                                src={imgSrc}
-                                alt={d?.nombre || 'Imagen'}
-                                className="w-full h-full object-cover"
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                            ) : isImg && !imgSrc ? (
-                              <div className="animate-pulse w-full h-full bg-gray-200 dark:bg-gray-700" />
-                            ) : (
-                              <FaFileAlt className="text-3xl text-gray-400" />
-                            )}
+                          {imgSrc ? (
+                            <img
+                              src={imgSrc}
+                              alt={d?.nombre || 'Foto'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="animate-pulse w-full h-full bg-gray-200 dark:bg-gray-700" />
+                          )}
+                          <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            {fotoIdx === 0 ? '⭐' : fotoIdx + 1}
                           </div>
-                          {/* File info */}
-                          <div className="p-2">
-                            <p className="text-xs font-medium dark:text-gray-200 truncate" title={d?.nombre}>{d?.nombre || 'Documento'}</p>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{d?.categoria || d?.tipo || ''}</p>
-                          </div>
-                          {/* Hover overlay with actions */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                            <button type="button" onClick={() => setLightboxDoc({ doc: d, link: l })} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Ver">
-                              <FaEye size={14} />
-                            </button>
-                            <button type="button" onClick={() => downloadOrOpenDoc(d, 'download')} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Descargar">
-                              <FaDownload size={14} />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => setLightboxDoc({ doc: d, link: l })}
+                              className="p-1.5 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors"
+                              title="Ver"
+                            >
+                              <FaEye size={12} />
                             </button>
                             <button
                               type="button"
                               title="Quitar"
                               onClick={async () => {
-                                if (!docId) return;
-                                const ok = await confirmToast('¿Desvincular este archivo?');
+                                if (!d?._id) return;
+                                const ok = await confirmToast('¿Desvincular esta foto?');
                                 if (!ok) return;
                                 try {
-                                  await crmService.links.unlink({ documentId: docId, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
-                                  setAdjuntos((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x._id) !== String(l._id)) : prev));
+                                  await crmService.links.unlink({ documentId: d._id, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
+                                  setAdjuntos((prev) => prev.filter((x) => String(x._id) !== String(l._id)));
                                 } catch (e) {
-                                  setAdjuntosError(e?.message || 'Error al desvincular archivo');
+                                  setAdjuntosError(e?.message || 'Error al desvincular foto');
                                 }
                               }}
-                              className="p-2 rounded-full bg-red-500/90 text-white hover:bg-red-500 transition-colors"
+                              className="p-1.5 rounded-full bg-red-500/90 text-white hover:bg-red-500 transition-colors"
                             >
-                              <FaTimes size={14} />
+                              <FaTimes size={12} />
                             </button>
+                          </div>
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 h-5 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-0.5">
+                            <span className="text-[9px] text-white/80">arrastrá</span>
                           </div>
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* Documentos y Planos (archivos no-imagen) */}
+              {(() => {
+                const nonImgAdj = adjuntos.filter((l) => l?.document && !isImageDoc(l.document));
+                if (adjuntosLoading) return null;
+                if (!nonImgAdj.length) return null;
+                return (
+                  <div className={cardBase}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold dark:text-gray-100">📎 Documentos y Planos</h3>
                     </div>
-                  </>
-                )}
-              </div>
+                    {adjuntosError && (
+                      <div className="mb-3 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                        {adjuntosError}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {nonImgAdj.map((l) => {
+                        const d = l && l.document ? l.document : null;
+                        const docId = d && d._id ? d._id : null;
+                        return (
+                          <div
+                            key={l._id}
+                            className="group relative rounded-xl overflow-hidden border dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col"
+                          >
+                            <div className="aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+                              <FaFileAlt className="text-3xl text-gray-400" />
+                            </div>
+                            <div className="p-2">
+                              <p className="text-xs font-medium dark:text-gray-200 truncate" title={d?.nombre}>{d?.nombre || 'Documento'}</p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{d?.categoria || d?.tipo || ''}</p>
+                            </div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                              <button type="button" onClick={() => setLightboxDoc({ doc: d, link: l })} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Ver">
+                                <FaEye size={14} />
+                              </button>
+                              <button type="button" onClick={() => downloadOrOpenDoc(d, 'download')} className="p-2 rounded-full bg-white/90 text-gray-700 hover:bg-white transition-colors" title="Descargar">
+                                <FaDownload size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                title="Quitar"
+                                onClick={async () => {
+                                  if (!docId) return;
+                                  const ok = await confirmToast('¿Desvincular este archivo?');
+                                  if (!ok) return;
+                                  try {
+                                    await crmService.links.unlink({ documentId: docId, entityType: 'propiedad', entityId: propiedadSeleccionada.id });
+                                    setAdjuntos((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x._id) !== String(l._id)) : prev));
+                                  } catch (e) {
+                                    setAdjuntosError(e?.message || 'Error al desvincular archivo');
+                                  }
+                                }}
+                                className="p-2 rounded-full bg-red-500/90 text-white hover:bg-red-500 transition-colors"
+                              >
+                                <FaTimes size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Columna Lateral */}
