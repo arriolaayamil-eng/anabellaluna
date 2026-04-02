@@ -398,8 +398,40 @@
     .review-items .reply-btn {
         color: var(--gray-900);
     }
-    .Home-banner-section .home-search-1 .nav .nav-link.active {
-        color: var(--gray-900);
+    // ── Search box (homepage banner + listing page) ──────────────────────
+    .home-search-1 {
+        .nav .nav-link {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: var(--gray-900);
+            &.active {
+                background-color: var(--primary);
+                color: #fff;
+            }
+            &:hover:not(.active) {
+                background-color: rgba(255, 255, 255, 0.25);
+            }
+        }
+        .search-item {
+            background: #000 !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            .form-label {
+                color: #fff !important;
+            }
+            .form-control {
+                background-color: #1a1a1a !important;
+                color: #fff !important;
+                border-color: rgba(255, 255, 255, 0.2) !important;
+                &::placeholder {
+                    color: rgba(255, 255, 255, 0.4) !important;
+                }
+                &:focus {
+                    background-color: #222 !important;
+                    border-color: var(--primary) !important;
+                    box-shadow: none !important;
+                }
+            }
+        }
     }
     .property-card-item img {
         filter: brightness(100);

@@ -83,6 +83,20 @@ export const userService = {
     return response;
   },
 
+  // Social login (Google / Facebook)
+  socialLogin: async (provider: 'google' | 'facebook', payload: { token?: string; accessToken?: string }) => {
+    const response = await api.post('/auth/social-login', { provider, ...payload });
+    if (response.token) {
+      await userService.setSession(response.token);
+    }
+    return response;
+  },
+
+  // Get social login config (client IDs)
+  getSocialConfig: async (): Promise<{ googleClientId: string; facebookAppId: string }> => {
+    return api.get('/auth/social-config');
+  },
+
   // Obtener el usuario actual desde localStorage
   getCurrentUser: (): User | null => {
     const userStr = localStorage.getItem('user');

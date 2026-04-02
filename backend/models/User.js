@@ -5,6 +5,9 @@ const UserSchema = new mongoose.Schema({
   password_hash: String,
   role: { type: String, default: 'agent' },
   agenteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agente' },
+  // Social login provider IDs
+  googleId: { type: String, default: '' },
+  facebookId: { type: String, default: '' },
   // Profile fields for public users (role: 'user') and admins
   nombre: { type: String, default: '' },
   email: { type: String, default: '' },

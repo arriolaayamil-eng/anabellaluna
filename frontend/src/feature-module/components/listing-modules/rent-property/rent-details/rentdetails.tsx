@@ -488,7 +488,7 @@ const RentDetails = () => {
               {property.description && (
                 <div className="mb-5">
                   <SectionHeader title="Sobre esta propiedad" accent={accentColor} />
-                  <div style={{ fontSize: "0.97rem", lineHeight: 1.85, color: "#374151", whiteSpace: "pre-line" }}>
+                  <div style={{ fontSize: "1.02rem", fontWeight: 600, lineHeight: 1.85, color: "#374151", whiteSpace: "pre-line" }}>
                     {property.description}
                   </div>
                 </div>

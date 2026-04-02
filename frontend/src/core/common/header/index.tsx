@@ -15,7 +15,7 @@ const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isFixed, setIsFixed] = useState(false);
-  const isHeroPage = /^\/buy\/[^/]+|^\/rent\/[^/]+/.test(location.pathname);
+  const isHeroPage = /^\/buy\/[^/]+|^\/rent\/[^/]+/.test(location.pathname) || location.pathname === "/index" || location.pathname === "/";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const dataTheme = useSelector((state: any) => state.themeSetting.dataTheme);
@@ -392,20 +392,6 @@ const Header = () => {
               </div>
             </div>
             <div className="nav header-items">
-                <Link
-                  to="#"
-                  className={`topbar-link btn btn-light topbar-search ${
-                    (location.pathname.startsWith("/buy/") ||
-                      location.pathname.startsWith("/rent/") ||
-                      location.pathname === "/buy-details-schedule")
-                      ? "custom-btn-light"
-                      : ""
-                  }`}
-                  data-bs-toggle="modal"
-                  data-bs-target="#search-modal"
-                >
-                  <i className="material-icons-outlined">search</i>
-                </Link>
                 {/* Selector de idioma eliminado a pedido del usuario */}
                 <button
                   type="button"

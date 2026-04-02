@@ -54,15 +54,28 @@ header {
         box-shadow: none !important;
         z-index: 1050;
         transition: background 0.4s ease, box-shadow 0.4s ease;
-        .header-nav .main-nav > li > a,
-        .header-nav .main-nav > li > a:hover,
-        .navbar-brand,
-        .header__hamburger .sidebar-menu {
+        @include respond-above(lg) {
+            .header-nav .main-nav > li > a,
+            .header-nav .main-nav > li > a:hover,
+            .navbar-brand,
+            .header__hamburger .sidebar-menu {
+                color: #fff !important;
+            }
+        }
+        #mobile_btn {
             color: #fff !important;
         }
         .header-logo {
             &.logo-dark { display: none; }
             &.logo-white { display: block; }
+        }
+        .header-items .btn.topbar-link,
+        .header-items .topbar-link {
+            background: rgba(255,255,255,0.12) !important;
+            backdrop-filter: blur(8px);
+            border: none !important;
+            color: #fff !important;
+            i { color: #fff !important; }
         }
         &.fixed {
             background: rgba(10, 20, 40, 0.95) !important;
@@ -71,12 +84,20 @@ header {
             -webkit-backdrop-filter: blur(12px);
             box-shadow: 0 2px 24px rgba(0,0,0,0.25) !important;
             animation: none;
-            .header-nav .main-nav > li > a {
-                color: #fff !important;
+            @include respond-above(lg) {
+                .header-nav .main-nav > li > a {
+                    color: #fff !important;
+                }
             }
             .header-logo {
                 &.logo-dark { display: none; }
                 &.logo-white { display: block; }
+            }
+            .header-items .btn.topbar-link,
+            .header-items .topbar-link {
+                background: rgba(255,255,255,0.1) !important;
+                color: #fff !important;
+                i { color: #fff !important; }
             }
         }
     }

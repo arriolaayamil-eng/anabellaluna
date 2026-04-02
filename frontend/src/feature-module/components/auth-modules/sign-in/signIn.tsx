@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import ImageWithBasePath from "../../../../core/imageWithBasePath";
 import { all_routes } from "../../../routes/all_routes";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import userService from "../../../../services/userService";
+import { useSocialLogin } from "../../../../hooks/useSocialLogin";
 type PasswordField = "password" | "confirmPassword";
 
 const SignIn = () => {
@@ -20,6 +21,17 @@ const SignIn = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const redirectAfterLogin = useCallback(() => {
+    const from = (location.state as any)?.from;
+    const pathname = from?.pathname || all_routes.index;
+    const search = from?.search || "";
+    const hash = from?.hash || "";
+    navigate(`${pathname}${search}${hash}`, { replace: true });
+  }, [location.state, navigate]);
+
+  const { config, socialError, socialLoading, googleBtnRef, handleFacebookLogin } =
+    useSocialLogin(redirectAfterLogin);
+
   const togglePasswordVisibility = (field: PasswordField) => {
     setPasswordVisibility((prevState) => ({
       ...prevState,
@@ -33,17 +45,16 @@ const SignIn = () => {
     setIsSubmitting(true);
     try {
       await userService.login(username, password);
-      const from = (location.state as any)?.from;
-      const pathname = from?.pathname || all_routes.index;
-      const search = from?.search || "";
-      const hash = from?.hash || "";
-      navigate(`${pathname}${search}${hash}`, { replace: true });
+      redirectAfterLogin();
     } catch (err: any) {
       setError(err?.message || "Error");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const displayError = error || socialError;
+
   return (
     <>
       {/* Start Content */}
@@ -68,9 +79,9 @@ const SignIn = () => {
                     <div className="login-item-01">
                       <h4>{t("Hey There! Welcome Back")}</h4>
                       <div>
-                        {error ? (
+                        {displayError ? (
                           <div className="alert alert-danger" role="alert">
-                            {error}
+                            {displayError}
                           </div>
                         ) : null}
                         <div className="mb-3">
@@ -142,47 +153,46 @@ const SignIn = () => {
                           <button
                             type="submit"
                             className="btn btn-lg bg-primary text-white w-100"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || socialLoading}
                           >
-                            {t("Sign In")}
+                            {isSubmitting ? t("Signing in...") : t("Sign In")}
                           </button>
                         </div>
                         <div className="login-or mb-3">
                           <span className="span-or">{t("OR")}</span>
                         </div>
                         <div className="mb-3">
-                          <div className="d-flex align-items-center justify-content-center flex-wrap">
-                            <div className="text-center me-2 flex-fill">
-                              <Link
-                                to="#"
-                                className="br-10 p-1 btn btn-outline-light border d-flex align-items-center justify-content-center"
-                              >
-                                <ImageWithBasePath
-                                  className="img-fluid m-1 me-1"
-                                  src="assets/img/icons/facebook.svg"
-                                  alt="Facebook"
+                          <div className="d-flex align-items-center justify-content-center flex-wrap gap-2">
+                            {config?.facebookAppId && (
+                              <div className="text-center flex-fill">
+                                <button
+                                  type="button"
+                                  onClick={handleFacebookLogin}
+                                  disabled={socialLoading}
+                                  className="br-10 p-1 btn btn-outline-light border d-flex align-items-center justify-content-center w-100"
+                                >
+                                  <ImageWithBasePath
+                                    className="img-fluid m-1 me-1"
+                                    src="assets/img/icons/facebook.svg"
+                                    alt="Facebook"
+                                  />
+                                  {t("Facebook")}
+                                </button>
+                              </div>
+                            )}
+                            {config?.googleClientId && (
+                              <div className="text-center flex-fill">
+                                <div
+                                  ref={googleBtnRef}
+                                  style={{ minHeight: 40, display: 'flex', justifyContent: 'center' }}
                                 />
-                                {t("Facebook")}
-                              </Link>
-                            </div>
-                            <div className="text-center me-2 flex-fill">
-                              <Link
-                                to="#"
-                                className="br-10 p-1 btn btn-outline-light border d-flex align-items-center justify-content-center"
-                              >
-                                <ImageWithBasePath
-                                  className="img-fluid m-1 me-1"
-                                  src="assets/img/icons/google.svg"
-                                  alt="Google"
-                                />
-                                {t("Google")}
-                              </Link>
-                            </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="text-center">
                           <h6 className="fw-normal fs-14 text-dark mb-0">
-                            {t("Don’t have an account yet?")}
+                            {t("Don't have an account yet?")}
                             <Link
                               to={all_routes.signup}
                               className="register-btn"

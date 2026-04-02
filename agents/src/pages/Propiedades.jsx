@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import FunnelDesignEditor from '../components/FunnelDesignEditor';
 import PropiedadesMapView from './PropiedadesMapView';
 
 import Chart from 'react-apexcharts';
@@ -43,6 +44,7 @@ const Propiedades = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formStep, setFormStep] = useState(1);
+  const [funnelEditorOpen, setFunnelEditorOpen] = useState(false);
 
   const createEmptyClienteForm = () => ({
     nombre: '',
@@ -245,6 +247,7 @@ const Propiedades = () => {
     videoUrls: [],
     agente: '',
     comision: '3',
+    funnelSettings: {},
   });
 
   const openCreateModal = () => {
@@ -311,6 +314,7 @@ const Propiedades = () => {
       videoUrls: [],
       agente: '',
       comision: '3',
+      funnelSettings: {},
     });
     setShowModal(true);
   };
@@ -375,6 +379,7 @@ const Propiedades = () => {
       videoUrls: Array.isArray(prop.videoUrls) ? prop.videoUrls : [],
       agente: prop.adminId && !prop.agenteId ? `admin:${prop.adminId}` : (prop.agenteId || ''),
       comision: String(prop.comision ?? '3'),
+      funnelSettings: prop.funnelSettings || {},
     });
     setFormStep(1);
     setIncluirCliente(false);
@@ -648,6 +653,7 @@ const Propiedades = () => {
             estado: p.status || meta.estado || 'Disponible',
             ownerId: p.ownerId || '',
             ownerData: p.ownerData || null,
+            funnelSettings: meta.funnelSettings || {},
           };
         });
 
@@ -982,6 +988,7 @@ const Propiedades = () => {
           adminId: rawAdminId,
           adminNombre,
           comision: Number(nuevaPropiedad.comision || 0),
+          funnelSettings: nuevaPropiedad.funnelSettings || {},
         },
       };
 
@@ -1054,6 +1061,7 @@ const Propiedades = () => {
         estado: saved.status || payload.metadata.estado,
         ownerId: resolvedOwnerId || '',
         ownerData: selectedCliente ? { _id: selectedCliente._id, nombre: selectedCliente.nombre || '', email: selectedCliente.email || '', telefono: selectedCliente.telefono || '' } : null,
+        funnelSettings: payload.metadata.funnelSettings || {},
       };
 
       setPropiedades((prev) => {
@@ -1160,6 +1168,7 @@ const Propiedades = () => {
         videoUrls: [],
         agente: '',
         comision: '3',
+        funnelSettings: {},
       });
       setFormStep(1);
       setIncluirCliente(false);
@@ -3373,6 +3382,40 @@ const Propiedades = () => {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* ── DISEÑO DEL FUNNEL ──────────────────────────────────── */}
+                    <div className="border dark:border-gray-700 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setFunnelEditorOpen((v) => !v)}
+                        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span style={{ fontSize: 20 }}>🎨</span>
+                          <div>
+                            <div className="font-semibold dark:text-gray-100 text-sm">Diseño del Funnel</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Personaliza el fondo, colores y la imagen del hero de la página de detalle</div>
+                          </div>
+                        </div>
+                        <span className="text-gray-400 text-lg" style={{ transform: funnelEditorOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
+                      </button>
+                      {funnelEditorOpen && (
+                        <div className="px-5 pb-5 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
+                          <div className="pt-4">
+                            <FunnelDesignEditor
+                              value={nuevaPropiedad.funnelSettings || {}}
+                              onChange={(fs) => setNuevaPropiedad((prev) => ({ ...prev, funnelSettings: fs }))}
+                              previewTitle={nuevaPropiedad.titulo || 'Título de la propiedad'}
+                              previewCoverUrl={
+                                filesFotos.length > 0 && filesFotos[0].type?.startsWith('image/')
+                                  ? URL.createObjectURL(filesFotos[0])
+                                  : ''
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Botones Paso 1 */}

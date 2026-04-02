@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 
 const jwt = require('jsonwebtoken');
 
+const { OAuth2Client } = require('google-auth-library');
+
 const db = require('./db');
 
 const User = require('./models/User');
@@ -66,6 +68,14 @@ async function protectRegister(req, res, next) {
 
 
 
+// Public config endpoint: expose social login client IDs to the frontend
+router.get('/social-config', (req, res) => {
+  res.json({
+    googleClientId: process.env.GOOGLE_LOGIN_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID || '',
+    facebookAppId: process.env.FACEBOOK_APP_ID || '',
+  });
+});
+
 router.post('/public-register', async (req, res) => {
 
   const { username, password, nombre } = req.body || {};
@@ -110,6 +120,87 @@ router.post('/public-register', async (req, res) => {
 
 });
 
+
+// ─── Social Login (Google / Facebook) ────────────────────────────────────────
+router.post('/social-login', async (req, res) => {
+  const { provider, token: idToken, accessToken } = req.body || {};
+  if (!provider) return res.status(400).json({ error: 'provider is required (google or facebook)' });
+
+  try {
+    let socialId = '';
+    let email = '';
+    let nombre = '';
+    let avatar = '';
+
+    // ── Google ──────────────────────────────────────────────────────────────
+    if (provider === 'google') {
+      if (!idToken) return res.status(400).json({ error: 'token is required for Google login' });
+      const clientId = process.env.GOOGLE_LOGIN_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+      const payload = ticket.getPayload();
+      if (!payload || !payload.sub) return res.status(401).json({ error: 'Invalid Google token' });
+      socialId = payload.sub;
+      email = payload.email || '';
+      nombre = payload.name || '';
+      avatar = payload.picture || '';
+
+    // ── Facebook ────────────────────────────────────────────────────────────
+    } else if (provider === 'facebook') {
+      if (!accessToken) return res.status(400).json({ error: 'accessToken is required for Facebook login' });
+      const fbRes = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`);
+      if (!fbRes.ok) return res.status(401).json({ error: 'Invalid Facebook token' });
+      const fbData = await fbRes.json();
+      if (!fbData.id) return res.status(401).json({ error: 'Invalid Facebook token' });
+      socialId = fbData.id;
+      email = fbData.email || '';
+      nombre = fbData.name || '';
+      avatar = fbData.picture?.data?.url || '';
+
+    } else {
+      return res.status(400).json({ error: 'Unsupported provider. Use google or facebook.' });
+    }
+
+    // ── Find or create user ────────────────────────────────────────────────
+    const providerIdField = provider === 'google' ? 'googleId' : 'facebookId';
+
+    // 1. Try to find by social provider ID
+    let user = await User.findOne({ [providerIdField]: socialId }).exec();
+
+    // 2. If not found by social ID, try by email (link accounts)
+    if (!user && email) {
+      user = await User.findOne({ $or: [{ username: email }, { email }] }).exec();
+      if (user) {
+        // Link social provider to existing account
+        user[providerIdField] = socialId;
+        if (!user.avatar && avatar) user.avatar = avatar;
+        if (!user.nombre && nombre) user.nombre = nombre;
+        await user.save();
+      }
+    }
+
+    // 3. Create new user if not found
+    if (!user) {
+      const username = email || `${provider}_${socialId}`;
+      user = new User({
+        username,
+        role: 'user',
+        [providerIdField]: socialId,
+        nombre,
+        email: email || '',
+        avatar,
+      });
+      await user.save();
+    }
+
+    const token = signToken(user);
+    return res.json({ token });
+
+  } catch (err) {
+    console.error(`Social login error (${provider}):`, err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 
 router.post('/register', protectRegister, async (req, res) => {
