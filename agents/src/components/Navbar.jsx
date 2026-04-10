@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MdDarkMode, MdLightMode, MdKeyboardArrowDown, MdSpaceDashboard } from 'react-icons/md';
+import { MdDarkMode, MdLightMode, MdSpaceDashboard } from 'react-icons/md';
 import { FaBars, FaBuilding, FaTasks, FaBell, FaComments, FaTrophy, FaGift } from 'react-icons/fa';
 import { TooltipComponent } from '@syncfusion/ej2-react-popups';
 
@@ -273,28 +273,26 @@ const Navbar = () => {
             <NavButton title="Probar Celebración" customFunc={() => triggerTestCelebration()} color={currentColor} icon={<FaGift />} />
             <div className="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1" />
             {themeToggle}
-            <TooltipComponent content="Mi Perfil" position="BottomCenter">
-              <div
-                className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
-                onClick={() => { setIsClicked(initialState); navigate('/crm/perfil'); }}
-              >
-                <img
-                  className="rounded-full w-10 h-10 object-cover ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
-                  style={{ ringColor: currentColor }}
-                  src={userAvatar}
-                  alt="user-profile"
-                />
-                <div>
-                  <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight">
-                    {userName}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Agente
-                  </p>
-                </div>
-                <MdKeyboardArrowDown className="text-gray-500 dark:text-gray-400 text-lg" />
+            <button
+              type="button"
+              onClick={() => { setIsClicked(initialState); navigate('/crm/perfil'); }}
+              className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
+            >
+              <img
+                className="rounded-full w-10 h-10 object-cover ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800"
+                style={{ ringColor: currentColor }}
+                src={userAvatar}
+                alt="user-profile"
+              />
+              <div className="text-left">
+                <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                  {userName}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Agente
+                </p>
               </div>
-            </TooltipComponent>
+            </button>
           </div>
         )}
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaUser, FaEnvelope, FaPhone, FaCamera, FaSave, FaArrowLeft, FaSignOutAlt } from 'react-icons/fa';
+import { FiShield, FiCheckCircle, FiXCircle, FiRefreshCw, FiCopy, FiEye, FiEyeOff, FiAlertTriangle, FiLock } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -28,9 +29,131 @@ const MiPerfil = () => {
     empresa: '',
   });
 
+  // ── 2FA state ──
+  const [tfaStatus, setTfaStatus] = useState(null);
+  const [tfaLoading, setTfaLoading] = useState(true);
+  const [setupStep, setSetupStep] = useState(null);
+  const [qrData, setQrData] = useState(null);
+  const [setupCode, setSetupCode] = useState('');
+  const [setupError, setSetupError] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState([]);
+  const [codesCopied, setCodesCopied] = useState(false);
+  const [showDisable, setShowDisable] = useState(false);
+  const [disablePassword, setDisablePassword] = useState('');
+  const [disableCode, setDisableCode] = useState('');
+  const [disableError, setDisableError] = useState('');
+  const [disableLoading, setDisableLoading] = useState(false);
+  const [showDisablePassword, setShowDisablePassword] = useState(false);
+  const [showRegen, setShowRegen] = useState(false);
+  const [regenPassword, setRegenPassword] = useState('');
+  const [regenCode, setRegenCode] = useState('');
+  const [regenError, setRegenError] = useState('');
+  const [regenLoading, setRegenLoading] = useState(false);
+  const setupCodeRef = useRef(null);
+
+  const load2FAStatus = useCallback(async () => {
+    try {
+      setTfaLoading(true);
+      const s = await authService.get2FAStatus();
+      setTfaStatus(s);
+    } catch {
+      setTfaStatus(null);
+    } finally {
+      setTfaLoading(false);
+    }
+  }, []);
+
+  const handleInitSetup = async () => {
+    setSetupError('');
+    setSetupLoading(true);
+    try {
+      const data = await authService.init2FASetup();
+      setQrData(data);
+      setSetupStep('qr');
+      setSetupCode('');
+    } catch (err) {
+      setSetupError(err?.message || 'Error al iniciar configuración');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleVerifySetup = async (e) => {
+    e.preventDefault();
+    setSetupError('');
+    setSetupLoading(true);
+    try {
+      const resp = await authService.verify2FASetup(setupCode);
+      if (resp.recoveryCodes) {
+        setRecoveryCodes(resp.recoveryCodes);
+        setSetupStep('codes');
+      }
+      await load2FAStatus();
+    } catch (err) {
+      setSetupError(err?.message || 'Código inválido');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  const handleDisable2FA = async (e) => {
+    e.preventDefault();
+    setDisableError('');
+    setDisableLoading(true);
+    try {
+      await authService.disable2FA(disablePassword, disableCode);
+      setShowDisable(false);
+      setDisablePassword('');
+      setDisableCode('');
+      setSetupStep(null);
+      setQrData(null);
+      await load2FAStatus();
+    } catch (err) {
+      setDisableError(err?.message || 'Error al desactivar');
+    } finally {
+      setDisableLoading(false);
+    }
+  };
+
+  const handleRegenCodes = async (e) => {
+    e.preventDefault();
+    setRegenError('');
+    setRegenLoading(true);
+    try {
+      const resp = await authService.regenerateRecoveryCodes(regenPassword, regenCode);
+      if (resp.recoveryCodes) {
+        setRecoveryCodes(resp.recoveryCodes);
+        setSetupStep('codes');
+        setShowRegen(false);
+        setRegenPassword('');
+        setRegenCode('');
+      }
+      await load2FAStatus();
+    } catch (err) {
+      setRegenError(err?.message || 'Error al regenerar códigos');
+    } finally {
+      setRegenLoading(false);
+    }
+  };
+
+  const handleCopyCodes = () => {
+    navigator.clipboard.writeText(recoveryCodes.join('\n')).then(() => {
+      setCodesCopied(true);
+      setTimeout(() => setCodesCopied(false), 2000);
+    });
+  };
+
+  const handleDoneCodes = () => {
+    setRecoveryCodes([]);
+    setSetupStep(null);
+    setCodesCopied(false);
+  };
+
   useEffect(() => {
     loadProfile();
-  }, []);
+    load2FAStatus();
+  }, [load2FAStatus]);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -324,6 +447,175 @@ const MiPerfil = () => {
           </button>
         </div>
       </form>
+
+      {/* ── Seguridad / 2FA ── */}
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-4 dark:text-gray-100 flex items-center gap-2">
+          <FiShield style={{ color: currentColor }} /> Seguridad
+        </h3>
+
+        {tfaLoading ? (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2" style={{ borderColor: currentColor }} />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Status Card */}
+            {!setupStep && !showDisable && !showRegen && (
+              <>
+                <div className="p-5 rounded-xl border dark:border-gray-700/50" style={{ borderColor: tfaStatus?.enabled ? '#22c55e33' : '#f59e0b33', background: tfaStatus?.enabled ? '#f0fdf408' : '#fffbeb08' }}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tfaStatus?.enabled ? 'bg-green-100 dark:bg-green-500/20' : 'bg-amber-100 dark:bg-amber-500/20'}`}>
+                      {tfaStatus?.enabled
+                        ? <FiCheckCircle size={24} className="text-green-600 dark:text-green-400" />
+                        : <FiAlertTriangle size={24} className="text-amber-600 dark:text-amber-400" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold dark:text-white text-sm">Autenticación de dos factores (2FA)</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {tfaStatus?.enabled
+                          ? `Activado el ${new Date(tfaStatus.enabledAt).toLocaleDateString('es-AR')}. Códigos restantes: ${tfaStatus.recoveryCodesRemaining}`
+                          : 'No activado. Protegé tu cuenta con un segundo factor de autenticación.'}
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${tfaStatus?.enabled ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${tfaStatus?.enabled ? 'bg-green-500' : 'bg-amber-500'}`} />
+                      {tfaStatus?.enabled ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+                </div>
+
+                {!tfaStatus?.enabled && (
+                  <button onClick={handleInitSetup} disabled={setupLoading} className="flex items-center gap-3 w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${currentColor}15` }}>
+                      <FiShield size={18} style={{ color: currentColor }} />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold dark:text-white text-sm">Activar 2FA</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Configurar verificación en dos pasos</p>
+                    </div>
+                    {setupLoading && <span className="animate-spin rounded-full h-4 w-4 border-b-2" style={{ borderColor: currentColor }} />}
+                  </button>
+                )}
+
+                {tfaStatus?.enabled && (
+                  <>
+                    <button onClick={() => setShowRegen(true)} className="flex items-center gap-3 w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-500/20">
+                        <FiRefreshCw size={18} className="text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="font-semibold dark:text-white text-sm">Regenerar códigos de recuperación</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tfaStatus.recoveryCodesRemaining} código(s) restante(s)</p>
+                      </div>
+                    </button>
+                    <button onClick={() => setShowDisable(true)} className="flex items-center gap-3 w-full p-4 rounded-xl border border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-500/20">
+                        <FiXCircle size={18} className="text-red-600 dark:text-red-400" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="font-semibold text-red-700 dark:text-red-400 text-sm">Desactivar 2FA</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Requiere contraseña y código TOTP</p>
+                      </div>
+                    </button>
+                  </>
+                )}
+
+                {setupError && <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">{setupError}</div>}
+              </>
+            )}
+
+            {/* Setup: QR */}
+            {setupStep === 'qr' && qrData && (
+              <div className="p-5 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                <div className="text-center mb-4">
+                  <FiShield size={28} className="mx-auto mb-2" style={{ color: currentColor }} />
+                  <h4 className="font-bold dark:text-white">Escaneá el código QR</h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Abrí tu app de autenticación (Google Authenticator, Authy, etc.) y escaneá este código.</p>
+                </div>
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white p-3 rounded-xl inline-block">
+                    <img src={qrData.qrDataURL} alt="QR Code 2FA" className="w-44 h-44" />
+                  </div>
+                </div>
+                <details className="mb-4">
+                  <summary className="cursor-pointer text-sm font-medium dark:text-gray-300" style={{ color: currentColor }}>¿No podés escanear? Ingresá la clave manualmente</summary>
+                  <div className="mt-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 font-mono text-xs break-all dark:text-gray-300">{qrData.secret}</div>
+                </details>
+                <form onSubmit={handleVerifySetup} className="space-y-3">
+                  <input ref={setupCodeRef} type="text" inputMode="numeric" maxLength={6} value={setupCode} onChange={(e) => { setSetupCode(e.target.value); setSetupError(''); }} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700/70 text-center text-2xl font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" placeholder="000000" autoFocus required />
+                  {setupError && <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">{setupError}</div>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => { setSetupStep(null); setQrData(null); setSetupCode(''); setSetupError(''); }} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/50 font-medium dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50">Cancelar</button>
+                    <button type="submit" disabled={setupLoading || setupCode.length < 6} className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-60" style={{ background: currentColor }}>{setupLoading ? 'Verificando...' : 'Activar 2FA'}</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Setup: Recovery Codes */}
+            {setupStep === 'codes' && recoveryCodes.length > 0 && (
+              <div className="p-5 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-900/10">
+                <div className="text-center mb-4">
+                  <FiLock size={28} className="mx-auto mb-2 text-amber-600 dark:text-amber-400" />
+                  <h4 className="font-bold dark:text-white">Códigos de recuperación</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Guardá estos códigos en un lugar seguro. Cada uno se puede usar una sola vez.</p>
+                </div>
+                <div className="bg-white dark:bg-gray-900/50 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700/50">
+                  <div className="grid grid-cols-2 gap-2">
+                    {recoveryCodes.map((code, i) => (
+                      <div key={i} className="font-mono text-sm py-1.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 dark:text-gray-200">{code}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={handleCopyCodes} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/50 font-medium dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <FiCopy size={15} /> {codesCopied ? '¡Copiados!' : 'Copiar todos'}
+                  </button>
+                  <button onClick={handleDoneCodes} className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white" style={{ background: currentColor }}>Ya los guardé</button>
+                </div>
+              </div>
+            )}
+
+            {/* Disable 2FA */}
+            {showDisable && (
+              <div className="p-5 rounded-xl border border-red-200 dark:border-red-500/30">
+                <h4 className="font-bold text-red-700 dark:text-red-400 mb-3 flex items-center gap-2"><FiXCircle size={18} /> Desactivar 2FA</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Necesitás tu contraseña y un código TOTP vigente.</p>
+                <form onSubmit={handleDisable2FA} className="space-y-3">
+                  <div className="relative">
+                    <input type={showDisablePassword ? 'text' : 'password'} value={disablePassword} onChange={(e) => { setDisablePassword(e.target.value); setDisableError(''); }} className="w-full px-4 py-2.5 pr-12 rounded-xl border border-gray-200 dark:border-gray-700/70 focus:outline-none focus:ring-2 focus:ring-red-400 dark:bg-gray-700 dark:text-gray-100" placeholder="Contraseña actual" required />
+                    <button type="button" onClick={() => setShowDisablePassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showDisablePassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}</button>
+                  </div>
+                  <input type="text" inputMode="numeric" maxLength={10} value={disableCode} onChange={(e) => { setDisableCode(e.target.value); setDisableError(''); }} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/70 text-center font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-red-400 dark:bg-gray-700 dark:text-gray-100" placeholder="Código TOTP o de recuperación" required />
+                  {disableError && <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">{disableError}</div>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => { setShowDisable(false); setDisablePassword(''); setDisableCode(''); setDisableError(''); }} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/50 font-medium dark:text-gray-300">Cancelar</button>
+                    <button type="submit" disabled={disableLoading} className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60">{disableLoading ? 'Desactivando...' : 'Confirmar'}</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Regenerate Recovery Codes */}
+            {showRegen && (
+              <div className="p-5 rounded-xl border border-blue-200 dark:border-blue-500/30">
+                <h4 className="font-bold dark:text-white mb-3 flex items-center gap-2"><FiRefreshCw size={18} style={{ color: currentColor }} /> Regenerar códigos de recuperación</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Los códigos anteriores serán invalidados. Necesitás tu contraseña y un código TOTP vigente.</p>
+                <form onSubmit={handleRegenCodes} className="space-y-3">
+                  <input type="password" value={regenPassword} onChange={(e) => { setRegenPassword(e.target.value); setRegenError(''); }} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/70 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" placeholder="Contraseña actual" required />
+                  <input type="text" inputMode="numeric" maxLength={6} value={regenCode} onChange={(e) => { setRegenCode(e.target.value); setRegenError(''); }} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/70 text-center font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100" placeholder="Código TOTP (6 dígitos)" required />
+                  {regenError && <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">{regenError}</div>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => { setShowRegen(false); setRegenPassword(''); setRegenCode(''); setRegenError(''); }} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/50 font-medium dark:text-gray-300">Cancelar</button>
+                    <button type="submit" disabled={regenLoading} className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white disabled:opacity-60" style={{ background: currentColor }}>{regenLoading ? 'Regenerando...' : 'Regenerar'}</button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Cerrar Sesión */}
       <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
