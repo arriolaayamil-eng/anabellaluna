@@ -65,6 +65,10 @@ header {
         #mobile_btn {
             color: #fff !important;
         }
+        .navbar-header {
+            .logo { display: none !important; }
+            .logo-dark { display: block !important; }
+        }
         .header-logo {
             &.logo-dark { display: none; }
             &.logo-white { display: block; }
@@ -78,26 +82,34 @@ header {
             i { color: #fff !important; }
         }
         &.fixed {
-            background: rgba(10, 20, 40, 0.95) !important;
-            background-color: rgba(10, 20, 40, 0.95) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 2px 24px rgba(0,0,0,0.25) !important;
+            background: var(--white) !important;
+            background-color: var(--white) !important;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            box-shadow: 0 2px 24px rgba(0,0,0,0.08) !important;
             animation: none;
             @include respond-above(lg) {
                 .header-nav .main-nav > li > a {
-                    color: #fff !important;
+                    color: var(--gray-900) !important;
                 }
             }
+            #mobile_btn {
+                color: var(--gray-900) !important;
+            }
             .header-logo {
-                &.logo-dark { display: none; }
-                &.logo-white { display: block; }
+                &.logo-dark { display: block; }
+                &.logo-white { display: none; }
+            }
+            .navbar-header {
+                .logo { display: block !important; }
+                .logo-dark { display: none !important; }
             }
             .header-items .btn.topbar-link,
             .header-items .topbar-link {
-                background: rgba(255,255,255,0.1) !important;
-                color: #fff !important;
-                i { color: #fff !important; }
+                background: var(--light) !important;
+                color: var(--gray-900) !important;
+                border: none !important;
+                i { color: var(--gray-900) !important; }
             }
         }
     }
@@ -107,7 +119,7 @@ header {
                 float: left;
                 img {
                     float: left;
-                    max-height: 38px;
+                    max-height: 57px;
                     width: auto;
                     height: auto;
                 }
@@ -122,7 +134,7 @@ header {
         align-items: center;
         justify-content: space-between;
         padding: 0;
-        height: 61px;
+        height: 72px;
         @include respond-below(lg) {
             height: 55px;
         }
@@ -259,7 +271,7 @@ header {
             padding: 0;
             line-height: 0;
             img {
-                max-height: 38px !important;
+                max-height: 57px !important;
                 width: auto !important;
                 height: auto !important;
             }

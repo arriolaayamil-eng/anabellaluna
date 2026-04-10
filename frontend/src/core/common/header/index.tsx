@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { header } from "./headerData";
 import { useDispatch, useSelector } from "react-redux";
@@ -6,6 +6,8 @@ import ImageWithBasePath from "../../imageWithBasePath";
 import { setDataTheme } from "../../redux/themeSettingSlice";
 import { all_routes } from "../../../feature-module/routes/all_routes";
 import userService from "../../../services/userService";
+import publicService from "../../../services/publicService";
+import type { PropertyCard } from "../../../services/publicService";
 
 const Header = () => {
   const [subOpen, setSubopen] = useState<any>("");
@@ -109,6 +111,46 @@ const Header = () => {
     return name.substring(0, 2).toUpperCase();
   };
 
+  // Navbar live search
+  const [navSearchOpen, setNavSearchOpen] = useState(false);
+  const [navSearchInput, setNavSearchInput] = useState('');
+  const [navSuggestions, setNavSuggestions] = useState<PropertyCard[]>([]);
+  const navSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!navSearchInput.trim()) { setNavSuggestions([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await publicService.getProperties(undefined, { search: navSearchInput.trim() });
+        if (!cancelled) setNavSuggestions((res.items || []).slice(0, 8));
+      } catch { if (!cancelled) setNavSuggestions([]); }
+    }, 180);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [navSearchInput]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (navSearchRef.current && !navSearchRef.current.contains(e.target as Node)) {
+        setNavSearchOpen(false);
+        setNavSearchInput('');
+        setNavSuggestions([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleNavSuggestionClick = useCallback((prop: PropertyCard) => {
+    setNavSearchOpen(false);
+    setNavSearchInput('');
+    setNavSuggestions([]);
+    const path = prop.operation === 'rent'
+      ? all_routes.rentDetailsPath(prop.slug)
+      : all_routes.buyDetailsPath(prop.slug);
+    navigate(path);
+  }, [navigate]);
+
   return (
     <>
       {/* Header Start */}
@@ -134,7 +176,7 @@ const Header = () => {
                 <i className="material-icons-outlined">menu</i>
               </Link>
             </div>
-            <div className="main-menu-wrapper">
+            <div className={`main-menu-wrapper${navSearchOpen ? ' d-none' : ''}`}>
               <div className="menu-header">
                 <Link to={all_routes.index} className="menu-logo">
                   <ImageWithBasePath
@@ -391,7 +433,64 @@ const Header = () => {
                 )}
               </div>
             </div>
-            <div className="nav header-items">
+            <div className={`nav header-items${navSearchOpen ? ' flex-fill' : ''}`}>
+                {navSearchOpen ? (
+                  <div className="d-flex align-items-center w-100 position-relative" ref={navSearchRef}>
+                    <div className="input-group">
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Buscar propiedades..."
+                        value={navSearchInput}
+                        onChange={(e) => setNavSearchInput(e.target.value)}
+                        autoFocus
+                        autoComplete="off"
+                      />
+                      <button
+                        className="btn btn-outline-secondary"
+                        type="button"
+                        onClick={() => { setNavSearchOpen(false); setNavSearchInput(''); setNavSuggestions([]); }}
+                      >
+                        <i className="material-icons-outlined" style={{ fontSize: 16 }}>close</i>
+                      </button>
+                    </div>
+                    {navSuggestions.length > 0 && (
+                      <ul
+                        className="list-group shadow position-absolute"
+                        style={{ top: '100%', left: 0, right: 0, zIndex: 1070, marginTop: 4, maxHeight: 320, overflowY: 'auto' }}
+                      >
+                        {navSuggestions.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className="list-group-item list-group-item-action d-flex align-items-center gap-2 text-start px-3 py-2"
+                            onMouseDown={(e) => { e.preventDefault(); handleNavSuggestionClick(s); }}
+                          >
+                            <i className="material-icons-outlined text-muted" style={{ fontSize: 15 }}>home</i>
+                            <div className="flex-fill overflow-hidden">
+                              <div className="text-truncate" style={{ fontSize: 13 }}>{s.title}</div>
+                              {s.location?.city && <div className="text-muted" style={{ fontSize: 11 }}>{s.location.city}</div>}
+                            </div>
+                            {s.price?.amount != null && (
+                              <span className="text-primary fw-semibold text-nowrap" style={{ fontSize: 12 }}>
+                                {s.price.currency || '$'}{' '}{s.price.amount.toLocaleString('es-AR')}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                <button
+                  type="button"
+                  className="topbar-link btn btn-light"
+                  onClick={() => setNavSearchOpen(true)}
+                  title="Buscar propiedades"
+                >
+                  <i className="material-icons-outlined">search</i>
+                </button>
                 {/* Selector de idioma eliminado a pedido del usuario */}
                 <button
                   type="button"
@@ -784,6 +883,8 @@ const Header = () => {
                       <i className="material-icons-outlined me-1">perm_identity</i>
                       Crear Cuenta
                     </Link>
+                  </>
+                )}
                   </>
                 )}
               </div>
