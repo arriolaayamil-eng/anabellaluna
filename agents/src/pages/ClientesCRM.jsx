@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import Chart from 'react-apexcharts';
-import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase, FaPercentage, FaFunnelDollar, FaArrowUp, FaHeart, FaUserClock, FaThermometerHalf, FaGlobe, FaDesktop, FaMobileAlt, FaLink, FaMousePointer } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase, FaPercentage, FaFunnelDollar, FaArrowUp, FaHeart, FaUserClock, FaThermometerHalf, FaGlobe, FaDesktop, FaMobileAlt, FaLink, FaMousePointer } from 'react-icons/fa';
 
 import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';

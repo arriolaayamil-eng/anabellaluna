@@ -8,7 +8,7 @@ import { api } from '../config/api';
 
 const FechasImportantes = () => {
   const navigate = useNavigate();
-  const { currentMode, currentColor } = useStateContext();
+  const { currentMode } = useStateContext();
   const [fechas, setFechas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

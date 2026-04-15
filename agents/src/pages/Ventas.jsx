@@ -8,7 +8,7 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const Ventas = () => {
-  const { currentMode, currentColor } = useStateContext();
+  const { currentMode } = useStateContext();
 
   // Estados para los modales
   const [showModalVenta, setShowModalVenta] = useState(false);

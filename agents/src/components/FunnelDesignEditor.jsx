@@ -190,7 +190,7 @@ const FunnelDesignEditor = ({ value = {}, onChange, previewTitle = '', previewCo
   }, [settings, onChange]);
 
   const bgType = settings.heroBackgroundType || 'gradient';
-  const pattern = settings.heroBackgroundPattern || { type: 'dots', primaryColor: '#0f172a', patternColor: '#ffffff', size: 20, opacity: 0.15 };
+  const pattern = useMemo(() => settings.heroBackgroundPattern || { type: 'dots', primaryColor: '#0f172a', patternColor: '#ffffff', size: 20, opacity: 0.15 }, [settings.heroBackgroundPattern]);
 
   const setPattern = useCallback((patch) => {
     set({ heroBackgroundPattern: { ...pattern, ...patch } });

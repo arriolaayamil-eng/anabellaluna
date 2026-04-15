@@ -2,11 +2,11 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
 import {
-  FaTasks, FaPlus, FaTrash, FaEdit, FaEye, FaTimes, FaSave, FaUser,
+  FaTasks, FaPlus, FaTrash, FaEdit, FaEye, FaTimes, FaSave,
   FaExclamationTriangle, FaClock, FaCheckCircle, FaArrowLeft, FaComment,
-  FaCalendarAlt, FaList, FaColumns, FaChartBar, FaSearch,
-  FaFilter, FaFlag, FaCheck, FaPaperPlane, FaHistory,
-  FaExclamationCircle, FaBan, FaClipboardList, FaAngleRight,
+  FaCalendarAlt, FaList, FaColumns, FaSearch,
+  FaFlag, FaCheck, FaPaperPlane, FaHistory,
+  FaBan, FaClipboardList, FaAngleRight,
   FaChevronLeft, FaChevronRight,
 } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
@@ -54,7 +54,7 @@ const Tareas = ({ embedded = false }) => {
 
   const [loading, setLoading] = useState(false);
   const [tareas, setTareas] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [, setStats] = useState(null);
   const [columns, setColumns] = useState([]);
   const [kanbanData, setKanbanData] = useState({});
 
@@ -80,7 +80,6 @@ const Tareas = ({ embedded = false }) => {
   // kanban mobile carousel
   const kanbanRef = useRef(null);
   const [activeColIdx, setActiveColIdx] = useState(0);
-  const touchStart = useRef(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {

@@ -2,9 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaList, FaPlus, FaTrash, FaChartLine, FaArrowUp, FaArrowDown, FaPercentage, FaCalendarAlt, FaGripVertical, FaEdit, FaMapMarkerAlt, FaTasks, FaExclamationCircle } from 'react-icons/fa';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaChartLine, FaArrowUp, FaPercentage, FaCalendarAlt, FaTasks, FaExclamationCircle } from 'react-icons/fa';
 
-import { confirmToast } from '../utils/confirmToast';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { Tareas } from './Tareas';

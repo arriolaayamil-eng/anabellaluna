@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
-import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaArrowLeft, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaArrowUp } from 'react-icons/fa';
+import { FaUserPlus, FaUser, FaStar, FaUsers, FaDollarSign, FaHome, FaMapMarkerAlt, FaShieldAlt, FaTimes, FaSave, FaThLarge, FaEdit, FaTrash, FaPhone, FaEnvelope, FaCalendar, FaChartLine, FaTrophy, FaBriefcase, FaArrowUp } from 'react-icons/fa';
 import { ChartComponent, SeriesCollectionDirective, SeriesDirective, Inject, LineSeries, Category, Tooltip, Legend, DataLabel } from '@syncfusion/ej2-react-charts';
 import { GridComponent, ColumnsDirective, ColumnDirective, Page, Sort, Inject as GridInject } from '@syncfusion/ej2-react-grids';
 

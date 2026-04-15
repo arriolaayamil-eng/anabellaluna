@@ -4,7 +4,7 @@ import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const ChatInterno = () => {
-  const { currentColor, setIsClicked, initialState } = useStateContext();
+  const { currentColor } = useStateContext();
   const [mensajeNuevo, setMensajeNuevo] = useState('');
   const [chatActivo, setChatActivo] = useState(null);
   const [conversaciones, setConversaciones] = useState([]);
