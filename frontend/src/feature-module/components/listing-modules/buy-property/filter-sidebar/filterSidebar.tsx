@@ -10,6 +10,8 @@ export interface PropertyFilters {
   minPrice?: number;
   maxPrice?: number;
   type?: string;
+  sort?: 'price_asc' | 'price_desc';
+  featured?: boolean;
 }
 
 interface FilterSidebarProps {

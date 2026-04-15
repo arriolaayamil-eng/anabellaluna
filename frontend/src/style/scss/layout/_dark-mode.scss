@@ -16,6 +16,31 @@
         .menu-logo-dark {
             display: block;
         }
+        &.header-hero.fixed {
+            background: rgba(10, 20, 40, 0.95) !important;
+            background-color: rgba(10, 20, 40, 0.95) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 2px 24px rgba(0,0,0,0.25) !important;
+            @include respond-above(lg) {
+                .header-nav .main-nav > li > a {
+                    color: #fff !important;
+                }
+            }
+            #mobile_btn {
+                color: #fff !important;
+            }
+            .navbar-header {
+                .logo { display: none !important; }
+                .logo-dark { display: block !important; }
+            }
+            .header-items .btn.topbar-link,
+            .header-items .topbar-link {
+                background: rgba(255,255,255,0.1) !important;
+                color: #fff !important;
+                i { color: #fff !important; }
+            }
+        }
     }
     .home-banner-two {
         background: #0d1520;

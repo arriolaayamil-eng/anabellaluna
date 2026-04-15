@@ -99,6 +99,7 @@ if should_run "admin"; then
   ok "Dependencias admin instaladas"
 
   log "🏗️  Admin (ERP) — Compilando..."
+  [ -d "$PROJECT_DIR/admin/build" ] && chmod -R u+w "$PROJECT_DIR/admin/build" 2>/dev/null || true
   NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
   ok "Admin build completado"
 fi
@@ -111,6 +112,7 @@ if should_run "agents"; then
   ok "Dependencias agents instaladas"
 
   log "🏗️  Agents (CRM) — Compilando..."
+  [ -d "$PROJECT_DIR/agents/build" ] && chmod -R u+w "$PROJECT_DIR/agents/build" 2>/dev/null || true
   NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
   ok "Agents build completado"
 fi
@@ -123,6 +125,8 @@ if should_run "frontend"; then
   ok "Dependencias frontend instaladas"
 
   log "🏗️  Frontend (Público) — Compilando..."
+  [ -d "$PROJECT_DIR/frontend/dist" ] && chmod -R u+w "$PROJECT_DIR/frontend/dist" 2>/dev/null || true
+  [ -d "$PROJECT_DIR/frontend/node_modules/.tmp" ] && chmod -R u+w "$PROJECT_DIR/frontend/node_modules/.tmp" 2>/dev/null || true
   NODE_ENV=production npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
   ok "Frontend build completado"
 fi

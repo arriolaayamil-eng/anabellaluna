@@ -436,7 +436,7 @@ router.get('/agents/:id', async (req, res) => {
 // Properties
 router.get('/properties', async (req, res) => {
   try {
-    const { operation, city, beds, baths, minPrice, maxPrice, type, search } = req.query;
+    const { operation, city, beds, baths, minPrice, maxPrice, type, search, sort, featured } = req.query;
     const op = String(operation || '').toLowerCase();
 
     const filter = {};
@@ -472,7 +472,13 @@ router.get('/properties', async (req, res) => {
     }
 
     filter.published = { $ne: false };
-    const props = await Propiedad.find(filter).sort({ updatedAt: -1 }).limit(200).lean();
+    if (featured === 'true' || featured === '1') {
+      filter['metadata.destacado'] = true;
+    }
+    let sortObj = { updatedAt: -1 };
+    if (sort === 'price_asc') sortObj = { 'metadata.precio': 1, price: 1 };
+    else if (sort === 'price_desc') sortObj = { 'metadata.precio': -1, price: -1 };
+    const props = await Propiedad.find(filter).sort(sortObj).limit(200).lean();
 
     const agentIds = Array.from(new Set(props.map((p) => String(p.agentId || '')).filter(Boolean)));
     const agents = agentIds.length ? await Agente.find({ _id: { $in: agentIds } }).lean() : [];

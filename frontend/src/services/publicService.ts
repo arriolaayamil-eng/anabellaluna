@@ -110,6 +110,8 @@ export const publicService = {
     maxPrice?: number;
     type?: string;
     search?: string;
+    sort?: 'price_asc' | 'price_desc';
+    featured?: boolean;
   }) => {
     const params = new URLSearchParams();
     if (operation) params.set('operation', operation);
@@ -121,6 +123,8 @@ export const publicService = {
       if (filters.maxPrice) params.set('maxPrice', String(filters.maxPrice));
       if (filters.type) params.set('type', filters.type);
       if (filters.search) params.set('search', filters.search);
+      if (filters.sort) params.set('sort', filters.sort);
+      if (filters.featured) params.set('featured', 'true');
     }
     const query = params.toString() ? `?${params.toString()}` : '';
     return api.get(`/public/properties${query}`) as Promise<{ items: PropertyCard[] }>;
