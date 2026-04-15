@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiShield, FiArrowLeft } from 'react-icons/fi';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
 import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria, EditorImagenes, Tasaciones } from './pages';
+import Seguridad from './pages/Seguridad';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
@@ -23,6 +24,14 @@ const App = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showLoginOverlay, setShowLoginOverlay] = useState(false);
 
+  // 2FA login step
+  const [twoFactorToken, setTwoFactorToken] = useState(null);
+  const [tfaCode, setTfaCode] = useState('');
+  const [tfaRecoveryMode, setTfaRecoveryMode] = useState(false);
+  const [tfaError, setTfaError] = useState('');
+  const [tfaLoading, setTfaLoading] = useState(false);
+  const tfaInputRef = useRef(null);
+
   useEffect(() => {
     const currentThemeColor = localStorage.getItem('colorMode');
     const currentThemeMode = localStorage.getItem('themeMode');
@@ -39,6 +48,19 @@ const App = () => {
     setLoginStatus('loading');
     try {
       const resp = await authService.login(loginForm.username, loginForm.password);
+
+      // 2FA required — show TOTP verification step
+      if (resp.requiresTwoFactor) {
+        setTwoFactorToken(resp.twoFactorToken);
+        setTfaCode('');
+        setTfaError('');
+        setTfaRecoveryMode(false);
+        setLoginStatus('idle');
+        setLoggingIn(false);
+        setTimeout(() => tfaInputRef.current?.focus(), 100);
+        return;
+      }
+
       const token = resp?.token;
       if (!token) throw new Error('invalid credentials');
       setLoginStatus('success');
@@ -58,6 +80,50 @@ const App = () => {
     } finally {
       setLoggingIn(false);
     }
+  };
+
+  const handle2FAVerify = useCallback(async (e) => {
+    e && e.preventDefault();
+    if (tfaLoading) return;
+    setTfaError('');
+    setTfaLoading(true);
+    try {
+      let resp;
+      if (tfaRecoveryMode) {
+        resp = await authService.useRecoveryCode(twoFactorToken, tfaCode);
+      } else {
+        resp = await authService.verify2FALogin(twoFactorToken, tfaCode);
+      }
+      const token = resp?.token;
+      if (!token) throw new Error('Verificación fallida');
+      setLoginStatus('success');
+      setShowLoginOverlay(true);
+      await new Promise((resolve) => { setTimeout(resolve, 2500); });
+      setAuthToken(token);
+      setTwoFactorToken(null);
+    } catch (err) {
+      const raw = err?.message || 'Código inválido';
+      const normalized = String(raw).toLowerCase();
+      let message;
+      if (normalized.includes('expired') || normalized.includes('expirad')) {
+        message = 'Sesión expirada. Por favor, ingresá de nuevo.';
+        setTwoFactorToken(null);
+      } else if (normalized.includes('locked') || normalized.includes('bloqueada') || normalized.includes('too many')) {
+        message = raw;
+      } else {
+        message = tfaRecoveryMode ? 'Código de recuperación inválido.' : 'Código incorrecto. Intentá de nuevo.';
+      }
+      setTfaError(message);
+    } finally {
+      setTfaLoading(false);
+    }
+  }, [tfaCode, tfaLoading, tfaRecoveryMode, twoFactorToken]);
+
+  const handleBack2FA = () => {
+    setTwoFactorToken(null);
+    setTfaCode('');
+    setTfaError('');
+    setTfaRecoveryMode(false);
   };
 
   if (!authToken) {
@@ -89,10 +155,12 @@ const App = () => {
               <div className="al-fade-up" style={{ animationDelay: '160ms' }}>
                 <div className={`al-left-copy ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
                   <h2 className="text-3xl font-extrabold tracking-tight al-left-title">
-                    Bienvenido al ERP
+                    {twoFactorToken ? 'Verificación de seguridad' : 'Bienvenido al ERP'}
                   </h2>
                   <p className={`mt-2 text-sm leading-relaxed ${currentMode === 'Dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                    Gestión ejecutiva, finanzas y rendimiento del equipo.
+                    {twoFactorToken
+                      ? 'Ingresá el código de tu aplicación de autenticación.'
+                      : 'Gestión ejecutiva, finanzas y rendimiento del equipo.'}
                   </p>
                 </div>
               </div>
@@ -105,6 +173,93 @@ const App = () => {
             </div>
 
             <div className={`p-6 sm:p-8 md:p-10 ${currentMode === 'Dark' ? 'bg-secondary-dark-bg' : 'bg-white'}`}>
+              {/* ── 2FA Verification Step ── */}
+              {twoFactorToken ? (
+                <form
+                  onSubmit={handle2FAVerify}
+                  className={`al-login-card ${tfaError ? 'al-shake' : ''}`}
+                  autoComplete="off"
+                >
+                  <div className="flex items-center gap-3 al-fade-up" style={{ animationDelay: '60ms' }}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${currentMode === 'Dark' ? 'bg-indigo-500/20' : 'bg-indigo-50'}`}>
+                      <FiShield size={24} className="text-indigo-500" />
+                    </div>
+                    <div>
+                      <h1 className={`text-xl font-bold ${currentMode === 'Dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {tfaRecoveryMode ? 'Código de recuperación' : 'Verificación 2FA'}
+                      </h1>
+                      <p className={`text-sm ${currentMode === 'Dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {tfaRecoveryMode
+                          ? 'Ingresá uno de tus códigos de recuperación.'
+                          : 'Ingresá el código de 6 dígitos de tu app.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 al-fade-up" style={{ animationDelay: '120ms' }}>
+                    <input
+                      ref={tfaInputRef}
+                      type="text"
+                      inputMode={tfaRecoveryMode ? 'text' : 'numeric'}
+                      maxLength={tfaRecoveryMode ? 10 : 6}
+                      value={tfaCode}
+                      onChange={(e) => {
+                        setTfaCode(e.target.value);
+                        if (tfaError) setTfaError('');
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border text-center text-2xl font-mono tracking-[0.3em] focus:outline-none focus:ring-2 ${
+                        tfaError
+                          ? 'border-red-300 focus:ring-red-300 dark:border-red-500/40'
+                          : 'border-gray-200 focus:ring-indigo-500 dark:border-gray-700/70'
+                      } ${currentMode === 'Dark' ? 'bg-gray-900/40 text-gray-100' : 'bg-white text-gray-900'}`}
+                      placeholder={tfaRecoveryMode ? 'XXXX-XXXX' : '000000'}
+                      autoFocus
+                      required
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <div className={`al-login-alert ${tfaError ? 'al-alert-in' : ''}`} aria-live="polite">
+                      {tfaError}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={tfaLoading || !tfaCode}
+                    className={`mt-4 w-full px-4 py-3 rounded-xl font-semibold text-white al-login-btn ${tfaLoading ? 'opacity-80' : ''}`}
+                    aria-busy={tfaLoading}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      {tfaLoading && <span className="al-spinner" />}
+                      {tfaLoading ? 'Verificando...' : 'Verificar'}
+                    </span>
+                  </button>
+
+                  <div className="mt-4 flex items-center justify-between al-fade-up" style={{ animationDelay: '180ms' }}>
+                    <button
+                      type="button"
+                      onClick={handleBack2FA}
+                      className={`flex items-center gap-1 text-sm ${currentMode === 'Dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <FiArrowLeft size={14} /> Volver
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTfaRecoveryMode((v) => !v);
+                        setTfaCode('');
+                        setTfaError('');
+                        setTimeout(() => tfaInputRef.current?.focus(), 50);
+                      }}
+                      className={`text-sm font-medium ${currentMode === 'Dark' ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}
+                    >
+                      {tfaRecoveryMode ? 'Usar código TOTP' : 'Usar código de recuperación'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+              /* ── Normal Login Form ── */
               <form
                 onSubmit={handleLogin}
                 className={`al-login-card ${loginStatus === 'error' ? 'al-shake' : ''} ${loginStatus === 'success' ? 'al-success' : ''}`}
@@ -203,6 +358,7 @@ const App = () => {
                   © {new Date().getFullYear()} Anabella Luna · ERP
                 </div>
               </form>
+              )}
             </div>
           </div>
         </div>
@@ -247,6 +403,7 @@ const App = () => {
                 <Route path="/integraciones" element={<Integraciones />} />
                 <Route path="/configuracion" element={<Configuracion />} />
                 <Route path="/perfil" element={<MiPerfil />} />
+                <Route path="/seguridad" element={<Seguridad />} />
                 <Route path="/recompensas" element={<Recompensas />} />
                 <Route path="/mensajeria" element={<Mensajeria />} />
                 <Route path="/tasaciones" element={<Tasaciones />} />

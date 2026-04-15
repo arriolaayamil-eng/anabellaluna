@@ -14,6 +14,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
 import { AgentDashboard, Propiedades, ClientesCRM, Citas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes, EditorImagenes, Tasaciones } from './pages';
 import LoginAgente from './pages/LoginAgente';
+import Seguridad from './pages/Seguridad';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
@@ -158,6 +159,7 @@ const App = () => {
           <Route path="consultas" element={<Consultas />} />
           <Route path="integraciones" element={<Integraciones />} />
           <Route path="perfil" element={<MiPerfil />} />
+          <Route path="seguridad" element={<Seguridad />} />
           <Route path="recompensas" element={<Recompensas />} />
           <Route path="automatizacion" element={<Automatizacion />} />
           <Route path="fechas-importantes" element={<FechasImportantes />} />

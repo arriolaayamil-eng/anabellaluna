@@ -56,7 +56,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
       if (response.status === 401) {
         const ep = String(endpoint || '');
-        const isAuthFlow = ep.startsWith('/auth/login') || ep.startsWith('/auth/register');
+        const isAuthFlow = ep.startsWith('/auth/login') || ep.startsWith('/auth/register') || ep.startsWith('/auth/2fa/');
         if (!isAuthFlow) {
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');

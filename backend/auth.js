@@ -283,6 +283,17 @@ router.post('/login', async (req, res) => {
 
 
 
+    // ── 2FA check: if enabled, return temp token instead of full session ──
+    if (user.twoFactorEnabled) {
+      // Lazy-require to avoid circular dependency at module load
+      const { signTempToken } = require('./routes/twoFactor');
+      const twoFactorToken = signTempToken(user);
+      return res.json({
+        requiresTwoFactor: true,
+        twoFactorToken,
+      });
+    }
+
     const token = signToken(user);
 
     res.json({ token });

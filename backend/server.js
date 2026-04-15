@@ -52,6 +52,8 @@ const User = require('./models/User');
 
 const { router: authRouter, authenticateToken, agentScopeId } = require('./auth');
 
+const { router: twoFactorRouter } = require('./routes/twoFactor');
+
 const crmRoutes = require('./routes/crm');
 
 const auditRoutes = require('./routes/audit');
@@ -210,6 +212,8 @@ try {
 // Auth routes
 
 app.use('/auth', authRouter);
+
+app.use('/auth/2fa', twoFactorRouter);
 
 app.use('/public', publicRoutes);
 
