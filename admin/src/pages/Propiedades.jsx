@@ -245,6 +245,7 @@ const Propiedades = () => {
     partidaInmobiliaria: '',
     estado: 'Disponible',
     descripcion: '',
+    comentariosInternos: '',
     amenities: [],
     videoUrls: [],
     agente: '',
@@ -311,6 +312,7 @@ const Propiedades = () => {
       partidaInmobiliaria: '',
       estado: 'Disponible',
       descripcion: '',
+      comentariosInternos: '',
       amenities: [],
       videoUrls: [],
       agente: '',
@@ -375,6 +377,7 @@ const Propiedades = () => {
       partidaInmobiliaria: prop.partidaInmobiliaria || '',
       estado: prop.estado || 'Disponible',
       descripcion: prop.descripcion || '',
+      comentariosInternos: prop.comentariosInternos || '',
       amenities: Array.isArray(prop.amenities) ? prop.amenities : [],
       videoUrls: Array.isArray(prop.videoUrls) ? prop.videoUrls : [],
       agente: prop.adminId && !prop.agenteId ? `admin:${prop.adminId}` : (prop.agenteId || ''),
@@ -607,6 +610,7 @@ const Propiedades = () => {
             lat: meta.lat != null ? Number(meta.lat) : null,
             lng: meta.lng != null ? Number(meta.lng) : null,
             descripcion: p.description || meta.descripcion || '',
+            comentariosInternos: meta.comentariosInternos || '',
             amenities: Array.isArray(meta.amenities) ? meta.amenities : [],
             videoUrls: Array.isArray(meta.videoUrls)
               ? meta.videoUrls
@@ -942,6 +946,7 @@ const Propiedades = () => {
           partidaInmobiliaria: nuevaPropiedad.partidaInmobiliaria,
           estado: nuevaPropiedad.estado,
           descripcion: nuevaPropiedad.descripcion,
+          comentariosInternos: nuevaPropiedad.comentariosInternos,
           amenities: nuevaPropiedad.amenities,
           videoUrls: Array.isArray(nuevaPropiedad.videoUrls) ? nuevaPropiedad.videoUrls : [],
           agenteId: rawAgentId,
@@ -980,6 +985,7 @@ const Propiedades = () => {
         lat: payload.metadata.lat || null,
         lng: payload.metadata.lng || null,
         descripcion: saved.description || payload.metadata.descripcion,
+        comentariosInternos: payload.metadata.comentariosInternos || '',
         amenities: payload.metadata.amenities,
         videoUrls: payload.metadata.videoUrls,
         agente: payload.metadata.agenteNombre,
@@ -2683,6 +2689,24 @@ const Propiedades = () => {
                       placeholder="Descripción detallada de la propiedad..."
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     />
+                  </div>
+
+                  {/* Comentarios Internos */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      Comentarios Internos
+                    </label>
+                    <textarea
+                      name="comentariosInternos"
+                      value={nuevaPropiedad.comentariosInternos}
+                      onChange={handleInputChange}
+                      rows="3"
+                      placeholder="Notas internas visibles solo para el agente asignado..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Estos comentarios son privados y solo visibles para el agente asignado a esta propiedad.
+                    </p>
                   </div>
 
                   {/* Amenities */}
