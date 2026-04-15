@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 # ═══════════════════════════════════════════════════════════
 #  AnabellaLuna — Script de Deploy Completo
@@ -74,11 +74,17 @@ git stash --include-untracked 2>/dev/null || true
 git pull origin main || fail "git pull falló"
 ok "Código actualizado"
 
+# ── 1b. Fix permisos ───────────────────────────────────────────
+log "🔐 Corrigiendo permisos de archivos..."
+sudo chown -R $(whoami):$(whoami) "$PROJECT_DIR" 2>/dev/null || warn "chown falló (puede requerir sudo sin password)"
+chmod -R u+w "$PROJECT_DIR" 2>/dev/null || true
+ok "Permisos corregidos"
+
 # ── 2. Backend ───────────────────────────────────────────────
 if should_run "backend"; then
   log "🔧 Backend — Instalando dependencias..."
   cd "$PROJECT_DIR/backend"
-  NODE_ENV=production npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci backend falló"
   ok "Dependencias del backend instaladas"
 
   log "🔄 Backend — Reiniciando con PM2..."
@@ -95,12 +101,11 @@ fi
 if should_run "admin"; then
   log "🏗️  Admin (ERP) — Instalando dependencias..."
   cd "$PROJECT_DIR/admin"
-  NODE_ENV=development npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci admin falló"
   ok "Dependencias admin instaladas"
 
   log "🏗️  Admin (ERP) — Compilando..."
-  [ -d "$PROJECT_DIR/admin/build" ] && chmod -R u+w "$PROJECT_DIR/admin/build" 2>/dev/null || true
-  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
+  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tee -a "$LOGFILE" || fail "Admin build falló"
   ok "Admin build completado"
 fi
 
@@ -108,12 +113,11 @@ fi
 if should_run "agents"; then
   log "🏗️  Agents (CRM) — Instalando dependencias..."
   cd "$PROJECT_DIR/agents"
-  NODE_ENV=development npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci agents falló"
   ok "Dependencias agents instaladas"
 
   log "🏗️  Agents (CRM) — Compilando..."
-  [ -d "$PROJECT_DIR/agents/build" ] && chmod -R u+w "$PROJECT_DIR/agents/build" 2>/dev/null || true
-  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
+  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tee -a "$LOGFILE" || fail "Agents build falló"
   ok "Agents build completado"
 fi
 
@@ -121,13 +125,11 @@ fi
 if should_run "frontend"; then
   log "🏗️  Frontend (Público) — Instalando dependencias..."
   cd "$PROJECT_DIR/frontend"
-  NODE_ENV=development npm ci --no-audit --no-fund 2>&1 | tail -1 | tee -a "$LOGFILE"
+  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci frontend falló"
   ok "Dependencias frontend instaladas"
 
   log "🏗️  Frontend (Público) — Compilando..."
-  [ -d "$PROJECT_DIR/frontend/dist" ] && chmod -R u+w "$PROJECT_DIR/frontend/dist" 2>/dev/null || true
-  [ -d "$PROJECT_DIR/frontend/node_modules/.tmp" ] && chmod -R u+w "$PROJECT_DIR/frontend/node_modules/.tmp" 2>/dev/null || true
-  NODE_ENV=production npm run build 2>&1 | tail -5 | tee -a "$LOGFILE"
+  NODE_ENV=production npm run build 2>&1 | tee -a "$LOGFILE" || fail "Frontend build falló"
   ok "Frontend build completado"
 fi
 
