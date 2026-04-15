@@ -84,7 +84,7 @@ ok "Permisos corregidos"
 if should_run "backend"; then
   log "🔧 Backend — Instalando dependencias..."
   cd "$PROJECT_DIR/backend"
-  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci backend falló"
+  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install backend falló"
   ok "Dependencias del backend instaladas"
 
   log "🔄 Backend — Reiniciando con PM2..."
@@ -101,7 +101,7 @@ fi
 if should_run "admin"; then
   log "🏗️  Admin (ERP) — Instalando dependencias..."
   cd "$PROJECT_DIR/admin"
-  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci admin falló"
+  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install admin falló"
   ok "Dependencias admin instaladas"
 
   log "🏗️  Admin (ERP) — Compilando..."
@@ -113,7 +113,7 @@ fi
 if should_run "agents"; then
   log "🏗️  Agents (CRM) — Instalando dependencias..."
   cd "$PROJECT_DIR/agents"
-  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci agents falló"
+  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install agents falló"
   ok "Dependencias agents instaladas"
 
   log "🏗️  Agents (CRM) — Compilando..."
@@ -125,7 +125,7 @@ fi
 if should_run "frontend"; then
   log "🏗️  Frontend (Público) — Instalando dependencias..."
   cd "$PROJECT_DIR/frontend"
-  npm ci --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm ci frontend falló"
+  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install frontend falló"
   ok "Dependencias frontend instaladas"
 
   log "🏗️  Frontend (Público) — Compilando..."
