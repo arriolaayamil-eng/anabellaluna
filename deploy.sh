@@ -14,6 +14,9 @@ set -eo pipefail
 PROJECT_DIR="/var/www/anabella"
 LOGFILE="$PROJECT_DIR/deploy.log"
 
+# Toda la salida (stdout+stderr) va a la terminal Y al log
+exec > >(tee -a "$LOGFILE") 2>&1
+
 # Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,32 +24,22 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-log()  { echo -e "${CYAN}[$(date '+%H:%M:%S')]${NC} $1" | tee -a "$LOGFILE"; }
-ok()   { echo -e "${GREEN}  ✔ $1${NC}" | tee -a "$LOGFILE"; }
-warn() { echo -e "${YELLOW}  ⚠ $1${NC}" | tee -a "$LOGFILE"; }
-fail() { echo -e "${RED}  ✖ $1${NC}" | tee -a "$LOGFILE"; exit 1; }
+log()  { echo -e "${CYAN}[$(date '+%H:%M:%S')]${NC} $1"; }
+ok()   { echo -e "${GREEN}  ✔ $1${NC}"; }
+warn() { echo -e "${YELLOW}  ⚠ $1${NC}"; }
+fail() { echo -e "${RED}  ✖ $1${NC}"; exit 1; }
 
 # ── Parsear argumentos ──────────────────────────────────────
 SKIP_FRONTEND=false
 ONLY=""
-for arg in "$@"; do
-  case $arg in
-    --skip-frontend) SKIP_FRONTEND=true ;;
-    --only)          shift; ONLY="$1" ;;
-    backend|admin|agents|frontend)
-      if [ "$ONLY" = "" ] && [ "${prev_arg}" = "--only" ]; then
-        ONLY="$arg"
-      fi
-      ;;
-  esac
-  prev_arg="$arg"
-done
-
-# Corregir --only parsing
 for i in "$@"; do
   if [ "$prev" = "--only" ]; then
     ONLY="$i"
   fi
+  case $i in
+    --skip-frontend) SKIP_FRONTEND=true ;;
+    --only) ;;
+  esac
   prev="$i"
 done
 
@@ -62,7 +55,7 @@ should_run() {
 }
 
 # ══════════════════════════════════════════════════════════════
-echo "" | tee -a "$LOGFILE"
+echo ""
 log "═══════════════════════════════════════════════════"
 log "  DEPLOY AnabellaLuna — $(date '+%Y-%m-%d %H:%M:%S')"
 log "═══════════════════════════════════════════════════"
@@ -84,14 +77,14 @@ ok "Permisos corregidos"
 if should_run "backend"; then
   log "🔧 Backend — Instalando dependencias..."
   cd "$PROJECT_DIR/backend"
-  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install backend falló"
+  npm install --no-audit --no-fund || fail "npm install backend falló"
   ok "Dependencias del backend instaladas"
 
   log "🔄 Backend — Reiniciando con PM2..."
   if pm2 describe backend > /dev/null 2>&1; then
-    pm2 restart backend --update-env 2>&1 | tee -a "$LOGFILE"
+    pm2 restart backend --update-env
   else
-    pm2 start server.js --name backend --cwd "$PROJECT_DIR/backend" 2>&1 | tee -a "$LOGFILE"
+    pm2 start server.js --name backend --cwd "$PROJECT_DIR/backend"
   fi
   pm2 save 2>/dev/null
   ok "Backend reiniciado"
@@ -101,11 +94,11 @@ fi
 if should_run "admin"; then
   log "🏗️  Admin (ERP) — Instalando dependencias..."
   cd "$PROJECT_DIR/admin"
-  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install admin falló"
+  npm install --no-audit --no-fund || fail "npm install admin falló"
   ok "Dependencias admin instaladas"
 
   log "🏗️  Admin (ERP) — Compilando..."
-  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tee -a "$LOGFILE" || fail "Admin build falló"
+  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build || fail "Admin build falló"
   ok "Admin build completado"
 fi
 
@@ -113,11 +106,11 @@ fi
 if should_run "agents"; then
   log "🏗️  Agents (CRM) — Instalando dependencias..."
   cd "$PROJECT_DIR/agents"
-  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install agents falló"
+  npm install --no-audit --no-fund || fail "npm install agents falló"
   ok "Dependencias agents instaladas"
 
   log "🏗️  Agents (CRM) — Compilando..."
-  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build 2>&1 | tee -a "$LOGFILE" || fail "Agents build falló"
+  NODE_ENV=production DISABLE_ESLINT_PLUGIN=true npm run build || fail "Agents build falló"
   ok "Agents build completado"
 fi
 
@@ -125,25 +118,25 @@ fi
 if should_run "frontend"; then
   log "🏗️  Frontend (Público) — Instalando dependencias..."
   cd "$PROJECT_DIR/frontend"
-  npm install --no-audit --no-fund 2>&1 | tee -a "$LOGFILE" || fail "npm install frontend falló"
+  npm install --no-audit --no-fund || fail "npm install frontend falló"
   ok "Dependencias frontend instaladas"
 
   log "🏗️  Frontend (Público) — Compilando..."
-  NODE_ENV=production npm run build 2>&1 | tee -a "$LOGFILE" || fail "Frontend build falló"
+  NODE_ENV=production npm run build || fail "Frontend build falló"
   ok "Frontend build completado"
 fi
 
 # ── 6. Resumen ───────────────────────────────────────────────
-echo "" | tee -a "$LOGFILE"
+echo ""
 log "═══════════════════════════════════════════════════"
 log "  ✅ DEPLOY COMPLETADO — $(date '+%H:%M:%S')"
 log "═══════════════════════════════════════════════════"
 
 if should_run "backend"; then
-  echo "" | tee -a "$LOGFILE"
+  echo ""
   log "Estado PM2:"
-  pm2 list | tee -a "$LOGFILE"
+  pm2 list
 fi
 
-echo "" | tee -a "$LOGFILE"
+echo ""
 log "Log guardado en: $LOGFILE"
