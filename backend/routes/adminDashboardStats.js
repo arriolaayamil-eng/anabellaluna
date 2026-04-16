@@ -7,6 +7,7 @@ const Operacion = require('../models/Operacion');
 const Activity = require('../models/Activity');
 const Agente = require('../models/Agente');
 const AgentMetrics = require('../models/AgentMetrics');
+const ClientInteraction = require('../models/ClientInteraction');
 const {
   authenticateToken,
   requireRole,
@@ -305,6 +306,24 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
     const consultasTotal = await Activity.countDocuments({ type: { $in: ['enquiry', 'visit_scheduled'] } });
     const clientesNuevosMes = allClientes.filter(c => new Date(c.createdAt) >= thisMonthStart).length;
 
+    // ── Interaction metrics ──
+    const totalInteractions = await ClientInteraction.countDocuments({});
+    const interactionsThisMonth = await ClientInteraction.countDocuments({ createdAt: { $gte: thisMonthStart } });
+    const interactionsLastMonth = await ClientInteraction.countDocuments({ createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } });
+    const interactionsByType = await ClientInteraction.aggregate([
+      { $group: { _id: '$tipo', count: { $sum: 1 } } },
+    ]);
+    const interactionTypeCounts = {};
+    interactionsByType.forEach(r => { interactionTypeCounts[r._id] = r.count; });
+
+    // Clients with expired lifebar (need recontact)
+    const LIFEBAR_DAYS = 7;
+    const lifebarThreshold = new Date(now.getTime() - LIFEBAR_DAYS * 24 * 60 * 60 * 1000);
+    const clientesRequiringRecontact = allClientes.filter(c => {
+      const lastAct = c.metadata?.ultimaActividad ? new Date(c.metadata.ultimaActividad) : new Date(c.createdAt);
+      return lastAct < lifebarThreshold;
+    }).length;
+
     // Avg response time from AgentMetrics
     const allMetrics = await AgentMetrics.find({ period: 'monthly' }).sort({ periodStart: -1 }).limit(allAgentes.length).lean();
     const avgResponseTime = allMetrics.length > 0
@@ -375,6 +394,14 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
       teamMetrics,
       // ── Recent activities ──
       actividades: actividadesRecientes,
+      // ── Interaction metrics ──
+      interactionMetrics: {
+        total: totalInteractions,
+        thisMes: interactionsThisMonth,
+        changeMes: pctChange(interactionsThisMonth, interactionsLastMonth),
+        byType: interactionTypeCounts,
+        clientesRequiringRecontact,
+      },
       // ── Footer stats ──
       footerStats: {
         consultasTotal,

@@ -345,7 +345,16 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
 
       const emails = actividadesPorTipo.find(a => a._id === 'email')?.count || 0;
 
-      
+      // ClientInteraction metrics
+      const ClientInteraction = require('../models/ClientInteraction');
+      const totalInteractions = await ClientInteraction.countDocuments({ agenteId: String(agenteId) }).catch(() => 0);
+      const interactionsMes = await ClientInteraction.countDocuments({ agenteId: String(agenteId), createdAt: { $gte: inicioMes } }).catch(() => 0);
+      const interactionsByType = await ClientInteraction.aggregate([
+        { $match: { agenteId: String(agenteId) } },
+        { $group: { _id: '$tipo', count: { $sum: 1 } } },
+      ]).catch(() => []);
+      const interactionTypes = {};
+      interactionsByType.forEach(r => { interactionTypes[r._id] = r.count; });
 
       // Generate a consistent color based on agent name
 
@@ -388,6 +397,10 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
           rating,
 
           satisfaccion,
+
+          totalInteractions,
+          interactionsMes,
+          interactionTypes,
 
         },
 

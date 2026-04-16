@@ -5,6 +5,7 @@ const Tarea = require('../models/Tarea');
 const Cita = require('../models/Cita');
 const Operacion = require('../models/Operacion');
 const Activity = require('../models/Activity');
+const ClientInteraction = require('../models/ClientInteraction');
 const {
   authenticateToken,
   agentScopeId,
@@ -282,6 +283,17 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
       ? `${tareasCompletedThisMonth >= tareasLastMonth ? '+' : ''}${Math.round(((tareasCompletedThisMonth - tareasLastMonth) / tareasLastMonth) * 100)}%`
       : '+0%';
 
+    // ── Interaction metrics ──
+    const interactionFilter = scopeId ? { agenteId: scopeId } : {};
+    const totalInteractions = await ClientInteraction.countDocuments(interactionFilter);
+    const interactionsThisMonth = await ClientInteraction.countDocuments({ ...interactionFilter, createdAt: { $gte: monthStart } });
+    const LIFEBAR_DAYS = 7;
+    const lifebarThreshold = new Date(now.getTime() - LIFEBAR_DAYS * 24 * 60 * 60 * 1000);
+    const clientesRequiringRecontact = allClientes.filter(c => {
+      const lastAct = (c.metadata && c.metadata.ultimaActividad) ? new Date(c.metadata.ultimaActividad) : new Date(c.createdAt);
+      return lastAct < lifebarThreshold;
+    }).length;
+
     // ── Origen stats for ClientesCRM ──
     const origenStats = {};
     allClientes.forEach(c => {
@@ -348,6 +360,11 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
       clientesNuevosMes,
       totalClientes: allClientes.length,
       topOrigen: topOrigen ? topOrigen[0] : 'Web',
+      interactionMetrics: {
+        total: totalInteractions,
+        thisMes: interactionsThisMonth,
+        clientesRequiringRecontact,
+      },
     });
   } catch (err) {
     console.error('Dashboard stats error:', err);

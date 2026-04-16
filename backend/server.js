@@ -112,6 +112,8 @@ const inmobiliariasRoutes = require('./routes/inmobiliarias');
 
 const pushRoutes = require('./routes/push');
 
+const clientInteractionsRoutes = require('./routes/clientInteractions');
+
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
@@ -254,6 +256,8 @@ app.use('/crm/notifications', notificationsRoutes);
 app.use('/crm/automations', automationsRoutes);
 
 app.use('/crm/fechas-importantes', fechasImportantesRoutes);
+
+app.use('/crm/client-interactions', clientInteractionsRoutes);
 
 app.use('/crm/stats', dashboardStatsRoutes);
 

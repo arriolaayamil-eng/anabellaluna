@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
-import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaTags, FaEnvelope, FaWhatsapp, FaPhone, FaBell, FaUsers, FaChartLine, FaFire, FaTimes, FaSave, FaUser, FaMapMarkerAlt, FaDollarSign, FaStar, FaCalendar, FaBuilding, FaHome, FaArrowLeft, FaEdit, FaTrash, FaHistory, FaComments, FaBriefcase, FaHeartbeat, FaClock, FaFileAlt } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
@@ -46,6 +46,12 @@ const ClientesCRM = () => {
   const [propSearch, setPropSearch] = useState('');
   const [interesInput, setInteresInput] = useState('');
   const [agentesOptions, setAgentesOptions] = useState([]);
+
+  // ── Lifebar + Interactions + Agents map ──
+  const [lifebars, setLifebars] = useState({});
+  const [agentesMap, setAgentesMap] = useState({});
+  const [clientInteractions, setClientInteractions] = useState([]);
+  const [searchCliente, setSearchCliente] = useState('');
 
   const createEmptyClienteForm = () => ({
     nombre: '',
@@ -245,6 +251,60 @@ const ClientesCRM = () => {
     }
   }, [clientesEjemplo]);
 
+  // Fetch lifebars + agentes map when clients load
+  useEffect(() => {
+    if (clientesEjemplo.length > 0) {
+      crmService.clientInteractions.bulkLifebars().then(data => {
+        if (data && typeof data === 'object') setLifebars(data);
+      }).catch(() => {});
+      crmService.agentes.getAll().then(data => {
+        const map = {};
+        (Array.isArray(data) ? data : []).forEach(a => { map[a._id || a.id] = a; });
+        setAgentesMap(map);
+      }).catch(() => {});
+    }
+  }, [clientesEjemplo]);
+
+  // Fetch interactions when detail view opens
+  useEffect(() => {
+    if (vistaActual === 'detalle' && clienteSeleccionado?.id) {
+      crmService.clientInteractions.list(clienteSeleccionado.id).then(data => {
+        setClientInteractions(Array.isArray(data) ? data : []);
+      }).catch(() => setClientInteractions([]));
+    }
+  }, [vistaActual, clienteSeleccionado?.id]);
+
+  const getLifebarColor = (pct) => {
+    if (pct > 60) return 'bg-emerald-500';
+    if (pct > 30) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getLifebarLabel = (lb) => {
+    if (!lb) return 'Sin datos';
+    if (lb.expired) return 'Expirado';
+    return `${lb.remaining}d restantes`;
+  };
+
+  const tipoInteraccionLabels = {
+    nota: 'Nota', recontacto: 'Recontacto', visita_agendada: 'Visita Agendada',
+    visita_realizada: 'Visita Realizada', propiedad_interes: 'Interés en Propiedad',
+    opcion_pago: 'Opción de Pago', preferencia: 'Preferencia',
+  };
+
+  const filteredClientes = useMemo(() => {
+    let list = clientesEjemplo;
+    if (filtroTipo !== 'todos') {
+      const key = filtroTipo.charAt(0).toUpperCase() + filtroTipo.slice(1);
+      list = list.filter(c => c.tipo === key);
+    }
+    if (searchCliente.trim()) {
+      const q = searchCliente.toLowerCase();
+      list = list.filter(c => (c.nombre || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q) || (c.telefono || '').includes(q));
+    }
+    return list;
+  }, [clientesEjemplo, filtroTipo, searchCliente]);
+
   useEffect(() => {
     if (showModal) {
       crmService.propiedades.getAll().then((data) => {
@@ -389,14 +449,7 @@ const ClientesCRM = () => {
   const isDark = currentMode === 'Dark';
   const cardBase = `rounded-2xl p-6 border transition-shadow ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-md hover:shadow-lg'}`;
 
-  // Clientes filtrados por tipo
-  const clientesFiltrados = clientesEjemplo.filter((c) => {
-    if (filtroTipo === 'todos') return true;
-    if (filtroTipo === 'comprador') return c.tipo === 'Comprador';
-    if (filtroTipo === 'propietario') return c.tipo === 'Propietario';
-    if (filtroTipo === 'inversor') return c.tipo === 'Inversor';
-    return true;
-  });
+  // clientesFiltrados is now filteredClientes (useMemo above)
 
   // Función para manejar cambios en el formulario
   const handleInputChange = (e) => {
@@ -783,170 +836,136 @@ const ClientesCRM = () => {
         </>
       )}
 
-      {/* Tab: Clientes con filtros */}
+      {/* Tab: Clientes — Detail List with Agent Photo + Lifebar */}
       {vistaActual !== 'detalle' && activeTab === 'clientes' && (
         <>
-          {/* Filtro por tipo */}
+          {/* Filtros + Búsqueda */}
           <div className={`${cardBase} mb-6`}>
-            <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">🔍 Filtrar por tipo de cliente</h3>
-            <div className="flex flex-wrap gap-6">
-              <label htmlFor="filtro-comprador" className="flex items-center gap-3 cursor-pointer">
-                <input
-                  id="filtro-comprador"
-                  type="radio"
-                  name="filtroTipoAdmin"
-                  checked={filtroTipo === 'comprador'}
-                  onChange={() => setFiltroTipo('comprador')}
-                  className="w-5 h-5 text-blue-600 accent-blue-600"
-                />
-                <span className="text-sm font-medium dark:text-gray-200">Compradores</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                  {clientesEjemplo.filter((c) => c.tipo === 'Comprador').length}
-                </span>
-              </label>
-              <label htmlFor="filtro-propietario" className="flex items-center gap-3 cursor-pointer">
-                <input
-                  id="filtro-propietario"
-                  type="radio"
-                  name="filtroTipoAdmin"
-                  checked={filtroTipo === 'propietario'}
-                  onChange={() => setFiltroTipo('propietario')}
-                  className="w-5 h-5 text-blue-600 accent-blue-600"
-                />
-                <span className="text-sm font-medium dark:text-gray-200">Propietarios</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  {clientesEjemplo.filter((c) => c.tipo === 'Propietario').length}
-                </span>
-              </label>
-              <label htmlFor="filtro-inversor" className="flex items-center gap-3 cursor-pointer">
-                <input
-                  id="filtro-inversor"
-                  type="radio"
-                  name="filtroTipoAdmin"
-                  checked={filtroTipo === 'inversor'}
-                  onChange={() => setFiltroTipo('inversor')}
-                  className="w-5 h-5 text-blue-600 accent-blue-600"
-                />
-                <span className="text-sm font-medium dark:text-gray-200">Inversores</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                  {clientesEjemplo.filter((c) => c.tipo === 'Inversor').length}
-                </span>
-              </label>
-              <label htmlFor="filtro-todos" className="flex items-center gap-3 cursor-pointer">
-                <input
-                  id="filtro-todos"
-                  type="radio"
-                  name="filtroTipoAdmin"
-                  checked={filtroTipo === 'todos'}
-                  onChange={() => setFiltroTipo('todos')}
-                  className="w-5 h-5 text-blue-600 accent-blue-600"
-                />
-                <span className="text-sm font-medium dark:text-gray-200">Todos</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                  {clientesEjemplo.length}
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Lista de clientes filtrados */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clientesFiltrados.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <FaUsers className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">No hay clientes que coincidan con el filtro seleccionado</p>
-              </div>
-            ) : (
-            clientesFiltrados.map((cliente) => (
-            <div key={cliente.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(cliente)}>
-              {/* Header con avatar */}
-              <div className="flex items-center gap-4 mb-4 pb-4 border-b dark:border-gray-700">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white ${
-                  cliente.scoring >= 90 ? 'bg-gradient-to-br from-red-500 to-red-600' :
-                  cliente.scoring >= 80 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-                  cliente.scoring >= 60 ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
-                  'bg-gradient-to-br from-gray-400 to-gray-500'
-                }`}>
-                  {cliente.nombre.charAt(0)}{cliente.nombre.split(' ')[1]?.charAt(0) || ''}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold dark:text-gray-100 truncate">{cliente.nombre}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{cliente.tipo}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  cliente.estado === 'Lead' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                  cliente.estado === 'Contacto' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                  cliente.estado === 'Prospecto' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                  cliente.estado === 'Negociación' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                  'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                }`}>
-                  {cliente.estado}
-                </span>
-              </div>
-
-              {/* Información de contacto */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <FaEnvelope className="text-blue-500" />
-                  <span className="dark:text-gray-300 truncate">{cliente.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <FaPhone className="text-green-500" />
-                  <span className="dark:text-gray-300">{cliente.telefono}</span>
-                </div>
-                {cliente.presupuesto > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FaDollarSign className="text-green-500" />
-                    <span className="font-semibold" style={{ color: currentColor }}>
-                      {cliente.moneda} ${cliente.presupuesto.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <FaMapMarkerAlt className="text-red-500" />
-                  <span className="dark:text-gray-300">{cliente.zona}</span>
-                </div>
-              </div>
-
-              {/* Lead Scoring */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium dark:text-gray-300">Lead Scoring</span>
-                  <span className="text-xs font-bold" style={{ color: currentColor }}>{cliente.scoring}</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full ${
-                      cliente.scoring >= 90 ? 'bg-red-500' :
-                      cliente.scoring >= 80 ? 'bg-orange-500' :
-                      cliente.scoring >= 60 ? 'bg-yellow-500' :
-                      'bg-gray-400'
-                    }`}
-                    style={{ width: `${cliente.scoring}%` }}
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, email o teléfono..."
+                    value={searchCliente}
+                    onChange={(e) => setSearchCliente(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                 </div>
               </div>
-
-              {/* Footer con estadísticas */}
-              <div className="grid grid-cols-3 gap-2 pt-4 border-t dark:border-gray-700">
-                <div className="text-center">
-                  <FaHistory className="text-gray-400 mx-auto mb-1 text-sm" />
-                  <p className="text-xs font-semibold dark:text-gray-200">{cliente.interacciones}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Interacciones</p>
-                </div>
-                <div className="text-center">
-                  <FaHome className="text-gray-400 mx-auto mb-1 text-sm" />
-                  <p className="text-xs font-semibold dark:text-gray-200">{cliente.propiedadesVistas}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Vistas</p>
-                </div>
-                <div className="text-center">
-                  <FaCalendar className="text-gray-400 mx-auto mb-1 text-sm" />
-                  <p className="text-xs font-semibold dark:text-gray-200">{formatUltimaInteraccion(cliente.ultimaInteraccion).short}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Última</p>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'todos', label: 'Todos', count: clientesEjemplo.length, cls: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' },
+                  { key: 'comprador', label: 'Compradores', count: clientesEjemplo.filter(c => c.tipo === 'Comprador').length, cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+                  { key: 'propietario', label: 'Propietarios', count: clientesEjemplo.filter(c => c.tipo === 'Propietario').length, cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+                  { key: 'inversor', label: 'Inversores', count: clientesEjemplo.filter(c => c.tipo === 'Inversor').length, cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+                ].map(f => (
+                  <button key={f.key} type="button" onClick={() => setFiltroTipo(f.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filtroTipo === f.key ? 'ring-2 ring-blue-500 shadow-sm' : 'opacity-70 hover:opacity-100'} ${f.cls}`}
+                  >
+                    {f.label} <span className="font-bold ml-1">{f.count}</span>
+                  </button>
+                ))}
               </div>
             </div>
-            ))
+          </div>
+
+          {/* Detail List */}
+          <div className="space-y-3">
+            {filteredClientes.length === 0 ? (
+              <div className="text-center py-16">
+                <FaUsers className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No hay clientes que coincidan con el filtro</p>
+              </div>
+            ) : (
+              filteredClientes.map((cliente) => {
+                const lb = lifebars[cliente.id];
+                const lbPct = lb?.percentage ?? 100;
+                const agente = agentesMap[cliente.agenteId];
+                return (
+                  <div key={cliente.id}
+                    onClick={() => verDetalle(cliente)}
+                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-blue-500/40' : 'bg-white border-gray-100 shadow-sm hover:border-blue-300'}`}
+                  >
+                    {/* Agent Photo (Admin only) */}
+                    <div className="flex-shrink-0 relative">
+                      {agente?.avatar ? (
+                        <img src={agente.avatar} alt={agente.nombre || ''} className="w-10 h-10 rounded-full object-cover border-2 border-indigo-300" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-300">
+                          {(agente?.nombre || cliente.agente || '?').charAt(0)}
+                        </div>
+                      )}
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
+                        <FaUser className="text-[7px] text-indigo-500" />
+                      </div>
+                    </div>
+
+                    {/* Client Avatar */}
+                    <div className={`w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-bold text-white ${
+                      cliente.scoring >= 80 ? 'bg-gradient-to-br from-red-500 to-orange-500'
+                        : cliente.scoring >= 60 ? 'bg-gradient-to-br from-yellow-500 to-amber-500'
+                          : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                    }`}>
+                      {cliente.nombre.charAt(0)}{(cliente.nombre.split(' ')[1] || '').charAt(0)}
+                    </div>
+
+                    {/* Main Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h4 className="font-semibold text-sm dark:text-gray-100 truncate">{cliente.nombre}</h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          cliente.estado === 'Lead' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : cliente.estado === 'Negociación' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                              : cliente.estado === 'Cerrado' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                        }`}>{cliente.estado}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="flex items-center gap-1"><FaPhone className="text-[10px]" />{cliente.telefono || '-'}</span>
+                        <span className="flex items-center gap-1"><FaEnvelope className="text-[10px]" /><span className="truncate max-w-[140px]">{cliente.email || '-'}</span></span>
+                        {agente && <span className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400"><FaUser className="text-[10px]" />{agente.nombre || cliente.agente}</span>}
+                      </div>
+                    </div>
+
+                    {/* Indicators */}
+                    <div className="hidden lg:flex items-center gap-4 flex-shrink-0">
+                      {cliente.presupuesto > 0 && (
+                        <div className="text-right">
+                          <p className="text-xs text-gray-400 dark:text-gray-500">Presupuesto</p>
+                          <p className="text-sm font-bold" style={{ color: currentColor }}>{cliente.moneda} ${(cliente.presupuesto / 1000).toFixed(0)}K</p>
+                        </div>
+                      )}
+                      <div className="text-center w-14">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Score</p>
+                        <p className={`text-sm font-bold ${cliente.scoring >= 80 ? 'text-red-500' : cliente.scoring >= 60 ? 'text-yellow-500' : 'text-gray-400'}`}>{cliente.scoring}</p>
+                      </div>
+                      <div className="text-center w-12">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Int.</p>
+                        <p className="text-sm font-semibold dark:text-gray-200">{cliente.interacciones}</p>
+                      </div>
+                      <div className="text-center w-14">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Última</p>
+                        <p className="text-sm font-semibold dark:text-gray-200">{formatUltimaInteraccion(cliente.ultimaInteraccion).short}</p>
+                      </div>
+                    </div>
+
+                    {/* Lifebar */}
+                    <div className="flex-shrink-0 w-28">
+                      <div className="flex items-center justify-between mb-1">
+                        <FaHeartbeat className={`text-xs ${lbPct > 60 ? 'text-emerald-500' : lbPct > 30 ? 'text-yellow-500' : 'text-red-500'}`} />
+                        <span className={`text-[10px] font-semibold ${lbPct > 60 ? 'text-emerald-600 dark:text-emerald-400' : lbPct > 30 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {getLifebarLabel(lb)}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div className={`h-1.5 rounded-full transition-all ${getLifebarColor(lbPct)}`} style={{ width: `${lbPct}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </>
@@ -1136,6 +1155,41 @@ const ClientesCRM = () => {
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{clienteSeleccionado.notas}</p>
                 </div>
               )}
+
+              {/* Interaction History (read-only for admin) */}
+              {clientInteractions.length > 0 && (
+                <div className={cardBase}>
+                  <h3 className="text-xl font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                    <FaHistory className="text-blue-500" /> Historial de Interacciones
+                    <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{clientInteractions.length}</span>
+                  </h3>
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {clientInteractions.map((inter) => (
+                      <div key={inter._id} className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-100 bg-gray-50'}`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              inter.tipo === 'recontacto' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : inter.tipo === 'visita_agendada' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                  : inter.tipo === 'visita_realizada' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                    : inter.tipo === 'propiedad_interes' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                      : inter.tipo === 'opcion_pago' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                        : inter.tipo === 'preferencia' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
+                                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>{tipoInteraccionLabels[inter.tipo] || inter.tipo}</span>
+                            {inter.medioContacto && <span className="text-xs text-gray-500 dark:text-gray-400">vía {inter.medioContacto}</span>}
+                          </div>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(inter.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-sm dark:text-gray-300">{inter.descripcion}</p>
+                        {inter.nivelInteres && <p className="text-xs text-gray-500 mt-1">Nivel de interés: <span className="font-semibold">{inter.nivelInteres}</span></p>}
+                        {inter.opcionPago?.tipo && <p className="text-xs text-gray-500 mt-1">Pago: {inter.opcionPago.tipo} {inter.opcionPago.montoOfrecido > 0 ? `— ${inter.opcionPago.moneda} $${inter.opcionPago.montoOfrecido.toLocaleString()}` : ''}</p>}
+                        {inter.preferencias?.tipo && <p className="text-xs text-gray-500 mt-1">Preferencia: {inter.preferencias.tipo} {inter.preferencias.detalle ? `— ${inter.preferencias.detalle}` : ''}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Columna Lateral */}
@@ -1173,6 +1227,31 @@ const ClientesCRM = () => {
                   />
                 </div>
               </div>
+
+              {/* Lifebar */}
+              {(() => {
+                const lb = lifebars[clienteSeleccionado.id];
+                const lbPct = lb?.percentage ?? 100;
+                return (
+                  <div className={cardBase}>
+                    <h3 className="text-lg font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                      <FaHeartbeat className={lbPct > 60 ? 'text-emerald-500' : lbPct > 30 ? 'text-yellow-500' : 'text-red-500'} /> Barra de Vida
+                    </h3>
+                    <div className="text-center mb-3">
+                      <p className={`text-3xl font-bold ${lbPct > 60 ? 'text-emerald-500' : lbPct > 30 ? 'text-yellow-500' : 'text-red-500'}`}>
+                        {lb ? `${lb.remaining}d` : '7d'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {lb?.expired ? 'Requiere recontacto urgente' : 'restantes para recontacto'}
+                      </p>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+                      <div className={`h-3 rounded-full transition-all ${getLifebarColor(lbPct)}`} style={{ width: `${lbPct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center">Ciclo de 7 días desde último contacto</p>
+                  </div>
+                );
+              })()}
 
               {/* Información CRM */}
               <div className={cardBase}>
