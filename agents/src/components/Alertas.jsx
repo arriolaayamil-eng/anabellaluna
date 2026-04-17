@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaBell, FaExclamationTriangle, FaInfoCircle, FaCheckCircle, FaTimesCircle, FaBirthdayCake, FaUserPlus, FaHandshake, FaFileAlt, FaClock, FaStar, FaCalendarAlt, FaBuilding, FaDollarSign, FaChartLine, FaClipboardList } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import notificationService from '../services/notificationService';
 
 const Alertas = () => {
   const { currentColor, setIsClicked, initialState } = useStateContext();
+  const navigate = useNavigate();
   const [alertas, setAlertas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -164,14 +166,24 @@ const Alertas = () => {
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {formatTime(alerta.createdAt)}
                       </span>
-                      {alerta.accionUrl && (
+                      {(alerta.accionUrl || alerta.entidadTipo) && (
                         <button
                           type="button"
                           className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${style.textColor} hover:bg-opacity-20`}
                           style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.location.href = alerta.accionUrl;
+                            setIsClicked(initialState);
+                            // Navigate based on entity type
+                            if (alerta.entidadTipo === 'cliente' && alerta.entidadId) {
+                              navigate(`/crm/clientes?id=${alerta.entidadId}`);
+                            } else if (alerta.entidadTipo === 'propiedad' && alerta.entidadId) {
+                              navigate(`/crm/propiedades?id=${alerta.entidadId}`);
+                            } else if (alerta.accionUrl) {
+                              // Prefix with /crm if it's a relative path without it
+                              const url = alerta.accionUrl.startsWith('/crm') ? alerta.accionUrl : `/crm${alerta.accionUrl}`;
+                              navigate(url);
+                            }
                           }}
                         >
                           Ver más
@@ -208,7 +220,7 @@ const Alertas = () => {
             style={{ color: currentColor }}
             onClick={() => {
               setIsClicked(initialState);
-              window.location.href = '/crm/automatizacion';
+              navigate('/crm/automatizacion');
             }}
           >
             Configurar alertas
@@ -220,7 +232,7 @@ const Alertas = () => {
           style={{ backgroundColor: currentColor, color: 'white' }}
           onClick={() => {
             setIsClicked(initialState);
-            window.location.href = '/crm/automatizacion';
+            navigate('/crm/automatizacion');
           }}
         >
           Ver Centro de Automatización →

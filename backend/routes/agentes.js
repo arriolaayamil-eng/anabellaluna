@@ -55,12 +55,12 @@ router.get('/admins', authenticateToken, requireCRMUser, async (req, res) => {
 
 router.get('/for-assignment', authenticateToken, requireCRMUser, async (req, res) => {
   try {
-    const agentes = await Agente.find({}).select('_id nombre email cargo').sort({ nombre: 1 }).lean();
-    const admins = await User.find({ role: 'admin' }).select('_id nombre username email cargo').sort({ nombre: 1 }).lean();
+    const agentes = await Agente.find({}).select('_id nombre email cargo avatar').sort({ nombre: 1 }).lean();
+    const admins = await User.find({ role: 'admin' }).select('_id nombre username email cargo avatar').sort({ nombre: 1 }).lean();
 
     const list = [
-      ...agentes.map((a) => ({ _id: String(a._id), nombre: a.nombre || '', cargo: a.cargo || 'Agente', tipo: 'agente' })),
-      ...admins.map((u) => ({ _id: String(u._id), nombre: u.nombre || u.username || '', cargo: u.cargo || 'Administrador', tipo: 'admin' })),
+      ...agentes.map((a) => ({ _id: String(a._id), nombre: a.nombre || '', cargo: a.cargo || 'Agente', tipo: 'agente', avatar: a.avatar || '' })),
+      ...admins.map((u) => ({ _id: String(u._id), nombre: u.nombre || u.username || '', cargo: u.cargo || 'Administrador', tipo: 'admin', avatar: u.avatar || '' })),
     ].filter((x) => x.nombre);
 
     res.json(list);

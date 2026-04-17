@@ -202,6 +202,7 @@ const ClientesCRM = () => {
       telefono: form?.telefono || '',
       direccion: form?.direccion || '',
       notas: form?.notas || '',
+      agenteId: form?.agenteId || '',
       metadata: {
         apellido: form?.apellido || '',
         telefonoAlternativo: form?.telefonoAlternativo || '',
@@ -272,26 +273,36 @@ const ClientesCRM = () => {
 
   // ── Lifebar + Interactions state ──
   const [lifebars, setLifebars] = useState({});
+  const [interactionCounts, setInteractionCounts] = useState({});
+  const [clientMetrics, setClientMetrics] = useState(null);
   const [clientInteractions, setClientInteractions] = useState([]);
   const [interactionForm, setInteractionForm] = useState({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '' });
   const [interactionSubmitting, setInteractionSubmitting] = useState(false);
   const [searchCliente, setSearchCliente] = useState('');
 
-  // Fetch lifebars when clients load
+  // Fetch lifebars and interaction counts when clients load
   useEffect(() => {
     if (clientesEjemplo.length > 0) {
       crmService.clientInteractions.bulkLifebars().then(data => {
         if (data && typeof data === 'object') setLifebars(data);
       }).catch(() => {});
+      crmService.clientInteractions.bulkCounts().then(data => {
+        if (data && typeof data === 'object') setInteractionCounts(data);
+      }).catch(() => {});
     }
   }, [clientesEjemplo]);
 
-  // Fetch interactions when detail view opens
+  // Fetch interactions and client metrics when detail view opens
   useEffect(() => {
     if (vistaActual === 'detalle' && clienteSeleccionado?.id) {
       crmService.clientInteractions.list(clienteSeleccionado.id).then(data => {
         setClientInteractions(Array.isArray(data) ? data : []);
       }).catch(() => setClientInteractions([]));
+      crmService.clientInteractions.clientMetrics(clienteSeleccionado.id).then(data => {
+        setClientMetrics(data);
+      }).catch(() => setClientMetrics(null));
+    } else {
+      setClientMetrics(null);
     }
   }, [vistaActual, clienteSeleccionado?.id]);
 
@@ -402,7 +413,7 @@ const ClientesCRM = () => {
     { title: 'Total Clientes', value: clientesEjemplo.length, desc: `${dashStats?.clientesNuevosMes ?? 0} nuevos este mes`, icon: <FaUsers />, color: 'from-blue-500 to-blue-600' },
     { title: 'Leads Calientes', value: clientesEjemplo.filter((c) => c.scoring >= 80).length, desc: 'Scoring > 80', icon: <FaFire />, color: 'from-red-500 to-red-600' },
     { title: 'En Negociación', value: clientesEjemplo.filter((c) => c.estado === 'Negociación').length, desc: 'Próximos a cerrar', icon: <FaChartLine />, color: 'from-green-500 to-green-600' },
-    { title: 'Conversión', value: `${clientesEjemplo.length > 0 ? Math.round((clientesEjemplo.filter((c) => c.estado === 'Cerrado').length / clientesEjemplo.length) * 100) : 0}%`, desc: 'Lead → Cliente', icon: <FaTags />, color: 'from-purple-500 to-purple-600' },
+    { title: 'Coef. de Cierre', value: '0%', desc: 'Lead → Cliente', icon: <FaTags />, color: 'from-purple-500 to-purple-600' },
   ];
 
   // Datos para gráficos
@@ -565,9 +576,7 @@ const ClientesCRM = () => {
   ];
 
   // ApexCharts - Tasa de Conversión (Radial Gauge)
-  const conversionRate = clientesEjemplo.length > 0
-    ? Math.round((clientesEjemplo.filter((c) => c.estado === 'Cerrado').length / clientesEjemplo.length) * 100)
-    : 0;
+  const conversionRate = 0; // Coeficiente de cierre fijado a 0%
   const conversionGaugeOptions = {
     chart: { type: 'radialBar', height: 180, background: 'transparent', sparkline: { enabled: true } },
     plotOptions: {
@@ -589,8 +598,9 @@ const ClientesCRM = () => {
   const conversionGaugeSeries = [conversionRate];
 
   // ApexCharts - Engagement Score (actividad)
+  const totalRealInteractions = Object.values(interactionCounts).reduce((s, v) => s + v, 0);
   const engagementAvg = clientesEjemplo.length > 0
-    ? Math.min(100, Math.round((clientesEjemplo.reduce((sum, c) => sum + (c.interacciones || 0), 0) / clientesEjemplo.length) * 10))
+    ? Math.min(100, Math.round((totalRealInteractions / clientesEjemplo.length) * 10))
     : 0;
   const engagementOptions = {
     chart: { type: 'radialBar', height: 160, background: 'transparent' },
@@ -843,7 +853,7 @@ const ClientesCRM = () => {
             <div className={cardBase}>
               <div className="flex items-center gap-2 mb-1">
                 <FaPercentage className="text-emerald-500" />
-                <h3 className="font-semibold dark:text-gray-100 text-sm">Tasa Conversión</h3>
+                <h3 className="font-semibold dark:text-gray-100 text-sm">Coef. de Cierre</h3>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Lead → Cerrado</p>
               <Chart options={conversionGaugeOptions} series={conversionGaugeSeries} type="radialBar" height={140} />
@@ -871,7 +881,7 @@ const ClientesCRM = () => {
               <Chart options={engagementOptions} series={engagementSeries} type="radialBar" height={130} />
               <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t dark:border-gray-700">
                 <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded text-center">
-                  <p className="text-sm font-bold text-purple-600 dark:text-purple-400">{clientesEjemplo.reduce((sum, c) => sum + (c.interacciones || 0), 0)}</p>
+                  <p className="text-sm font-bold text-purple-600 dark:text-purple-400">{totalRealInteractions}</p>
                   <p className="text-xs text-gray-500">Interacc.</p>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
@@ -1256,7 +1266,7 @@ const ClientesCRM = () => {
                       {/* Interactions */}
                       <div className="text-center w-12">
                         <p className="text-xs text-gray-400 dark:text-gray-500">Int.</p>
-                        <p className="text-sm font-semibold dark:text-gray-200">{cliente.interacciones}</p>
+                        <p className="text-sm font-semibold dark:text-gray-200">{interactionCounts[cliente.id] || 0}</p>
                       </div>
                       {/* Last contact */}
                       <div className="text-center w-14">
@@ -1702,14 +1712,35 @@ const ClientesCRM = () => {
                       <FaHistory className="text-blue-500" />
                       <span className="text-sm dark:text-gray-200">Interacciones</span>
                     </div>
-                    <span className="font-bold dark:text-gray-100">{clienteSeleccionado.interacciones}</span>
+                    <span className="font-bold dark:text-gray-100">{clientMetrics?.totalInteractions ?? interactionCounts[clienteSeleccionado.id] ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-gray-800 rounded-lg">
                     <div className="flex items-center gap-2">
                       <FaHome className="text-green-500" />
                       <span className="text-sm dark:text-gray-200">Propiedades Vistas</span>
                     </div>
-                    <span className="font-bold dark:text-gray-100">{clienteSeleccionado.propiedadesVistas}</span>
+                    <span className="font-bold dark:text-gray-100">{clientMetrics?.propiedadesInteres ?? clienteSeleccionado.propiedadesVistas}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaEye className="text-purple-500" />
+                      <span className="text-sm dark:text-gray-200">Visitas Realizadas</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{clientMetrics?.interactionsByType?.visita_realizada ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaHandshake className="text-yellow-500" />
+                      <span className="text-sm dark:text-gray-200">Recontactos</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{clientMetrics?.interactionsByType?.recontacto ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FaDollarSign className="text-emerald-500" />
+                      <span className="text-sm dark:text-gray-200">Opciones de Pago</span>
+                    </div>
+                    <span className="font-bold dark:text-gray-100">{clientMetrics?.interactionsByType?.opcion_pago ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -1749,7 +1780,7 @@ const ClientesCRM = () => {
                     colors: ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#6B7280'],
                     dataLabels: { enabled: false },
                     xaxis: {
-                      categories: ['Sitio Web', 'WhatsApp', 'Teléfono', 'Email', 'Presencial', 'Redes'],
+                      categories: ['Notas', 'Recontactos', 'Visitas', 'Intereses', 'Pagos', 'Preferencias'],
                       labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
                       axisBorder: { show: false },
                       axisTicks: { show: false },
@@ -1761,12 +1792,12 @@ const ClientesCRM = () => {
                   }}
                   series={[{ name: 'Interacciones',
                     data: [
-                      Math.floor((clienteSeleccionado.interacciones || 5) * 0.35),
-                      Math.floor((clienteSeleccionado.interacciones || 5) * 0.25),
-                      Math.floor((clienteSeleccionado.interacciones || 5) * 0.15),
-                      Math.floor((clienteSeleccionado.interacciones || 5) * 0.12),
-                      Math.floor((clienteSeleccionado.interacciones || 5) * 0.08),
-                      Math.floor((clienteSeleccionado.interacciones || 5) * 0.05),
+                      clientMetrics?.interactionsByType?.nota || 0,
+                      clientMetrics?.interactionsByType?.recontacto || 0,
+                      clientMetrics?.interactionsByType?.visita_realizada || 0,
+                      clientMetrics?.interactionsByType?.propiedad_interes || 0,
+                      clientMetrics?.interactionsByType?.opcion_pago || 0,
+                      clientMetrics?.interactionsByType?.preferencia || 0,
                     ] }]}
                   type="bar"
                   height={200}
@@ -1774,21 +1805,21 @@ const ClientesCRM = () => {
                 <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t dark:border-gray-700">
                   <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                     <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                      {Math.floor((clienteSeleccionado.interacciones || 5) * 0.35)}
+                      {clientMetrics?.interactionsByType?.nota || 0}
                     </p>
-                    <p className="text-xs text-gray-500">Sitio Web</p>
+                    <p className="text-xs text-gray-500">Notas</p>
                   </div>
                   <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded">
                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                      {Math.floor((clienteSeleccionado.interacciones || 5) * 0.25)}
+                      {clientMetrics?.interactionsByType?.recontacto || 0}
                     </p>
-                    <p className="text-xs text-gray-500">WhatsApp</p>
+                    <p className="text-xs text-gray-500">Recontactos</p>
                   </div>
                   <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
                     <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                      {Math.floor((clienteSeleccionado.interacciones || 5) * 0.15)}
+                      {clientMetrics?.interactionsByType?.visita_realizada || 0}
                     </p>
-                    <p className="text-xs text-gray-500">Teléfono</p>
+                    <p className="text-xs text-gray-500">Visitas</p>
                   </div>
                 </div>
               </div>
@@ -1856,7 +1887,7 @@ const ClientesCRM = () => {
                     stroke: { lineCap: 'round' },
                     labels: ['Engagement'],
                   }}
-                  series={[Math.min(100, Math.round(((clienteSeleccionado.interacciones || 0) + (clienteSeleccionado.propiedadesVistas || 0)) * 5))]}
+                  series={[clientMetrics?.engagementScore ?? Math.min(100, Math.round(((clienteSeleccionado.interacciones || 0) + (clienteSeleccionado.propiedadesVistas || 0)) * 5))]}
                   type="radialBar"
                   height={150}
                 />
@@ -2016,7 +2047,7 @@ const ClientesCRM = () => {
                   </div>
                   <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
                     <span className="text-xs dark:text-gray-300">Consultas enviadas</span>
-                    <span className="font-bold text-green-600">{Math.floor((clienteSeleccionado.interacciones || 2) * 0.3)}</span>
+                    <span className="font-bold text-green-600">{clientMetrics?.interactionsByType?.nota || 0}</span>
                   </div>
                   <div className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
                     <span className="text-xs dark:text-gray-300">Comparaciones</span>

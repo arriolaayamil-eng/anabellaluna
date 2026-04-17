@@ -6,6 +6,12 @@ const ClienteSchema = new mongoose.Schema({
   telefono: { type: String, default: '' },
   direccion: { type: String, default: '' },
   agenteId: { type: String, default: '', index: true },
+  assignedBy: {
+    userId: { type: String, default: '' },
+    nombre: { type: String, default: '' },
+    avatar: { type: String, default: '' },
+    role: { type: String, default: '' },
+  },
   notas: { type: String, default: '' },
   metadata: { type: Object, default: {} },
   // ---- Rewards V2: loyalty tracking ----

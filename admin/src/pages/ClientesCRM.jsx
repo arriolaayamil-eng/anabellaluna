@@ -137,6 +137,7 @@ const ClientesCRM = () => {
       agenteNombre: md.agente || '',
       propiedadConsultadaInicial: md.propiedadConsultadaInicial || { id: '', titulo: '', direccion: '' },
       interesesCliente: Array.isArray(md.interesesCliente) ? md.interesesCliente : [],
+      assignedBy: item?.assignedBy || null,
       metadata: md,
     };
   }, []);
@@ -189,6 +190,7 @@ const ClientesCRM = () => {
       telefono: form?.telefono || '',
       direccion: form?.direccion || '',
       notas: form?.notas || '',
+      agenteId: form?.agenteId || '',
       metadata: {
         apellido: form?.apellido || '',
         telefonoAlternativo: form?.telefonoAlternativo || '',
@@ -883,22 +885,26 @@ const ClientesCRM = () => {
                 const lb = lifebars[cliente.id];
                 const lbPct = lb?.percentage ?? 100;
                 const agente = agentesMap[cliente.agenteId];
+                const assignedBy = cliente.assignedBy || {};
+                const displayAvatar = agente?.avatar || assignedBy.avatar || '';
+                const displayName = agente?.nombre || assignedBy.nombre || cliente.agente || '?';
+                const isAdmin = assignedBy.role === 'admin' && !agente;
                 return (
                   <div key={cliente.id}
                     onClick={() => verDetalle(cliente)}
                     className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-blue-500/40' : 'bg-white border-gray-100 shadow-sm hover:border-blue-300'}`}
                   >
-                    {/* Agent Photo (Admin only) */}
+                    {/* Agent/Admin Photo */}
                     <div className="flex-shrink-0 relative">
-                      {agente?.avatar ? (
-                        <img src={agente.avatar} alt={agente.nombre || ''} className="w-10 h-10 rounded-full object-cover border-2 border-indigo-300" />
+                      {displayAvatar ? (
+                        <img src={displayAvatar} alt={displayName} className={`w-10 h-10 rounded-full object-cover border-2 ${isAdmin ? 'border-amber-400' : 'border-indigo-300'}`} />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400 border-2 border-indigo-300">
-                          {(agente?.nombre || cliente.agente || '?').charAt(0)}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold border-2 ${isAdmin ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-400' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-300'}`}>
+                          {displayName.charAt(0)}
                         </div>
                       )}
                       <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
-                        <FaUser className="text-[7px] text-indigo-500" />
+                        {isAdmin ? <FaStar className="text-[7px] text-amber-500" /> : <FaUser className="text-[7px] text-indigo-500" />}
                       </div>
                     </div>
 
@@ -1265,7 +1271,28 @@ const ClientesCRM = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Agente Asignado</p>
-                    <p className="font-semibold dark:text-gray-200">{clienteSeleccionado.agente}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {(() => {
+                        const ab = clienteSeleccionado.assignedBy || {};
+                        const ag = agentesMap[clienteSeleccionado.agenteId];
+                        const avt = ag?.avatar || ab.avatar || '';
+                        const nm = ag?.nombre || ab.nombre || clienteSeleccionado.agente || 'Sin asignar';
+                        const adm = ab.role === 'admin' && !ag;
+                        return (
+                          <>
+                            {avt ? (
+                              <img src={avt} alt={nm} className={`w-7 h-7 rounded-full object-cover border ${adm ? 'border-amber-400' : 'border-indigo-300'}`} />
+                            ) : (
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border ${adm ? 'bg-amber-100 text-amber-600 border-amber-400' : 'bg-indigo-100 text-indigo-600 border-indigo-300'}`}>
+                                {nm.charAt(0)}
+                              </div>
+                            )}
+                            <span className="font-semibold dark:text-gray-200">{nm}</span>
+                            {adm && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-semibold">Admin</span>}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Fecha de Registro</p>

@@ -65,6 +65,25 @@ router.get('/bulk/lifebars', authenticateToken, requireCRMUser, async (req, res)
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── GET /crm/client-interactions/bulk-counts — total interaction counts per client ──
+router.get('/bulk-counts', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const scopeId = agentScopeId(req);
+    const clienteFilter = scopeId ? { agenteId: scopeId } : {};
+    const clientes = await Cliente.find(clienteFilter).select('_id').lean();
+    const clienteIds = clientes.map(c => c._id);
+
+    const counts = await ClientInteraction.aggregate([
+      { $match: { clienteId: { $in: clienteIds } } },
+      { $group: { _id: '$clienteId', total: { $sum: 1 } } },
+    ]);
+
+    const result = {};
+    counts.forEach(r => { result[String(r._id)] = r.total; });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── GET /crm/client-interactions/property/:propiedadId/metrics — property metrics ──
 router.get('/property/:propiedadId/metrics', authenticateToken, requireCRMUser, async (req, res) => {
   try {

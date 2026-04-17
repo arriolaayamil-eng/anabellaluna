@@ -2,6 +2,7 @@
   "name": "anabella-luna-crm",
   "version": "1.0.0",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "@syncfusion/ej2": "^31.1.23",
     "@syncfusion/ej2-react-calendars": "^31.1.23",
     "@syncfusion/ej2-react-charts": "^31.1.23",

@@ -4,9 +4,16 @@ import Chart from 'react-apexcharts';
 import { FaHome, FaUserFriends, FaDollarSign, FaKey, FaExclamationTriangle, FaCheckCircle, FaBell, FaMapMarkerAlt, FaTasks, FaTimes, FaChartLine, FaCalendarAlt, FaTrophy, FaChartPie, FaChartBar, FaArrowUp, FaPercentage, FaFunnelDollar } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
+import { crmService } from '../services/crmService';
 
 const DashboardEjecutivo = () => {
   const { currentMode, currentColor } = useStateContext();
+
+  const [dashStats, setDashStats] = useState(null);
+
+  useEffect(() => {
+    crmService.stats.getDashboard().then(setDashStats).catch(() => {});
+  }, []);
 
   // Estados para modales
   const [showModalPropiedades, setShowModalPropiedades] = useState(false);
@@ -29,39 +36,39 @@ const DashboardEjecutivo = () => {
     };
   }, []);
 
-  // Mock data para métricas en tiempo real
+  // KPIs conectados a datos reales del dashboard
   const kpis = [
     {
       title: 'Propiedades activas',
-      value: 87,
-      desc: '+12 esta semana',
+      value: dashStats?.kpis?.propiedadesActivas ?? 0,
+      desc: `${dashStats?.kpis?.propiedadesNuevasMes ?? 0} nuevas este mes`,
       icon: <FaHome />,
       color: 'from-blue-500 to-blue-600',
-      trend: '+15%',
+      trend: dashStats?.kpis?.propiedadesTrend || '+0%',
     },
     {
       title: 'Clientes registrados',
-      value: 156,
-      desc: '23 nuevos este mes',
+      value: dashStats?.kpis?.clientesActivos ?? 0,
+      desc: `${dashStats?.kpis?.clientesNuevosMes ?? 0} nuevos este mes`,
       icon: <FaUserFriends />,
       color: 'from-indigo-500 to-indigo-600',
-      trend: '+8%',
+      trend: dashStats?.kpis?.clientesTrend || '+0%',
     },
     {
-      title: 'Ventas del mes',
-      value: '$850K',
-      desc: '+15% vs anterior',
+      title: 'Interacciones totales',
+      value: dashStats?.interactions?.total ?? 0,
+      desc: `${dashStats?.interactions?.monthly ?? 0} este mes`,
       icon: <FaDollarSign />,
       color: 'from-emerald-500 to-emerald-600',
-      trend: '+22%',
+      trend: '+0%',
     },
     {
-      title: 'Alquileres vigentes',
-      value: 34,
-      desc: 'Ingresos $45K/mes',
+      title: 'Tareas pendientes',
+      value: dashStats?.kpis?.tareasPendientes ?? 0,
+      desc: `${dashStats?.kpis?.tareasHoy ?? 0} para hoy`,
       icon: <FaKey />,
       color: 'from-orange-500 to-orange-600',
-      trend: '+5%',
+      trend: '+0%',
     },
   ];
 

@@ -28,6 +28,7 @@ const NotificationSchema = new mongoose.Schema({
       'propiedad_estado',     // Property status change
       'meta_cumplida',        // Goal achieved
       'reporte_diario',       // Daily summary report
+      'asignacion_cliente',   // Client assigned to agent by admin
     ],
     required: true 
   },

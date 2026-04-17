@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaHome, FaMapMarkerAlt, FaDollarSign, FaEye, FaSync } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 const Propiedades = () => {
   const { currentColor, setIsClicked, initialState } = useStateContext();
+  const navigate = useNavigate();
   const [propiedades, setPropiedades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, disponibles: 0 });
@@ -129,7 +131,7 @@ const Propiedades = () => {
                 className={`${style.color} border-l-4 ${style.border} p-4 rounded-lg hover:shadow-md transition-all cursor-pointer`}
                 onClick={() => {
                   setIsClicked(initialState);
-                  window.location.href = `/crm/propiedades?id=${propiedad.id}`;
+                  navigate(`/crm/propiedades?id=${propiedad.id}`);
                 }}
               >
                 <div className="flex items-start gap-3">
@@ -177,7 +179,7 @@ const Propiedades = () => {
           style={{ backgroundColor: currentColor, color: 'white' }}
           onClick={() => {
             setIsClicked(initialState);
-            window.location.href = '/crm/propiedades';
+            navigate('/crm/propiedades');
           }}
         >
           Ver Todas las Propiedades →

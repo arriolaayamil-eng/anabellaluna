@@ -36,6 +36,7 @@ export const crmService = {
     create: (clienteId, data) => api.post(`/crm/client-interactions/${clienteId}`, data),
     lifebar: (clienteId) => api.get(`/crm/client-interactions/${clienteId}/lifebar`),
     bulkLifebars: () => api.get('/crm/client-interactions/bulk/lifebars'),
+    bulkCounts: () => api.get('/crm/client-interactions/bulk-counts'),
     propertyMetrics: (propiedadId) => api.get(`/crm/client-interactions/property/${propiedadId}/metrics`),
     clientMetrics: (clienteId) => api.get(`/crm/client-interactions/client-metrics/${clienteId}`),
     ownerReport: (propiedadId) => api.get(`/crm/client-interactions/owner-report/${propiedadId}`),
