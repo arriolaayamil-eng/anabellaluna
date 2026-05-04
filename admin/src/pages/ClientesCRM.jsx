@@ -49,9 +49,15 @@ const ClientesCRM = () => {
 
   // ── Lifebar + Interactions + Agents map ──
   const [lifebars, setLifebars] = useState({});
+  const [interactionCounts, setInteractionCounts] = useState({});
+  const [clientMetrics, setClientMetrics] = useState(null);
   const [agentesMap, setAgentesMap] = useState({});
   const [clientInteractions, setClientInteractions] = useState([]);
+  const [interactionForm, setInteractionForm] = useState({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' });
+  const [interactionSubmitting, setInteractionSubmitting] = useState(false);
+  const [interactionPropSearch, setInteractionPropSearch] = useState('');
   const [searchCliente, setSearchCliente] = useState('');
+  const [dashStats, setDashStats] = useState(null);
 
   const createEmptyClienteForm = () => ({
     nombre: '',
@@ -116,7 +122,7 @@ const ClientesCRM = () => {
       zona: zonaInteres,
       zonaInteres,
       scoring: typeof scoringRaw === 'number' ? scoringRaw : Number(scoringRaw || 50),
-      ultimaInteraccion: md.ultimaInteraccion || '',
+      ultimaInteraccion: md.ultimaActividad || md.ultimaInteraccion || '',
       fechaRegistro: md.fechaRegistro || '',
       origen: md.origen || 'Web',
       agente: md.agente || '',
@@ -235,6 +241,7 @@ const ClientesCRM = () => {
 
   useEffect(() => {
     reloadClientes();
+    crmService.stats.getDashboard().then(setDashStats).catch(() => {});
   }, [reloadClientes]);
 
   // Auto-open client detail when navigating via ?id=
@@ -253,11 +260,14 @@ const ClientesCRM = () => {
     }
   }, [clientesEjemplo]);
 
-  // Fetch lifebars + agentes map when clients load
+  // Fetch lifebars + agentes map + interaction counts when clients load
   useEffect(() => {
     if (clientesEjemplo.length > 0) {
       crmService.clientInteractions.bulkLifebars().then(data => {
         if (data && typeof data === 'object') setLifebars(data);
+      }).catch(() => {});
+      crmService.clientInteractions.bulkCounts().then(data => {
+        if (data && typeof data === 'object') setInteractionCounts(data);
       }).catch(() => {});
       crmService.agentes.getAll().then(data => {
         const map = {};
@@ -267,14 +277,47 @@ const ClientesCRM = () => {
     }
   }, [clientesEjemplo]);
 
-  // Fetch interactions when detail view opens
+  // Fetch interactions, client metrics, and properties when detail view opens
   useEffect(() => {
     if (vistaActual === 'detalle' && clienteSeleccionado?.id) {
       crmService.clientInteractions.list(clienteSeleccionado.id).then(data => {
         setClientInteractions(Array.isArray(data) ? data : []);
       }).catch(() => setClientInteractions([]));
+      crmService.clientInteractions.clientMetrics(clienteSeleccionado.id).then(data => {
+        setClientMetrics(data);
+      }).catch(() => setClientMetrics(null));
+      if (propiedadesList.length === 0) {
+        crmService.propiedades.getAll().then(data => {
+          setPropiedadesList(Array.isArray(data) ? data : []);
+        }).catch(() => {});
+      }
+    } else {
+      setClientMetrics(null);
     }
   }, [vistaActual, clienteSeleccionado?.id]);
+
+  const resetInteractionForm = () => { setInteractionForm({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' }); setInteractionPropSearch(''); };
+
+  const handleSubmitInteraction = async (e) => {
+    e.preventDefault();
+    if (!clienteSeleccionado?.id || !interactionForm.tipo || !interactionForm.descripcion.trim()) return;
+    setInteractionSubmitting(true);
+    try {
+      const payload = { ...interactionForm };
+      if (!payload.propiedadId) delete payload.propiedadId;
+      delete payload.propiedadNombre;
+      if (!payload.fechaContacto) delete payload.fechaContacto;
+      if (!payload.visitaFecha) delete payload.visitaFecha;
+      const created = await crmService.clientInteractions.create(clienteSeleccionado.id, payload);
+      setClientInteractions(prev => [created, ...prev]);
+      resetInteractionForm();
+      crmService.clientInteractions.lifebar(clienteSeleccionado.id).then(lb => {
+        setLifebars(prev => ({ ...prev, [clienteSeleccionado.id]: lb }));
+      }).catch(() => {});
+    } catch (err) {
+      console.error('Error al crear interacción:', err);
+    } finally { setInteractionSubmitting(false); }
+  };
 
   const getLifebarColor = (pct) => {
     if (pct > 60) return 'bg-emerald-500';
@@ -322,7 +365,16 @@ const ClientesCRM = () => {
 
   const openCreateModal = () => {
     setEditingClienteId(null);
-    setNuevoCliente(createEmptyClienteForm());
+    const emptyForm = createEmptyClienteForm();
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.agenteId) {
+        emptyForm.agenteId = user.agenteId;
+        emptyForm.agenteNombre = user.nombre || user.username || '';
+        emptyForm.agente = user.nombre || user.username || '';
+      }
+    } catch (_) {}
+    setNuevoCliente(emptyForm);
     setShowModal(true);
   };
 
@@ -949,7 +1001,7 @@ const ClientesCRM = () => {
                       </div>
                       <div className="text-center w-12">
                         <p className="text-xs text-gray-400 dark:text-gray-500">Int.</p>
-                        <p className="text-sm font-semibold dark:text-gray-200">{cliente.interacciones}</p>
+                        <p className="text-sm font-semibold dark:text-gray-200">{interactionCounts[cliente.id] || 0}</p>
                       </div>
                       <div className="text-center w-14">
                         <p className="text-xs text-gray-400 dark:text-gray-500">Última</p>
@@ -1162,7 +1214,141 @@ const ClientesCRM = () => {
                 </div>
               )}
 
-              {/* Interaction History (read-only for admin) */}
+              {/* ── Interactions Section ── */}
+              <div className={cardBase}>
+                <h3 className="text-xl font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaFileAlt className="text-indigo-500" /> Registrar Interacción
+                </h3>
+                <form onSubmit={handleSubmitInteraction} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo</label>
+                      <select value={interactionForm.tipo} onChange={(e) => setInteractionForm(p => ({ ...p, tipo: e.target.value }))}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}>
+                        {Object.entries(tipoInteraccionLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                    </div>
+                    {(interactionForm.tipo === 'recontacto') && (
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Medio de Contacto</label>
+                        <select value={interactionForm.medioContacto} onChange={(e) => setInteractionForm(p => ({ ...p, medioContacto: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}>
+                          <option value="">Seleccionar...</option>
+                          <option value="llamada">Llamada</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="email">Email</option>
+                          <option value="presencial">Presencial</option>
+                          <option value="videollamada">Videollamada</option>
+                        </select>
+                      </div>
+                    )}
+                    {(interactionForm.tipo === 'recontacto') && (
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Fecha de Contacto</label>
+                        <input type="datetime-local" value={interactionForm.fechaContacto} onChange={(e) => setInteractionForm(p => ({ ...p, fechaContacto: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
+                      </div>
+                    )}
+                    {(interactionForm.tipo === 'visita_agendada' || interactionForm.tipo === 'visita_realizada') && (
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Fecha de Visita</label>
+                        <input type="datetime-local" value={interactionForm.visitaFecha} onChange={(e) => setInteractionForm(p => ({ ...p, visitaFecha: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
+                      </div>
+                    )}
+                    {(interactionForm.tipo === 'visita_agendada' || interactionForm.tipo === 'visita_realizada' || interactionForm.tipo === 'propiedad_interes') && (
+                      <div className="relative">
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300"><FaBuilding className="inline mr-1 text-indigo-400" />Propiedad <span className="text-red-400">*</span></label>
+                        {interactionForm.propiedadId ? (
+                          <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300 bg-gray-50'}`}>
+                            <span className="truncate">{interactionForm.propiedadNombre}</span>
+                            <button type="button" onClick={() => setInteractionForm(p => ({ ...p, propiedadId: '', propiedadNombre: '' }))} className="ml-2 text-gray-400 hover:text-red-500"><FaTimes /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <input type="text" value={interactionPropSearch} onChange={(e) => setInteractionPropSearch(e.target.value)}
+                              placeholder="Buscar propiedad..."
+                              className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
+                            {interactionPropSearch.trim().length > 1 && (
+                              <div className="absolute z-10 w-full mt-1 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 shadow-lg max-h-40 overflow-y-auto">
+                                {propiedadesList.filter(p => {
+                                  const q = interactionPropSearch.toLowerCase();
+                                  return (p.title || p.titulo || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q);
+                                }).slice(0, 8).map(p => (
+                                  <button key={p._id || p.id} type="button"
+                                    onClick={() => { setInteractionForm(prev => ({ ...prev, propiedadId: p._id || p.id, propiedadNombre: p.title || p.titulo || 'Sin título' })); setInteractionPropSearch(''); }}
+                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b dark:border-gray-700 last:border-0 text-sm dark:text-gray-200">
+                                    <span className="font-medium">{p.title || p.titulo}</span>
+                                    {(p.address || p.direccion) && <span className="text-gray-500 ml-2 text-xs">{p.address || p.direccion}</span>}
+                                  </button>
+                                ))}
+                                {propiedadesList.filter(p => { const q = interactionPropSearch.toLowerCase(); return (p.title || p.titulo || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q); }).length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {interactionForm.tipo === 'propiedad_interes' && (
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Nivel de Interés</label>
+                        <select value={interactionForm.nivelInteres} onChange={(e) => setInteractionForm(p => ({ ...p, nivelInteres: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}>
+                          <option value="">Seleccionar...</option>
+                          <option value="bajo">Bajo</option>
+                          <option value="medio">Medio</option>
+                          <option value="alto">Alto</option>
+                        </select>
+                      </div>
+                    )}
+                    {interactionForm.tipo === 'opcion_pago' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo de Pago</label>
+                          <select value={interactionForm.opcionPago.tipo} onChange={(e) => setInteractionForm(p => ({ ...p, opcionPago: { ...p.opcionPago, tipo: e.target.value } }))}
+                            className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}>
+                            <option value="">Seleccionar...</option>
+                            <option value="contado">Contado</option>
+                            <option value="financiado">Financiado</option>
+                            <option value="permuta">Permuta</option>
+                            <option value="credito_hipotecario">Crédito Hipotecario</option>
+                            <option value="otro">Otro</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 dark:text-gray-300">Monto Ofrecido</label>
+                          <input type="number" value={interactionForm.opcionPago.montoOfrecido || ''} onChange={(e) => setInteractionForm(p => ({ ...p, opcionPago: { ...p.opcionPago, montoOfrecido: Number(e.target.value) } }))}
+                            className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} placeholder="0" />
+                        </div>
+                      </>
+                    )}
+                    {interactionForm.tipo === 'preferencia' && (
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo de Preferencia</label>
+                        <input type="text" value={interactionForm.preferencias.tipo} onChange={(e) => setInteractionForm(p => ({ ...p, preferencias: { ...p.preferencias, tipo: e.target.value } }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} placeholder="Ej: Balcón, Pileta, Vista..." />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Descripción *</label>
+                    <textarea value={interactionForm.descripcion} onChange={(e) => setInteractionForm(p => ({ ...p, descripcion: e.target.value }))}
+                      rows={3} className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}
+                      placeholder="Descripción detallada de la interacción..." />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><FaClock className="text-[10px]" /> Una vez guardada, esta interacción no se puede editar ni eliminar</p>
+                    <button type="submit" disabled={interactionSubmitting || !interactionForm.descripcion.trim()}
+                      className="px-5 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                      <FaSave /> {interactionSubmitting ? 'Guardando...' : 'Guardar'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Interaction History */}
               {clientInteractions.length > 0 && (
                 <div className={cardBase}>
                   <h3 className="text-xl font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
@@ -1188,6 +1374,8 @@ const ClientesCRM = () => {
                           <span className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(inter.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <p className="text-sm dark:text-gray-300">{inter.descripcion}</p>
+                        {inter.propiedadId && <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><FaBuilding className="text-indigo-400" /> Propiedad: <span className="font-semibold font-mono">{String(inter.propiedadId)}</span></p>}
+                        {inter.visitaFecha && <p className="text-xs text-gray-500 mt-1">Fecha visita: <span className="font-semibold">{new Date(inter.visitaFecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></p>}
                         {inter.nivelInteres && <p className="text-xs text-gray-500 mt-1">Nivel de interés: <span className="font-semibold">{inter.nivelInteres}</span></p>}
                         {inter.opcionPago?.tipo && <p className="text-xs text-gray-500 mt-1">Pago: {inter.opcionPago.tipo} {inter.opcionPago.montoOfrecido > 0 ? `— ${inter.opcionPago.moneda} $${inter.opcionPago.montoOfrecido.toLocaleString()}` : ''}</p>}
                         {inter.preferencias?.tipo && <p className="text-xs text-gray-500 mt-1">Preferencia: {inter.preferencias.tipo} {inter.preferencias.detalle ? `— ${inter.preferencias.detalle}` : ''}</p>}
@@ -1314,7 +1502,7 @@ const ClientesCRM = () => {
                       <FaHistory className="text-blue-500" />
                       <span className="text-sm dark:text-gray-200">Interacciones</span>
                     </div>
-                    <span className="font-bold dark:text-gray-100">{clienteSeleccionado.interacciones}</span>
+                    <span className="font-bold dark:text-gray-100">{clientInteractions.length}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-gray-800 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -1788,7 +1976,7 @@ const ClientesCRM = () => {
                         {propiedadesList
                           .filter((p) => {
                             const q = propSearch.toLowerCase();
-                            return (p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.direccion || '').toLowerCase().includes(q);
+                            return (p.title || p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q);
                           })
                           .slice(0, 8)
                           .map((p) => (
@@ -1800,21 +1988,21 @@ const ClientesCRM = () => {
                                   ...prev,
                                   propiedadConsultadaInicial: {
                                     id: String(p._id || p.id),
-                                    titulo: p.titulo || p.nombre || 'Sin título',
-                                    direccion: p.direccion || '',
+                                    titulo: p.title || p.titulo || p.nombre || 'Sin título',
+                                    direccion: p.address || p.direccion || '',
                                   },
                                 }));
                                 setPropSearch('');
                               }}
                               className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b dark:border-gray-700 last:border-0 text-sm dark:text-gray-200"
                             >
-                              <span className="font-medium">{p.titulo || p.nombre || 'Sin título'}</span>
-                              {p.direccion && <span className="text-gray-500 dark:text-gray-400 ml-2 text-xs">{p.direccion}</span>}
+                              <span className="font-medium">{p.title || p.titulo || p.nombre || 'Sin título'}</span>
+                              {(p.address || p.direccion) && <span className="text-gray-500 dark:text-gray-400 ml-2 text-xs">{p.address || p.direccion}</span>}
                             </button>
                           ))}
                         {propiedadesList.filter((p) => {
                           const q = propSearch.toLowerCase();
-                          return (p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.direccion || '').toLowerCase().includes(q);
+                          return (p.title || p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q);
                         }).length === 0 && (
                           <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Sin resultados</div>
                         )}

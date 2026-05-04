@@ -276,8 +276,9 @@ const ClientesCRM = () => {
   const [interactionCounts, setInteractionCounts] = useState({});
   const [clientMetrics, setClientMetrics] = useState(null);
   const [clientInteractions, setClientInteractions] = useState([]);
-  const [interactionForm, setInteractionForm] = useState({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '' });
+  const [interactionForm, setInteractionForm] = useState({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' });
   const [interactionSubmitting, setInteractionSubmitting] = useState(false);
+  const [interactionPropSearch, setInteractionPropSearch] = useState('');
   const [searchCliente, setSearchCliente] = useState('');
 
   // Fetch lifebars and interaction counts when clients load
@@ -292,7 +293,7 @@ const ClientesCRM = () => {
     }
   }, [clientesEjemplo]);
 
-  // Fetch interactions and client metrics when detail view opens
+  // Fetch interactions, client metrics, and properties when detail view opens
   useEffect(() => {
     if (vistaActual === 'detalle' && clienteSeleccionado?.id) {
       crmService.clientInteractions.list(clienteSeleccionado.id).then(data => {
@@ -301,12 +302,17 @@ const ClientesCRM = () => {
       crmService.clientInteractions.clientMetrics(clienteSeleccionado.id).then(data => {
         setClientMetrics(data);
       }).catch(() => setClientMetrics(null));
+      if (propiedadesList.length === 0) {
+        crmService.propiedades.getAll().then(data => {
+          setPropiedadesList(Array.isArray(data) ? data : []);
+        }).catch(() => {});
+      }
     } else {
       setClientMetrics(null);
     }
   }, [vistaActual, clienteSeleccionado?.id]);
 
-  const resetInteractionForm = () => setInteractionForm({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '' });
+  const resetInteractionForm = () => { setInteractionForm({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' }); setInteractionPropSearch(''); };
 
   const handleSubmitInteraction = async (e) => {
     e.preventDefault();
@@ -315,6 +321,7 @@ const ClientesCRM = () => {
     try {
       const payload = { ...interactionForm };
       if (!payload.propiedadId) delete payload.propiedadId;
+      delete payload.propiedadNombre;
       if (!payload.fechaContacto) delete payload.fechaContacto;
       if (!payload.visitaFecha) delete payload.visitaFecha;
       const created = await crmService.clientInteractions.create(clienteSeleccionado.id, payload);
@@ -379,7 +386,16 @@ const ClientesCRM = () => {
 
   const openCreateModal = () => {
     setEditingClienteId(null);
-    setNuevoCliente(createEmptyClienteForm());
+    const emptyForm = createEmptyClienteForm();
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.agenteId) {
+        emptyForm.agenteId = user.agenteId;
+        emptyForm.agenteNombre = user.nombre || user.username || '';
+        emptyForm.agente = user.nombre || user.username || '';
+      }
+    } catch (_) {}
+    setNuevoCliente(emptyForm);
     setShowModal(true);
   };
 
@@ -1523,6 +1539,41 @@ const ClientesCRM = () => {
                           className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
                       </div>
                     )}
+                    {(interactionForm.tipo === 'visita_agendada' || interactionForm.tipo === 'visita_realizada' || interactionForm.tipo === 'propiedad_interes') && (
+                      <div className="relative">
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300"><FaBuilding className="inline mr-1 text-indigo-400" />Propiedad <span className="text-red-400">*</span></label>
+                        {interactionForm.propiedadId ? (
+                          <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300 bg-gray-50'}`}>
+                            <span className="truncate">{interactionForm.propiedadNombre}</span>
+                            <button type="button" onClick={() => setInteractionForm(p => ({ ...p, propiedadId: '', propiedadNombre: '' }))} className="ml-2 text-gray-400 hover:text-red-500"><FaTimes /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <input type="text" value={interactionPropSearch} onChange={(e) => setInteractionPropSearch(e.target.value)}
+                              placeholder="Buscar propiedad..."
+                              className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
+                            {interactionPropSearch.trim().length > 1 && (
+                              <div className="absolute z-10 w-full mt-1 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 shadow-lg max-h-40 overflow-y-auto">
+                                {propiedadesList.filter(p => {
+                                  const q = interactionPropSearch.toLowerCase();
+                                  return (p.title || p.titulo || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q);
+                                }).slice(0, 8).map(p => (
+                                  <button key={p._id || p.id} type="button"
+                                    onClick={() => { setInteractionForm(prev => ({ ...prev, propiedadId: p._id || p.id, propiedadNombre: p.title || p.titulo || 'Sin título' })); setInteractionPropSearch(''); }}
+                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b dark:border-gray-700 last:border-0 text-sm dark:text-gray-200">
+                                    <span className="font-medium">{p.title || p.titulo}</span>
+                                    {(p.address || p.direccion) && <span className="text-gray-500 ml-2 text-xs">{p.address || p.direccion}</span>}
+                                  </button>
+                                ))}
+                                {propiedadesList.filter(p => { const q = interactionPropSearch.toLowerCase(); return (p.title || p.titulo || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q); }).length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                     {interactionForm.tipo === 'propiedad_interes' && (
                       <div>
                         <label className="block text-xs font-medium mb-1 dark:text-gray-300">Nivel de Interés</label>
@@ -1606,6 +1657,8 @@ const ClientesCRM = () => {
                           <span className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(inter.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <p className="text-sm dark:text-gray-300">{inter.descripcion}</p>
+                        {inter.propiedadId && <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><FaBuilding className="text-indigo-400" /> Propiedad: <span className="font-semibold font-mono">{String(inter.propiedadId)}</span></p>}
+                        {inter.visitaFecha && <p className="text-xs text-gray-500 mt-1">Fecha visita: <span className="font-semibold">{new Date(inter.visitaFecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></p>}
                         {inter.nivelInteres && <p className="text-xs text-gray-500 mt-1">Nivel de interés: <span className="font-semibold">{inter.nivelInteres}</span></p>}
                         {inter.opcionPago?.tipo && <p className="text-xs text-gray-500 mt-1">Pago: {inter.opcionPago.tipo} {inter.opcionPago.montoOfrecido > 0 ? `— ${inter.opcionPago.moneda} $${inter.opcionPago.montoOfrecido.toLocaleString()}` : ''}</p>}
                         {inter.preferencias?.tipo && <p className="text-xs text-gray-500 mt-1">Preferencia: {inter.preferencias.tipo} {inter.preferencias.detalle ? `— ${inter.preferencias.detalle}` : ''}</p>}
@@ -2667,7 +2720,7 @@ const ClientesCRM = () => {
                           {propiedadesList
                             .filter((p) => {
                               const q = propSearch.toLowerCase();
-                              return (p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.direccion || '').toLowerCase().includes(q);
+                              return (p.title || p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q);
                             })
                             .slice(0, 8)
                             .map((p) => (
@@ -2679,21 +2732,21 @@ const ClientesCRM = () => {
                                     ...prev,
                                     propiedadConsultadaInicial: {
                                       id: String(p._id || p.id),
-                                      titulo: p.titulo || p.nombre || 'Sin título',
-                                      direccion: p.direccion || '',
+                                      titulo: p.title || p.titulo || p.nombre || 'Sin título',
+                                      direccion: p.address || p.direccion || '',
                                     },
                                   }));
                                   setPropSearch('');
                                 }}
                                 className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b dark:border-gray-700 last:border-0 text-sm dark:text-gray-200"
                               >
-                                <span className="font-medium">{p.titulo || p.nombre || 'Sin título'}</span>
-                                {p.direccion && <span className="text-gray-500 dark:text-gray-400 ml-2 text-xs">{p.direccion}</span>}
+                                <span className="font-medium">{p.title || p.titulo || p.nombre || 'Sin título'}</span>
+                                {(p.address || p.direccion) && <span className="text-gray-500 dark:text-gray-400 ml-2 text-xs">{p.address || p.direccion}</span>}
                               </button>
                             ))}
                           {propiedadesList.filter((p) => {
                             const q = propSearch.toLowerCase();
-                            return (p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.direccion || '').toLowerCase().includes(q);
+                            return (p.title || p.titulo || p.nombre || '').toLowerCase().includes(q) || (p.address || p.direccion || '').toLowerCase().includes(q);
                           }).length === 0 && (
                             <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Sin resultados</div>
                           )}

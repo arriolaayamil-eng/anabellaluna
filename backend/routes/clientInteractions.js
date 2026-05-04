@@ -5,6 +5,7 @@ const Cliente = require('../models/Cliente');
 const Agente = require('../models/Agente');
 const Activity = require('../models/Activity');
 const Cita = require('../models/Cita');
+const Propiedad = require('../models/Propiedad');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
@@ -223,15 +224,29 @@ router.get('/client-metrics/:clienteId', authenticateToken, requireCRMUser, asyn
 router.get('/owner-report/:propiedadId', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const { propiedadId } = req.params;
-    const Propiedad = require('../models/Propiedad');
+    const days = parseInt(req.query.days, 10) || 30;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
     const propiedad = await Propiedad.findById(propiedadId).lean();
     if (!propiedad) return res.status(404).json({ error: 'Propiedad no encontrada' });
 
     const pid = new mongoose.Types.ObjectId(propiedadId);
 
-    // All interactions for this property
-    const interactions = await ClientInteraction.find({ propiedadId: pid })
+    // All interactions for this property within date range
+    const interactions = await ClientInteraction.find({ propiedadId: pid, createdAt: { $gte: since } })
       .sort({ createdAt: -1 }).lean();
+
+    // Populate client names
+    const clienteIds = [...new Set(interactions.map(i => String(i.clienteId)))];
+    const clientes = await Cliente.find({ _id: { $in: clienteIds } }).select('nombre email telefono metadata').lean();
+    const clienteMap = {};
+    clientes.forEach(c => {
+      clienteMap[String(c._id)] = {
+        nombre: [c.nombre, c.metadata?.apellido].filter(Boolean).join(' '),
+        email: c.email || '',
+        telefono: c.telefono || '',
+      };
+    });
 
     // Interaction counts by type
     const typeCounts = {};
@@ -318,7 +333,14 @@ router.get('/owner-report/:propiedadId', authenticateToken, requireCRMUser, asyn
       tiempoPublicado: propiedad.createdAt ? Math.round((now - new Date(propiedad.createdAt)) / (1000 * 60 * 60 * 24)) : 0,
     };
 
+    // Decorate interactions with client info
+    const interactionesDetalle = interactions.map(i => ({
+      ...i,
+      cliente: clienteMap[String(i.clienteId)] || { nombre: 'Desconocido', email: '', telefono: '' },
+    }));
+
     res.json({
+      dias: days,
       propiedad: propSummary,
       resumen: {
         consultas: enquiries,
@@ -335,6 +357,7 @@ router.get('/owner-report/:propiedadId', authenticateToken, requireCRMUser, asyn
       interactionsByType: typeCounts,
       weeklyTrend,
       clienteIds: uniqueClients,
+      interacciones: interactionesDetalle,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -375,10 +398,58 @@ router.post('/:clienteId', authenticateToken, requireCRMUser, async (req, res) =
 
     const created = await ClientInteraction.create(body);
 
-    // Update cliente.metadata.ultimaActividad for lifebar
-    await Cliente.findByIdAndUpdate(clienteId, {
-      'metadata.ultimaActividad': new Date().toISOString(),
-    });
+    // ── Side-effects based on interaction type ──
+    const { tipo, propiedadId, nivelInteres, preferencias } = body;
+    const agenteId = body.agenteId;
+
+    // 1) Property metrics: visita_agendada, visita_realizada, propiedad_interes
+    if (propiedadId && mongoose.Types.ObjectId.isValid(propiedadId)) {
+      if (tipo === 'visita_agendada') {
+        await Propiedad.findByIdAndUpdate(propiedadId, {
+          $inc: { 'metadata.visitasAgendadas': 1 },
+        });
+      } else if (tipo === 'visita_realizada') {
+        await Propiedad.findByIdAndUpdate(propiedadId, {
+          $inc: { 'metadata.visitasRealizadas': 1, 'metadata.visitasPositivas': 1 },
+        });
+      } else if (tipo === 'propiedad_interes') {
+        const interesInc = { 'metadata.intereses': 1 };
+        if (nivelInteres === 'alto') interesInc['metadata.interesAlto'] = 1;
+        else if (nivelInteres === 'medio') interesInc['metadata.interesMedio'] = 1;
+        else if (nivelInteres === 'bajo') interesInc['metadata.interesBajo'] = 1;
+        await Propiedad.findByIdAndUpdate(propiedadId, { $inc: interesInc });
+      }
+    }
+
+    // 2) Agent metadata: track visit counts per agent
+    if (agenteId) {
+      if (tipo === 'visita_agendada') {
+        await Agente.findByIdAndUpdate(agenteId, {
+          $inc: { 'metadata.visitasAgendadas': 1 },
+        }).catch(() => {});
+      } else if (tipo === 'visita_realizada') {
+        await Agente.findByIdAndUpdate(agenteId, {
+          $inc: { 'metadata.visitasRealizadas': 1, 'metadata.visitasPositivas': 1 },
+        }).catch(() => {});
+      }
+    }
+
+    // 3) Update cliente: ultimaActividad + preferences tracking
+    if (tipo === 'preferencia' && preferencias && preferencias.tipo) {
+      const prefEntry = {
+        tipo: preferencias.tipo,
+        detalle: preferencias.detalle || '',
+        fecha: new Date().toISOString(),
+      };
+      await Cliente.findByIdAndUpdate(clienteId, {
+        $set: { 'metadata.ultimaActividad': new Date().toISOString() },
+        $push: { 'metadata.preferencias': prefEntry },
+      });
+    } else {
+      await Cliente.findByIdAndUpdate(clienteId, {
+        $set: { 'metadata.ultimaActividad': new Date().toISOString() },
+      });
+    }
 
     res.status(201).json(created);
   } catch (err) { res.status(400).json({ error: err.message }); }

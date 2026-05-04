@@ -39,7 +39,7 @@ export const crmService = {
     bulkCounts: () => api.get('/crm/client-interactions/bulk-counts'),
     propertyMetrics: (propiedadId) => api.get(`/crm/client-interactions/property/${propiedadId}/metrics`),
     clientMetrics: (clienteId) => api.get(`/crm/client-interactions/client-metrics/${clienteId}`),
-    ownerReport: (propiedadId) => api.get(`/crm/client-interactions/owner-report/${propiedadId}`),
+    ownerReport: (propiedadId, days = 30) => api.get(`/crm/client-interactions/owner-report/${propiedadId}?days=${days}`),
   },
 
   // ============ AGENTES ============

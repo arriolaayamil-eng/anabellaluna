@@ -372,6 +372,10 @@ router.get('/me', async (req, res) => {
 
         user.redesSociales = agente.redesSociales || {};
 
+        user.themeMode = (agente.metadata && agente.metadata.themeMode) || '';
+
+        user.colorMode = (agente.metadata && agente.metadata.colorMode) || '';
+
       }
 
     } else {
@@ -397,6 +401,10 @@ router.get('/me', async (req, res) => {
         user.cargo = userDoc.cargo || '';
 
         user.empresa = userDoc.empresa || '';
+
+        user.themeMode = (userDoc.metadata && userDoc.metadata.themeMode) || '';
+
+        user.colorMode = (userDoc.metadata && userDoc.metadata.colorMode) || '';
 
       }
 
@@ -489,6 +497,26 @@ router.put('/profile', authenticateToken, async (req, res) => {
 });
 
 
+
+// Persist theme preference per user/agent
+router.patch('/theme', authenticateToken, async (req, res) => {
+  try {
+    const { themeMode, colorMode } = req.body || {};
+    const update = {};
+    if (themeMode !== undefined) update['metadata.themeMode'] = themeMode;
+    if (colorMode !== undefined) update['metadata.colorMode'] = colorMode;
+    if (!Object.keys(update).length) return res.json({ ok: true });
+
+    if (req.user.agenteId) {
+      await Agente.findByIdAndUpdate(req.user.agenteId, { $set: update });
+    } else {
+      await User.findByIdAndUpdate(req.user.sub, { $set: update });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // Middleware
 

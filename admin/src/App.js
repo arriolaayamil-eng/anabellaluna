@@ -33,12 +33,16 @@ const App = () => {
   const tfaInputRef = useRef(null);
 
   useEffect(() => {
-    const currentThemeColor = localStorage.getItem('colorMode');
-    const currentThemeMode = localStorage.getItem('themeMode');
-    if (currentThemeColor && currentThemeMode) {
-      setCurrentColor(currentThemeColor);
-      setCurrentMode(currentThemeMode);
-    }
+    // Prefer backend-persisted theme; fall back to localStorage
+    const user = authService.getCurrentUser();
+    const backendMode = user?.themeMode;
+    const backendColor = user?.colorMode;
+    const localMode = localStorage.getItem('themeMode');
+    const localColor = localStorage.getItem('colorMode');
+    const mode = backendMode || localMode;
+    const color = backendColor || localColor;
+    if (mode) { setCurrentMode(mode); localStorage.setItem('themeMode', mode); }
+    if (color) { setCurrentColor(color); localStorage.setItem('colorMode', color); }
   }, [setCurrentColor, setCurrentMode]);
 
   const handleLogin = async (e) => {

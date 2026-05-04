@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
+import { api } from '../config/api';
+
+const persistTheme = (patch) => { try { api.patch('/auth/theme', patch); } catch (_) {} };
 
 const StateContext = createContext();
 
@@ -24,11 +27,13 @@ export const ContextProvider = ({ children }) => {
   const setMode = (e) => {
     setCurrentMode(e.target.value);
     localStorage.setItem('themeMode', e.target.value);
+    persistTheme({ themeMode: e.target.value });
   };
 
   const setColor = (color) => {
     setCurrentColor(color);
     localStorage.setItem('colorMode', color);
+    persistTheme({ colorMode: color });
   };
 
   const handleClick = (clicked) => setIsClicked({ ...initialState, [clicked]: true });

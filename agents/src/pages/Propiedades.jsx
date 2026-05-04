@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import FunnelDesignEditor from '../components/FunnelDesignEditor';
 import PropiedadesMapView from './PropiedadesMapView';
+import PropiedadInforme from '../components/PropiedadInforme';
 
 import Chart from 'react-apexcharts';
 import { FaPlus, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChartLine, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaFileAlt, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
@@ -37,6 +38,7 @@ const Propiedades = () => {
   // Estados para las vistas
   const [vistaActual, setVistaActual] = useState('dashboard'); // 'dashboard', 'lista', 'mapa', 'detalle'
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
+  const [showInforme, setShowInforme] = useState(false);
 
   const [propiedades, setPropiedades] = useState([]);
   const [agentes, setAgentes] = useState([]);
@@ -1998,6 +2000,9 @@ const Propiedades = () => {
               <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getEstadoBadgeWhite(propiedadSeleccionada.estado)}`}>
                 {propiedadSeleccionada.estado}
               </span>
+              <button type="button" onClick={() => setShowInforme(true)} className="px-4 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors flex items-center gap-2">
+                <FaFileAlt /> Informe
+              </button>
               <button type="button" onClick={() => handleEditPropiedad(propiedadSeleccionada)} className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors flex items-center gap-2">
                 <FaEdit /> Editar
               </button>
@@ -2578,6 +2583,15 @@ const Propiedades = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Informe de Mercado */}
+      {showInforme && propiedadSeleccionada && (
+        <PropiedadInforme
+          propiedad={propiedadSeleccionada}
+          onClose={() => setShowInforme(false)}
+          isDark={isDark}
+        />
       )}
 
       {/* Modal de Nueva Propiedad */}
