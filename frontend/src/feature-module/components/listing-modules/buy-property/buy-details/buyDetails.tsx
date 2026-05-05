@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import Lightbox from "yet-another-react-lightbox";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import "yet-another-react-lightbox/styles.css";
@@ -17,8 +14,6 @@ const trackEvent = (name: string, payload: Record<string, unknown> = {}) => {
     if ((window as any).dataLayer) (window as any).dataLayer.push({ event: name, ...payload });
   } catch {}
 };
-
-type SliderType = Slider;
 
 // ─── Section header with accent stripe ───────────────────────────────────────
 const SectionHeader = ({ title, accent }: { title: string; accent: string }) => (
@@ -43,14 +38,12 @@ const BuyDetails = () => {
   const [searchParams] = useSearchParams();
   const privateToken = searchParams.get("token") || undefined;
 
-  const [mainSlider, setMainSlider] = useState<SliderType | undefined>(undefined);
-  const [thumbSlider, setThumbSlider] = useState<SliderType | undefined>(undefined);
   const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const mainRef = useRef<SliderType>(null);
-  const thumbRef = useRef<SliderType>(null);
+  // Classic-carousel hero state
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
   // Funnel UI state
   const [stickyVisible, setStickyVisible] = useState(false);
@@ -66,26 +59,6 @@ const BuyDetails = () => {
   const [visitMsg, setVisitMsg] = useState("");
   const [visitSubmitting, setVisitSubmitting] = useState(false);
   const [visitFeedback, setVisitFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
-  const mainSettings = {
-    slidesToShow: 1, slidesToScroll: 1, fade: true,
-    arrows: false, infinite: true, adaptiveHeight: true, asNavFor: thumbSlider,
-  };
-  const thumbSettings = {
-    slidesToShow: 6, slidesToScroll: 1, asNavFor: mainSlider,
-    focusOnSelect: true, arrows: true, infinite: true,
-    responsive: [
-      { breakpoint: 1200, settings: { slidesToShow: 5 } },
-      { breakpoint: 992, settings: { slidesToShow: 4 } },
-      { breakpoint: 768, settings: { slidesToShow: 3 } },
-      { breakpoint: 576, settings: { slidesToShow: 2 } },
-    ],
-  };
-
-  useEffect(() => {
-    setMainSlider(mainRef.current ?? undefined);
-    setThumbSlider(thumbRef.current ?? undefined);
-  }, []);
 
   // Load WhatsApp (preserved)
   useEffect(() => {
@@ -215,6 +188,7 @@ const BuyDetails = () => {
   const textClass = heroTextColorClass(fs);
   const mutedColor = heroMutedColor(fs);
   const imageStyle = fs?.heroImageStyle ?? "float-right";
+  const isClassicCarousel = imageStyle === "classic-carousel";
 
   const heroStyle = useMemo((): React.CSSProperties => {
     const bg = buildHeroBackground(fs);
@@ -230,7 +204,16 @@ const BuyDetails = () => {
   }, [fs, imageStyle]);
 
   const coverImage = galleryImages[0] || "";
-  const showHeroImage = imageStyle !== "hidden" && !!coverImage;
+  const showHeroImage = !isClassicCarousel && imageStyle !== "hidden" && !!coverImage;
+
+  // Autoplay for classic-carousel (3 s per slide)
+  useEffect(() => {
+    if (!isClassicCarousel || galleryImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setHeroSlideIndex((prev) => (prev + 1) % galleryImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isClassicCarousel, galleryImages.length]);
 
   // ─── Spec tiles ──────────────────────────────────────────────────────────
   const specs: Array<{ icon: string; label: string; value: string | number }> = [];
@@ -338,201 +321,293 @@ const BuyDetails = () => {
       </div>
 
       {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
-      <section style={heroStyle}>
-        <div className="container" style={{ position: "relative", zIndex: 1 }}>
-          <div className={`row align-items-center gx-5 ${imageStyle === "float-left" ? "flex-row-reverse" : ""}`}>
+      {isClassicCarousel ? (
+        /* ─── CLASSIC CAROUSEL HERO ────────────────────────────────────────── */
+        <section
+          style={{
+            position: "relative", width: "100%", height: "100vh", maxHeight: 780,
+            overflow: "hidden", background: "#0f172a",
+          }}
+        >
+          {/* Slides */}
+          {galleryImages.map((src, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute", inset: 0,
+                opacity: heroSlideIndex === i ? 1 : 0,
+                transition: "opacity 0.8s ease",
+                cursor: "zoom-in",
+              }}
+              onClick={() => { setLightboxIndex(i); trackEvent("gallery_open", { propertyId: property.id, source: "hero_carousel" }); }}
+            >
+              <img src={src} alt={`${property.title} — ${i + 1}`}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            </div>
+          ))}
 
-            {/* LEFT: Text block */}
-            <div className={showHeroImage ? "col-xl-6 col-lg-7" : "col-xl-8 col-lg-10 mx-auto text-center"}>
-              {/* Operation + type badges */}
-              <div className="d-flex flex-wrap gap-2 mb-4" style={showHeroImage ? {} : { justifyContent: "center" }}>
-                <span
-                  className="badge fw-semibold px-3 py-2"
-                  style={{ background: accentColor, fontSize: "0.78rem", letterSpacing: "0.06em" }}
-                >
-                  {operLabel}
-                </span>
-                {property.type && (
-                  <span className="badge bg-white text-dark fw-semibold px-3 py-2" style={{ fontSize: "0.78rem" }}>
-                    {property.type}
-                  </span>
-                )}
-                {property.featured && (
-                  <span className="badge fw-semibold px-3 py-2" style={{ background: "#f59e0b", fontSize: "0.78rem" }}>
-                    ⭐ Destacada
-                  </span>
-                )}
-                {property.trending && (
-                  <span className="badge fw-semibold px-3 py-2" style={{ background: "#ef4444", fontSize: "0.78rem" }}>
-                    🔥 Tendencia
-                  </span>
-                )}
-              </div>
+          {/* Dark overlay bottom gradient */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 40%, rgba(0,0,0,0.55) 100%)", pointerEvents: "none" }} />
 
-              {/* OVERSIZED TITLE */}
-              <h1
-                className={textClass}
+          {/* Prev / Next arrows */}
+          {galleryImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setHeroSlideIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }}
                 style={{
-                  fontSize: "clamp(2rem, 4.5vw, 4.2rem)",
-                  fontWeight: 900,
-                  lineHeight: 1.05,
-                  letterSpacing: "-0.025em",
-                  marginBottom: "1.25rem",
+                  position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)",
+                  background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)",
+                  color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48,
+                  fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  zIndex: 10, transition: "background 0.2s",
                 }}
-              >
-                {property.title}
-              </h1>
+                aria-label="Anterior"
+              >&#8249;</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setHeroSlideIndex((prev) => (prev + 1) % galleryImages.length); }}
+                style={{
+                  position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)",
+                  background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)",
+                  color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48,
+                  fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  zIndex: 10, transition: "background 0.2s",
+                }}
+                aria-label="Siguiente"
+              >&#8250;</button>
+            </>
+          )}
 
-              {/* Location */}
-              {locationLabel && (
-                <div className="d-flex align-items-center gap-2 mb-4" style={{ color: mutedColor }}>
-                  <i className="material-icons-outlined" style={{ fontSize: 18 }}>location_on</i>
-                  <span style={{ fontSize: "0.95rem" }}>{locationLabel}</span>
-                </div>
-              )}
+          {/* Dot indicators */}
+          {galleryImages.length > 1 && (
+            <div style={{
+              position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
+              display: "flex", gap: 8, zIndex: 10,
+            }}>
+              {galleryImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setHeroSlideIndex(i); }}
+                  style={{
+                    width: heroSlideIndex === i ? 24 : 8, height: 8, borderRadius: 4,
+                    background: heroSlideIndex === i ? "#fff" : "rgba(255,255,255,0.45)",
+                    border: "none", cursor: "pointer", padding: 0,
+                    transition: "width 0.3s, background 0.3s",
+                  }}
+                  aria-label={`Foto ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
 
-              {/* Quick stats */}
-              {specs.length > 0 && (
-                <div className="d-flex flex-wrap gap-3 mb-4">
-                  {specs.slice(0, 4).map((s) => (
-                    <div key={s.label} className="d-flex align-items-center gap-1" style={{ color: mutedColor }}>
-                      <i className="material-icons-outlined" style={{ fontSize: 18 }}>{s.icon}</i>
-                      <span style={{ fontWeight: 600, color: textClass === "text-white" ? "#fff" : "#111" }}>
-                        {s.value}
-                      </span>
-                      <span style={{ fontSize: "0.8rem" }}>{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Photo counter top-right */}
+          <div style={{
+            position: "absolute", top: 80, right: 20,
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+            color: "#fff", borderRadius: 20, padding: "5px 14px",
+            fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, zIndex: 10,
+          }}>
+            <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>
+            {heroSlideIndex + 1} / {galleryImages.length}
+          </div>
+        </section>
+      ) : (
+        /* ─── STANDARD FUNNEL HERO ──────────────────────────────────────────── */
+        <section style={heroStyle}>
+          <div className="container" style={{ position: "relative", zIndex: 1 }}>
+            <div className={`row align-items-center gx-5 ${imageStyle === "float-left" ? "flex-row-reverse" : ""}`}>
 
-              {/* Price */}
-              {priceLabel() && (
-                <div className="mb-5">
+              {/* LEFT: Text block */}
+              <div className={showHeroImage ? "col-xl-6 col-lg-7" : "col-xl-8 col-lg-10 mx-auto text-center"}>
+                {/* Operation + type badges */}
+                <div className="d-flex flex-wrap gap-2 mb-4" style={showHeroImage ? {} : { justifyContent: "center" }}>
                   <span
-                    className={textClass}
-                    style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", fontWeight: 800, letterSpacing: "-0.02em" }}
+                    className="badge fw-semibold px-3 py-2"
+                    style={{ background: accentColor, fontSize: "0.78rem", letterSpacing: "0.06em" }}
                   >
-                    {priceLabel()}
+                    {operLabel}
                   </span>
-                  {property.offerPrice && property.offerPrice > 0 && (
-                    <div style={{ color: mutedColor, fontSize: "0.85rem", marginTop: 2 }}>
-                      <s>Precio original: {property.price?.currency} {Number(property.offerPrice).toLocaleString("es-AR")}</s>
-                    </div>
+                  {property.type && (
+                    <span className="badge bg-white text-dark fw-semibold px-3 py-2" style={{ fontSize: "0.78rem" }}>
+                      {property.type}
+                    </span>
+                  )}
+                  {property.featured && (
+                    <span className="badge fw-semibold px-3 py-2" style={{ background: "#f59e0b", fontSize: "0.78rem" }}>
+                      ⭐ Destacada
+                    </span>
+                  )}
+                  {property.trending && (
+                    <span className="badge fw-semibold px-3 py-2" style={{ background: "#ef4444", fontSize: "0.78rem" }}>
+                      🔥 Tendencia
+                    </span>
                   )}
                 </div>
-              )}
 
-              {/* Hero CTAs */}
-              <div className="d-flex flex-wrap gap-3">
-                <button
-                  className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                {/* OVERSIZED TITLE */}
+                <h1
+                  className={textClass}
                   style={{
-                    background: accentColor, color: "#fff", border: "none",
-                    borderRadius: 12, boxShadow: `0 8px 32px ${accentColor}55`,
+                    fontSize: "clamp(2rem, 4.5vw, 4.2rem)",
+                    fontWeight: 900,
+                    lineHeight: 1.05,
+                    letterSpacing: "-0.025em",
+                    marginBottom: "1.25rem",
                   }}
-                  onClick={scrollToForm}
                 >
-                  <i className="material-icons-outlined" style={{ fontSize: 20 }}>calendar_today</i>
-                  Agendar visita
-                </button>
-                {whatsappNumber && (
-                  <button
-                    className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
-                    style={{
-                      background: "#25d366", color: "#fff", border: "none",
-                      borderRadius: 12, boxShadow: "0 8px 32px rgba(37,211,102,0.35)",
-                    }}
-                    onClick={() => openWhatsApp("hero")}
-                  >
-                    <i className="fa-brands fa-whatsapp" style={{ fontSize: 20 }} /> WhatsApp
-                  </button>
-                )}
-                {galleryImages.length > 1 && (
-                  <button
-                    className="btn btn-lg fw-semibold px-4 py-3 d-flex align-items-center gap-2"
-                    style={{
-                      background: "rgba(255,255,255,0.12)", color: textClass === "text-white" ? "#fff" : "#111",
-                      border: `1.5px solid rgba(255,255,255,0.25)`, borderRadius: 12,
-                    }}
-                    onClick={() => { setLightboxIndex(0); trackEvent("gallery_open", { propertyId: property.id, source: "hero" }); }}
-                  >
-                    <i className="material-icons-outlined" style={{ fontSize: 20 }}>photo_library</i>
-                    {galleryImages.length} fotos
-                  </button>
-                )}
-              </div>
-            </div>
+                  {property.title}
+                </h1>
 
-            {/* RIGHT: Property image */}
-            {showHeroImage && (
-              <div className="col-xl-6 col-lg-5 mt-5 mt-lg-0">
-                <div style={{ position: "relative" }}>
-                  {/* Main property image card */}
-                  <div
-                    style={{
-                      borderRadius: 20,
-                      overflow: "hidden",
-                      boxShadow: "0 40px 80px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.2)",
-                      transform: "translateY(80px)",
-                      position: "relative",
-                      cursor: galleryImages.length > 1 ? "pointer" : "default",
-                    }}
-                    onClick={() => galleryImages.length > 0 && setLightboxIndex(0)}
-                  >
-                    <img
-                      src={coverImage}
-                      alt={property.title}
-                      style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" }}
-                    />
-                    {/* Gallery count overlay */}
-                    {galleryImages.length > 1 && (
-                      <div
-                        style={{
-                          position: "absolute", bottom: 16, right: 16,
-                          background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)",
-                          color: "#fff", borderRadius: 50, padding: "6px 14px",
-                          fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
-                        }}
-                      >
-                        <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>
-                        {galleryImages.length} fotos
+                {/* Location */}
+                {locationLabel && (
+                  <div className="d-flex align-items-center gap-2 mb-4" style={{ color: mutedColor }}>
+                    <i className="material-icons-outlined" style={{ fontSize: 18 }}>location_on</i>
+                    <span style={{ fontSize: "0.95rem" }}>{locationLabel}</span>
+                  </div>
+                )}
+
+                {/* Quick stats */}
+                {specs.length > 0 && (
+                  <div className="d-flex flex-wrap gap-3 mb-4">
+                    {specs.slice(0, 4).map((s) => (
+                      <div key={s.label} className="d-flex align-items-center gap-1" style={{ color: mutedColor }}>
+                        <i className="material-icons-outlined" style={{ fontSize: 18 }}>{s.icon}</i>
+                        <span style={{ fontWeight: 600, color: textClass === "text-white" ? "#fff" : "#111" }}>
+                          {s.value}
+                        </span>
+                        <span style={{ fontSize: "0.8rem" }}>{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Price */}
+                {priceLabel() && (
+                  <div className="mb-5">
+                    <span
+                      className={textClass}
+                      style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", fontWeight: 800, letterSpacing: "-0.02em" }}
+                    >
+                      {priceLabel()}
+                    </span>
+                    {property.offerPrice && property.offerPrice > 0 && (
+                      <div style={{ color: mutedColor, fontSize: "0.85rem", marginTop: 2 }}>
+                        <s>Precio original: {property.price?.currency} {Number(property.offerPrice).toLocaleString("es-AR")}</s>
                       </div>
                     )}
                   </div>
-                  {/* Floating stats card */}
-                  {specs.length > 0 && (
-                    <div
+                )}
+
+                {/* Hero CTAs */}
+                <div className="d-flex flex-wrap gap-3">
+                  <button
+                    className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                    style={{
+                      background: accentColor, color: "#fff", border: "none",
+                      borderRadius: 12, boxShadow: `0 8px 32px ${accentColor}55`,
+                    }}
+                    onClick={scrollToForm}
+                  >
+                    <i className="material-icons-outlined" style={{ fontSize: 20 }}>calendar_today</i>
+                    Agendar visita
+                  </button>
+                  {whatsappNumber && (
+                    <button
+                      className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
                       style={{
-                        position: "absolute", bottom: -60, left: 20,
-                        background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)",
-                        borderRadius: 16, padding: "12px 20px",
-                        boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-                        display: "flex", gap: 20, flexWrap: "nowrap",
+                        background: "#25d366", color: "#fff", border: "none",
+                        borderRadius: 12, boxShadow: "0 8px 32px rgba(37,211,102,0.35)",
                       }}
+                      onClick={() => openWhatsApp("hero")}
                     >
-                      {specs.slice(0, 3).map((s) => (
-                        <div key={s.label} className="text-center">
-                          <div className="fw-bold" style={{ fontSize: "1.1rem", color: accentColor }}>{s.value}</div>
-                          <div className="text-secondary" style={{ fontSize: "0.68rem", textTransform: "uppercase" }}>{s.label}</div>
-                        </div>
-                      ))}
-                    </div>
+                      <i className="fa-brands fa-whatsapp" style={{ fontSize: 20 }} /> WhatsApp
+                    </button>
+                  )}
+                  {galleryImages.length > 1 && (
+                    <button
+                      className="btn btn-lg fw-semibold px-4 py-3 d-flex align-items-center gap-2"
+                      style={{
+                        background: "rgba(255,255,255,0.12)", color: textClass === "text-white" ? "#fff" : "#111",
+                        border: `1.5px solid rgba(255,255,255,0.25)`, borderRadius: 12,
+                      }}
+                      onClick={() => { setLightboxIndex(0); trackEvent("gallery_open", { propertyId: property.id, source: "hero" }); }}
+                    >
+                      <i className="material-icons-outlined" style={{ fontSize: 20 }}>photo_library</i>
+                      {galleryImages.length} fotos
+                    </button>
                   )}
                 </div>
               </div>
-            )}
+
+              {/* RIGHT: Property image */}
+              {showHeroImage && (
+                <div className="col-xl-6 col-lg-5 mt-5 mt-lg-0">
+                  <div style={{ position: "relative" }}>
+                    {/* Main property image card */}
+                    <div
+                      style={{
+                        borderRadius: 20,
+                        overflow: "hidden",
+                        boxShadow: "0 40px 80px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.2)",
+                        transform: "translateY(80px)",
+                        position: "relative",
+                        cursor: galleryImages.length > 1 ? "pointer" : "default",
+                      }}
+                      onClick={() => galleryImages.length > 0 && setLightboxIndex(0)}
+                    >
+                      <img
+                        src={coverImage}
+                        alt={property.title}
+                        style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" }}
+                      />
+                      {/* Gallery count overlay */}
+                      {galleryImages.length > 1 && (
+                        <div
+                          style={{
+                            position: "absolute", bottom: 16, right: 16,
+                            background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)",
+                            color: "#fff", borderRadius: 50, padding: "6px 14px",
+                            fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
+                          }}
+                        >
+                          <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>
+                          {galleryImages.length} fotos
+                        </div>
+                      )}
+                    </div>
+                    {/* Floating stats card */}
+                    {specs.length > 0 && (
+                      <div
+                        style={{
+                          position: "absolute", bottom: -60, left: 20,
+                          background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)",
+                          borderRadius: 16, padding: "12px 20px",
+                          boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                          display: "flex", gap: 20, flexWrap: "nowrap",
+                        }}
+                      >
+                        {specs.slice(0, 3).map((s) => (
+                          <div key={s.label} className="text-center">
+                            <div className="fw-bold" style={{ fontSize: "1.1rem", color: accentColor }}>{s.value}</div>
+                            <div className="text-secondary" style={{ fontSize: "0.68rem", textTransform: "uppercase" }}>{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── CONTENT AREA (rises from hero) ──────────────────────────────────── */}
       <div
         style={{
           background: "#fff",
           borderRadius: "36px 36px 0 0",
-          marginTop: showHeroImage ? -36 : -36,
-          paddingTop: showHeroImage ? 120 : 60,
+          marginTop: isClassicCarousel ? -36 : showHeroImage ? -36 : -36,
+          paddingTop: isClassicCarousel ? 60 : showHeroImage ? 120 : 60,
           position: "relative",
           zIndex: 2,
           boxShadow: "0 -4px 40px rgba(0,0,0,0.08)",
@@ -542,6 +617,54 @@ const BuyDetails = () => {
           <div className="row gx-4 gx-xl-5">
             {/* ── LEFT: content blocks ──────────────────────────────────── */}
             <div className="col-xl-8">
+
+              {/* ── BLOCK: TITLE + PRICE for classic-carousel (moved from hero) ── */}
+              {isClassicCarousel && (
+                <div className="mb-5">
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    <span className="badge fw-semibold px-3 py-2" style={{ background: accentColor, fontSize: "0.78rem" }}>{operLabel}</span>
+                    {property.type && <span className="badge bg-light text-dark fw-semibold px-3 py-2" style={{ fontSize: "0.78rem" }}>{property.type}</span>}
+                    {property.featured && <span className="badge fw-semibold px-3 py-2" style={{ background: "#f59e0b", fontSize: "0.78rem" }}>⭐ Destacada</span>}
+                    {property.trending && <span className="badge fw-semibold px-3 py-2" style={{ background: "#ef4444", fontSize: "0.78rem" }}>🔥 Tendencia</span>}
+                  </div>
+                  <h1 className="fw-black mb-3" style={{ fontSize: "clamp(1.8rem, 4vw, 3.2rem)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+                    {property.title}
+                  </h1>
+                  {locationLabel && (
+                    <div className="d-flex align-items-center gap-2 mb-3 text-secondary">
+                      <i className="material-icons-outlined" style={{ fontSize: 18 }}>location_on</i>
+                      <span style={{ fontSize: "0.95rem" }}>{locationLabel}</span>
+                    </div>
+                  )}
+                  {priceLabel() && (
+                    <div className="mb-3">
+                      <span className="fw-black" style={{ fontSize: "clamp(1.6rem, 3vw, 2.4rem)", color: accentColor, letterSpacing: "-0.02em" }}>
+                        {priceLabel()}
+                      </span>
+                      {property.offerPrice && property.offerPrice > 0 && (
+                        <span className="text-secondary ms-3" style={{ fontSize: "0.85rem" }}>
+                          <s>Precio original: {property.price?.currency} {Number(property.offerPrice).toLocaleString("es-AR")}</s>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="d-flex flex-wrap gap-3 mt-3">
+                    <button className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                      style={{ background: accentColor, color: "#fff", border: "none", borderRadius: 12, boxShadow: `0 8px 32px ${accentColor}55` }}
+                      onClick={scrollToForm}>
+                      <i className="material-icons-outlined" style={{ fontSize: 20 }}>calendar_today</i>
+                      Agendar visita
+                    </button>
+                    {whatsappNumber && (
+                      <button className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                        style={{ background: "#25d366", color: "#fff", border: "none", borderRadius: 12, boxShadow: "0 8px 32px rgba(37,211,102,0.35)" }}
+                        onClick={() => openWhatsApp("body")}>
+                        <i className="fa-brands fa-whatsapp" style={{ fontSize: 20 }} /> WhatsApp
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* ── BLOCK: STATS STRIP ────────────────────────────────────── */}
               {specs.length > 0 && (
@@ -555,56 +678,7 @@ const BuyDetails = () => {
                 </div>
               )}
 
-              {/* ── BLOCK: GALLERY CAROUSEL ─────────────────────────────────── */}
-              {galleryImages.length > 0 && (
-                <div className="mb-5">
-                  <SectionHeader title="Galería de imágenes" accent={accentColor} />
-                  <div
-                    className="rounded-3 overflow-hidden"
-                    style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.1)", cursor: "zoom-in" }}
-                    onClick={() => { setLightboxIndex(0); trackEvent("gallery_open", { propertyId: property.id, source: "carousel" }); }}
-                  >
-                    <Slider ref={mainRef} {...mainSettings}>
-                      {galleryImages.map((src, i) => (
-                        <div key={i}>
-                          <img
-                            src={src}
-                            alt={`${property.title} — ${i + 1}`}
-                            style={{ width: "100%", height: 420, objectFit: "cover", display: "block" }}
-                            onLoad={() => trackEvent("gallery_image_view", { propertyId: property.id, index: i })}
-                          />
-                        </div>
-                      ))}
-                    </Slider>
-                  </div>
-                  {galleryImages.length > 1 && (
-                    <div className="mt-2">
-                      <Slider ref={thumbRef} {...thumbSettings}>
-                        {galleryImages.map((src, i) => (
-                          <div key={i} style={{ padding: "0 3px" }}>
-                            <img
-                              src={src}
-                              alt={`thumb-${i}`}
-                              style={{ width: "100%", height: 62, objectFit: "cover", borderRadius: 6, cursor: "pointer", opacity: 0.8 }}
-                              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
-                            />
-                          </div>
-                        ))}
-                      </Slider>
-                    </div>
-                  )}
-                  <div className="text-end mt-2">
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => { setLightboxIndex(0); trackEvent("gallery_open_all", { propertyId: property.id }); }}
-                    >
-                      <i className="material-icons-outlined" style={{ fontSize: 16, verticalAlign: "middle" }}>open_in_full</i>
-                      {" "}Ver las {galleryImages.length} fotos
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* ── BLOCK: GALLERY CAROUSEL — hidden (images shown in hero) ─── */}
 
               {/* ── BLOCK: DESCRIPTION ──────────────────────────────────────── */}
               {property.description && (

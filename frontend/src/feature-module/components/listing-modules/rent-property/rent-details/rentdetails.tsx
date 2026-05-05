@@ -47,6 +47,9 @@ const RentDetails = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  // Classic-carousel hero state
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+
   const mainRef = useRef<SliderType>(null);
   const thumbRef = useRef<SliderType>(null);
 
@@ -205,6 +208,7 @@ const RentDetails = () => {
   const textClass = heroTextColorClass(fs);
   const mutedColor = heroMutedColor(fs);
   const imageStyle = fs?.heroImageStyle ?? "float-right";
+  const isClassicCarousel = imageStyle === "classic-carousel";
 
   const heroStyle = useMemo((): React.CSSProperties => {
     const bg = buildHeroBackground(fs);
@@ -220,7 +224,16 @@ const RentDetails = () => {
   }, [fs, imageStyle]);
 
   const coverImage = galleryImages[0] || "";
-  const showHeroImage = imageStyle !== "hidden" && !!coverImage;
+  const showHeroImage = !isClassicCarousel && imageStyle !== "hidden" && !!coverImage;
+
+  // Autoplay for classic-carousel (3 s per slide)
+  useEffect(() => {
+    if (!isClassicCarousel || galleryImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setHeroSlideIndex((prev) => (prev + 1) % galleryImages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isClassicCarousel, galleryImages.length]);
 
   const specs: Array<{ icon: string; label: string; value: string | number }> = [];
   if (property?.features?.beds) specs.push({ icon: "king_bed", label: "Dormitorios", value: property.features.beds });
@@ -321,126 +334,176 @@ const RentDetails = () => {
       </div>
 
       {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
-      <section style={heroStyle}>
-        <div className="container" style={{ position: "relative", zIndex: 1 }}>
-          <div className={`row align-items-center gx-5 ${imageStyle === "float-left" ? "flex-row-reverse" : ""}`}>
-
-            <div className={showHeroImage ? "col-xl-6 col-lg-7" : "col-xl-8 col-lg-10 mx-auto text-center"}>
-              <div className="d-flex flex-wrap gap-2 mb-4" style={showHeroImage ? {} : { justifyContent: "center" }}>
-                <span className="badge fw-semibold px-3 py-2" style={{ background: accentColor, fontSize: "0.78rem", letterSpacing: "0.06em" }}>
-                  En Alquiler
-                </span>
-                {property.type && (
-                  <span className="badge bg-white text-dark fw-semibold px-3 py-2" style={{ fontSize: "0.78rem" }}>{property.type}</span>
-                )}
-                {property.featured && (
-                  <span className="badge fw-semibold px-3 py-2" style={{ background: "#f59e0b", fontSize: "0.78rem" }}>⭐ Destacada</span>
-                )}
-                {property.trending && (
-                  <span className="badge fw-semibold px-3 py-2" style={{ background: "#ef4444", fontSize: "0.78rem" }}>�� Tendencia</span>
-                )}
-              </div>
-
-              <h1 className={textClass} style={{ fontSize: "clamp(2rem, 4.5vw, 4.2rem)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.025em", marginBottom: "1.25rem" }}>
-                {property.title}
-              </h1>
-
-              {locationLabel && (
-                <div className="d-flex align-items-center gap-2 mb-4" style={{ color: mutedColor }}>
-                  <i className="material-icons-outlined" style={{ fontSize: 18 }}>location_on</i>
-                  <span style={{ fontSize: "0.95rem" }}>{locationLabel}</span>
-                </div>
-              )}
-
-              {specs.length > 0 && (
-                <div className="d-flex flex-wrap gap-3 mb-4">
-                  {specs.slice(0, 4).map((s) => (
-                    <div key={s.label} className="d-flex align-items-center gap-1" style={{ color: mutedColor }}>
-                      <i className="material-icons-outlined" style={{ fontSize: 18 }}>{s.icon}</i>
-                      <span style={{ fontWeight: 600, color: textClass === "text-white" ? "#fff" : "#111" }}>{s.value}</span>
-                      <span style={{ fontSize: "0.8rem" }}>{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {priceLabel() && (
-                <div className="mb-5">
-                  <span className={textClass} style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", fontWeight: 800, letterSpacing: "-0.02em" }}>
-                    {priceLabel()}
-                  </span>
-                </div>
-              )}
-
-              <div className="d-flex flex-wrap gap-3">
-                <button
-                  className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
-                  style={{ background: accentColor, color: "#fff", border: "none", borderRadius: 12, boxShadow: `0 8px 32px ${accentColor}55` }}
-                  onClick={scrollToForm}
-                >
-                  <i className="material-icons-outlined" style={{ fontSize: 20 }}>calendar_today</i>
-                  Consultar disponibilidad
-                </button>
-                {whatsappNumber && (
-                  <button
-                    className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
-                    style={{ background: "#25d366", color: "#fff", border: "none", borderRadius: 12, boxShadow: "0 8px 32px rgba(37,211,102,0.35)" }}
-                    onClick={() => openWhatsApp("hero")}
-                  >
-                    <i className="fa-brands fa-whatsapp" style={{ fontSize: 20 }} /> WhatsApp
-                  </button>
-                )}
-                {galleryImages.length > 1 && (
-                  <button
-                    className="btn btn-lg fw-semibold px-4 py-3 d-flex align-items-center gap-2"
-                    style={{ background: "rgba(255,255,255,0.12)", color: textClass === "text-white" ? "#fff" : "#111", border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: 12 }}
-                    onClick={() => { setLightboxIndex(0); trackEvent("gallery_open", { propertyId: property.id, source: "hero" }); }}
-                  >
-                    <i className="material-icons-outlined" style={{ fontSize: 20 }}>photo_library</i>
-                    {galleryImages.length} fotos
-                  </button>
-                )}
-              </div>
+      {isClassicCarousel ? (
+        /* ─── CLASSIC CAROUSEL HERO ────────────────────────────────────────── */
+        <section style={{ position: "relative", width: "100%", height: "100vh", maxHeight: 780, overflow: "hidden", background: "#0f172a" }}>
+          {galleryImages.map((src, i) => (
+            <div key={i} style={{ position: "absolute", inset: 0, opacity: heroSlideIndex === i ? 1 : 0, transition: "opacity 0.8s ease", cursor: "zoom-in" }}
+              onClick={() => { setLightboxIndex(i); trackEvent("gallery_open", { propertyId: property.id, source: "hero_carousel" }); }}>
+              <img src={src} alt={`${property.title} — ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             </div>
-
-            {showHeroImage && (
-              <div className="col-xl-6 col-lg-5 mt-5 mt-lg-0">
-                <div style={{ position: "relative" }}>
-                  <div
-                    style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.2)", transform: "translateY(80px)", cursor: galleryImages.length > 1 ? "pointer" : "default" }}
-                    onClick={() => galleryImages.length > 0 && setLightboxIndex(0)}
-                  >
-                    <img src={coverImage} alt={property.title} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" }} />
-                    {galleryImages.length > 1 && (
-                      <div style={{ position: "absolute", bottom: 16, right: 16, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: 50, padding: "6px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                        <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>
-                        {galleryImages.length} fotos
-                      </div>
-                    )}
+          ))}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 40%, rgba(0,0,0,0.55) 100%)", pointerEvents: "none" }} />
+          {galleryImages.length > 1 && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); setHeroSlideIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }}
+                style={{ position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
+                aria-label="Anterior">&#8249;</button>
+              <button onClick={(e) => { e.stopPropagation(); setHeroSlideIndex((prev) => (prev + 1) % galleryImages.length); }}
+                style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
+                aria-label="Siguiente">&#8250;</button>
+            </>
+          )}
+          {galleryImages.length > 1 && (
+            <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 8, zIndex: 10 }}>
+              {galleryImages.map((_, i) => (
+                <button key={i} onClick={(e) => { e.stopPropagation(); setHeroSlideIndex(i); }}
+                  style={{ width: heroSlideIndex === i ? 24 : 8, height: 8, borderRadius: 4, background: heroSlideIndex === i ? "#fff" : "rgba(255,255,255,0.45)", border: "none", cursor: "pointer", padding: 0, transition: "width 0.3s, background 0.3s" }}
+                  aria-label={`Foto ${i + 1}`} />
+              ))}
+            </div>
+          )}
+          <div style={{ position: "absolute", top: 80, right: 20, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: 20, padding: "5px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, zIndex: 10 }}>
+            <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>
+            {heroSlideIndex + 1} / {galleryImages.length}
+          </div>
+        </section>
+      ) : (
+        /* ─── STANDARD FUNNEL HERO ──────────────────────────────────────────── */
+        <section style={heroStyle}>
+          <div className="container" style={{ position: "relative", zIndex: 1 }}>
+            <div className={`row align-items-center gx-5 ${imageStyle === "float-left" ? "flex-row-reverse" : ""}`}>
+              <div className={showHeroImage ? "col-xl-6 col-lg-7" : "col-xl-8 col-lg-10 mx-auto text-center"}>
+                <div className="d-flex flex-wrap gap-2 mb-4" style={showHeroImage ? {} : { justifyContent: "center" }}>
+                  <span className="badge fw-semibold px-3 py-2" style={{ background: accentColor, fontSize: "0.78rem", letterSpacing: "0.06em" }}>En Alquiler</span>
+                  {property.type && <span className="badge bg-white text-dark fw-semibold px-3 py-2" style={{ fontSize: "0.78rem" }}>{property.type}</span>}
+                  {property.featured && <span className="badge fw-semibold px-3 py-2" style={{ background: "#f59e0b", fontSize: "0.78rem" }}>⭐ Destacada</span>}
+                  {property.trending && <span className="badge fw-semibold px-3 py-2" style={{ background: "#ef4444", fontSize: "0.78rem" }}>🔥 Tendencia</span>}
+                </div>
+                <h1 className={textClass} style={{ fontSize: "clamp(2rem, 4.5vw, 4.2rem)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.025em", marginBottom: "1.25rem" }}>{property.title}</h1>
+                {locationLabel && (
+                  <div className="d-flex align-items-center gap-2 mb-4" style={{ color: mutedColor }}>
+                    <i className="material-icons-outlined" style={{ fontSize: 18 }}>location_on</i>
+                    <span style={{ fontSize: "0.95rem" }}>{locationLabel}</span>
                   </div>
-                  {specs.length > 0 && (
-                    <div style={{ position: "absolute", bottom: -60, left: 20, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderRadius: 16, padding: "12px 20px", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", display: "flex", gap: 20 }}>
-                      {specs.slice(0, 3).map((s) => (
-                        <div key={s.label} className="text-center">
-                          <div className="fw-bold" style={{ fontSize: "1.1rem", color: accentColor }}>{s.value}</div>
-                          <div className="text-secondary" style={{ fontSize: "0.68rem", textTransform: "uppercase" }}>{s.label}</div>
-                        </div>
-                      ))}
-                    </div>
+                )}
+                {specs.length > 0 && (
+                  <div className="d-flex flex-wrap gap-3 mb-4">
+                    {specs.slice(0, 4).map((s) => (
+                      <div key={s.label} className="d-flex align-items-center gap-1" style={{ color: mutedColor }}>
+                        <i className="material-icons-outlined" style={{ fontSize: 18 }}>{s.icon}</i>
+                        <span style={{ fontWeight: 600, color: textClass === "text-white" ? "#fff" : "#111" }}>{s.value}</span>
+                        <span style={{ fontSize: "0.8rem" }}>{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {priceLabel() && (
+                  <div className="mb-5">
+                    <span className={textClass} style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)", fontWeight: 800, letterSpacing: "-0.02em" }}>{priceLabel()}</span>
+                  </div>
+                )}
+                <div className="d-flex flex-wrap gap-3">
+                  <button className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                    style={{ background: accentColor, color: "#fff", border: "none", borderRadius: 12, boxShadow: `0 8px 32px ${accentColor}55` }}
+                    onClick={scrollToForm}>
+                    <i className="material-icons-outlined" style={{ fontSize: 20 }}>calendar_today</i>Consultar disponibilidad
+                  </button>
+                  {whatsappNumber && (
+                    <button className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                      style={{ background: "#25d366", color: "#fff", border: "none", borderRadius: 12, boxShadow: "0 8px 32px rgba(37,211,102,0.35)" }}
+                      onClick={() => openWhatsApp("hero")}>
+                      <i className="fa-brands fa-whatsapp" style={{ fontSize: 20 }} /> WhatsApp
+                    </button>
+                  )}
+                  {galleryImages.length > 1 && (
+                    <button className="btn btn-lg fw-semibold px-4 py-3 d-flex align-items-center gap-2"
+                      style={{ background: "rgba(255,255,255,0.12)", color: textClass === "text-white" ? "#fff" : "#111", border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: 12 }}
+                      onClick={() => { setLightboxIndex(0); trackEvent("gallery_open", { propertyId: property.id, source: "hero" }); }}>
+                      <i className="material-icons-outlined" style={{ fontSize: 20 }}>photo_library</i>{galleryImages.length} fotos
+                    </button>
                   )}
                 </div>
               </div>
-            )}
+              {showHeroImage && (
+                <div className="col-xl-6 col-lg-5 mt-5 mt-lg-0">
+                  <div style={{ position: "relative" }}>
+                    <div style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.2)", transform: "translateY(80px)", cursor: galleryImages.length > 1 ? "pointer" : "default" }}
+                      onClick={() => galleryImages.length > 0 && setLightboxIndex(0)}>
+                      <img src={coverImage} alt={property.title} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" }} />
+                      {galleryImages.length > 1 && (
+                        <div style={{ position: "absolute", bottom: 16, right: 16, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: 50, padding: "6px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                          <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>{galleryImages.length} fotos
+                        </div>
+                      )}
+                    </div>
+                    {specs.length > 0 && (
+                      <div style={{ position: "absolute", bottom: -60, left: 20, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderRadius: 16, padding: "12px 20px", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", display: "flex", gap: 20 }}>
+                        {specs.slice(0, 3).map((s) => (
+                          <div key={s.label} className="text-center">
+                            <div className="fw-bold" style={{ fontSize: "1.1rem", color: accentColor }}>{s.value}</div>
+                            <div className="text-secondary" style={{ fontSize: "0.68rem", textTransform: "uppercase" }}>{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ── CONTENT AREA ────────────────────────────────────────────────────── */}
-      <div style={{ background: "#fff", borderRadius: "36px 36px 0 0", marginTop: -36, paddingTop: showHeroImage ? 120 : 60, position: "relative", zIndex: 2, boxShadow: "0 -4px 40px rgba(0,0,0,0.08)" }}>
+      {/* ── CONTENT AREA ─────────────────────────────────────────────────────── */}
+      <div style={{ background: "#fff", borderRadius: "36px 36px 0 0", marginTop: -36, paddingTop: isClassicCarousel ? 60 : showHeroImage ? 120 : 60, position: "relative", zIndex: 2, boxShadow: "0 -4px 40px rgba(0,0,0,0.08)" }}>
         <div className="container pb-5">
           <div className="row gx-4 gx-xl-5">
 
             <div className="col-xl-8">
+
+              {/* ── BLOCK: TITLE + PRICE for classic-carousel (moved from hero) ── */}
+              {isClassicCarousel && (
+                <div className="mb-5">
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    <span className="badge fw-semibold px-3 py-2" style={{ background: accentColor, fontSize: "0.78rem" }}>En Alquiler</span>
+                    {property.type && <span className="badge bg-light text-dark fw-semibold px-3 py-2" style={{ fontSize: "0.78rem" }}>{property.type}</span>}
+                    {property.featured && <span className="badge fw-semibold px-3 py-2" style={{ background: "#f59e0b", fontSize: "0.78rem" }}>⭐ Destacada</span>}
+                    {property.trending && <span className="badge fw-semibold px-3 py-2" style={{ background: "#ef4444", fontSize: "0.78rem" }}>🔥 Tendencia</span>}
+                  </div>
+                  <h1 className="fw-black mb-3" style={{ fontSize: "clamp(1.8rem, 4vw, 3.2rem)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+                    {property.title}
+                  </h1>
+                  {locationLabel && (
+                    <div className="d-flex align-items-center gap-2 mb-3 text-secondary">
+                      <i className="material-icons-outlined" style={{ fontSize: 18 }}>location_on</i>
+                      <span style={{ fontSize: "0.95rem" }}>{locationLabel}</span>
+                    </div>
+                  )}
+                  {priceLabel() && (
+                    <div className="mb-3">
+                      <span className="fw-black" style={{ fontSize: "clamp(1.6rem, 3vw, 2.4rem)", color: accentColor, letterSpacing: "-0.02em" }}>
+                        {priceLabel()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="d-flex flex-wrap gap-3 mt-3">
+                    <button className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                      style={{ background: accentColor, color: "#fff", border: "none", borderRadius: 12, boxShadow: `0 8px 32px ${accentColor}55` }}
+                      onClick={scrollToForm}>
+                      <i className="material-icons-outlined" style={{ fontSize: 20 }}>calendar_today</i>
+                      Consultar disponibilidad
+                    </button>
+                    {whatsappNumber && (
+                      <button className="btn btn-lg fw-bold px-4 py-3 d-flex align-items-center gap-2"
+                        style={{ background: "#25d366", color: "#fff", border: "none", borderRadius: 12, boxShadow: "0 8px 32px rgba(37,211,102,0.35)" }}
+                        onClick={() => openWhatsApp("body")}>
+                        <i className="fa-brands fa-whatsapp" style={{ fontSize: 20 }} /> WhatsApp
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {specs.length > 0 && (
                 <div className="mb-5 p-4 rounded-3 d-flex flex-wrap gap-3" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
@@ -450,7 +513,7 @@ const RentDetails = () => {
                 </div>
               )}
 
-              {galleryImages.length > 0 && (
+              {!isClassicCarousel && galleryImages.length > 0 && (
                 <div className="mb-5">
                   <SectionHeader title="Galería de imágenes" accent={accentColor} />
                   <div className="rounded-3 overflow-hidden" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.1)", cursor: "zoom-in" }}
@@ -479,7 +542,7 @@ const RentDetails = () => {
                   )}
                   <div className="text-end mt-2">
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => { setLightboxIndex(0); trackEvent("gallery_open_all", { propertyId: property.id }); }}>
-                      <i className="material-icons-outlined" style={{ fontSize: 16, verticalAlign: "middle" }}>open_in_full</i>{" "}Ver las {galleryImages.length} fotos
+                      <i className="material-icons-outlined" style={{ fontSize: 16, verticalAlign: "middle" }}>open_in_full</i>{" "}Ver las {galleryImages.length} fotos
                     </button>
                   </div>
                 </div>
