@@ -3,6 +3,8 @@ const Tarea = require('../models/Tarea');
 const TaskActivity = require('../models/TaskActivity');
 const Team = require('../models/Team');
 const Agente = require('../models/Agente');
+const Cita = require('../models/Cita');
+const Notification = require('../models/Notification');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
@@ -309,6 +311,87 @@ router.patch('/:id/checklist/:itemId', authenticateToken, requireCRMUser, async 
     logActivity(tarea._id, req, 'checklist_toggled', { details: `${item.done ? '✓' : '○'} ${item.text}` });
     res.json(tarea);
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// ── RECONTACTO (desde detalle de cliente) ───────────────────────────────
+router.post('/recontacto', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const { clienteId, clienteNombre, canal, mensaje, periodoDias, crearCita, citaFecha, citaHora, propiedadId, propiedadTitulo } = req.body || {};
+    if (!clienteId || !canal || !periodoDias) {
+      return res.status(400).json({ error: 'clienteId, canal y periodoDias son requeridos' });
+    }
+
+    const scopeId = agentScopeId(req);
+    const now = new Date();
+    const dueDate = new Date(now.getTime() + parseInt(periodoDias, 10) * 86400000);
+
+    // Crear tarea de recontacto
+    const tarea = await Tarea.create({
+      title: `Recontacto: ${clienteNombre || 'Cliente'}`,
+      description: mensaje || `Recontacto por ${canal}`,
+      status: 'pendiente',
+      priority: 'media',
+      assigneeId: scopeId || callerId(req),
+      assigneeName: callerName(req),
+      creatorId: callerId(req),
+      creatorName: callerName(req),
+      agenteId: scopeId || callerId(req),
+      clienteId,
+      clienteNombre,
+      propiedadId: propiedadId || '',
+      propiedadTitulo: propiedadTitulo || '',
+      dueDate,
+      isRecontacto: true,
+      recontactoCanal: canal,
+      recontactoMensaje: mensaje || '',
+      recontactoPeriodoDias: parseInt(periodoDias, 10),
+      recontactoFechaOriginal: now,
+      kanbanColumn: 'pendiente',
+    });
+    logActivity(tarea._id, req, 'created', { details: 'Tarea de recontacto creada' });
+
+    // Opcionalmente crear cita en agenda
+    let cita = null;
+    if (crearCita && citaFecha && citaHora) {
+      const [hours, minutes] = citaHora.split(':');
+      const fechaInicio = new Date(citaFecha);
+      fechaInicio.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      const fechaFin = new Date(fechaInicio.getTime() + 60 * 60000); // 1 hora por defecto
+
+      cita = await Cita.create({
+        fecha: fechaInicio,
+        fechaFin,
+        titulo: `Recontacto: ${clienteNombre}`,
+        tipo: 'Recontacto',
+        ubicacion: canal === 'whatsapp' ? 'WhatsApp' : canal === 'email' ? 'Email' : 'Llamada',
+        clienteId,
+        agenteId: scopeId || callerId(req),
+        propiedadId: propiedadId || '',
+        notas: mensaje || '',
+        estado: 'Programada',
+        metadata: { tareaId: String(tarea._id) },
+      });
+    }
+
+    // Crear notificación programada
+    const notification = await Notification.create({
+      agenteId: scopeId || callerId(req),
+      tipo: 'tarea',
+      titulo: `Recontacto pendiente: ${clienteNombre}`,
+      mensaje: mensaje || `Recontacto programado por ${canal} en ${periodoDias} días`,
+      prioridad: 'media',
+      entidadTipo: 'cliente',
+      entidadId: clienteId,
+      entidadNombre: clienteNombre,
+      fechaProgramada: dueDate,
+      metadata: { tareaId: String(tarea._id), citaId: cita ? String(cita._id) : null },
+    });
+
+    res.status(201).json({ tarea, cita, notification });
+  } catch (err) {
+    console.error('Error al crear recontacto:', err);
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;

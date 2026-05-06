@@ -278,6 +278,10 @@ const ClientesCRM = () => {
   const [clientInteractions, setClientInteractions] = useState([]);
   const [interactionForm, setInteractionForm] = useState({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' });
   const [interactionSubmitting, setInteractionSubmitting] = useState(false);
+
+  // Recontacto panel state
+  const [recontactoForm, setRecontactoForm] = useState({ canal: 'whatsapp', mensaje: '', periodoDias: 7, crearCita: false, citaFecha: '', citaHora: '' });
+  const [recontactoSubmitting, setRecontactoSubmitting] = useState(false);
   const [interactionPropSearch, setInteractionPropSearch] = useState('');
   const [searchCliente, setSearchCliente] = useState('');
 
@@ -313,6 +317,32 @@ const ClientesCRM = () => {
   }, [vistaActual, clienteSeleccionado?.id]);
 
   const resetInteractionForm = () => { setInteractionForm({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' }); setInteractionPropSearch(''); };
+
+  const handleRecontacto = async (e) => {
+    e.preventDefault();
+    if (!clienteSeleccionado?.id || !recontactoForm.canal || !recontactoForm.periodoDias) return;
+    setRecontactoSubmitting(true);
+    try {
+      const payload = {
+        clienteId: clienteSeleccionado.id,
+        clienteNombre: `${clienteSeleccionado.nombre || ''} ${clienteSeleccionado.apellido || ''}`.trim() || 'Cliente',
+        canal: recontactoForm.canal,
+        mensaje: recontactoForm.mensaje,
+        periodoDias: recontactoForm.periodoDias,
+        crearCita: recontactoForm.crearCita,
+        citaFecha: recontactoForm.citaFecha,
+        citaHora: recontactoForm.citaHora,
+        propiedadId: clienteSeleccionado.propiedadConsultadaInicial?.id || '',
+        propiedadTitulo: clienteSeleccionado.propiedadConsultadaInicial?.titulo || '',
+      };
+      await crmService.tareas.createRecontacto(payload);
+      setRecontactoForm({ canal: 'whatsapp', mensaje: '', periodoDias: 7, crearCita: false, citaFecha: '', citaHora: '' });
+      alert('Recontacto programado correctamente. Se ha creado una tarea, notificación y cita (si se seleccionó).');
+    } catch (err) {
+      console.error('Error al programar recontacto:', err);
+      alert('Error al programar recontacto. Intente nuevamente.');
+    } finally { setRecontactoSubmitting(false); }
+  };
 
   const handleSubmitInteraction = async (e) => {
     e.preventDefault();
@@ -1496,6 +1526,69 @@ const ClientesCRM = () => {
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{clienteSeleccionado.notas}</p>
                 </div>
               )}
+
+              {/* ── Panel Recontacto ── */}
+              <div className={cardBase}>
+                <h3 className="text-xl font-bold mb-4 dark:text-gray-100 flex items-center gap-2">
+                  <FaClock className="text-emerald-500" /> Programar Recontacto
+                </h3>
+                <form onSubmit={handleRecontacto} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium mb-1 dark:text-gray-300">Canal de comunicación</label>
+                      <select value={recontactoForm.canal} onChange={(e) => setRecontactoForm(p => ({ ...p, canal: e.target.value }))}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="email">Email</option>
+                        <option value="telefono">Llamada telefónica</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 dark:text-gray-300">Recontactar dentro de (días)</label>
+                      <select value={recontactoForm.periodoDias} onChange={(e) => setRecontactoForm(p => ({ ...p, periodoDias: e.target.value }))}
+                        className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}>
+                        <option value="1">1 día</option>
+                        <option value="3">3 días</option>
+                        <option value="7">7 días</option>
+                        <option value="14">14 días</option>
+                        <option value="30">30 días</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Mensaje de recontacto</label>
+                    <textarea value={recontactoForm.mensaje} onChange={(e) => setRecontactoForm(p => ({ ...p, mensaje: e.target.value }))}
+                      rows={2} className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}
+                      placeholder="Ej: Hola, te contacto para ver si seguís interesado en la propiedad..." />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="crearCita" checked={recontactoForm.crearCita} onChange={(e) => setRecontactoForm(p => ({ ...p, crearCita: e.target.checked }))}
+                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                    <label htmlFor="crearCita" className="text-sm dark:text-gray-300">Agregar cita a la agenda</label>
+                  </div>
+                  {recontactoForm.crearCita && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t dark:border-gray-700">
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Fecha</label>
+                        <input type="date" value={recontactoForm.citaFecha} onChange={(e) => setRecontactoForm(p => ({ ...p, citaFecha: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Hora</label>
+                        <input type="time" value={recontactoForm.citaHora} onChange={(e) => setRecontactoForm(p => ({ ...p, citaHora: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Se creará tarea pendiente, notificación y cita (si se selecciona)</p>
+                    <button type="submit" disabled={recontactoSubmitting}
+                      className="px-5 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                      <FaClock /> {recontactoSubmitting ? 'Programando...' : 'Programar Recontacto'}
+                    </button>
+                  </div>
+                </form>
+              </div>
 
               {/* ── Interactions Section ── */}
               <div className={cardBase}>

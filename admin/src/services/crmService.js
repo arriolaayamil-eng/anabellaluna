@@ -92,6 +92,7 @@ export const crmService = {
     getActivity: (id) => api.get(`/crm/tareas/${id}/activity`),
     addComment: (id, text) => api.post(`/crm/tareas/${id}/comment`, { text }),
     toggleChecklist: (id, itemId) => api.patch(`/crm/tareas/${id}/checklist/${itemId}`),
+    createRecontacto: (data) => api.post('/crm/tareas/recontacto', data),
   },
 
   // ============ EQUIPOS ============
