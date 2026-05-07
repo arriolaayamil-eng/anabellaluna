@@ -114,6 +114,8 @@ const pushRoutes = require('./routes/push');
 
 const clientInteractionsRoutes = require('./routes/clientInteractions');
 
+const { buildPropertyOGRouter } = require('./openGraph');
+
 const { initReportScheduler } = require('./services/reportScheduler');
 
 const { initAutomationScheduler } = require('./services/automationScheduler');
@@ -210,6 +212,11 @@ try {
 }
 
 
+
+// ── Open Graph HTML renderer for property pages (must be first) ──────────────
+// Serves /buy/:slug and /rent/:slug with dynamic OG meta tags for crawlers.
+// Falls back to plain index.html if property not found or on any error.
+app.use(buildPropertyOGRouter());
 
 // Auth routes
 
