@@ -23,10 +23,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 
 const Propiedad = require('./models/Propiedad');
-const Agente = require('./models/Agente');
-const DocumentLink = require('./models/DocumentLink');
-const Document = require('./models/Document');
-const User = require('./models/User');
+const { getOGImageBuffer } = require('./services/ogImage');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -60,14 +57,6 @@ function safeNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function buildMediaUrlFromDoc(doc) {
-  if (!doc) return '';
-  if (doc.object_key) return `/public/media/${doc._id}`;
-  const url = String(doc.url || '');
-  if (url.startsWith('http')) return url;
-  return '';
-}
-
 /** Returns the frontend/dist/index.html string (cached). */
 function readIndexHtml() {
   if (_indexHtmlCache) return _indexHtmlCache;
@@ -87,24 +76,6 @@ function mapOperation(metaOperacion) {
   if (op.includes('alquil') || op.includes('rent')) return 'rent';
   if (op.includes('venta') || op.includes('buy')) return 'buy';
   return 'buy';
-}
-
-/** Admin fallback cache (mirrors logic in public.js). */
-let _adminAgentCache = null;
-let _adminAgentCacheTs = 0;
-const ADMIN_CACHE_TTL = 60_000;
-
-async function getAdminFallbackAgent() {
-  const now = Date.now();
-  if (_adminAgentCache && now - _adminAgentCacheTs < ADMIN_CACHE_TTL) return _adminAgentCache;
-  const adminUser = await User.findOne({ role: 'admin' }).lean();
-  if (adminUser && adminUser.agenteId) {
-    const agente = await Agente.findById(adminUser.agenteId).lean();
-    if (agente) { _adminAgentCache = agente; _adminAgentCacheTs = now; return agente; }
-  }
-  const adminAgente = await Agente.findOne({ role: 'admin' }).lean();
-  if (adminAgente) { _adminAgentCache = adminAgente; _adminAgentCacheTs = now; return adminAgente; }
-  return null;
 }
 
 // ─── Open Graph data builders ─────────────────────────────────────────────────
@@ -187,60 +158,23 @@ function buildDescription(prop) {
 }
 
 /**
- * Converts a possibly-relative /public/media/... URL to an absolute HTTPS URL.
- * WhatsApp requires absolute URLs with HTTPS.
+ * Returns the absolute HTTPS URL for the optimised 1200×630 OG image.
+ * Uses the /public/og/:propertyId.jpg endpoint which caches in MinIO.
+ * Falls back to FALLBACK_OG_IMAGE if the property has no images at all.
  */
-function buildAbsoluteImageUrl(rawUrl, siteOrigin) {
-  if (!rawUrl) return FALLBACK_OG_IMAGE;
+async function buildOGImageUrl(propId, siteOrigin) {
+  const id = String(propId);
+  const origin = siteOrigin || 'https://anabellaluna.com.ar';
 
-  const url = String(rawUrl).trim();
-
-  // Already absolute HTTPS → use directly
-  if (url.startsWith('https://')) return url;
-
-  // Absolute HTTP → upgrade to HTTPS (crawlers need HTTPS)
-  if (url.startsWith('http://')) {
-    return url.replace('http://', 'https://');
+  try {
+    // Trigger generation + cache in the background; if it throws, use fallback.
+    // We call getOGImageBuffer only to validate the image exists; the buffer is
+    // discarded here — the actual bytes are served via /public/og/:id.jpg.
+    await getOGImageBuffer(id);
+    return `${origin}/public/og/${id}.jpg`;
+  } catch (_) {
+    return FALLBACK_OG_IMAGE;
   }
-
-  // Relative (e.g. /public/media/abc123)
-  if (url.startsWith('/')) {
-    // Use siteOrigin from env, falling back to anabellaluna.com.ar
-    const origin = siteOrigin || 'https://anabellaluna.com.ar';
-    return `${origin}${url}`;
-  }
-
-  return FALLBACK_OG_IMAGE;
-}
-
-/**
- * Fetches the cover image URL for a property by reading its linked documents.
- */
-async function getPropertyCoverUrl(propId) {
-  const links = await DocumentLink.find({ entity_type: 'propiedad', entity_id: String(propId) })
-    .sort({ order: 1, created_at: 1 })
-    .populate('document', '_id url object_key bucket tipo categoria')
-    .lean();
-
-  let firstPhoto = '';
-  let firstImage = '';
-
-  for (const l of links) {
-    const doc = l.document;
-    const isImage = doc && String(doc.tipo || '').toLowerCase() === 'imagen';
-    if (!isImage) continue;
-    const url = buildMediaUrlFromDoc(doc);
-    if (!url) continue;
-
-    if (!firstImage) firstImage = url;
-    const cat = String(doc.categoria || '');
-    if (/propiedad\s*-\s*fotos/i.test(cat) && !firstPhoto) {
-      firstPhoto = url;
-      break;
-    }
-  }
-
-  return firstPhoto || firstImage || '';
 }
 
 /**
@@ -260,6 +194,9 @@ function buildMetaTagsHtml({ ogTitle, ogDescription, ogImage, ogUrl }) {
     <meta property="og:description" content="${d}" />
     <meta property="og:image" content="${img}" />
     <meta property="og:image:secure_url" content="${img}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:url" content="${u}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${t}" />
@@ -330,14 +267,12 @@ async function renderPropertyHTML(req, res, operation) {
       }
     }
 
-    // ── Cover image ──────────────────────────────────────────────────────────
-    const rawCoverUrl = await getPropertyCoverUrl(prop._id);
-    const absoluteImageUrl = buildAbsoluteImageUrl(rawCoverUrl, siteOrigin);
+    // ── OG image: optimised 1200×630 JPEG via /public/og/:id.jpg ────────────
+    const ogImage = await buildOGImageUrl(prop._id, siteOrigin);
 
     // ── OG data ──────────────────────────────────────────────────────────────
     const ogTitle = buildTitle(prop);
     const ogDescription = buildDescription(prop);
-    const ogImage = absoluteImageUrl;
     const canonicalSlug = prop.slug || slug;
     const ogUrl = `${siteOrigin}/${operation}/${canonicalSlug}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 

@@ -25,6 +25,7 @@ const User = require('../models/User');
 const FAQ = require('../models/FAQ');
 const GlobalConfig = require('../models/GlobalConfig');
 const { triggerFollowUpAutomation } = require('../services/automationScheduler');
+const { getOGImageBuffer } = require('../services/ogImage');
 
 const router = express.Router();
 
@@ -1253,6 +1254,51 @@ router.get('/site-config', async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// Open Graph image endpoint: serves a 1200x630 JPEG optimised for social sharing.
+// The image is generated on first request and cached in MinIO for subsequent requests.
+router.get('/og/:propertyId.jpg', async (req, res) => {
+  const propertyId = String(req.params.propertyId || '').trim();
+
+  if (!propertyId) return res.status(400).json({ error: 'propertyId required' });
+
+  try {
+    const buffer = await getOGImageBuffer(propertyId);
+
+    res.set('Content-Type', 'image/jpeg');
+    res.set('Content-Length', String(buffer.length));
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.set('X-OG-Generated', 'true');
+    return res.send(buffer);
+  } catch (err) {
+    // Fallback: redirect to the raw cover image so og:image still resolves
+    console.error(`[OGImage] Failed to generate OG image for ${propertyId}:`, err && err.message);
+
+    try {
+      const links = await DocumentLink.find({ entity_type: 'propiedad', entity_id: propertyId })
+        .sort({ order: 1, created_at: 1 })
+        .populate('document', '_id url object_key bucket tipo categoria')
+        .lean();
+
+      for (const l of links) {
+        const doc = l.document;
+        if (!doc || String(doc.tipo || '').toLowerCase() !== 'imagen') continue;
+        if (doc.object_key) {
+          const bucket = doc.bucket || minio.bucket;
+          const stream = await minio.getObject(bucket, doc.object_key);
+          res.set('Content-Type', 'image/jpeg');
+          res.set('Cache-Control', 'public, max-age=3600');
+          return stream.pipe(res);
+        }
+        if (String(doc.url || '').startsWith('http')) {
+          return res.redirect(doc.url);
+        }
+      }
+    } catch (_) { /* swallow */ }
+
+    return res.status(404).json({ error: 'OG image not available' });
   }
 });
 
