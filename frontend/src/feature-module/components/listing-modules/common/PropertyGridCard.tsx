@@ -33,9 +33,14 @@ const PropertyGridCard = ({ property, isFavorite, onToggleFavorite, detailPathFn
   return (
     <div className="property-card flex-fill">
       <div className="property-listing-item p-0 mb-0 shadow-none">
-        <div className="buy-grid-img mb-0 rounded-0">
+        <div className="buy-grid-img mb-0 rounded-0" style={{ height: 220, overflow: 'hidden' }}>
           <Link to={detailPath}>
-            <ImageWithBasePath className="img-fluid" src={coverSrc} alt={p.title || "property"} />
+            <ImageWithBasePath
+              className="w-100 h-100"
+              src={coverSrc}
+              alt={p.title || "property"}
+              style={{ objectFit: 'cover' }}
+            />
           </Link>
           <div className="d-flex align-items-center justify-content-between position-absolute top-0 start-0 end-0 p-3 z-1">
             <div className="d-flex align-items-center gap-2">
