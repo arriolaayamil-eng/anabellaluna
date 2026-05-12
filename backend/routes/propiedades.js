@@ -136,6 +136,38 @@ router.patch('/:id/publish', authenticateToken, requireCRMUser, async (req, res)
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.patch('/:id/visita', authenticateToken, requireCRMUser, async (req, res) => {
+  try {
+    const scopeId = agentScopeId(req);
+    const filter = { _id: req.params.id };
+    if (scopeId) filter.agentId = scopeId;
+
+    const updated = await Propiedad.findOneAndUpdate(
+      filter,
+      { $inc: { 'metadata.visitas': 1 } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) return res.status(404).json({ error: 'Not found' });
+
+    let ownerData = null;
+    if (updated.ownerId) {
+      const owner = await Cliente.findById(updated.ownerId).select('nombre email telefono metadata').lean();
+      if (owner) {
+        ownerData = {
+          _id: owner._id,
+          nombre: owner.nombre || '',
+          email: owner.email || '',
+          telefono: owner.telefono || '',
+          metadata: owner.metadata || {},
+        };
+      }
+    }
+
+    res.json({ ...updated.toObject(), ownerData });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Generate a private share token
 router.post('/:id/private-link', authenticateToken, requireCRMUser, async (req, res) => {
   try {

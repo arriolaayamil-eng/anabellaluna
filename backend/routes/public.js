@@ -528,6 +528,15 @@ router.get('/properties/:slug', async (req, res) => {
        { $setOnInsert: { propertyId, visitorId } },
        { upsert: true }
      );
+
+     await Propiedad.updateOne(
+       { _id: prop._id },
+       { $inc: { 'metadata.visitas': 1 } }
+     );
+
+     prop.metadata = prop.metadata || {};
+     prop.metadata.visitas = Number(prop.metadata.visitas || 0) + 1;
+
      const visitCount = await PropertyView.countDocuments({ propertyId });
      const totalVisitors = (await PropertyView.distinct('visitorId')).length;
      const trending = totalVisitors > 0 ? (visitCount / totalVisitors) > 0.1 : false;

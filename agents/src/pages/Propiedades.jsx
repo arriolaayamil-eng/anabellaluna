@@ -1216,9 +1216,28 @@ const Propiedades = () => {
   ];
 
   // Función para ver detalle de propiedad
-  const verDetalle = (propiedad) => {
+  const verDetalle = async (propiedad) => {
     setPropiedadSeleccionada(propiedad);
     setVistaActual('detalle');
+
+    const previousVisitas = Number(propiedad.visitas || 0);
+    const optimisticVisitas = previousVisitas + 1;
+
+    const applyVisitas = (visitas) => {
+      setPropiedades((prev) => prev.map((p) => (String(p.id) === String(propiedad.id) ? { ...p, visitas } : p)));
+      setPropiedadSeleccionada((prev) => (prev && String(prev.id) === String(propiedad.id) ? { ...prev, visitas } : prev));
+    };
+
+    applyVisitas(optimisticVisitas);
+
+    try {
+      const updated = await crmService.propiedades.incrementVisit(propiedad.id);
+      const visitas = Number(updated.metadata?.visitas || updated.visitas || optimisticVisitas);
+      applyVisitas(visitas);
+    } catch (err) {
+      console.warn('No se pudo incrementar visita', err);
+      applyVisitas(previousVisitas);
+    }
   };
 
   // Función para volver al dashboard

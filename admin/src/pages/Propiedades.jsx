@@ -4,7 +4,7 @@ import PropiedadesMapView from './PropiedadesMapView';
 import PropiedadInforme from '../components/PropiedadInforme';
 import { toast } from 'react-toastify';
 import { confirmToast } from '../utils/confirmToast';
-import { FaPlus, FaUpload, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaList, FaThLarge, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChevronRight, FaChevronLeft, FaFileAlt, FaChartLine, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
+import { FaPlus, FaUpload, FaSearch, FaFilter, FaHome, FaEye, FaDollarSign, FaUser, FaCamera, FaMapMarkerAlt, FaBuilding, FaTimes, FaSave, FaArrowLeft, FaList, FaThLarge, FaBed, FaBath, FaCar, FaRulerCombined, FaCalendar, FaEdit, FaTrash, FaChevronRight, FaChevronLeft, FaFileAlt, FaChartLine, FaDownload, FaLink, FaCopy, FaGlobe, FaLock, FaGripVertical } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 import { documentService } from '../services/documentService';
@@ -46,6 +46,24 @@ const Propiedades = () => {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filtroOperacion, setFiltroOperacion] = useState('todas');
+  const [filtros, setFiltros] = useState({
+    tipo: '',
+    estado: '',
+    precioMin: '',
+    precioMax: '',
+    dormitoriosMin: '',
+    dormitoriosMax: '',
+    m2Min: '',
+    m2Max: '',
+    barrio: '',
+    moneda: '',
+  });
+  const [ordenarPor, setOrdenarPor] = useState('recientes');
 
   useEffect(() => {
     const fetchReservadasCount = async () => {
@@ -1166,9 +1184,28 @@ const Propiedades = () => {
   ];
 
   // Función para ver detalle de propiedad
-  const verDetalle = (propiedad) => {
+  const verDetalle = async (propiedad) => {
     setPropiedadSeleccionada(propiedad);
     setVistaActual('detalle');
+
+    const previousVisitas = Number(propiedad.visitas || 0);
+    const optimisticVisitas = previousVisitas + 1;
+
+    const applyVisitas = (visitas) => {
+      setPropiedades((prev) => prev.map((p) => (String(p.id) === String(propiedad.id) ? { ...p, visitas } : p)));
+      setPropiedadSeleccionada((prev) => (prev && String(prev.id) === String(propiedad.id) ? { ...prev, visitas } : prev));
+    };
+
+    applyVisitas(optimisticVisitas);
+
+    try {
+      const updated = await crmService.propiedades.incrementVisit(propiedad.id);
+      const visitas = Number(updated.metadata?.visitas || updated.visitas || optimisticVisitas);
+      applyVisitas(visitas);
+    } catch (err) {
+      console.warn('No se pudo incrementar visita', err);
+      applyVisitas(previousVisitas);
+    }
   };
 
   // Función para volver al dashboard
@@ -1176,6 +1213,82 @@ const Propiedades = () => {
     setVistaActual('dashboard');
     setPropiedadSeleccionada(null);
   };
+
+  const getSuggestions = () => {
+    if (!searchTerm.trim()) return [];
+    const term = searchTerm.toLowerCase();
+    return propiedades.filter((p) => p.titulo?.toLowerCase().includes(term)
+      || p.barrio?.toLowerCase().includes(term)
+      || p.ciudad?.toLowerCase().includes(term)
+      || p.direccion?.toLowerCase().includes(term)
+      || p.tipo?.toLowerCase().includes(term)).slice(0, 8);
+  };
+
+  const barriosUnicos = [...new Set(propiedades.map((p) => p.barrio).filter(Boolean))];
+  const tiposUnicos = [...new Set(propiedades.map((p) => p.tipo).filter(Boolean))];
+
+  const propiedadesFiltradas = propiedades
+    .filter((p) => {
+      if (filtroOperacion === 'venta' && p.operacion !== 'Venta') return false;
+      if (filtroOperacion === 'alquiler' && p.operacion !== 'Alquiler') return false;
+
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchSearch = p.titulo?.toLowerCase().includes(term)
+          || p.barrio?.toLowerCase().includes(term)
+          || p.ciudad?.toLowerCase().includes(term)
+          || p.direccion?.toLowerCase().includes(term)
+          || p.tipo?.toLowerCase().includes(term);
+        if (!matchSearch) return false;
+      }
+
+      if (filtros.tipo && p.tipo !== filtros.tipo) return false;
+      if (filtros.estado && p.estado !== filtros.estado) return false;
+      if (filtros.moneda && p.moneda !== filtros.moneda) return false;
+      if (filtros.barrio && p.barrio !== filtros.barrio) return false;
+      if (filtros.precioMin && Number(p.precio) < Number(filtros.precioMin)) return false;
+      if (filtros.precioMax && Number(p.precio) > Number(filtros.precioMax)) return false;
+      if (filtros.dormitoriosMin && Number(p.dormitorios) < Number(filtros.dormitoriosMin)) return false;
+      if (filtros.dormitoriosMax && Number(p.dormitorios) > Number(filtros.dormitoriosMax)) return false;
+      if (filtros.m2Min && Number(p.m2) < Number(filtros.m2Min)) return false;
+      if (filtros.m2Max && Number(p.m2) > Number(filtros.m2Max)) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      switch (ordenarPor) {
+        case 'precio_asc': return Number(a.precio) - Number(b.precio);
+        case 'precio_desc': return Number(b.precio) - Number(a.precio);
+        case 'm2_asc': return Number(a.m2) - Number(b.m2);
+        case 'm2_desc': return Number(b.m2) - Number(a.m2);
+        case 'nombre_asc': return (a.titulo || '').localeCompare(b.titulo || '');
+        case 'recientes':
+        default: return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+    });
+
+  const limpiarFiltros = () => {
+    setSearchTerm('');
+    setFiltros({
+      tipo: '',
+      estado: '',
+      precioMin: '',
+      precioMax: '',
+      dormitoriosMin: '',
+      dormitoriosMax: '',
+      m2Min: '',
+      m2Max: '',
+      barrio: '',
+      moneda: '',
+    });
+    setOrdenarPor('recientes');
+    setFiltroOperacion('todas');
+  };
+
+  const filtrosActivos = Object.values(filtros).filter((v) => v !== '').length
+    + (searchTerm ? 1 : 0)
+    + (filtroOperacion !== 'todas' ? 1 : 0)
+    + (ordenarPor !== 'recientes' ? 1 : 0);
 
   return (
     <div className={`min-h-screen px-6 lg:px-8 pt-4 pb-6 ${isDark ? 'bg-main-dark-bg' : 'bg-gray-50'}`}>
@@ -1378,7 +1491,7 @@ const Propiedades = () => {
           </div>
         </div>
       </div>
-        </>
+      </>
       )}
 
       {/* Vista Mapa */}
@@ -1401,88 +1514,356 @@ const Propiedades = () => {
 
       {/* Vista Lista de Propiedades */}
       {vistaActual === 'lista' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {propiedades.map((propiedad) => (
-            <div key={propiedad.id} className={`${cardBase} hover:shadow-xl cursor-pointer`} onClick={() => verDetalle(propiedad)}>
-              {/* Portada */}
-              <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 relative overflow-hidden">
-                {coverBlobUrls[propiedad.id] ? (
-                  <img
-                    src={coverBlobUrls[propiedad.id]}
-                    alt={propiedad.titulo}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FaHome className="text-6xl text-white opacity-30" />
-                  </div>
-                )}
-                <div className="absolute top-3 right-3 flex gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    propiedad.estado === 'Disponible' ? 'bg-green-500 text-white' :
-                    propiedad.estado === 'Reservada' ? 'bg-yellow-500 text-white' :
-                    propiedad.estado === 'Vendida' ? 'bg-gray-500 text-white' :
-                    'bg-blue-500 text-white'
-                  }`}>
-                    {propiedad.estado}
-                  </span>
+        <>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="relative flex-1 max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Buscar propiedades..."
+                className="w-full pl-9 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 text-sm"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes className="text-sm" />
+                </button>
+              )}
+
+              {showSuggestions && getSuggestions().length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
+                  {getSuggestions().map((prop, i) => (
+                    <div
+                      key={prop.id || i}
+                      onClick={() => {
+                        setSearchTerm(prop.titulo);
+                        setShowSuggestions(false);
+                      }}
+                      className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b dark:border-gray-700 last:border-0"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FaHome className="text-blue-500 text-sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium dark:text-gray-100 truncate">{prop.titulo}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {prop.tipo} • {prop.barrio} • {prop.moneda} ${prop.precio?.toLocaleString()}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          prop.operacion === 'Venta'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                          {prop.operacion}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="absolute bottom-3 left-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1">
-                  <FaCamera /> {propiedad.fotos} fotos
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${
+                showFilters || filtrosActivos > 0
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'border-gray-300 dark:border-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <FaFilter className="text-xs" />
+              Filtros
+              {filtrosActivos > 0 && (
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${showFilters || filtrosActivos > 0 ? 'bg-white text-blue-500' : 'bg-blue-500 text-white'}`}>
+                  {filtrosActivos}
+                </span>
+              )}
+            </button>
+
+            {filtrosActivos > 0 && (
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="flex items-center gap-1 px-2 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              >
+                <FaTimes className="text-xs" /> Limpiar
+              </button>
+            )}
+
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">
+              {propiedadesFiltradas.length} de {propiedades.length}
+            </span>
+          </div>
+
+          {showFilters && (
+            <div className={`${cardBase} mb-4`}>
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <h4 className="font-semibold dark:text-gray-100 flex items-center gap-2">
+                  <FaFilter className="text-blue-500" /> Filtros y Ordenamiento
+                </h4>
+
+                <select
+                  value={ordenarPor}
+                  onChange={(e) => setOrdenarPor(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                >
+                  <option value="recientes">Más recientes</option>
+                  <option value="precio_asc">Precio ↑</option>
+                  <option value="precio_desc">Precio ↓</option>
+                  <option value="m2_asc">M² ↑</option>
+                  <option value="m2_desc">M² ↓</option>
+                  <option value="nombre_asc">A-Z</option>
+                </select>
+
+                <div className="flex items-center gap-3 ml-auto">
+                  {['todas', 'venta', 'alquiler'].map((op) => (
+                    <label key={op} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                      <input
+                        type="radio"
+                        name="filtroOp"
+                        checked={filtroOperacion === op}
+                        onChange={() => setFiltroOperacion(op)}
+                        className="w-3.5 h-3.5 accent-blue-600"
+                      />
+                      <span className="dark:text-gray-200 capitalize">{op === 'todas' ? 'Todas' : op}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
-              {/* Información */}
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <h3 className="text-lg font-bold dark:text-gray-100">{propiedad.titulo}</h3>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">ID: {propiedad.id}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                    <FaMapMarkerAlt className="text-red-500" /> {propiedad.barrio}, {propiedad.ciudad}
-                  </p>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo</label>
+                  <select
+                    value={filtros.tipo}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, tipo: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todos los tipos</option>
+                    {tiposUnicos.map((tipo) => (
+                      <option key={tipo} value={tipo}>{tipo}</option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold" style={{ color: currentColor }}>
-                    {propiedad.moneda} ${propiedad.precio.toLocaleString()}
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{propiedad.operacion}</span>
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Estado</label>
+                  <select
+                    value={filtros.estado}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, estado: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todos</option>
+                    <option value="Disponible">Disponible</option>
+                    <option value="Reservada">Reservada</option>
+                    <option value="Vendida">Vendida</option>
+                    <option value="Alquilada">Alquilada</option>
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 pt-3 border-t dark:border-gray-700">
-                  <div className="text-center">
-                    <FaRulerCombined className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.m2}m²</p>
-                  </div>
-                  <div className="text-center">
-                    <FaHome className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.ambientes} amb</p>
-                  </div>
-                  <div className="text-center">
-                    <FaBed className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.dormitorios} dorm</p>
-                  </div>
-                  <div className="text-center">
-                    <FaBath className="text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs font-semibold dark:text-gray-200">{propiedad.baños} baños</p>
-                  </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Barrio</label>
+                  <select
+                    value={filtros.barrio}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, barrio: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todos los barrios</option>
+                    {barriosUnicos.map((barrio) => (
+                      <option key={barrio} value={barrio}>{barrio}</option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
-                  <div className="flex items-center gap-2">
-                    <FaUser className="text-gray-400" />
-                    <span className="text-sm dark:text-gray-300">{propiedad.agente}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                    <FaEye />
-                    <span className="text-sm">{propiedad.visitas}</span>
-                  </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Moneda</label>
+                  <select
+                    value={filtros.moneda}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, moneda: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Todas</option>
+                    <option value="USD">USD</option>
+                    <option value="ARS">ARS</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Precio mínimo</label>
+                  <input
+                    type="number"
+                    value={filtros.precioMin}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, precioMin: e.target.value }))}
+                    placeholder="Ej: 50000"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Precio máximo</label>
+                  <input
+                    type="number"
+                    value={filtros.precioMax}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, precioMax: e.target.value }))}
+                    placeholder="Ej: 500000"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Dormitorios mín.</label>
+                  <input
+                    type="number"
+                    value={filtros.dormitoriosMin}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, dormitoriosMin: e.target.value }))}
+                    placeholder="Ej: 1"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">Dormitorios máx.</label>
+                  <input
+                    type="number"
+                    value={filtros.dormitoriosMax}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, dormitoriosMax: e.target.value }))}
+                    placeholder="Ej: 5"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">M² mínimo</label>
+                  <input
+                    type="number"
+                    value={filtros.m2Min}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, m2Min: e.target.value }))}
+                    placeholder="Ej: 30"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 dark:text-gray-300">M² máximo</label>
+                  <input
+                    type="number"
+                    value={filtros.m2Max}
+                    onChange={(e) => setFiltros((prev) => ({ ...prev, m2Max: e.target.value }))}
+                    placeholder="Ej: 300"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-gray-100 text-sm"
+                  />
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {propiedadesFiltradas.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <FaHome className="text-6xl text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No hay propiedades que coincidan con el filtro seleccionado</p>
+              </div>
+            ) : (
+              propiedadesFiltradas.map((propiedad) => {
+                const estadoClass = propiedad.estado === 'Disponible'
+                  ? 'bg-green-500 text-white'
+                  : propiedad.estado === 'Reservada'
+                    ? 'bg-yellow-500 text-white'
+                    : propiedad.estado === 'Vendida'
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-blue-500 text-white';
+
+                return (
+                  <div key={propiedad.id} className={cardBase + ' hover:shadow-xl cursor-pointer'} onClick={() => verDetalle(propiedad)}>
+                    {/* Portada */}
+                    <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 relative overflow-hidden">
+                      {coverBlobUrls[propiedad.id] ? (
+                        <img
+                          src={coverBlobUrls[propiedad.id]}
+                          alt={propiedad.titulo}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FaHome className="text-6xl text-white opacity-30" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        <span className={'px-3 py-1 rounded-full text-xs font-semibold ' + estadoClass}>
+                          {propiedad.estado}
+                        </span>
+                      </div>
+                      <div className="absolute bottom-3 left-3 bg-black bg-opacity-60 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1">
+                        <FaCamera /> {propiedad.fotos} fotos
+                      </div>
+                    </div>
+
+                    {/* Información */}
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="text-lg font-bold dark:text-gray-100">{propiedad.titulo}</h3>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">ID: {propiedad.id}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          <FaMapMarkerAlt className="text-red-500" /> {propiedad.barrio}, {propiedad.ciudad}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold" style={{ color: currentColor }}>
+                          {propiedad.moneda} ${propiedad.precio.toLocaleString()}
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{propiedad.operacion}</span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2 pt-3 border-t dark:border-gray-700">
+                        <div className="text-center">
+                          <FaRulerCombined className="text-gray-400 mx-auto mb-1" />
+                          <p className="text-xs font-semibold dark:text-gray-200">{propiedad.m2}m²</p>
+                        </div>
+                        <div className="text-center">
+                          <FaHome className="text-gray-400 mx-auto mb-1" />
+                          <p className="text-xs font-semibold dark:text-gray-200">{propiedad.ambientes} amb</p>
+                        </div>
+                        <div className="text-center">
+                          <FaBed className="text-gray-400 mx-auto mb-1" />
+                          <p className="text-xs font-semibold dark:text-gray-200">{propiedad.dormitorios} dorm</p>
+                        </div>
+                        <div className="text-center">
+                          <FaBath className="text-gray-400 mx-auto mb-1" />
+                          <p className="text-xs font-semibold dark:text-gray-200">{propiedad.baños} baños</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
+                        <div className="flex items-center gap-2">
+                          <FaUser className="text-gray-400" />
+                          <span className="text-sm dark:text-gray-300">{propiedad.agente}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                          <FaEye />
+                          <span className="text-sm">{propiedad.visitas}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
       )}
 
       {/* Vista Detalle de Propiedad */}
