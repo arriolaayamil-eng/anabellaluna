@@ -41,6 +41,7 @@ export const crmService = {
     propertyMetrics: (propiedadId) => api.get(`/crm/client-interactions/property/${propiedadId}/metrics`),
     clientMetrics: (clienteId) => api.get(`/crm/client-interactions/client-metrics/${clienteId}`),
     ownerReport: (propiedadId, days = 30) => api.get(`/crm/client-interactions/owner-report/${propiedadId}?days=${days}`),
+    ownerReportPdfUrl: (propiedadId, days = 30) => `/crm/client-interactions/owner-report/${propiedadId}/pdf?days=${days}`,
   },
 
   // ============ AGENTES ============

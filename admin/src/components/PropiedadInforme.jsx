@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaFilePdf, FaSpinner, FaBuilding, FaChartBar, FaUsers, FaCalendar, FaEye, FaHeart, FaStar } from 'react-icons/fa';
 import crmService from '../services/crmService';
+import API_CONFIG, { getAuthToken } from '../config/api';
 
 const tipoLabels = {
   nota: 'Nota',
@@ -19,6 +20,7 @@ const PropiedadInforme = ({ propiedad, onClose, isDark }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const loadReport = useCallback(async () => {
     if (!propiedad?.id) return;
@@ -36,8 +38,24 @@ const PropiedadInforme = ({ propiedad, onClose, isDark }) => {
 
   useEffect(() => { loadReport(); }, [loadReport]);
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    if (!propiedad?.id) return;
+    setDownloadingPdf(true);
+    try {
+      const path = crmService.clientInteractions.ownerReportPdfUrl(propiedad.id, dias);
+      const base = API_CONFIG.baseURL || '';
+      const token = getAuthToken();
+      const url = `${base}${path}${token ? `&token=${token}` : ''}`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const card = `rounded-xl p-5 border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100 shadow-sm'}`;
@@ -45,16 +63,7 @@ const PropiedadInforme = ({ propiedad, onClose, isDark }) => {
 
   return (
     <>
-      <style>{`
-        @media print {
-          body > *:not(#informe-print-root) { display: none !important; }
-          #informe-print-root { position: fixed; inset: 0; z-index: 9999; background: white; overflow: auto; }
-          .no-print { display: none !important; }
-          .print-break { page-break-before: always; }
-        }
-      `}</style>
-
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 no-print" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div id="informe-print-root" className={`w-full max-w-4xl rounded-2xl border my-6 ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
 
           <div className={`flex items-center justify-between px-6 py-4 border-b no-print ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -74,9 +83,10 @@ const PropiedadInforme = ({ propiedad, onClose, isDark }) => {
                   <option value={90}>Últimos 90 días</option>
                 </select>
               </div>
-              <button onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
-                <FaFilePdf /> Descargar PDF
+              <button onClick={handleDownloadPdf} disabled={downloadingPdf}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
+                {downloadingPdf ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
+                {downloadingPdf ? 'Generando...' : 'Descargar PDF'}
               </button>
               <button onClick={onClose} className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
                 <FaTimes />
@@ -85,12 +95,6 @@ const PropiedadInforme = ({ propiedad, onClose, isDark }) => {
           </div>
 
           <div className="p-6 space-y-6">
-
-            <div className="hidden print:block mb-6">
-              <h1 className="text-3xl font-bold text-gray-900">Informe de Mercado — Últimos {data?.dias || dias} días</h1>
-              <p className="text-gray-600 mt-1">Generado el {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-              <hr className="mt-3" />
-            </div>
 
             {loading && (
               <div className="flex items-center justify-center py-20">
@@ -214,11 +218,11 @@ const PropiedadInforme = ({ propiedad, onClose, isDark }) => {
                 )}
 
                 {data.interacciones?.length > 0 && (
-                  <div className={`${card} print-break`}>
+                  <div className={card}>
                     <h3 className={`font-bold text-base mb-4 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
                       Historial de Interacciones ({data.interacciones.length})
                     </h3>
-                    <div className="space-y-2 max-h-96 overflow-y-auto print:max-h-none">
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
                       {data.interacciones.map((inter) => (
                         <div key={inter._id} className={`p-3 rounded-lg border text-sm ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-100 bg-gray-50'}`}>
                           <div className="flex items-center justify-between mb-1">
