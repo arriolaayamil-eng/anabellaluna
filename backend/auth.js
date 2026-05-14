@@ -523,14 +523,18 @@ router.patch('/theme', authenticateToken, async (req, res) => {
 function authenticateToken(req, res, next) {
 
   const auth = req.headers.authorization;
+  const queryToken = req.query.token;
 
-  if (!auth) return res.status(401).json({ error: 'missing token' });
+  if (!auth && !queryToken) return res.status(401).json({ error: 'missing token' });
 
-  const parts = auth.split(' ');
-
-  if (parts.length !== 2 || parts[0] !== 'Bearer') return res.status(401).json({ error: 'invalid token format' });
-
-  const token = parts[1];
+  let token;
+  if (auth) {
+    const parts = auth.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') return res.status(401).json({ error: 'invalid token format' });
+    token = parts[1];
+  } else {
+    token = queryToken;
+  }
 
   jwt.verify(token, JWT_SECRET, (err, payload) => {
 
