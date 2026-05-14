@@ -12,6 +12,11 @@ const C = {
   bg: '#f7fafc',
 };
 
+const PAGE_H = 841.89; // A4 height in points
+const PAGE_W = 595.28; // A4 width in points
+const MARGIN = 50;
+const CONTENT_W = PAGE_W - MARGIN * 2; // 495.28
+
 // ── Helpers ──
 function fmtCurrency(val, moneda = 'USD') {
   if (!val && val !== 0) return '-';
@@ -34,16 +39,20 @@ function fmtPct(val) {
   return `${Number(val) >= 0 ? '+' : ''}${Number(val).toFixed(1)}%`;
 }
 
-function addPageFooter(doc, pageNum) {
+// Footer: skip page 0 (dark cover page)
+function addPageFooter(doc, pageNum, skipFirst) {
+  if (skipFirst && pageNum === 1) return;
   doc.save();
   doc.fontSize(8).fillColor(C.gray);
-  doc.text(`Página ${pageNum}`, 50, doc.page.height - 40, { align: 'center', width: doc.page.width - 100 });
+  doc.text(`Página ${pageNum}`, MARGIN, PAGE_H - 35, { align: 'center', width: CONTENT_W });
   doc.restore();
 }
 
+// Returns true and adds page if not enough vertical space
 function ensureSpace(doc, needed) {
-  if (doc.y + needed > doc.page.height - 60) {
+  if (doc.y + needed > PAGE_H - 60) {
     doc.addPage();
+    doc.y = MARGIN;
     return true;
   }
   return false;
@@ -52,32 +61,58 @@ function ensureSpace(doc, needed) {
 function drawSectionTitle(doc, title) {
   ensureSpace(doc, 40);
   doc.moveDown(0.5);
-  doc.fontSize(13).fillColor(C.primary).font('Helvetica-Bold').text(title);
-  doc.moveTo(50, doc.y + 2).lineTo(545, doc.y + 2).strokeColor(C.accent).lineWidth(1.5).stroke();
-  doc.moveDown(0.5);
+  const titleY = doc.y;
+  doc.fontSize(13).fillColor(C.primary).font('Helvetica-Bold').text(title, MARGIN, titleY, { width: CONTENT_W });
+  // Draw underline right below the title text (doc.y has advanced after .text())
+  const lineY = doc.y + 1;
+  doc.save();
+  doc.moveTo(MARGIN, lineY).lineTo(MARGIN + CONTENT_W, lineY).strokeColor(C.accent).lineWidth(1.5).stroke();
+  doc.restore();
+  doc.moveDown(0.6);
 }
 
 function drawKeyValue(doc, label, value, opts = {}) {
-  const { width = 240, indent = 0 } = opts;
-  ensureSpace(doc, 16);
-  const x = 50 + indent;
-  doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark).text(`${label}:`, x, doc.y, { continued: true, width });
-  doc.font('Helvetica').fillColor(C.gray).text(` ${value || '-'}`, { width: 495 - indent });
+  const { indent = 0 } = opts;
+  ensureSpace(doc, 18);
+  const x = MARGIN + indent;
+  const rowY = doc.y;
+  // Label in bold
+  doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark).text(`${label}:`, x, rowY, { width: 130 });
+  // Value below label or beside it — use absolute x to avoid pdfkit continued-mode issues
+  doc.fontSize(9).font('Helvetica').fillColor(C.gray).text(String(value || '-'), x + 140, rowY, { width: CONTENT_W - indent - 140 });
+  // Advance cursor past tallest column
+  const nextY = doc.y;
+  if (nextY < rowY + 14) doc.text('', x, rowY + 14);
 }
 
 function drawTwoCol(doc, pairs) {
+  const COL1_LABEL_X = MARGIN;       // 50
+  const COL1_VAL_X   = MARGIN + 130; // 180
+  const COL2_LABEL_X = MARGIN + 250; // 300
+  const COL2_VAL_X   = MARGIN + 380; // 430
+  const LABEL_W = 125;
+  const VAL_W   = 115;
+
   for (let i = 0; i < pairs.length; i += 2) {
     ensureSpace(doc, 16);
-    const y = doc.y;
+    const rowY = doc.y;
+
     const [l1, v1] = pairs[i];
-    doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark).text(`${l1}:`, 50, y, { width: 130 });
-    doc.fontSize(9).font('Helvetica').fillColor(C.gray).text(String(v1 || '-'), 180, y, { width: 100 });
+    doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark)
+      .text(`${l1}:`, COL1_LABEL_X, rowY, { width: LABEL_W, lineBreak: false });
+    doc.fontSize(9).font('Helvetica').fillColor(C.gray)
+      .text(String(v1 || '-'), COL1_VAL_X, rowY, { width: VAL_W, lineBreak: false });
+
     if (pairs[i + 1]) {
       const [l2, v2] = pairs[i + 1];
-      doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark).text(`${l2}:`, 300, y, { width: 130 });
-      doc.fontSize(9).font('Helvetica').fillColor(C.gray).text(String(v2 || '-'), 430, y, { width: 115 });
+      doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark)
+        .text(`${l2}:`, COL2_LABEL_X, rowY, { width: LABEL_W, lineBreak: false });
+      doc.fontSize(9).font('Helvetica').fillColor(C.gray)
+        .text(String(v2 || '-'), COL2_VAL_X, rowY, { width: VAL_W, lineBreak: false });
     }
-    doc.y = y + 16;
+
+    // Explicitly advance cursor to next row
+    doc.text('', MARGIN, rowY + 16);
   }
 }
 
@@ -87,7 +122,7 @@ function drawTwoCol(doc, pairs) {
 function generateMarketStudyPdf(study) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+      const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
       const chunks = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -96,47 +131,71 @@ function generateMarketStudyPdf(study) {
       const mon = study.mercado?.moneda || study.resultado?.moneda || 'USD';
 
       // ── PORTADA ──
-      doc.rect(0, 0, 595, 842).fill(C.primary);
-      doc.fontSize(32).fillColor(C.white).font('Helvetica-Bold').text('ESTUDIO DE MERCADO', 50, 260, { align: 'center', width: 495 });
-      doc.moveDown(0.5);
-      doc.fontSize(14).font('Helvetica').text('Análisis Comparativo de Mercado Inmobiliario', 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(2);
-      doc.fontSize(11).text(study.inmueble?.direccion || 'Sin dirección', 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(0.5);
-      doc.text(`${study.inmueble?.localidad || ''} ${study.inmueble?.provincia ? '- ' + study.inmueble.provincia : ''}`.trim(), 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(2);
-      doc.rect(200, doc.y, 195, 1).fill(C.accent);
-      doc.moveDown(1.5);
-      doc.fontSize(10).text(`Código: ${study.codigo || '-'}`, 50, doc.y, { align: 'center', width: 495 });
-      doc.text(`Fecha: ${fmtDate(study.createdAt)}`, 50, doc.y, { align: 'center', width: 495 });
-      doc.text(`Agente: ${study.agenteName || '-'}`, 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(5);
-      doc.fontSize(8).fillColor(C.lightGray).text('Documento generado automáticamente por el sistema de gestión inmobiliaria.', 50, doc.y, { align: 'center', width: 495 });
+      // Draw background first, then overlay text using absolute coordinates
+      doc.save();
+      doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.primary);
+      doc.restore();
+
+      // Title block (positioned absolutely over the background)
+      doc.fillColor(C.white).font('Helvetica-Bold').fontSize(32)
+        .text('ESTUDIO DE MERCADO', MARGIN, 240, { align: 'center', width: CONTENT_W });
+      doc.font('Helvetica').fontSize(14)
+        .text('Análisis Comparativo de Mercado Inmobiliario', MARGIN, 290, { align: 'center', width: CONTENT_W });
+
+      // Property address
+      doc.fontSize(12)
+        .text(study.inmueble?.direccion || 'Sin dirección', MARGIN, 350, { align: 'center', width: CONTENT_W });
+      const localProv = `${study.inmueble?.localidad || ''}${study.inmueble?.provincia ? ' — ' + study.inmueble.provincia : ''}`.trim();
+      if (localProv) {
+        doc.fontSize(11).text(localProv, MARGIN, 370, { align: 'center', width: CONTENT_W });
+      }
+
+      // Accent divider
+      doc.save();
+      doc.moveTo(200, 405).lineTo(395, 405).strokeColor(C.accent).lineWidth(2).stroke();
+      doc.restore();
+
+      // Meta info
+      doc.fillColor(C.lightGray).font('Helvetica').fontSize(10)
+        .text(`Código: ${study.codigo || '-'}`, MARGIN, 420, { align: 'center', width: CONTENT_W });
+      doc.text(`Fecha: ${fmtDate(study.createdAt)}`, MARGIN, 438, { align: 'center', width: CONTENT_W });
+      doc.text(`Agente: ${study.agenteName || '-'}`, MARGIN, 456, { align: 'center', width: CONTENT_W });
+
+      // Footer note on cover
+      doc.fontSize(8).fillColor('#718096')
+        .text('Documento generado automáticamente por el sistema de gestión inmobiliaria.', MARGIN, PAGE_H - 50, { align: 'center', width: CONTENT_W });
 
       // ── RESUMEN EJECUTIVO ──
       doc.addPage();
       drawSectionTitle(doc, 'Resumen Ejecutivo');
       if (study.resultado?.resumenEjecutivo) {
-        doc.fontSize(10).font('Helvetica').fillColor(C.dark).text(study.resultado.resumenEjecutivo, 50, doc.y, { width: 495, lineGap: 4 });
+        doc.fontSize(10).font('Helvetica').fillColor(C.dark)
+          .text(study.resultado.resumenEjecutivo, MARGIN, doc.y, { width: CONTENT_W, lineGap: 4 });
       } else {
-        doc.fontSize(10).font('Helvetica').fillColor(C.gray).text('Sin resumen ejecutivo cargado.', 50, doc.y, { width: 495 });
+        doc.fontSize(10).font('Helvetica').fillColor(C.gray)
+          .text('Sin resumen ejecutivo cargado.', MARGIN, doc.y, { width: CONTENT_W });
       }
       doc.moveDown(1);
 
       // Result summary box
       const r = study.resultado || {};
-      ensureSpace(doc, 100);
+      ensureSpace(doc, 105);
       const boxY = doc.y;
-      doc.rect(50, boxY, 495, 85).fill('#edf2f7');
-      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.primary).text('Resultado del Estudio', 60, boxY + 8);
+      const BOX_H = 90;
+      doc.save();
+      doc.rect(MARGIN, boxY, CONTENT_W, BOX_H).fill('#edf2f7');
+      doc.restore();
+      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.primary)
+        .text('Resultado del Estudio', MARGIN + 10, boxY + 8, { width: CONTENT_W - 20 });
       doc.fontSize(9).font('Helvetica').fillColor(C.dark);
-      doc.text(`Valor estimado por m²: ${fmtCurrency(r.valorEstimadoM2, mon)}`, 60, boxY + 26, { width: 220 });
-      doc.text(`Rango conservador: ${fmtCurrency(r.rangoConservador, mon)}`, 60, boxY + 42, { width: 220 });
-      doc.text(`Rango medio: ${fmtCurrency(r.rangoMedio, mon)}`, 60, boxY + 58, { width: 220 });
-      doc.text(`Rango premium: ${fmtCurrency(r.rangoPremium, mon)}`, 300, boxY + 26, { width: 220 });
-      doc.text(`Precio sugerido publicación: ${fmtCurrency(r.precioSugeridoPublicacion, mon)}`, 300, boxY + 42, { width: 230 });
-      doc.text(`Precio sugerido mercado: ${fmtCurrency(r.precioSugeridoMercado, mon)}`, 300, boxY + 58, { width: 230 });
-      doc.y = boxY + 95;
+      doc.text(`Valor estimado por m²: ${fmtCurrency(r.valorEstimadoM2, mon)}`, MARGIN + 10, boxY + 26, { width: 220, lineBreak: false });
+      doc.text(`Rango conservador: ${fmtCurrency(r.rangoConservador, mon)}`, MARGIN + 10, boxY + 42, { width: 220, lineBreak: false });
+      doc.text(`Rango medio: ${fmtCurrency(r.rangoMedio, mon)}`, MARGIN + 10, boxY + 58, { width: 220, lineBreak: false });
+      doc.text(`Rango premium: ${fmtCurrency(r.rangoPremium, mon)}`, MARGIN + 250, boxY + 26, { width: 230, lineBreak: false });
+      doc.text(`Precio publicación: ${fmtCurrency(r.precioSugeridoPublicacion, mon)}`, MARGIN + 250, boxY + 42, { width: 230, lineBreak: false });
+      doc.text(`Precio mercado: ${fmtCurrency(r.precioSugeridoMercado, mon)}`, MARGIN + 250, boxY + 58, { width: 230, lineBreak: false });
+      // Advance cursor past box
+      doc.text('', MARGIN, boxY + BOX_H + 8);
 
       // ── FICHA DEL INMUEBLE ──
       drawSectionTitle(doc, 'Ficha del Inmueble');
@@ -182,18 +241,25 @@ function generateMarketStudyPdf(study) {
       if (comps.length > 0) {
         drawSectionTitle(doc, `Comparables Incluidos (${comps.length})`);
         comps.forEach((comp, idx) => {
-          ensureSpace(doc, 70);
-          doc.rect(50, doc.y, 495, 60).fill(idx % 2 === 0 ? '#f7fafc' : '#edf2f7');
-          const cy = doc.y + 5;
-          doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark).text(`#${idx + 1} ${comp.direccion || comp.codigo || 'Sin ref.'}`, 55, cy, { width: 300 });
-          doc.fontSize(8).font('Helvetica').fillColor(C.gray);
-          doc.text(`Tipo: ${comp.tipoInmueble || '-'}  |  ${fmtNum(comp.superficieTotal)} m²  |  ${comp.ambientes || '-'} amb.  |  ${comp.dormitorios || '-'} dorm.`, 55, cy + 14, { width: 350 });
-          doc.text(`Precio publicado: ${fmtCurrency(comp.precioPublicado, mon)}  |  Valor/m²: ${fmtCurrency(comp.valorPorM2, mon)}`, 55, cy + 28, { width: 350 });
-          doc.text(`Fuente: ${comp.fuente || '-'}  |  Distancia: ${comp.distancia || '-'}`, 55, cy + 42, { width: 350 });
-          if (comp.ponderacion !== 1) {
-            doc.text(`Ponderación: ${comp.ponderacion}x`, 430, cy + 14, { width: 110 });
+          const ROW_H = 68;
+          ensureSpace(doc, ROW_H + 4);
+          const ry = doc.y;
+          // Background stripe
+          doc.save();
+          doc.rect(MARGIN, ry, CONTENT_W, ROW_H).fill(idx % 2 === 0 ? '#f7fafc' : '#edf2f7');
+          doc.restore();
+          // Row content — all absolute y positions relative to ry
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark)
+            .text(`#${idx + 1} ${comp.direccion || comp.codigo || 'Sin ref.'}`, MARGIN + 5, ry + 5, { width: 380, lineBreak: false });
+          doc.fontSize(8).font('Helvetica').fillColor(C.gray)
+            .text(`Tipo: ${comp.tipoInmueble || '-'}  |  ${fmtNum(comp.superficieTotal)} m²  |  ${comp.ambientes || '-'} amb.  |  ${comp.dormitorios || '-'} dorm.`, MARGIN + 5, ry + 20, { width: 360, lineBreak: false });
+          doc.text(`Precio publicado: ${fmtCurrency(comp.precioPublicado, mon)}  |  Valor/m²: ${fmtCurrency(comp.valorPorM2, mon)}`, MARGIN + 5, ry + 35, { width: 360, lineBreak: false });
+          doc.text(`Fuente: ${comp.fuente || '-'}  |  Distancia: ${comp.distancia || '-'}`, MARGIN + 5, ry + 50, { width: 280, lineBreak: false });
+          if (comp.ponderacion && comp.ponderacion !== 1) {
+            doc.text(`Pond.: ${comp.ponderacion}x`, MARGIN + 380, ry + 20, { width: 100, lineBreak: false });
           }
-          doc.y += 65;
+          // Move cursor past this row
+          doc.text('', MARGIN, ry + ROW_H + 2);
         });
       }
 
@@ -203,28 +269,33 @@ function generateMarketStudyPdf(study) {
         drawSectionTitle(doc, 'Ajustes Aplicados');
         ajustes.forEach((aj) => {
           ensureSpace(doc, 18);
+          const ajY = doc.y;
           const val = aj.tipo === 'porcentaje' ? fmtPct(aj.valor) : fmtCurrency(aj.valor, mon);
-          doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark).text(`${aj.nombre}: `, 55, doc.y, { continued: true, width: 200 });
-          doc.font('Helvetica').fillColor(aj.valor >= 0 ? '#38a169' : '#e53e3e').text(val, { continued: true });
+          const color = Number(aj.valor) >= 0 ? '#38a169' : '#e53e3e';
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(C.dark)
+            .text(`${aj.nombre}:`, MARGIN + 5, ajY, { width: 180, lineBreak: false });
+          doc.font('Helvetica').fillColor(color)
+            .text(val, MARGIN + 190, ajY, { width: 80, lineBreak: false });
           if (aj.observacion) {
-            doc.fillColor(C.gray).text(`  — ${aj.observacion}`, { width: 300 });
-          } else {
-            doc.text('');
+            doc.fillColor(C.gray)
+              .text(`— ${aj.observacion}`, MARGIN + 280, ajY, { width: 210, lineBreak: false });
           }
+          doc.text('', MARGIN, ajY + 16);
         });
       }
 
       // ── OBSERVACIONES TÉCNICAS ──
       if (r.observacionesTecnicas) {
         drawSectionTitle(doc, 'Observaciones Técnicas');
-        doc.fontSize(9).font('Helvetica').fillColor(C.dark).text(r.observacionesTecnicas, 50, doc.y, { width: 495, lineGap: 3 });
+        doc.fontSize(9).font('Helvetica').fillColor(C.dark)
+          .text(r.observacionesTecnicas, MARGIN, doc.y, { width: CONTENT_W, lineGap: 3 });
       }
 
-      // ── FOOTER ──
+      // ── FOOTER (skip cover page 1) ──
       const pages = doc.bufferedPageRange();
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
-        addPageFooter(doc, i + 1);
+        addPageFooter(doc, i + 1, true);
       }
 
       doc.end();
@@ -240,7 +311,7 @@ function generateMarketStudyPdf(study) {
 function generateAppraisalPdf(appraisal, marketStudy) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+      const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
       const chunks = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -249,46 +320,63 @@ function generateAppraisalPdf(appraisal, marketStudy) {
       const mon = appraisal.resultado?.moneda || appraisal.economico?.moneda || 'USD';
 
       // ── PORTADA ──
-      doc.rect(0, 0, 595, 842).fill(C.primary);
-      doc.fontSize(32).fillColor(C.white).font('Helvetica-Bold').text('TASACIÓN PROFESIONAL', 50, 240, { align: 'center', width: 495 });
-      doc.moveDown(0.5);
-      doc.fontSize(14).font('Helvetica').text('Informe de Tasación Inmobiliaria', 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(2);
-      doc.fontSize(11).text(appraisal.dominial?.ubicacionExacta || 'Sin dirección', 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(2);
-      doc.rect(200, doc.y, 195, 1).fill(C.accent);
-      doc.moveDown(1.5);
-      doc.fontSize(10).text(`Código: ${appraisal.codigo || '-'}`, 50, doc.y, { align: 'center', width: 495 });
-      doc.text(`Fecha: ${fmtDate(appraisal.fechaTasacion)}`, 50, doc.y, { align: 'center', width: 495 });
-      doc.text(`Agente: ${appraisal.agenteName || '-'}`, 50, doc.y, { align: 'center', width: 495 });
+      // Draw background first, then overlay text using absolute coordinates
+      doc.save();
+      doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.primary);
+      doc.restore();
+
+      doc.fillColor(C.white).font('Helvetica-Bold').fontSize(32)
+        .text('TASACIÓN PROFESIONAL', MARGIN, 240, { align: 'center', width: CONTENT_W });
+      doc.font('Helvetica').fontSize(14)
+        .text('Informe de Tasación Inmobiliaria', MARGIN, 290, { align: 'center', width: CONTENT_W });
+
+      doc.fontSize(12)
+        .text(appraisal.dominial?.ubicacionExacta || 'Sin dirección', MARGIN, 350, { align: 'center', width: CONTENT_W });
+
+      // Accent divider
+      doc.save();
+      doc.moveTo(200, 380).lineTo(395, 380).strokeColor(C.accent).lineWidth(2).stroke();
+      doc.restore();
+
+      doc.fillColor(C.lightGray).font('Helvetica').fontSize(10)
+        .text(`Código: ${appraisal.codigo || '-'}`, MARGIN, 395, { align: 'center', width: CONTENT_W });
+      doc.text(`Fecha: ${fmtDate(appraisal.fechaTasacion)}`, MARGIN, 413, { align: 'center', width: CONTENT_W });
+      doc.text(`Agente: ${appraisal.agenteName || '-'}`, MARGIN, 431, { align: 'center', width: CONTENT_W });
       if (appraisal.certificacion?.matriculadoNombre) {
-        doc.text(`Matriculado: ${appraisal.certificacion.matriculadoNombre} (Mat. ${appraisal.certificacion.matricula || '-'})`, 50, doc.y, { align: 'center', width: 495 });
+        doc.text(`Matriculado: ${appraisal.certificacion.matriculadoNombre} (Mat. ${appraisal.certificacion.matricula || '-'})`, MARGIN, 449, { align: 'center', width: CONTENT_W });
       }
-      doc.moveDown(2);
+
       const estadoLabel = { borrador: 'BORRADOR', en_revision: 'EN REVISIÓN', validada: 'VALIDADA', certificada: 'CERTIFICADA', archivada: 'ARCHIVADA' };
-      doc.fontSize(12).font('Helvetica-Bold').fillColor(C.accent).text(estadoLabel[appraisal.estado] || 'BORRADOR', 50, doc.y, { align: 'center', width: 495 });
-      doc.moveDown(4);
-      doc.fontSize(8).fillColor(C.lightGray).text('Documento generado automáticamente por el sistema de gestión inmobiliaria.', 50, doc.y, { align: 'center', width: 495 });
+      doc.fontSize(12).font('Helvetica-Bold').fillColor(C.accent)
+        .text(estadoLabel[appraisal.estado] || 'BORRADOR', MARGIN, 490, { align: 'center', width: CONTENT_W });
+
+      doc.fontSize(8).fillColor('#718096')
+        .text('Documento generado automáticamente por el sistema de gestión inmobiliaria.', MARGIN, PAGE_H - 50, { align: 'center', width: CONTENT_W });
 
       // ── RESUMEN EJECUTIVO ──
       doc.addPage();
       drawSectionTitle(doc, 'Resumen Ejecutivo');
       const res = appraisal.resultado || {};
-      ensureSpace(doc, 100);
+      ensureSpace(doc, 105);
       const boxY = doc.y;
-      doc.rect(50, boxY, 495, 85).fill('#edf2f7');
-      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.primary).text('Resultado de la Tasación', 60, boxY + 8);
+      const BOX_H = 90;
+      doc.save();
+      doc.rect(MARGIN, boxY, CONTENT_W, BOX_H).fill('#edf2f7');
+      doc.restore();
+      doc.fontSize(10).font('Helvetica-Bold').fillColor(C.primary)
+        .text('Resultado de la Tasación', MARGIN + 10, boxY + 8, { width: CONTENT_W - 20 });
       doc.fontSize(9).font('Helvetica').fillColor(C.dark);
-      doc.text(`Valor final estimado: ${fmtCurrency(res.valorFinal, mon)}`, 60, boxY + 26, { width: 220 });
-      doc.text(`Rango: ${fmtCurrency(res.rangoInferior, mon)} — ${fmtCurrency(res.rangoSuperior, mon)}`, 60, boxY + 42, { width: 220 });
-      doc.text(`Valor por m²: ${fmtCurrency(res.valorPorM2Final, mon)}`, 60, boxY + 58, { width: 220 });
-      doc.text(`Precio publicación: ${fmtCurrency(res.valorPublicacion, mon)}`, 300, boxY + 26, { width: 230 });
-      doc.text(`Cierre esperado: ${fmtCurrency(res.valorCierreEsperado, mon)}`, 300, boxY + 42, { width: 230 });
-      doc.text(`Realización rápida: ${fmtCurrency(res.valorRealizacionRapida, mon)}`, 300, boxY + 58, { width: 230 });
-      doc.y = boxY + 95;
+      doc.text(`Valor final estimado: ${fmtCurrency(res.valorFinal, mon)}`, MARGIN + 10, boxY + 26, { width: 220, lineBreak: false });
+      doc.text(`Rango: ${fmtCurrency(res.rangoInferior, mon)} — ${fmtCurrency(res.rangoSuperior, mon)}`, MARGIN + 10, boxY + 42, { width: 220, lineBreak: false });
+      doc.text(`Valor por m²: ${fmtCurrency(res.valorPorM2Final, mon)}`, MARGIN + 10, boxY + 58, { width: 220, lineBreak: false });
+      doc.text(`Precio publicación: ${fmtCurrency(res.valorPublicacion, mon)}`, MARGIN + 250, boxY + 26, { width: 230, lineBreak: false });
+      doc.text(`Cierre esperado: ${fmtCurrency(res.valorCierreEsperado, mon)}`, MARGIN + 250, boxY + 42, { width: 230, lineBreak: false });
+      doc.text(`Realización rápida: ${fmtCurrency(res.valorRealizacionRapida, mon)}`, MARGIN + 250, boxY + 58, { width: 230, lineBreak: false });
+      // Advance cursor past box
+      doc.text('', MARGIN, boxY + BOX_H + 8);
 
       if (res.justificacion) {
-        doc.fontSize(9).font('Helvetica').fillColor(C.dark).text(res.justificacion, 50, doc.y, { width: 495, lineGap: 3 });
+        doc.fontSize(9).font('Helvetica').fillColor(C.dark).text(res.justificacion, MARGIN, doc.y, { width: CONTENT_W, lineGap: 3 });
         doc.moveDown(0.5);
       }
 
@@ -390,18 +478,23 @@ function generateAppraisalPdf(appraisal, marketStudy) {
 
       // ── DISCLAIMER ──
       if (appraisal.disclaimerLegal) {
-        ensureSpace(doc, 60);
+        ensureSpace(doc, 65);
         doc.moveDown(1);
-        doc.rect(50, doc.y, 495, 50).fill('#fffbeb');
-        doc.fontSize(7).font('Helvetica').fillColor('#92400e').text(appraisal.disclaimerLegal, 55, doc.y + 5, { width: 485, lineGap: 2 });
-        doc.y += 55;
+        const discY = doc.y;
+        const DISC_H = 55;
+        doc.save();
+        doc.rect(MARGIN, discY, CONTENT_W, DISC_H).fill('#fffbeb');
+        doc.restore();
+        doc.fontSize(7).font('Helvetica').fillColor('#92400e')
+          .text(appraisal.disclaimerLegal, MARGIN + 5, discY + 5, { width: CONTENT_W - 10, lineGap: 2 });
+        doc.text('', MARGIN, discY + DISC_H + 4);
       }
 
-      // ── PAGE FOOTERS ──
+      // ── PAGE FOOTERS (skip cover page 1) ──
       const pages = doc.bufferedPageRange();
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
-        addPageFooter(doc, i + 1);
+        addPageFooter(doc, i + 1, true);
       }
 
       doc.end();
