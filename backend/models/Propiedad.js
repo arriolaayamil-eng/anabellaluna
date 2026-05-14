@@ -31,6 +31,11 @@ const PropiedadSchema = new mongoose.Schema({
   exclusividadDias: { type: Number, default: 0 },
   exclusividadDesde: { type: Date },
   fechaCaptacion: { type: Date },
+  // ---- Mercado Libre integration ----
+  // 0=free 1=bronze 2=silver 3=gold 4=gold_special 5=gold_premium
+  mlEstrellas: { type: Number, default: 0, min: 0, max: 5 },
+  // ml: { itemId, status, permalink, lastSyncAt, lastError }
+  ml: { type: Object, default: null },
 }, { timestamps: true });
 
 PropiedadSchema.pre('validate', async function preValidate(next) {

@@ -5,6 +5,7 @@ const DocumentLink = require('../models/DocumentLink');
 const Cliente = require('../models/Cliente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const { sendNotification, sendToRole } = require('../services/pushService');
+const { syncPropertyToML } = require('../services/mercadoLibre');
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic']);
 const isImageDoc = (doc) => {
@@ -131,6 +132,26 @@ router.patch('/:id/publish', authenticateToken, requireCRMUser, async (req, res)
         url: '/crm/propiedades',
       }).catch(() => {});
     }
+
+    // Fire-and-forget ML sync (non-blocking — does not affect response time)
+    setImmediate(async () => {
+      try {
+        const syncResult = await syncPropertyToML(prop);
+        if (syncResult.itemId || syncResult.action !== 'skipped') {
+          const mlUpdate = {
+            itemId: syncResult.itemId || (prop.ml && prop.ml.itemId) || null,
+            status: syncResult.status || (published ? 'active' : 'paused'),
+            permalink: syncResult.permalink || (prop.ml && prop.ml.permalink) || '',
+            lastSyncAt: new Date().toISOString(),
+            lastError: syncResult.ok ? null : (syncResult.error || null),
+          };
+          await Propiedad.findByIdAndUpdate(prop._id, { ml: mlUpdate });
+          console.log(`[ML] Sync for prop ${prop._id}: action=${syncResult.action}`);
+        }
+      } catch (e) {
+        console.error(`[ML] Sync error for prop ${prop._id}:`, e.message);
+      }
+    });
 
     res.json({ published: prop.published });
   } catch (err) { res.status(500).json({ error: err.message }); }

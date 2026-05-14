@@ -113,6 +113,7 @@ const inmobiliariasRoutes = require('./routes/inmobiliarias');
 const pushRoutes = require('./routes/push');
 
 const clientInteractionsRoutes = require('./routes/clientInteractions');
+const mercadoLibreRoutes = require('./routes/mercadolibre');
 
 const { buildPropertyOGRouter } = require('./openGraph');
 
@@ -273,6 +274,8 @@ app.use('/admin/stats', adminDashboardStatsRoutes);
 app.use('/admin/notifications', adminNotificationsRoutes);
 
 app.use('/admin/config', globalConfigRoutes);
+
+app.use('/admin/ml', mercadoLibreRoutes);
 
 // Admin KPI: reservadas count (operaciones tipo Reserva + contratos de reserva generados)
 app.get('/admin/propiedades/reservadas-count', authenticateToken, async (req, res) => {
