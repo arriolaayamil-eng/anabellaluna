@@ -425,20 +425,39 @@ router.get('/owner-report/:propiedadId/pdf', authenticateToken, requireCRMUser, 
       weeklyTrend.push({ semana: `Sem ${4 - w}`, interacciones: wi, consultas: wq });
     }
 
-    // ── Build PDF ──
-    const MARGIN = 50;
-    const PAGE_W = 595.28;
-    const PAGE_H = 841.89;
-    const CONTENT_W = PAGE_W - MARGIN * 2;
+    // ── Build PDF ─────────────────────────────────────────────
+    // Mirrors the PropiedadInforme.jsx preview card exactly.
+    const MARGIN  = 40;
+    const PAGE_W  = 595.28;
+    const PAGE_H  = 841.89;
+    const CW      = PAGE_W - MARGIN * 2;   // 515.28
     const PRIMARY = '#1a365d';
-    const ACCENT = '#ed8936';
-    const DARK = '#1a202c';
-    const GRAY = '#4a5568';
-    const WHITE = '#ffffff';
-    const LIGHT_GRAY = '#e2e8f0';
+    const ORANGE  = '#ed8936';
+    const DARK    = '#1a202c';
+    const GRAY    = '#4a5568';
+    const LGRAY   = '#718096';
+    const WHITE   = '#ffffff';
+    const BG_CARD = '#ffffff';
+    const BG_PAGE = '#f7fafc';
 
-    const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
-    const fmtCurrency = (val, mon = 'USD') => val ? `${mon} ${Number(val).toLocaleString('es-AR')}` : '-';
+    const fmtDate = (d) => d
+      ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '-';
+    const fmtCurrency = (val, mon = 'USD') =>
+      (val || val === 0) ? `${mon} ${Number(val).toLocaleString('es-AR')}` : '-';
+
+    const titulo   = propiedad.title || 'Sin título';
+    const direccion = propiedad.address || propiedad.metadata?.direccion || '-';
+    const estado   = propiedad.status || 'Disponible';
+    const diasPub  = Math.round((now - new Date(propiedad.createdAt)) / (1000 * 60 * 60 * 24));
+
+    const tipoLabels = {
+      nota: 'Nota', recontacto: 'Recontacto', visita_agendada: 'Visita Agendada',
+      visita_realizada: 'Visita Realizada', propiedad_interes: 'Interés en Propiedad',
+      opcion_pago: 'Opción de Pago', preferencia: 'Preferencia',
+    };
+    const nivelColors = { alto: '#16a34a', medio: '#d97706', bajo: '#dc2626' };
+    const kpiColors   = ['#3b82f6','#6366f1','#10b981','#ec4899','#eab308','#8b5cf6','#14b8a6','#f97316'];
 
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
     const chunks = [];
@@ -448,215 +467,308 @@ router.get('/owner-report/:propiedadId/pdf', authenticateToken, requireCRMUser, 
       doc.on('end', resolve);
       doc.on('error', reject);
 
-      // ── PORTADA ──
-      doc.save();
-      doc.rect(0, 0, PAGE_W, PAGE_H).fill(PRIMARY);
-      doc.restore();
-
-      doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(28)
-        .text('INFORME DE MERCADO', MARGIN, 220, { align: 'center', width: CONTENT_W });
-      doc.font('Helvetica').fontSize(13)
-        .text(`Últimos ${days} días`, MARGIN, 260, { align: 'center', width: CONTENT_W });
-
-      const titulo = propiedad.title || 'Sin título';
-      const direccion = propiedad.address || propiedad.metadata?.direccion || '';
-      doc.fontSize(12).text(titulo, MARGIN, 320, { align: 'center', width: CONTENT_W });
-      if (direccion) doc.fontSize(10).text(direccion, MARGIN, 342, { align: 'center', width: CONTENT_W });
-
-      doc.save();
-      doc.moveTo(200, 375).lineTo(395, 375).strokeColor(ACCENT).lineWidth(2).stroke();
-      doc.restore();
-
-      doc.fillColor(LIGHT_GRAY).font('Helvetica').fontSize(10)
-        .text(`Generado el ${fmtDate(now)}`, MARGIN, 390, { align: 'center', width: CONTENT_W });
-
-      doc.fontSize(8).fillColor('#718096')
-        .text('Informe generado automáticamente por el sistema de gestión inmobiliaria.', MARGIN, PAGE_H - 50, { align: 'center', width: CONTENT_W });
-
-      // helper: ensure space
+      // ── helpers ──────────────────────────────────────────────
       const ensureSpace = (needed) => {
-        if (doc.y + needed > PAGE_H - 60) { doc.addPage(); doc.y = MARGIN; }
+        if (doc.y + needed > PAGE_H - 50) { doc.addPage(); doc.y = MARGIN; }
       };
 
-      const sectionTitle = (title) => {
-        ensureSpace(40);
-        doc.moveDown(0.5);
-        const ty = doc.y;
-        doc.fontSize(12).fillColor(PRIMARY).font('Helvetica-Bold').text(title, MARGIN, ty, { width: CONTENT_W });
-        const ly = doc.y + 1;
+      // Rounded-rect card with white bg and light border — mirrors the card style
+      const cardStart = (estimatedH) => {
+        ensureSpace(estimatedH + 16);
+        const cy = doc.y;
         doc.save();
-        doc.moveTo(MARGIN, ly).lineTo(MARGIN + CONTENT_W, ly).strokeColor(ACCENT).lineWidth(1.5).stroke();
+        doc.roundedRect(MARGIN, cy, CW, estimatedH, 6).fillAndStroke(BG_CARD, '#e2e8f0');
         doc.restore();
-        doc.moveDown(0.6);
+        return cy;
       };
 
-      const kpiRow = (pairs) => {
-        // pairs: [[label, value], ...]  — up to 4 per row
-        const colW = CONTENT_W / pairs.length;
-        ensureSpace(50);
-        const ry = doc.y;
-        pairs.forEach(([label, value], idx) => {
-          const x = MARGIN + idx * colW;
-          doc.save();
-          doc.rect(x + 2, ry, colW - 4, 44).fill(idx % 2 === 0 ? '#f7fafc' : '#edf2f7');
-          doc.restore();
-          doc.fontSize(18).font('Helvetica-Bold').fillColor(PRIMARY)
-            .text(String(value), x + 4, ry + 4, { width: colW - 8, align: 'center', lineBreak: false });
-          doc.fontSize(7).font('Helvetica').fillColor(GRAY)
-            .text(label, x + 4, ry + 28, { width: colW - 8, align: 'center', lineBreak: false });
-        });
-        doc.text('', MARGIN, ry + 50);
+      // Card section header (orange icon dot + bold title)
+      const cardHeader = (title, cardY, iconColor) => {
+        doc.save();
+        doc.circle(MARGIN + 14, cardY + 14, 5).fill(iconColor || ORANGE);
+        doc.restore();
+        doc.fontSize(11).font('Helvetica-Bold').fillColor(DARK)
+          .text(title, MARGIN + 24, cardY + 8, { width: CW - 30, lineBreak: false });
+        doc.text('', MARGIN, cardY + 26);
       };
 
-      const twoCol = (pairs) => {
-        for (let i = 0; i < pairs.length; i += 2) {
-          ensureSpace(16);
-          const ry = doc.y;
-          const [l1, v1] = pairs[i];
-          doc.fontSize(9).font('Helvetica-Bold').fillColor(DARK).text(`${l1}:`, MARGIN, ry, { width: 120, lineBreak: false });
-          doc.fontSize(9).font('Helvetica').fillColor(GRAY).text(String(v1 || '-'), MARGIN + 125, ry, { width: 110, lineBreak: false });
-          if (pairs[i + 1]) {
-            const [l2, v2] = pairs[i + 1];
-            doc.fontSize(9).font('Helvetica-Bold').fillColor(DARK).text(`${l2}:`, MARGIN + 250, ry, { width: 120, lineBreak: false });
-            doc.fontSize(9).font('Helvetica').fillColor(GRAY).text(String(v2 || '-'), MARGIN + 375, ry, { width: 115, lineBreak: false });
-          }
-          doc.text('', MARGIN, ry + 16);
-        }
-      };
+      // ── PAGE BACKGROUND ──────────────────────────────────────
+      doc.save();
+      doc.rect(0, 0, PAGE_W, PAGE_H).fill(BG_PAGE);
+      doc.restore();
 
-      // ── PAGE 2: RESUMEN ──
-      doc.addPage();
+      // ── HEADER BAR (mirrors the modal header) ────────────────
+      const HDR_H = 52;
+      doc.save();
+      doc.rect(0, 0, PAGE_W, HDR_H).fill(WHITE);
+      doc.moveTo(0, HDR_H).lineTo(PAGE_W, HDR_H).strokeColor('#e2e8f0').lineWidth(1).stroke();
+      doc.restore();
+      // orange building icon dot
+      doc.save();
+      doc.circle(MARGIN + 10, 26, 7).fill(ORANGE);
+      doc.restore();
+      doc.fontSize(13).font('Helvetica-Bold').fillColor(DARK)
+        .text('Informe de Mercado', MARGIN + 22, 14, { lineBreak: false });
+      doc.fontSize(8).font('Helvetica').fillColor(LGRAY)
+        .text(titulo, MARGIN + 22, 29, { lineBreak: false });
+      // period label top-right
+      doc.fontSize(8).font('Helvetica').fillColor(LGRAY)
+        .text(`Período: últimos ${days} días`, PAGE_W - MARGIN - 120, 22, { width: 120, align: 'right', lineBreak: false });
 
-      sectionTitle('Ficha de la Propiedad');
-      twoCol([
-        ['Título', propiedad.title || '-'],
-        ['Dirección', propiedad.address || propiedad.metadata?.direccion || '-'],
-        ['Precio', fmtCurrency(propiedad.price, propiedad.moneda)],
-        ['Estado', propiedad.status || 'Disponible'],
-        ['Días publicada', `${Math.round((now - new Date(propiedad.createdAt)) / (1000 * 60 * 60 * 24))} días`],
-        ['Tipo', propiedad.metadata?.tipo || '-'],
-      ]);
+      doc.y = HDR_H + 14;
 
-      doc.moveDown(0.5);
-      sectionTitle(`Resumen del Período (${days} días)`);
-      kpiRow([['Consultas', enquiries], ['Visitas Agendadas', visitasAgendadas], ['Visitas Realizadas', visitasRealizadas], ['Asistencia', `${visitasAsistencia}%`]]);
-      kpiRow([['Clientes Interesados', uniqueClients.length], ['Guardados', favorites], ['Total Interacciones', interactions.length], ['Índice de Intención', `${intentScore}/100`]]);
+      // ══════════════════════════════════════════════════════════
+      // CARD 1 — Propiedad (4 fields in a row)
+      // ══════════════════════════════════════════════════════════
+      const CARD1_H = 72;
+      const c1y = cardStart(CARD1_H);
+      cardHeader('Propiedad', c1y, ORANGE);
 
-      // Interest levels
-      if (interestLevels.alto + interestLevels.medio + interestLevels.bajo > 0) {
-        doc.moveDown(0.3);
-        sectionTitle('Niveles de Interés');
-        ensureSpace(16);
-        const ily = doc.y;
-        const nivelColors = { alto: '#16a34a', medio: '#d97706', bajo: '#dc2626' };
-        let ix = MARGIN;
+      const propFields = [
+        ['Título',         titulo],
+        ['Dirección',      direccion],
+        ['Estado',         estado],
+        ['Días publicada', `${diasPub} días`],
+      ];
+      const colW4 = CW / 4;
+      propFields.forEach(([label, val], i) => {
+        const fx = MARGIN + i * colW4 + 8;
+        const fy = c1y + 32;
+        doc.fontSize(7).font('Helvetica').fillColor(LGRAY)
+          .text(label, fx, fy, { width: colW4 - 12, lineBreak: false });
+        doc.fontSize(8.5).font('Helvetica-Bold').fillColor(DARK)
+          .text(String(val || '—'), fx, fy + 10, { width: colW4 - 12, lineBreak: false });
+      });
+      doc.text('', MARGIN, c1y + CARD1_H + 10);
+
+      // ══════════════════════════════════════════════════════════
+      // CARD 2 — Resumen del período (8 KPI tiles, 2 rows × 4)
+      // ══════════════════════════════════════════════════════════
+      const kpis = [
+        { label: 'Consultas',           value: enquiries },
+        { label: 'Visitas Agendadas',   value: visitasAgendadas },
+        { label: 'Visitas Realizadas',  value: visitasRealizadas },
+        { label: 'Clientes Interesados',value: uniqueClients.length },
+        { label: 'Guardados',           value: favorites },
+        { label: 'Interacciones',       value: interactions.length },
+        { label: 'Asistencia Visitas',  value: `${visitasAsistencia}%` },
+        { label: 'Índice de Intención', value: `${intentScore}/100` },
+      ];
+      const KPI_TILE_H = 52;
+      const CARD2_H = 26 + KPI_TILE_H * 2 + 4 + 8; // header + 2 rows + gaps
+      const c2y = cardStart(CARD2_H);
+      cardHeader(`Resumen del período (${days} días)`, c2y, '#3b82f6');
+
+      const colW_kpi = CW / 4;
+      kpis.forEach(({ label, value }, i) => {
+        const row = Math.floor(i / 4);
+        const col = i % 4;
+        const tx = MARGIN + col * colW_kpi + 4;
+        const ty = c2y + 30 + row * (KPI_TILE_H + 4);
+        // tile bg
+        doc.save();
+        doc.roundedRect(tx, ty, colW_kpi - 6, KPI_TILE_H, 4).fill('#f7fafc');
+        doc.restore();
+        // color dot (icon substitute)
+        doc.save();
+        doc.circle(tx + colW_kpi / 2 - 1, ty + 10, 4).fill(kpiColors[i] || ORANGE);
+        doc.restore();
+        // value
+        doc.fontSize(15).font('Helvetica-Bold').fillColor(DARK)
+          .text(String(value), tx + 4, ty + 18, { width: colW_kpi - 14, align: 'center', lineBreak: false });
+        // label
+        doc.fontSize(6.5).font('Helvetica').fillColor(LGRAY)
+          .text(label, tx + 4, ty + 37, { width: colW_kpi - 14, align: 'center', lineBreak: false });
+      });
+      doc.text('', MARGIN, c2y + CARD2_H + 10);
+
+      // ══════════════════════════════════════════════════════════
+      // CARD 3 — Niveles de Interés (only if any > 0)
+      // ══════════════════════════════════════════════════════════
+      const hasInterest = interestLevels.alto + interestLevels.medio + interestLevels.bajo > 0;
+      if (hasInterest) {
+        const CARD3_H = 52;
+        const c3y = cardStart(CARD3_H);
+        cardHeader('Niveles de Interés', c3y, '#ec4899');
+        let ix = MARGIN + 14;
         Object.entries(interestLevels).forEach(([nivel, count]) => {
+          const iy = c3y + 32;
           doc.save();
-          doc.circle(ix + 5, ily + 5, 5).fill(nivelColors[nivel]);
+          doc.circle(ix + 5, iy + 5, 5).fill(nivelColors[nivel]);
           doc.restore();
           doc.fontSize(9).font('Helvetica').fillColor(DARK)
-            .text(`${nivel.charAt(0).toUpperCase() + nivel.slice(1)}: `, ix + 14, ily, { width: 60, lineBreak: false });
-          doc.font('Helvetica-Bold').text(String(count), ix + 70, ily, { width: 30, lineBreak: false });
-          ix += 120;
+            .text(`${nivel.charAt(0).toUpperCase() + nivel.slice(1)}:`, ix + 14, iy, { width: 50, lineBreak: false });
+          doc.font('Helvetica-Bold').fillColor(DARK)
+            .text(String(count), ix + 66, iy, { width: 24, lineBreak: false });
+          ix += 110;
         });
-        doc.text('', MARGIN, ily + 16);
+        doc.text('', MARGIN, c3y + CARD3_H + 10);
       }
 
-      // ── TENDENCIA SEMANAL ──
-      doc.moveDown(0.3);
-      sectionTitle('Tendencia Semanal (últimas 4 semanas)');
-      ensureSpace(80);
-      const tableY = doc.y;
-      const COL_W = [120, 170, 170];
-      const ROW_H = 18;
-      const headers = ['Semana', 'Interacciones', 'Consultas'];
-
-      // Header row
-      doc.save();
-      doc.rect(MARGIN, tableY, CONTENT_W, ROW_H).fill('#e2e8f0');
-      doc.restore();
-      headers.forEach((h, i) => {
-        const x = MARGIN + COL_W.slice(0, i).reduce((a, b) => a + b, 0);
-        doc.fontSize(8).font('Helvetica-Bold').fillColor(DARK)
-          .text(h, x + 4, tableY + 4, { width: COL_W[i] - 8, lineBreak: false });
-      });
-
-      weeklyTrend.forEach((w, rowIdx) => {
-        const ry2 = tableY + ROW_H * (rowIdx + 1);
-        doc.save();
-        doc.rect(MARGIN, ry2, CONTENT_W, ROW_H).fill(rowIdx % 2 === 0 ? WHITE : '#f7fafc');
-        doc.restore();
-        const vals = [w.semana, String(w.interacciones), String(w.consultas)];
-        vals.forEach((v, i) => {
-          const x = MARGIN + COL_W.slice(0, i).reduce((a, b) => a + b, 0);
-          doc.fontSize(8).font('Helvetica').fillColor(GRAY)
-            .text(v, x + 4, ry2 + 4, { width: COL_W[i] - 8, lineBreak: false });
-        });
-      });
-      doc.text('', MARGIN, tableY + ROW_H * (weeklyTrend.length + 1) + 4);
-
-      // ── OFERTAS DE PAGO ──
+      // ══════════════════════════════════════════════════════════
+      // CARD 4 — Ofertas de Pago (only if any)
+      // ══════════════════════════════════════════════════════════
       if (paymentOffers.length > 0) {
-        sectionTitle(`Ofertas de Pago Recibidas (${paymentOffers.length})`);
+        const OFFER_ROW_H = 22;
+        const CARD4_H = 30 + paymentOffers.length * OFFER_ROW_H + 6;
+        const c4y = cardStart(CARD4_H);
+        cardHeader('Ofertas de Pago Recibidas', c4y, '#eab308');
         paymentOffers.forEach((o, idx) => {
-          ensureSpace(20);
-          const oy = doc.y;
+          const oy = c4y + 30 + idx * OFFER_ROW_H;
           doc.save();
-          doc.rect(MARGIN, oy, CONTENT_W, 18).fill(idx % 2 === 0 ? '#fffbeb' : '#fef3c7');
+          doc.rect(MARGIN + 4, oy, CW - 8, OFFER_ROW_H - 2).fill(idx % 2 === 0 ? '#fffbeb' : '#fef3c7');
           doc.restore();
           doc.fontSize(8).font('Helvetica-Bold').fillColor(DARK)
-            .text(o.tipo, MARGIN + 4, oy + 4, { width: 130, lineBreak: false });
+            .text(o.tipo, MARGIN + 8, oy + 5, { width: 130, lineBreak: false });
           if (o.montoOfrecido > 0) {
             doc.font('Helvetica').fillColor('#16a34a')
-              .text(fmtCurrency(o.montoOfrecido, o.moneda), MARGIN + 140, oy + 4, { width: 160, lineBreak: false });
+              .text(fmtCurrency(o.montoOfrecido, o.moneda), MARGIN + 145, oy + 5, { width: 160, lineBreak: false });
           }
-          doc.fillColor(GRAY)
-            .text(fmtDate(o.fecha), MARGIN + 310, oy + 4, { width: 120, lineBreak: false });
-          doc.text('', MARGIN, oy + 20);
+          doc.fillColor(LGRAY)
+            .text(fmtDate(o.fecha), MARGIN + 320, oy + 5, { width: 120, lineBreak: false });
         });
+        doc.text('', MARGIN, c4y + CARD4_H + 10);
       }
 
-      // ── HISTORIAL DE INTERACCIONES ──
-      if (interactions.length > 0) {
-        sectionTitle(`Historial de Interacciones (${interactions.length})`);
-        const tipoLabels = {
-          nota: 'Nota', recontacto: 'Recontacto', visita_agendada: 'Visita Agendada',
-          visita_realizada: 'Visita Realizada', propiedad_interes: 'Interés', opcion_pago: 'Oferta Pago', preferencia: 'Preferencia',
-        };
-        const ROW_H2 = 22;
-        interactions.forEach((inter, idx) => {
-          ensureSpace(ROW_H2 + 2);
-          const iy = doc.y;
+      // ══════════════════════════════════════════════════════════
+      // CARD 5 — Tendencia Semanal (table)
+      // ══════════════════════════════════════════════════════════
+      if (weeklyTrend.length > 0) {
+        const TBL_ROW_H = 18;
+        const CARD5_H = 30 + TBL_ROW_H * (weeklyTrend.length + 1) + 8;
+        const c5y = cardStart(CARD5_H);
+        cardHeader('Tendencia Semanal (últimas 4 semanas)', c5y, '#8b5cf6');
+
+        const tblY = c5y + 30;
+        const tCols = [{ label: 'Semana', w: 150 }, { label: 'Interacciones', w: 180 }, { label: 'Consultas', w: 185 }];
+
+        // header row
+        doc.save();
+        doc.rect(MARGIN + 4, tblY, CW - 8, TBL_ROW_H).fill('#e2e8f0');
+        doc.restore();
+        let cx2 = MARGIN + 8;
+        tCols.forEach(({ label, w }) => {
+          doc.fontSize(7.5).font('Helvetica-Bold').fillColor(GRAY)
+            .text(label, cx2, tblY + 4, { width: w - 4, lineBreak: false });
+          cx2 += w;
+        });
+
+        weeklyTrend.forEach((w, ri) => {
+          const ry3 = tblY + TBL_ROW_H * (ri + 1);
           doc.save();
-          doc.rect(MARGIN, iy, CONTENT_W, ROW_H2).fill(idx % 2 === 0 ? '#f7fafc' : WHITE);
+          doc.rect(MARGIN + 4, ry3, CW - 8, TBL_ROW_H).fill(ri % 2 === 0 ? WHITE : '#f7fafc');
           doc.restore();
-          const cliente = clienteMap[String(inter.clienteId)] || { nombre: 'Desconocido', telefono: '' };
-          doc.fontSize(7.5).font('Helvetica-Bold').fillColor(DARK)
-            .text(tipoLabels[inter.tipo] || inter.tipo, MARGIN + 4, iy + 3, { width: 100, lineBreak: false });
-          doc.font('Helvetica').fillColor(GRAY)
-            .text(cliente.nombre, MARGIN + 110, iy + 3, { width: 160, lineBreak: false });
-          if (cliente.telefono) {
-            doc.text(cliente.telefono, MARGIN + 278, iy + 3, { width: 100, lineBreak: false });
-          }
-          doc.fillColor('#6b7280')
-            .text(fmtDate(inter.createdAt), MARGIN + 385, iy + 3, { width: 100, lineBreak: false });
-          if (inter.descripcion) {
-            doc.fontSize(6.5).fillColor('#9ca3af')
-              .text(inter.descripcion.slice(0, 80), MARGIN + 4, iy + 13, { width: CONTENT_W - 8, lineBreak: false });
-          }
-          doc.text('', MARGIN, iy + ROW_H2 + 1);
+          // border-t
+          doc.save();
+          doc.moveTo(MARGIN + 4, ry3).lineTo(MARGIN + 4 + CW - 8, ry3).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+          doc.restore();
+          const vals = [w.semana, String(w.interacciones), String(w.consultas)];
+          let cx3 = MARGIN + 8;
+          vals.forEach((v, vi) => {
+            const align = vi === 0 ? 'left' : 'center';
+            doc.fontSize(8).font(vi > 0 ? 'Helvetica-Bold' : 'Helvetica').fillColor(GRAY)
+              .text(v, cx3, ry3 + 4, { width: tCols[vi].w - 4, align, lineBreak: false });
+            cx3 += tCols[vi].w;
+          });
         });
+        doc.text('', MARGIN, c5y + CARD5_H + 10);
       }
 
-      // ── FOOTERS ──
+      // ══════════════════════════════════════════════════════════
+      // CARD 6 — Historial de Interacciones (row-by-row, page-break safe)
+      // ══════════════════════════════════════════════════════════
+      if (interactions.length > 0) {
+        const ROW_H_INTER = 28;
+        // Section header card (just the title bar, no pre-measured full height)
+        ensureSpace(42);
+        const c6hY = doc.y;
+        doc.save();
+        doc.roundedRect(MARGIN, c6hY, CW, 34, 6).fillAndStroke(BG_CARD, '#e2e8f0');
+        doc.restore();
+        doc.save();
+        doc.circle(MARGIN + 14, c6hY + 17, 5).fill('#6366f1');
+        doc.restore();
+        doc.fontSize(11).font('Helvetica-Bold').fillColor(DARK)
+          .text(`Historial de Interacciones (${interactions.length})`, MARGIN + 24, c6hY + 10, { width: CW - 30, lineBreak: false });
+        doc.text('', MARGIN, c6hY + 40);
+
+        interactions.forEach((inter, idx) => {
+          ensureSpace(ROW_H_INTER + 2);
+          const iy = doc.y;
+
+          // stripe bg
+          doc.save();
+          doc.rect(MARGIN + 4, iy, CW - 8, ROW_H_INTER).fill(idx % 2 === 0 ? '#f7fafc' : WHITE);
+          doc.restore();
+          // top border
+          doc.save();
+          doc.moveTo(MARGIN + 4, iy).lineTo(MARGIN + 4 + CW - 8, iy).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+          doc.restore();
+
+          const cliente = clienteMap[String(inter.clienteId)] || { nombre: 'Desconocido', telefono: '' };
+          const tipoTxt = tipoLabels[inter.tipo] || inter.tipo;
+
+          const badgeBg = inter.tipo === 'visita_realizada' ? '#d1fae5'
+            : inter.tipo === 'visita_agendada'   ? '#dbeafe'
+            : inter.tipo === 'propiedad_interes' ? '#ede9fe'
+            : inter.tipo === 'opcion_pago'       ? '#fef3c7'
+            : '#f3f4f6';
+          const badgeFg = inter.tipo === 'visita_realizada' ? '#065f46'
+            : inter.tipo === 'visita_agendada'   ? '#1e40af'
+            : inter.tipo === 'propiedad_interes' ? '#5b21b6'
+            : inter.tipo === 'opcion_pago'       ? '#92400e'
+            : '#374151';
+
+          const badgeW = Math.min(doc.widthOfString(tipoTxt, { fontSize: 7 }) + 10, 110);
+          doc.save();
+          doc.roundedRect(MARGIN + 8, iy + 5, badgeW, 12, 6).fill(badgeBg);
+          doc.restore();
+          doc.fontSize(7).font('Helvetica-Bold').fillColor(badgeFg)
+            .text(tipoTxt, MARGIN + 8, iy + 7, { width: badgeW - 2, lineBreak: false });
+
+          doc.fontSize(8).font('Helvetica-Bold').fillColor(DARK)
+            .text(cliente.nombre, MARGIN + badgeW + 14, iy + 5, { width: 140, lineBreak: false });
+
+          if (cliente.telefono) {
+            doc.fontSize(7.5).font('Helvetica').fillColor(LGRAY)
+              .text(cliente.telefono, MARGIN + badgeW + 160, iy + 5, { width: 90, lineBreak: false });
+          }
+
+          doc.fontSize(7).font('Helvetica').fillColor('#9ca3af')
+            .text(fmtDate(inter.createdAt), MARGIN + CW - 75, iy + 5, { width: 70, align: 'right', lineBreak: false });
+
+          if (inter.descripcion) {
+            doc.fontSize(7).font('Helvetica').fillColor(LGRAY)
+              .text(inter.descripcion.slice(0, 100), MARGIN + 8, iy + 17, { width: CW - 30, lineBreak: false });
+          } else if (inter.nivelInteres) {
+            doc.fontSize(7).font('Helvetica').fillColor(LGRAY)
+              .text(`Interés: ${inter.nivelInteres}`, MARGIN + 8, iy + 17, { width: 120, lineBreak: false });
+          }
+
+          doc.text('', MARGIN, iy + ROW_H_INTER + 1);
+        });
+        doc.moveDown(0.3);
+      }
+
+      // ══════════════════════════════════════════════════════════
+      // FOOTER LINE — matches the preview footer text
+      // ══════════════════════════════════════════════════════════
+      ensureSpace(20);
+      doc.save();
+      doc.moveTo(MARGIN, doc.y).lineTo(MARGIN + CW, doc.y).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+      doc.restore();
+      doc.fontSize(7.5).font('Helvetica').fillColor('#9ca3af')
+        .text(
+          `Informe generado el ${now.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })} · Período: últimos ${days} días`,
+          MARGIN, doc.y + 6, { align: 'center', width: CW }
+        );
+
+      // ── Page numbers on every page ──
       const pages = doc.bufferedPageRange();
       for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
-        if (i === 0) continue; // skip cover
-        doc.save();
-        doc.fontSize(7).fillColor(GRAY)
-          .text(`Informe de Mercado — ${titulo} · Página ${i + 1}`, MARGIN, PAGE_H - 30, { align: 'center', width: CONTENT_W });
-        doc.restore();
+        doc.fontSize(7).font('Helvetica').fillColor('#9ca3af')
+          .text(`${i + 1} / ${pages.count}`, PAGE_W - MARGIN - 30, PAGE_H - 28, { width: 30, align: 'right', lineBreak: false });
       }
 
       doc.end();
