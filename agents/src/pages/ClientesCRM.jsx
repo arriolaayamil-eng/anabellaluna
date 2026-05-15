@@ -346,7 +346,11 @@ const ClientesCRM = () => {
 
   const handleSubmitInteraction = async (e) => {
     e.preventDefault();
-    if (!clienteSeleccionado?.id || !interactionForm.tipo || !interactionForm.descripcion.trim()) return;
+    const isVisita = ['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo);
+    const descRequired = !isVisita;
+    if (!clienteSeleccionado?.id || !interactionForm.tipo) return;
+    if (descRequired && !interactionForm.descripcion.trim()) return;
+    if (isVisita && !interactionForm.visitaFecha) return;
     setInteractionSubmitting(true);
     try {
       const payload = { ...interactionForm };
@@ -1627,7 +1631,7 @@ const ClientesCRM = () => {
                     )}
                     {(interactionForm.tipo === 'visita_agendada' || interactionForm.tipo === 'visita_realizada') && (
                       <div>
-                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Fecha de Visita</label>
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">Fecha de Visita <span className="text-red-400">*</span></label>
                         <input type="datetime-local" value={interactionForm.visitaFecha} onChange={(e) => setInteractionForm(p => ({ ...p, visitaFecha: e.target.value }))}
                           className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`} />
                       </div>
@@ -1709,14 +1713,14 @@ const ClientesCRM = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Descripción *</label>
+                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Descripción {!['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && <span className="text-red-400">*</span>}</label>
                     <textarea value={interactionForm.descripcion} onChange={(e) => setInteractionForm(p => ({ ...p, descripcion: e.target.value }))}
                       rows={3} className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}
                       placeholder="Descripción detallada de la interacción..." />
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><FaClock className="text-[10px]" /> Una vez guardada, esta interacción no se puede editar ni eliminar</p>
-                    <button type="submit" disabled={interactionSubmitting || !interactionForm.descripcion.trim()}
+                    <button type="submit" disabled={interactionSubmitting || (!['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.descripcion.trim()) || (['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.visitaFecha)}
                       className="px-5 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
                       <FaSave /> {interactionSubmitting ? 'Guardando...' : 'Guardar'}
                     </button>
