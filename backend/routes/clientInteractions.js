@@ -858,6 +858,29 @@ router.post('/:clienteId', authenticateToken, requireCRMUser, async (req, res) =
       }
     }
 
+    // 2b) Create calendar appointment for visita_agendada
+    if (tipo === 'visita_agendada' && body.visitaFecha) {
+      const fechaInicio = new Date(body.visitaFecha);
+      const fechaFin = new Date(fechaInicio.getTime() + 60 * 60000); // +1 hour default
+      let tituloCita = 'Visita';
+      if (propiedadId) {
+        const prop = await Propiedad.findById(propiedadId).select('title').lean().catch(() => null);
+        tituloCita = prop?.title ? `Visita - ${prop.title}` : 'Visita';
+      }
+      await Cita.create({
+        fecha: fechaInicio,
+        fechaFin,
+        titulo: tituloCita,
+        tipo: 'Visita',
+        clienteId: String(clienteId),
+        agenteId: String(agenteId || ''),
+        propiedadId: propiedadId ? String(propiedadId) : '',
+        notas: body.descripcion || '',
+        estado: 'Programada',
+        metadata: { origen: 'interaccion', interactionId: String(created._id) },
+      }).catch((err) => console.error('[Cita] Error al crear cita desde interacción:', err.message));
+    }
+
     // 3) Update cliente: ultimaActividad + preferences tracking
     if (tipo === 'preferencia' && preferencias && preferencias.tipo) {
       const prefEntry = {
