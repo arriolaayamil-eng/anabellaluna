@@ -330,7 +330,8 @@ const ClientesCRM = () => {
 
   const handleSubmitInteraction = async (e) => {
     e.preventDefault();
-    if (!clienteSeleccionado?.id || !interactionForm.tipo || !interactionForm.descripcion.trim()) return;
+    const descRequired = !['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo);
+    if (!clienteSeleccionado?.id || !interactionForm.tipo || (descRequired && !interactionForm.descripcion.trim())) return;
     setInteractionSubmitting(true);
     try {
       const payload = { ...interactionForm };
@@ -1426,14 +1427,14 @@ const ClientesCRM = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Descripción *</label>
+                    <label className="block text-xs font-medium mb-1 dark:text-gray-300">Descripción {!['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && <span className="text-red-400">*</span>}</label>
                     <textarea value={interactionForm.descripcion} onChange={(e) => setInteractionForm(p => ({ ...p, descripcion: e.target.value }))}
                       rows={3} className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}
                       placeholder="Descripción detallada de la interacción..." />
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><FaClock className="text-[10px]" /> Una vez guardada, esta interacción no se puede editar ni eliminar</p>
-                    <button type="submit" disabled={interactionSubmitting || !interactionForm.descripcion.trim()}
+                    <button type="submit" disabled={interactionSubmitting || (!['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.descripcion.trim())}
                       className="px-5 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
                       <FaSave /> {interactionSubmitting ? 'Guardando...' : 'Guardar'}
                     </button>
