@@ -171,15 +171,12 @@ const Wishlist = () => {
                             <Link to={detailPath}>
                               {coverUrl ? (
                                 <ImageWithBasePath
-                                  className="img-fluid"
+                                  className="img-fluid w-100 h-100"
                                   src={coverUrl}
                                   alt={title}
                                 />
                               ) : (
-                                <div
-                                  className="bg-light d-flex align-items-center justify-content-center"
-                                  style={{ height: 200 }}
-                                >
+                                <div className="property-media-placeholder bg-light d-flex align-items-center justify-content-center w-100 h-100">
                                   <i className="material-icons-outlined text-muted fs-1">
                                     home
                                   </i>

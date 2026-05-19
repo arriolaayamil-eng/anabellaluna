@@ -35,13 +35,12 @@ const PropertyListCard = ({ property, isFavorite, onToggleFavorite, detailPathFn
       <div className="property-listing-item p-0 mb-0 shadow-none">
         <div className="row g-0">
           <div className="col-12 col-lg-5">
-            <div className="buy-grid-img mb-0 rounded-0 h-100" style={{ minHeight: 180 }}>
+            <div className="buy-grid-img mb-0 rounded-0">
               <Link to={detailPath}>
                 <ImageWithBasePath
-                  className="img-fluid w-100 object-fit-cover"
+                  className="img-fluid w-100 h-100"
                   src={coverSrc}
                   alt={p.title || "property"}
-                  style={{ height: "100%", minHeight: 180, objectFit: "cover" }}
                 />
               </Link>
               <div className="d-flex align-items-center justify-content-between position-absolute top-0 start-0 end-0 p-3 z-1">
