@@ -115,25 +115,31 @@ function buildTitle(prop) {
 }
 
 /**
+ * Formats the property price as a human-readable string, e.g. "USD 120.000".
+ * Returns an empty string when no price is available.
+ */
+function formatPrice(prop) {
+  const meta = (prop && prop.metadata) ? prop.metadata : {};
+  const precio = safeNumber(prop.price || meta.precio);
+  if (precio <= 0) return '';
+  const moneda = String(prop.moneda || meta.moneda || '').trim();
+  const formatted = precio.toLocaleString('es-AR');
+  return moneda ? `${moneda} ${formatted}` : formatted;
+}
+
+/**
  * Builds a description up to DESCRIPTION_MAX_LEN characters.
+ * The price is ALWAYS included first so it appears in every WhatsApp/social preview.
  */
 function buildDescription(prop) {
   const meta = (prop && prop.metadata) ? prop.metadata : {};
 
-  // Priority 1 – explicit description
-  const desc = prop.description || meta.descripcion || '';
-  if (desc && String(desc).trim().length > 10) {
-    return String(desc).replace(/\s+/g, ' ').trim().substring(0, DESCRIPTION_MAX_LEN);
-  }
+  const priceStr = formatPrice(prop);
 
-  // Priority 2 – auto-build from numeric features + location
+  // Auto-build feature + location parts
   const parts = [];
 
-  const precio = safeNumber(prop.price || meta.precio);
-  const moneda = prop.moneda || meta.moneda || '';
-  if (precio > 0) {
-    parts.push(`${moneda ? moneda + ' ' : ''}${precio.toLocaleString('es-AR')}`);
-  }
+  if (priceStr) parts.push(priceStr);
 
   const ambientes = safeNumber(meta.ambientes);
   if (ambientes > 0) parts.push(`${ambientes} amb.`);
@@ -150,9 +156,15 @@ function buildDescription(prop) {
   const place = meta.barrio || meta.ciudad || meta.provincia;
   if (place) parts.push(String(place).trim());
 
-  if (parts.length > 0) {
-    return parts.join(' · ').substring(0, DESCRIPTION_MAX_LEN);
-  }
+  const featureLine = parts.join(' · ');
+
+  // Append the explicit description text after the feature line
+  const desc = String(prop.description || meta.descripcion || '').replace(/\s+/g, ' ').trim();
+  const combined = desc.length > 10
+    ? (featureLine ? `${featureLine} — ${desc}` : desc)
+    : featureLine;
+
+  if (combined) return combined.substring(0, DESCRIPTION_MAX_LEN);
 
   return `Propiedad en ${SITE_NAME}`;
 }
