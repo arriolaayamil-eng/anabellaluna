@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { MdSpaceDashboard, MdOutlineCancel, MdOutlineIntegrationInstructions } from 'react-icons/md';
-import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaTrophy, FaBuilding, FaUserTie, FaComments, FaFileAlt, FaMagic, FaImage, FaBalanceScale } from 'react-icons/fa';
+import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaTrophy, FaBuilding, FaUserTie, FaComments, FaFileAlt, FaMagic, FaImage, FaBalanceScale, FaRobot, FaCog } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
 
@@ -20,6 +20,8 @@ const menuItems = [
   { name: 'Reportes', path: '/reportes', icon: <FaChartBar /> },
   { name: 'Recompensas', path: '/recompensas', icon: <FaTrophy /> },
   { name: 'Integraciones', path: '/integraciones', icon: <MdOutlineIntegrationInstructions /> },
+  { name: 'Marketing AI', path: '/marketing-ai', icon: <FaRobot /> },
+  { name: 'AI Config', path: '/ai-providers', icon: <FaCog /> },
 ];
 
 const Sidebar = () => {

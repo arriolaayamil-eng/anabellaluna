@@ -21,6 +21,7 @@ const menuItems = [
   { name: 'Tasaciones', path: '/crm/tasaciones', icon: <FaBalanceScale /> },
   { name: 'Plantillas', path: '/crm/plantillas', icon: <FaMagic /> },
   { name: 'Reportes', path: '/crm/reportes', icon: <FaChartBar /> },
+  { name: 'Marketing AI', path: '/crm/marketing-ai', icon: <FaRobot /> },
 ];
 
 const Sidebar = () => {
