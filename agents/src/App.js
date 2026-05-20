@@ -13,6 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { Navbar, Footer, Sidebar, ThemeSettings, Celebration, OnboardingTutorial } from './components';
 import { AgentDashboard, Propiedades, ClientesCRM, Citas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Consultas, MiPerfil, Recompensas, Automatizacion, FechasImportantes, EditorImagenes, Tasaciones } from './pages';
+import MarketingAI from './pages/MarketingAI';
 import LoginAgente from './pages/LoginAgente';
 import Seguridad from './pages/Seguridad';
 import InstallPrompt from './components/pwa/InstallPrompt';
@@ -169,6 +170,7 @@ const App = () => {
           <Route path="fechas-importantes" element={<FechasImportantes />} />
           <Route path="editor-imagenes" element={<EditorImagenes />} />
           <Route path="tasaciones" element={<Tasaciones />} />
+          <Route path="marketing-ai" element={<MarketingAI />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

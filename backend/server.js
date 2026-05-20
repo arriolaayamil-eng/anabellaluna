@@ -114,8 +114,12 @@ const pushRoutes = require('./routes/push');
 
 const clientInteractionsRoutes = require('./routes/clientInteractions');
 const mercadoLibreRoutes = require('./routes/mercadolibre');
+const marketingAIRoutes = require('./routes/marketing-ai/index');
+const adminAIConfigRoutes = require('./routes/admin/ai-config');
 
 const { buildPropertyOGRouter } = require('./openGraph');
+const { initSocket } = require('./socket');
+const redis = require('./redis');
 
 const { initReportScheduler } = require('./services/reportScheduler');
 
@@ -276,6 +280,7 @@ app.use('/admin/notifications', adminNotificationsRoutes);
 app.use('/admin/config', globalConfigRoutes);
 
 app.use('/admin/ml', mercadoLibreRoutes);
+app.use('/admin/config/ai', adminAIConfigRoutes);
 
 // Admin KPI: reservadas count (operaciones tipo Reserva + contratos de reserva generados)
 app.get('/admin/propiedades/reservadas-count', authenticateToken, async (req, res) => {
@@ -314,6 +319,9 @@ app.use('/crm/inmobiliarias', inmobiliariasRoutes);
 app.use('/contract-templates', contractTemplatesRoutes);
 
 app.use('/api/push', pushRoutes);
+
+// Marketing AI routes
+app.use('/marketing-ai', marketingAIRoutes);
 
 // Generic CRM routes (links) - MUST come after specific routes
 
@@ -1165,16 +1173,28 @@ if (require.main === module) {
 
 
 
-    app.listen(PORT, () => {
+    // Connect Redis (optional — system works without it)
+    await redis.connect();
+
+    const http = require('http');
+    const server = http.createServer(app);
+
+    // Initialize Socket.IO
+    await initSocket(server);
+
+    // Store io reference for use in route handlers
+    const { getIO } = require('./socket');
+    app.set('io', getIO());
+
+    server.listen(PORT, () => {
 
       console.log(`Document backend listening on http://localhost:${PORT}`);
 
       // Initialize report scheduler for automatic monthly reports
-
+      // NOTE: When scheduler-worker PM2 process is active, remove these 4 calls
       initReportScheduler();
 
       // Initialize automation scheduler for CRM notifications
-
       initAutomationScheduler();
 
       // Initialize rewards V2 scheduler (weekly badge, quarterly awards, annual tiers)

@@ -578,6 +578,14 @@ export const links = [
         name: 'analytics-marketing',
         icon: <AiOutlineBarChart />,
       },
+      {
+        name: 'marketing-ai',
+        icon: <FaRobot />,
+      },
+      {
+        name: 'ai-providers',
+        icon: <AiOutlineApi />,
+      },
     ],
   },
   {

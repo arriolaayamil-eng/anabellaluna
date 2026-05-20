@@ -7,6 +7,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Navbar, Footer, Sidebar, ThemeSettings, OnboardingTutorial } from './components';
 import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Kanban, Line, Area, Bar, Pie, Financial, ColorPicker, ColorMapping, Editor, DashboardEjecutivo, Propiedades, ClientesCRM, Agentes, Citas, Ventas, Documentos, Plantillas, Reportes, Integraciones, Configuracion, Workflows, Automatizacion, RolesPermisos, Campanas, EmailMarketing, AnalyticsMarketing, MiPerfil, Recompensas, Mensajeria, EditorImagenes, Tasaciones } from './pages';
 import Seguridad from './pages/Seguridad';
+import MarketingAI from './pages/MarketingAI';
+import AIProviders from './pages/AIProviders';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
@@ -448,6 +450,8 @@ const App = () => {
                 <Route path="/campanas" element={<Campanas />} />
                 <Route path="/email-marketing" element={<EmailMarketing />} />
                 <Route path="/analytics-marketing" element={<AnalyticsMarketing />} />
+                <Route path="/marketing-ai" element={<MarketingAI />} />
+                <Route path="/ai-providers" element={<AIProviders />} />
 
                 {/* Módulos Avanzados - Atención al Cliente */}
                 <Route path="/tickets" element={<Workflows />} />
