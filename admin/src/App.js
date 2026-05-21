@@ -9,6 +9,7 @@ import { Ecommerce, Orders, Calendar, Employees, Stacked, Pyramid, Customers, Ka
 import Seguridad from './pages/Seguridad';
 import MarketingAI from './pages/MarketingAI';
 import AIProviders from './pages/AIProviders';
+import AIFloatingOrb from './components/ai/AIFloatingOrb';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
@@ -476,6 +477,7 @@ const App = () => {
           </div>
         </div>
         <OnboardingTutorial />
+        <AIFloatingOrb />
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover theme={currentMode === 'Dark' ? 'dark' : 'light'} />
       </BrowserRouter>
     </div>

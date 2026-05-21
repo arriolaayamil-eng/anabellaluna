@@ -50,7 +50,8 @@ router.get('/providers', async (req, res) => {
       gemini: {
         enabled:         config.gemini ? config.gemini.enabled !== false : true,
         hasKey:          !!(config.gemini && config.gemini.apiKeyEncrypted),
-        model:           (config.gemini && config.gemini.model)       || 'gemini-1.5-flash',
+        keySource:       (config.gemini && config.gemini.apiKeyEncrypted) ? 'db' : (process.env.GEMINI_API_KEY ? 'env' : 'none'),
+        model:           (config.gemini && config.gemini.model)       || 'gemini-2.0-flash',
         maxTokens:       (config.gemini && config.gemini.maxTokens)   || 4096,
         temperature:     (config.gemini && config.gemini.temperature) ?? 0.3,
         stats:           statsMap['gemini'] || null,
@@ -105,7 +106,7 @@ router.put('/providers', async (req, res) => {
       update.gemini = {
         ...(existing.gemini || {}),
         enabled:     gemini.enabled     !== undefined ? gemini.enabled     : (existing.gemini?.enabled !== false),
-        model:       gemini.model       || existing.gemini?.model       || 'gemini-1.5-flash',
+        model:       gemini.model       || existing.gemini?.model       || 'gemini-2.0-flash',
         maxTokens:   gemini.maxTokens   || existing.gemini?.maxTokens   || 4096,
         temperature: gemini.temperature ?? existing.gemini?.temperature ?? 0.3,
       };

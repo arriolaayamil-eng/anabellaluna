@@ -16,6 +16,7 @@ import { AgentDashboard, Propiedades, ClientesCRM, Citas, Ventas, Documentos, Pl
 import MarketingAI from './pages/MarketingAI';
 import LoginAgente from './pages/LoginAgente';
 import Seguridad from './pages/Seguridad';
+import AIFloatingOrb from './components/ai/AIFloatingOrb';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import NotificationPrompt from './components/pwa/NotificationPrompt';
 import './App.css';
@@ -58,6 +59,7 @@ const CrmLayout = () => {
       </div>
       <Celebration />
       <OnboardingTutorial />
+      <AIFloatingOrb />
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover theme={currentMode === 'Dark' ? 'dark' : 'light'} />
     </div>
   );

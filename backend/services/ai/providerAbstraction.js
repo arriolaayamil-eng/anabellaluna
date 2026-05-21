@@ -5,7 +5,7 @@
  * Mismo patrón de encriptación que googleCalendar.js y mercadoLibre.js.
  *
  * Gemini es el provider FREE-TIER por defecto si no hay OpenAI/Anthropic configurado.
- * Modelos recomendados: gemini-1.5-flash (gratis), gemini-1.5-pro (pago)
+ * Modelos recomendados: gemini-2.0-flash (gratis), gemini-1.5-pro-latest (pago)
  */
 
 const crypto = require('crypto');
@@ -85,6 +85,20 @@ async function getProviderConfig() {
     }
   }
 
+  // Si Gemini no tiene key en DB pero hay GEMINI_API_KEY en env, la inyectamos.
+  // Esto permite configurar via UI sin tocar el servidor, y también funciona
+  // con la var de entorno como alternativa sin UI.
+  if ((!result.gemini || !result.gemini.apiKey) && process.env.GEMINI_API_KEY) {
+    result.gemini = {
+      enabled:     true,
+      model:       'gemini-2.0-flash',
+      maxTokens:   4096,
+      temperature: 0.3,
+      ...(result.gemini || {}),
+      apiKey:      process.env.GEMINI_API_KEY,
+    };
+  }
+
   _credCache   = result;
   _credCacheAt = now;
   return result;
@@ -109,17 +123,16 @@ async function chatCompletion({
 }) {
   const config = await getProviderConfig();
 
-  // Gemini free-tier bootstrap: si no hay config pero hay GEMINI_API_KEY en env,
-  // construimos un config mínimo on-the-fly para no bloquear al usuario.
+  // Bootstrap: sin config en DB, intentar con GEMINI_API_KEY del env.
   if (!config) {
     if (process.env.GEMINI_API_KEY) {
       const bootstrapCfg = {
         defaultProvider: 'gemini',
-        gemini: { enabled: true, apiKey: process.env.GEMINI_API_KEY, model: 'gemini-1.5-flash', maxTokens: 4096, temperature: 0.3 },
+        gemini: { enabled: true, apiKey: process.env.GEMINI_API_KEY, model: 'gemini-2.0-flash', maxTokens: 4096, temperature: 0.3 },
       };
       return _runWithConfig(bootstrapCfg, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider });
     }
-    throw new Error('AI providers not configured. Go to ERP → AI Config or set GEMINI_API_KEY in .env.');
+    throw new Error('AI providers not configured. Configurá un proveedor en ERP → AI Config.');
   }
 
   return _runWithConfig(config, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider });
@@ -132,11 +145,21 @@ async function _runWithConfig(config, { messages, tools, stream, userId, agenteI
 
   let lastError;
 
+  console.log('[AI] providerOrder:', providerOrder, '| keys in config:', Object.keys(config));
+
   const seen = new Set();
   for (const providerName of providerOrder) {
     if (seen.has(providerName)) continue;
     seen.add(providerName);
-    const pCfg = config[providerName];
+
+    let pCfg = config[providerName];
+    console.log(`[AI] trying ${providerName}: enabled=${pCfg?.enabled}, hasKey=${!!pCfg?.apiKey}`);
+
+    // Gemini env-fallback de último recurso: si no está en DB pero sí en env, usarlo.
+    if (!pCfg && providerName === 'gemini' && process.env.GEMINI_API_KEY) {
+      pCfg = { enabled: true, apiKey: process.env.GEMINI_API_KEY, model: 'gemini-2.0-flash', maxTokens: 4096, temperature: 0.3 };
+    }
+
     if (!pCfg || !pCfg.enabled || !pCfg.apiKey) continue;
 
     const startedAt = Date.now();
@@ -160,7 +183,7 @@ async function _runWithConfig(config, { messages, tools, stream, userId, agenteI
       const latencyMs = Date.now() - startedAt;
       lastError = err;
 
-      console.error(`[AI] Provider ${providerName} failed:`, err.message);
+      console.error(`[AI] Provider ${providerName} failed:`, err.message, err.stack?.split('\n')[1]?.trim());
 
       await AIProvider.findOneAndUpdate(
         { name: providerName },
@@ -198,7 +221,7 @@ async function _callGemini(cfg, { messages, tools }) {
 
   const client = new GoogleGenAI(cfg.apiKey);
   const model  = client.getGenerativeModel({
-    model:             cfg.model || 'gemini-1.5-flash',
+    model:             cfg.model || 'gemini-2.0-flash',
     generationConfig:  { maxOutputTokens: cfg.maxTokens || 4096, temperature: cfg.temperature ?? 0.3 },
   });
 
@@ -233,7 +256,7 @@ async function _callGemini(cfg, { messages, tools }) {
   const result   = await chat.sendMessage(prompt);
   const response = result.response;
 
-  return _normalizeGemini(response, cfg.model || 'gemini-1.5-flash');
+  return _normalizeGemini(response, cfg.model || 'gemini-2.0-flash');
 }
 
 function _normalizeGemini(response, model) {
@@ -395,10 +418,11 @@ function _estimateCost(provider, model, tokens) {
     'claude-3-5-sonnet-20241022': { input: 3,    output: 15 },
     'claude-3-5-haiku-20241022':  { input: 0.8,  output: 4 },
     'claude-3-haiku-20240307':    { input: 0.25, output: 1.25 },
-    'gemini-1.5-flash':           { input: 0,    output: 0 },  // free tier
-    'gemini-1.5-flash-8b':        { input: 0,    output: 0 },  // free tier
-    'gemini-1.5-pro':             { input: 1.25, output: 5 },
     'gemini-2.0-flash':           { input: 0,    output: 0 },  // free tier
+    'gemini-2.0-flash-lite':      { input: 0,    output: 0 },  // free tier
+    'gemini-1.5-flash-latest':    { input: 0,    output: 0 },  // free tier
+    'gemini-1.5-pro-latest':      { input: 1.25, output: 5 },
+    'gemini-2.5-flash-preview-05-20': { input: 0, output: 0 }, // free tier
   };
   const p = pricing[model] || { input: 5, output: 15 };
   const inp = ((tokens.prompt_tokens     || 0) / 1_000_000) * p.input;

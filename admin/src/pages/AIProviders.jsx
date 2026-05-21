@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 
 const MODELS_OPENAI    = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'];
 const MODELS_ANTHROPIC = ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-haiku-20240307'];
-const MODELS_GEMINI    = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-2.0-flash-lite'];
+const MODELS_GEMINI    = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash-preview-05-20', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
 
 const AIProviders = () => {
   const { currentMode } = useStateContext();
@@ -75,6 +75,15 @@ const AIProviders = () => {
       };
       await aiService.updateProviders(payload);
       toast.success('Configuración AI guardada');
+      // Recargar config para reflejar hasKey/keySource actualizado sin recargar página
+      const fresh = await aiService.getProviders();
+      setConfig(fresh);
+      setForm((f) => ({
+        ...f,
+        gemini_apiKey:    '',
+        openai_apiKey:    '',
+        anthropic_apiKey: '',
+      }));
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -228,6 +237,16 @@ const AIProviders = () => {
         </div>
 
         <label style={labelStyle}>API Key</label>
+        {config?.gemini?.keySource === 'env' && (
+          <div style={{ fontSize: 11, marginBottom: 6, padding: '4px 8px', borderRadius: 6, background: isDark ? 'rgba(234,179,8,0.1)' : '#fefce8', border: '1px solid #ca8a04', color: '#ca8a04' }}>
+            ⚠ Usando key de variable de entorno del servidor. Guardá una key aquí para tomar precedencia.
+          </div>
+        )}
+        {config?.gemini?.keySource === 'db' && (
+          <div style={{ fontSize: 11, marginBottom: 6, padding: '4px 8px', borderRadius: 6, background: isDark ? 'rgba(34,197,94,0.1)' : '#f0fdf4', border: '1px solid #16a34a', color: '#16a34a' }}>
+            ✓ Key configurada desde el panel (DB).
+          </div>
+        )}
         <input type="password" style={inputStyle} placeholder={config?.gemini?.hasKey ? '••••••••••••••••' : 'AIza...'} value={form.gemini_apiKey} onChange={(e) => setForm((f) => ({ ...f, gemini_apiKey: e.target.value }))} />
 
         <label style={labelStyle}>Modelo</label>
