@@ -1,8 +1,11 @@
 /**
- * Provider Abstraction — OpenAI / Anthropic con failover automático.
+ * Provider Abstraction — OpenAI / Anthropic / Gemini con failover automático.
  *
  * Config almacenada en GlobalConfig key: 'ai_provider_config'
  * Mismo patrón de encriptación que googleCalendar.js y mercadoLibre.js.
+ *
+ * Gemini es el provider FREE-TIER por defecto si no hay OpenAI/Anthropic configurado.
+ * Modelos recomendados: gemini-1.5-flash (gratis), gemini-1.5-pro (pago)
  */
 
 const crypto = require('crypto');
@@ -74,6 +77,13 @@ async function getProviderConfig() {
       result.anthropic.apiKey = null;
     }
   }
+  if (result.gemini && result.gemini.apiKeyEncrypted) {
+    try {
+      result.gemini.apiKey = decrypt(result.gemini.apiKeyEncrypted);
+    } catch {
+      result.gemini.apiKey = null;
+    }
+  }
 
   _credCache   = result;
   _credCacheAt = now;
@@ -98,17 +108,34 @@ async function chatCompletion({
   maxTokens,
 }) {
   const config = await getProviderConfig();
+
+  // Gemini free-tier bootstrap: si no hay config pero hay GEMINI_API_KEY en env,
+  // construimos un config mínimo on-the-fly para no bloquear al usuario.
   if (!config) {
-    throw new Error('AI providers not configured. Go to ERP → Integraciones → AI Providers.');
+    if (process.env.GEMINI_API_KEY) {
+      const bootstrapCfg = {
+        defaultProvider: 'gemini',
+        gemini: { enabled: true, apiKey: process.env.GEMINI_API_KEY, model: 'gemini-1.5-flash', maxTokens: 4096, temperature: 0.3 },
+      };
+      return _runWithConfig(bootstrapCfg, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider });
+    }
+    throw new Error('AI providers not configured. Go to ERP → AI Config or set GEMINI_API_KEY in .env.');
   }
 
+  return _runWithConfig(config, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider });
+}
+
+async function _runWithConfig(config, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider }) {
   const providerOrder = forcedProvider
     ? [forcedProvider]
-    : [config.defaultProvider, config.fallbackProvider].filter(Boolean);
+    : [config.defaultProvider, config.fallbackProvider, 'gemini'].filter(Boolean);
 
   let lastError;
 
+  const seen = new Set();
   for (const providerName of providerOrder) {
+    if (seen.has(providerName)) continue;
+    seen.add(providerName);
     const pCfg = config[providerName];
     if (!pCfg || !pCfg.enabled || !pCfg.apiKey) continue;
 
@@ -157,7 +184,89 @@ async function chatCompletion({
 async function _callProvider(providerName, cfg, { messages, tools, stream }) {
   if (providerName === 'openai')    return _callOpenAI(cfg, { messages, tools, stream });
   if (providerName === 'anthropic') return _callAnthropic(cfg, { messages, tools, stream });
+  if (providerName === 'gemini')    return _callGemini(cfg, { messages, tools, stream });
   throw new Error(`Unknown provider: ${providerName}`);
+}
+
+async function _callGemini(cfg, { messages, tools }) {
+  let GoogleGenAI;
+  try {
+    ({ GoogleGenerativeAI: GoogleGenAI } = require('@google/generative-ai'));
+  } catch {
+    throw new Error('@google/generative-ai package not installed. Run: npm install @google/generative-ai');
+  }
+
+  const client = new GoogleGenAI(cfg.apiKey);
+  const model  = client.getGenerativeModel({
+    model:             cfg.model || 'gemini-1.5-flash',
+    generationConfig:  { maxOutputTokens: cfg.maxTokens || 4096, temperature: cfg.temperature ?? 0.3 },
+  });
+
+  // Convert OpenAI-style messages → Gemini format
+  const systemMsg = messages.find((m) => m.role === 'system');
+  const history   = [];
+  const chatMsgs  = messages.filter((m) => m.role !== 'system');
+
+  for (let i = 0; i < chatMsgs.length - 1; i++) {
+    const m = chatMsgs[i];
+    history.push({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content || '' }] });
+  }
+
+  const lastMsg  = chatMsgs[chatMsgs.length - 1];
+  const userText = lastMsg ? (lastMsg.content || '') : '';
+  const prompt   = systemMsg ? `${systemMsg.content}\n\n${userText}` : userText;
+
+  // Tool declarations (Gemini function calling)
+  const toolConfig = tools && tools.length > 0
+    ? [{ functionDeclarations: tools.map((t) => ({
+        name:        t.function.name,
+        description: t.function.description,
+        parameters:  t.function.parameters,
+      })) }]
+    : [];
+
+  const chat = model.startChat({
+    history,
+    ...(toolConfig.length > 0 ? { tools: toolConfig } : {}),
+  });
+
+  const result   = await chat.sendMessage(prompt);
+  const response = result.response;
+
+  return _normalizeGemini(response, cfg.model || 'gemini-1.5-flash');
+}
+
+function _normalizeGemini(response, model) {
+  const candidate  = response.candidates?.[0];
+  const parts      = candidate?.content?.parts || [];
+  const textPart   = parts.find((p) => p.text);
+  const fnCalls    = parts.filter((p) => p.functionCall);
+
+  const message = {
+    role:       'assistant',
+    content:    textPart ? textPart.text : '',
+    tool_calls: fnCalls.map((p, i) => ({
+      id:   `gemini-tc-${i}`,
+      type: 'function',
+      function: {
+        name:      p.functionCall.name,
+        arguments: JSON.stringify(p.functionCall.args || {}),
+      },
+    })),
+  };
+
+  const usage = response.usageMetadata || {};
+  return {
+    choices: [{
+      message,
+      finish_reason: fnCalls.length > 0 ? 'tool_calls' : 'stop',
+    }],
+    usage: {
+      prompt_tokens:     usage.promptTokenCount     || 0,
+      completion_tokens: usage.candidatesTokenCount || 0,
+      total_tokens:      usage.totalTokenCount      || 0,
+    },
+  };
 }
 
 async function _callOpenAI(cfg, { messages, tools, stream }) {
@@ -286,6 +395,10 @@ function _estimateCost(provider, model, tokens) {
     'claude-3-5-sonnet-20241022': { input: 3,    output: 15 },
     'claude-3-5-haiku-20241022':  { input: 0.8,  output: 4 },
     'claude-3-haiku-20240307':    { input: 0.25, output: 1.25 },
+    'gemini-1.5-flash':           { input: 0,    output: 0 },  // free tier
+    'gemini-1.5-flash-8b':        { input: 0,    output: 0 },  // free tier
+    'gemini-1.5-pro':             { input: 1.25, output: 5 },
+    'gemini-2.0-flash':           { input: 0,    output: 0 },  // free tier
   };
   const p = pricing[model] || { input: 5, output: 15 };
   const inp = ((tokens.prompt_tokens     || 0) / 1_000_000) * p.input;

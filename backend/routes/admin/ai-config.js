@@ -47,6 +47,14 @@ router.get('/providers', async (req, res) => {
         temperature:     (config.anthropic && config.anthropic.temperature) ?? 0.3,
         stats:           statsMap['anthropic'] || null,
       },
+      gemini: {
+        enabled:         config.gemini ? config.gemini.enabled !== false : true,
+        hasKey:          !!(config.gemini && config.gemini.apiKeyEncrypted),
+        model:           (config.gemini && config.gemini.model)       || 'gemini-1.5-flash',
+        maxTokens:       (config.gemini && config.gemini.maxTokens)   || 4096,
+        temperature:     (config.gemini && config.gemini.temperature) ?? 0.3,
+        stats:           statsMap['gemini'] || null,
+      },
     };
 
     res.json(safeConfig);
@@ -58,7 +66,7 @@ router.get('/providers', async (req, res) => {
 // PUT /admin/config/ai/providers
 router.put('/providers', async (req, res) => {
   try {
-    const { defaultProvider, fallbackProvider, openai, anthropic } = req.body;
+    const { defaultProvider, fallbackProvider, openai, anthropic, gemini } = req.body;
     const userId = String(req.user.sub || req.user.id || req.user._id || '');
 
     const existing = await GlobalConfig.getValue('ai_provider_config', {});
@@ -90,6 +98,19 @@ router.put('/providers', async (req, res) => {
       };
       if (anthropic.apiKey && anthropic.apiKey.trim()) {
         update.anthropic.apiKeyEncrypted = encrypt(anthropic.apiKey.trim());
+      }
+    }
+
+    if (gemini) {
+      update.gemini = {
+        ...(existing.gemini || {}),
+        enabled:     gemini.enabled     !== undefined ? gemini.enabled     : (existing.gemini?.enabled !== false),
+        model:       gemini.model       || existing.gemini?.model       || 'gemini-1.5-flash',
+        maxTokens:   gemini.maxTokens   || existing.gemini?.maxTokens   || 4096,
+        temperature: gemini.temperature ?? existing.gemini?.temperature ?? 0.3,
+      };
+      if (gemini.apiKey && gemini.apiKey.trim()) {
+        update.gemini.apiKeyEncrypted = encrypt(gemini.apiKey.trim());
       }
     }
 
