@@ -1,13 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaCalendarAlt, FaTimes, FaSave, FaHome, FaUser, FaMapMarkerAlt, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHandshake, FaArrowUp, FaCalendarAlt, FaTimes, FaSave, FaHome, FaClock, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
 import Chart from 'react-apexcharts';
 
+const VENTA_EMPTY = {
+  propiedadId: '',
+  clienteId: '',
+  monto: '',
+  moneda: 'USD',
+  agenteId: '',
+  fechaCierre: '',
+  comisionPorcentaje: '3.5',
+  formaPago: 'Contado',
+  notas: '',
+};
+
+const ALQUILER_EMPTY = {
+  propiedadId: '',
+  clienteId: '',
+  monto: '',
+  moneda: 'USD',
+  agenteId: '',
+  fechaCierre: '',
+  duracion: '12',
+  deposito: '',
+  comisionPorcentaje: '1',
+  notas: '',
+};
+
 const Ventas = () => {
-  const { currentMode, currentColor } = useStateContext();
+  const { currentMode } = useStateContext();
   
   // Estados para los modales
   const [showModalVenta, setShowModalVenta] = useState(false);
@@ -20,33 +45,16 @@ const Ventas = () => {
   const [showModalComisiones, setShowModalComisiones] = useState(false);
   const [showModalTasaCierre, setShowModalTasaCierre] = useState(false);
   
-  // Estado para nueva venta
-  const [nuevaVenta, setNuevaVenta] = useState({
-    propiedad: '',
-    cliente: '',
-    monto: '',
-    moneda: 'USD',
-    agente: '',
-    fechaCierre: '',
-    comision: '3.5',
-    formaPago: 'Contado',
-    observaciones: '',
-  });
+  // Formularios
+  const [nuevaVenta, setNuevaVenta] = useState(VENTA_EMPTY);
+  const [nuevoAlquiler, setNuevoAlquiler] = useState(ALQUILER_EMPTY);
+  const [submitting, setSubmitting] = useState(false);
   
-  // Estado para nuevo alquiler
-  const [nuevoAlquiler, setNuevoAlquiler] = useState({
-    propiedad: '',
-    cliente: '',
-    montoMensual: '',
-    moneda: 'USD',
-    agente: '',
-    fechaInicio: '',
-    duracion: '12',
-    deposito: '',
-    comision: '1',
-    observaciones: '',
-  });
-  
+  // Listas de la BD para los dropdowns
+  const [propiedadesList, setPropiedadesList] = useState([]);
+  const [clientesList, setClientesList] = useState([]);
+  const [agentesList, setAgentesList] = useState([]);
+
   // Estado para seguimiento
   const [nuevoSeguimiento, setNuevoSeguimiento] = useState({
     operacion: '',
@@ -74,11 +82,32 @@ const Ventas = () => {
     loadStats();
   }, [loadStats]);
 
+  // Cargar listas de la BD cuando se abre un modal
+  const loadModalData = useCallback(async () => {
+    try {
+      const [props, clientes, agentes] = await Promise.all([
+        crmService.propiedades.getAll().catch(() => []),
+        crmService.clientes.getAll().catch(() => []),
+        crmService.agentes.getAll().catch(() => []),
+      ]);
+      setPropiedadesList(Array.isArray(props) ? props : []);
+      setClientesList(Array.isArray(clientes) ? clientes : []);
+      setAgentesList(Array.isArray(agentes) ? agentes : []);
+    } catch (err) {
+      console.error('Error loading modal data:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showModalVenta || showModalAlquiler || showModalSeguimiento) {
+      loadModalData();
+    }
+  }, [showModalVenta, showModalAlquiler, showModalSeguimiento, loadModalData]);
+
   // Datos reales de backend
   const sk = statsData?.kpis || {};
   const tend = statsData?.tendencia || {};
   const est = statsData?.estados || {};
-  const metaData = statsData?.meta || {};
   const seg = statsData?.seguimiento || {};
 
   const kpisVentas = [
@@ -180,22 +209,34 @@ const Ventas = () => {
     setNuevaVenta(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleVentaSubmit = (e) => {
+  const handleVentaSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nueva venta:', nuevaVenta);
-    toast.success('¡Venta registrada exitosamente!');
-    setShowModalVenta(false);
-    setNuevaVenta({
-      propiedad: '',
-      cliente: '',
-      monto: '',
-      moneda: 'USD',
-      agente: '',
-      fechaCierre: '',
-      comision: '3.5',
-      formaPago: 'Contado',
-      observaciones: '',
-    });
+    setSubmitting(true);
+    try {
+      const payload = {
+        tipo: 'Venta',
+        propiedadId: nuevaVenta.propiedadId,
+        clienteId: nuevaVenta.clienteId,
+        agenteId: nuevaVenta.agenteId,
+        monto: Number(nuevaVenta.monto),
+        moneda: nuevaVenta.moneda,
+        comisionPorcentaje: Number(nuevaVenta.comisionPorcentaje),
+        formaPago: nuevaVenta.formaPago,
+        fechaCierre: nuevaVenta.fechaCierre || undefined,
+        estado: 'En Curso',
+        notas: nuevaVenta.notas,
+      };
+      await crmService.operaciones.create(payload);
+      toast.success('¡Venta registrada exitosamente!');
+      setShowModalVenta(false);
+      setNuevaVenta(VENTA_EMPTY);
+      loadStats();
+    } catch (err) {
+      toast.error('Error al registrar la venta');
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Funciones de manejo para Alquiler
@@ -204,23 +245,35 @@ const Ventas = () => {
     setNuevoAlquiler(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAlquilerSubmit = (e) => {
+  const handleAlquilerSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nuevo alquiler:', nuevoAlquiler);
-    toast.success('¡Alquiler registrado exitosamente!');
-    setShowModalAlquiler(false);
-    setNuevoAlquiler({
-      propiedad: '',
-      cliente: '',
-      montoMensual: '',
-      moneda: 'USD',
-      agente: '',
-      fechaInicio: '',
-      duracion: '12',
-      deposito: '',
-      comision: '1',
-      observaciones: '',
-    });
+    setSubmitting(true);
+    try {
+      const payload = {
+        tipo: 'Alquiler',
+        propiedadId: nuevoAlquiler.propiedadId,
+        clienteId: nuevoAlquiler.clienteId,
+        agenteId: nuevoAlquiler.agenteId,
+        monto: Number(nuevoAlquiler.monto),
+        moneda: nuevoAlquiler.moneda,
+        comisionPorcentaje: Number(nuevoAlquiler.comisionPorcentaje),
+        duracion: Number(nuevoAlquiler.duracion) || 12,
+        deposito: Number(nuevoAlquiler.deposito) || 0,
+        fechaCierre: nuevoAlquiler.fechaCierre || undefined,
+        estado: 'En Curso',
+        notas: nuevoAlquiler.notas,
+      };
+      await crmService.operaciones.create(payload);
+      toast.success('¡Alquiler registrado exitosamente!');
+      setShowModalAlquiler(false);
+      setNuevoAlquiler(ALQUILER_EMPTY);
+      loadStats();
+    } catch (err) {
+      toast.error('Error al registrar el alquiler');
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Funciones de manejo para Seguimiento
@@ -229,19 +282,32 @@ const Ventas = () => {
     setNuevoSeguimiento(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSeguimientoSubmit = (e) => {
+  const handleSeguimientoSubmit = async (e) => {
     e.preventDefault();
-    console.log('Nuevo seguimiento:', nuevoSeguimiento);
-    toast.success('¡Seguimiento programado exitosamente!');
-    setShowModalSeguimiento(false);
-    setNuevoSeguimiento({
-      operacion: '',
-      tipo: 'Llamada',
-      fecha: '',
-      hora: '',
-      descripcion: '',
-      prioridad: 'Media',
-    });
+    setSubmitting(true);
+    try {
+      const op = operaciones.find(o => String(o.id) === nuevoSeguimiento.operacion);
+      const fechaHora = nuevoSeguimiento.fecha && nuevoSeguimiento.hora
+        ? new Date(`${nuevoSeguimiento.fecha}T${nuevoSeguimiento.hora}`)
+        : new Date();
+      await crmService.citas.create({
+        titulo: `Seguimiento: ${op ? `${op.propiedad} - ${op.cliente}` : 'Operación'}`,
+        tipo: nuevoSeguimiento.tipo,
+        fecha: fechaHora.toISOString(),
+        descripcion: nuevoSeguimiento.descripcion,
+        prioridad: nuevoSeguimiento.prioridad,
+        estado: 'Programada',
+        metadata: { operacionId: nuevoSeguimiento.operacion },
+      });
+      toast.success('¡Seguimiento programado exitosamente!');
+      setShowModalSeguimiento(false);
+      setNuevoSeguimiento({ operacion: '', tipo: 'Llamada', fecha: '', hora: '', descripcion: '', prioridad: 'Media' });
+    } catch (err) {
+      toast.error('Error al programar el seguimiento');
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -531,11 +597,21 @@ const Ventas = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
-                    <input type="text" name="propiedad" value={nuevaVenta.propiedad} onChange={handleVentaChange} required placeholder="Depto 2amb Palermo" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <select name="propiedadId" value={nuevaVenta.propiedadId} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                      <option value="">Seleccionar propiedad</option>
+                      {propiedadesList.map(p => (
+                        <option key={p._id} value={p._id}>{p.title || p.address || p._id}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input type="text" name="cliente" value={nuevaVenta.cliente} onChange={handleVentaChange} required placeholder="Juan Pérez" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <select name="clienteId" value={nuevaVenta.clienteId} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                      <option value="">Seleccionar cliente</option>
+                      {clientesList.map(c => (
+                        <option key={c._id} value={c._id}>{c.nombre} {c.apellido || ''}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Monto *</label>
@@ -550,22 +626,20 @@ const Ventas = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                    <select name="agente" value={nuevaVenta.agente} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                    <select name="agenteId" value={nuevaVenta.agenteId} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
                       <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
+                      {agentesList.map(a => (
+                        <option key={a._id} value={a._id}>{a.nombre}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Cierre *</label>
-                    <input type="date" name="fechaCierre" value={nuevaVenta.fechaCierre} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Cierre</label>
+                    <input type="date" name="fechaCierre" value={nuevaVenta.fechaCierre} onChange={handleVentaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
-                    <input type="number" name="comision" value={nuevaVenta.comision} onChange={handleVentaChange} step="0.1" placeholder="3.5" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <input type="number" name="comisionPorcentaje" value={nuevaVenta.comisionPorcentaje} onChange={handleVentaChange} step="0.1" placeholder="3.5" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Forma de Pago</label>
@@ -581,15 +655,15 @@ const Ventas = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2 dark:text-gray-200">Observaciones</label>
-                <textarea name="observaciones" value={nuevaVenta.observaciones} onChange={handleVentaChange} rows="3" placeholder="Detalles adicionales de la operación..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                <textarea name="notas" value={nuevaVenta.notas} onChange={handleVentaChange} rows="3" placeholder="Detalles adicionales de la operación..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
               </div>
 
               <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
                 <button type="button" onClick={() => setShowModalVenta(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
                   Cancelar
                 </button>
-                <button type="submit" className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2">
-                  <FaSave /> Registrar Venta
+                <button type="submit" disabled={submitting} className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-60 transition-colors font-medium flex items-center gap-2">
+                  {submitting ? <FaSpinner className="animate-spin" /> : <FaSave />} Registrar Venta
                 </button>
               </div>
               </form>
@@ -623,15 +697,25 @@ const Ventas = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
-                    <input type="text" name="propiedad" value={nuevoAlquiler.propiedad} onChange={handleAlquilerChange} required placeholder="Casa 3amb Belgrano" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <select name="propiedadId" value={nuevoAlquiler.propiedadId} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                      <option value="">Seleccionar propiedad</option>
+                      {propiedadesList.map(p => (
+                        <option key={p._id} value={p._id}>{p.title || p.address || p._id}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
-                    <input type="text" name="cliente" value={nuevoAlquiler.cliente} onChange={handleAlquilerChange} required placeholder="María González" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <select name="clienteId" value={nuevoAlquiler.clienteId} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                      <option value="">Seleccionar cliente</option>
+                      {clientesList.map(c => (
+                        <option key={c._id} value={c._id}>{c.nombre} {c.apellido || ''}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Monto Mensual *</label>
-                    <input type="number" name="montoMensual" value={nuevoAlquiler.montoMensual} onChange={handleAlquilerChange} required placeholder="1200" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <input type="number" name="monto" value={nuevoAlquiler.monto} onChange={handleAlquilerChange} required placeholder="1200" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Moneda *</label>
@@ -642,18 +726,16 @@ const Ventas = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Agente *</label>
-                    <select name="agente" value={nuevoAlquiler.agente} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
+                    <select name="agenteId" value={nuevoAlquiler.agenteId} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100">
                       <option value="">Seleccionar agente</option>
-                      <option value="Ana López">Ana López</option>
-                      <option value="Carlos Ruiz">Carlos Ruiz</option>
-                      <option value="Laura Fernández">Laura Fernández</option>
-                      <option value="Sofía Torres">Sofía Torres</option>
-                      <option value="Marcos Silva">Marcos Silva</option>
+                      {agentesList.map(a => (
+                        <option key={a._id} value={a._id}>{a.nombre}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Inicio *</label>
-                    <input type="date" name="fechaInicio" value={nuevoAlquiler.fechaInicio} onChange={handleAlquilerChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Fecha de Inicio</label>
+                    <input type="date" name="fechaCierre" value={nuevoAlquiler.fechaCierre} onChange={handleAlquilerChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">Duración (meses)</label>
@@ -664,23 +746,23 @@ const Ventas = () => {
                     <input type="number" name="deposito" value={nuevoAlquiler.deposito} onChange={handleAlquilerChange} placeholder="2400" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (meses)</label>
-                    <input type="number" name="comision" value={nuevoAlquiler.comision} onChange={handleAlquilerChange} step="0.5" placeholder="1" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
+                    <input type="number" name="comisionPorcentaje" value={nuevoAlquiler.comisionPorcentaje} onChange={handleAlquilerChange} step="0.5" placeholder="1" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 dark:text-gray-200">Observaciones</label>
-                <textarea name="observaciones" value={nuevoAlquiler.observaciones} onChange={handleAlquilerChange} rows="3" placeholder="Detalles adicionales del alquiler..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
+                <textarea name="notas" value={nuevoAlquiler.notas} onChange={handleAlquilerChange} rows="3" placeholder="Detalles adicionales del alquiler..." className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100" />
               </div>
 
               <div className="flex gap-3 justify-end pt-4 border-t dark:border-gray-700">
                 <button type="button" onClick={() => setShowModalAlquiler(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
                   Cancelar
                 </button>
-                <button type="submit" className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2">
-                  <FaSave /> Registrar Alquiler
+                <button type="submit" disabled={submitting} className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-60 transition-colors font-medium flex items-center gap-2">
+                  {submitting ? <FaSpinner className="animate-spin" /> : <FaSave />} Registrar Alquiler
                 </button>
               </div>
               </form>
@@ -760,8 +842,8 @@ const Ventas = () => {
                 <button type="button" onClick={() => setShowModalSeguimiento(false)} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors font-medium">
                   Cancelar
                 </button>
-                <button type="submit" className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium flex items-center gap-2">
-                  <FaCheckCircle /> Programar Seguimiento
+                <button type="submit" disabled={submitting} className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-60 transition-colors font-medium flex items-center gap-2">
+                  {submitting ? <FaSpinner className="animate-spin" /> : <FaCheckCircle />} Programar Seguimiento
                 </button>
               </div>
               </form>

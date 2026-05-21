@@ -55,6 +55,7 @@ const DashboardEjecutivo = () => {
   const teamMetrics = data?.teamMetrics || {};
   const actividades = data?.actividades || [];
   const footer = data?.footerStats || {};
+  const mktMetrics = data?.marketingMetrics || {};
 
   function fmtMoney(val) {
     if (!val && val !== 0) return '$0';
@@ -330,11 +331,11 @@ const DashboardEjecutivo = () => {
         {[
           { label: 'Ticket Promedio', value: `$${((fm.ticketPromedio?.value || 0)/1000).toFixed(0)}K`, change: fm.ticketPromedio?.change || '+0%', up: true, icon: FaReceipt, color: '#6366f1', bgColor: 'bg-indigo-500/10' },
           { label: 'Margen Operativo', value: `${fm.margenOperativo?.value || 0}%`, change: fm.margenOperativo?.change || '+0pp', up: true, icon: FaBalanceScale, color: '#10b981', bgColor: 'bg-emerald-500/10' },
-          { label: 'ROI', value: `${fm.margenOperativo?.value || 0}%`, change: '+0pp', up: true, icon: FaSeedling, color: '#22c55e', bgColor: 'bg-green-500/10' },
-          { label: 'Días Prom. Venta', value: `${fm.diasPromVenta?.value || 0}`, change: fm.diasPromVenta?.change || '0d', up: true, icon: FaClock, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
-          { label: 'Costo por Lead', value: `$${fm.costoPorLead?.value || 0}`, change: '', up: true, icon: FaBullseye, color: '#ef4444', bgColor: 'bg-red-500/10' },
-          { label: 'Leads Totales', value: String(fm.leadsTotales || 0), change: `+${fm.clientesNuevosMes || 0}`, up: true, icon: FaUserPlus, color: '#8b5cf6', bgColor: 'bg-purple-500/10' },
+          { label: 'ROI', value: `${mktMetrics.roi || fm.roi?.raw || 0}%`, change: mktMetrics.roiChange || fm.roi?.change || '+0%', up: (mktMetrics.roi || 0) >= 0, icon: FaSeedling, color: '#22c55e', bgColor: 'bg-green-500/10' },
+          { label: 'ROAS', value: `${(mktMetrics.roas || fm.roas?.raw || 0).toFixed(1)}x`, change: mktMetrics.roasChange || fm.roas?.change || '+0%', up: (mktMetrics.roas || 0) >= 1, icon: FaChartLine, color: '#f59e0b', bgColor: 'bg-amber-500/10' },
+          { label: 'CAC', value: `$${(mktMetrics.cac || fm.cac?.value || 0).toLocaleString()}`, change: '', up: false, icon: FaBullseye, color: '#ef4444', bgColor: 'bg-red-500/10' },
           { label: 'Propiedades', value: String(fm.propiedades || 0), change: `${fm.propiedadesDisponibles || 0} disp.`, up: true, icon: FaHome, color: '#06b6d4', bgColor: 'bg-cyan-500/10' },
+          { label: 'Leads Totales', value: String(fm.leadsTotales || 0), change: `+${fm.clientesNuevosMes || 0}`, up: true, icon: FaUserPlus, color: '#8b5cf6', bgColor: 'bg-purple-500/10' },
           { label: 'Clientes Activos', value: String(fm.clientesActivos || 0), change: `+${fm.clientesNuevosMes || 0}`, up: true, icon: FaAddressBook, color: '#ec4899', bgColor: 'bg-pink-500/10' },
         ].map((m, i) => {
           const Icon = m.icon;

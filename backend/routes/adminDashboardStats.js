@@ -333,6 +333,27 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
       ? Math.round(allMetrics.reduce((s, m) => s + (m.avgRating || 0), 0) / allMetrics.length * 20) // scale to %
       : 0;
 
+    // ── ROI / ROAS / CAC ──
+    // ROI = (ingresos - costos) / costos * 100
+    // We use comisiones as revenue proxy; marketing cost stored in op.metadata.costoAdquisicion
+    const totalCostoAdquisicion = allOps.reduce((s, o) => s + (o.metadata?.costoAdquisicion || 0), 0);
+    const totalIngresoMarketing = allOps.reduce((s, o) => s + (o.metadata?.ingresoMarketing || 0), 0);
+    // Fallback: estimate 10% of commissions as marketing spend if no explicit data
+    const costoMarketing = totalCostoAdquisicion > 0 ? totalCostoAdquisicion : Math.round(comisionesTotales * 0.1);
+    const ingresoMarketing = totalIngresoMarketing > 0 ? totalIngresoMarketing : comisionesTotales;
+    const roi = costoMarketing > 0 ? Math.round(((ingresoMarketing - costoMarketing) / costoMarketing) * 100) : 0;
+    const roas = costoMarketing > 0 ? parseFloat((ingresoMarketing / costoMarketing).toFixed(2)) : 0;
+    const cac = totalLeads > 0 && costoMarketing > 0 ? Math.round(costoMarketing / Math.max(totalCerrados, 1)) : 0;
+    const ltv = totalCerrados > 0 ? Math.round(ingresosTotales / totalCerrados * COMMISSION_RATE) : 0;
+
+    // Previous month ROI for trend
+    const costoMarketingLastMonth = opsLastMonth.reduce((s, o) => s + (o.metadata?.costoAdquisicion || 0), 0);
+    const ingresoMarketingLastMonth = opsLastMonth.reduce((s, o) => s + (o.metadata?.ingresoMarketing || 0), 0);
+    const costoMktLM = costoMarketingLastMonth > 0 ? costoMarketingLastMonth : Math.round(ingresosLastMonth * COMMISSION_RATE * 0.1);
+    const ingMktLM = ingresoMarketingLastMonth > 0 ? ingresoMarketingLastMonth : ingresosLastMonth * COMMISSION_RATE;
+    const roiLastMonth = costoMktLM > 0 ? Math.round(((ingMktLM - costoMktLM) / costoMktLM) * 100) : 0;
+    const roasLastMonth = costoMktLM > 0 ? parseFloat((ingMktLM / costoMktLM).toFixed(2)) : 0;
+
     // Format helpers
     function formatMoney(val) {
       if (val >= 1000000) return `$${(val / 1000000).toFixed(2)}M`;
@@ -362,6 +383,21 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
           return e !== 'Cerrado' && e !== 'Perdido';
         }).length,
         clientesNuevosMes,
+        roi: { value: roi, change: pctChange(roi, roiLastMonth), raw: roi },
+        roas: { value: roas, change: pctChange(roas, roasLastMonth), raw: roas },
+        cac: { value: cac },
+        ltv: { value: ltv },
+      },
+      // ── Marketing metrics (ROI/ROAS/CAC/LTV) ──
+      marketingMetrics: {
+        roi,
+        roiChange: pctChange(roi, roiLastMonth),
+        roas,
+        roasChange: pctChange(roas, roasLastMonth),
+        cac,
+        ltv,
+        costoMarketing,
+        ingresoMarketing,
       },
       // ── Revenue chart (12 months) ──
       revenueMonthly: {
