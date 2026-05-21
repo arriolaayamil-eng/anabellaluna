@@ -69,7 +69,6 @@ ok "Código actualizado"
 
 # ── 1b. Fix permisos ───────────────────────────────────────────
 log "🔐 Corrigiendo permisos de archivos..."
-sudo chown -R $(whoami):$(whoami) "$PROJECT_DIR" 2>/dev/null || warn "chown falló (puede requerir sudo sin password)"
 chmod -R u+w "$PROJECT_DIR" 2>/dev/null || true
 ok "Permisos corregidos"
 
