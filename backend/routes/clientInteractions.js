@@ -820,6 +820,11 @@ router.post('/:clienteId', authenticateToken, requireCRMUser, async (req, res) =
     body.clienteId = clienteId;
     body.agenteId = scopeId || body.agenteId || String(cliente.agenteId || '');
 
+    // Ensure agenteId is never empty string (required by model)
+    if (!body.agenteId) {
+      return res.status(400).json({ error: 'El cliente debe tener un agente asignado para crear interacciones' });
+    }
+
     const created = await ClientInteraction.create(body);
 
     // ── Side-effects based on interaction type ──
