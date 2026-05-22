@@ -4,8 +4,9 @@
  * Config almacenada en GlobalConfig key: 'ai_provider_config'
  * Mismo patrón de encriptación que googleCalendar.js y mercadoLibre.js.
  *
- * Gemini es el provider FREE-TIER por defecto si no hay OpenAI/Anthropic configurado.
- * Modelos recomendados: gemini-2.0-flash (gratis), gemini-1.5-pro-latest (pago)
+ * Prioridad de providers: defaultProvider → fallbackProvider (sin hardcode de Gemini).
+ * Si GEMINI_API_KEY está en env con formato válido (AIza...), se usa como bootstrap
+ * cuando no hay NADA configurado en DB.
  */
 
 const crypto = require('crypto');
@@ -17,6 +18,16 @@ const { eventBus } = require('../../utils/eventBus');
 const CACHE_TTL_MS = 60 * 1000;
 let _credCache    = null;
 let _credCacheAt  = 0;
+
+const VALID_PROVIDERS = new Set(['openai', 'anthropic', 'gemini']);
+const DEFAULT_MODEL   = { openai: 'gpt-4o', anthropic: 'claude-sonnet-4-20250514', gemini: 'gemini-2.0-flash' };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function _isValidGeminiEnvKey() {
+  const k = process.env.GEMINI_API_KEY;
+  return k && k.startsWith('AIza') && k.length > 20;
+}
 
 // ── Encryption (idéntico a mercadoLibre.js) ───────────────────────────────────
 
@@ -52,6 +63,15 @@ function decrypt(text) {
 
 // ── Config desde GlobalConfig ─────────────────────────────────────────────────
 
+function _decryptProviderKey(providerCfg) {
+  if (!providerCfg || !providerCfg.apiKeyEncrypted) return;
+  try {
+    providerCfg.apiKey = decrypt(providerCfg.apiKeyEncrypted);
+  } catch {
+    providerCfg.apiKey = null;
+  }
+}
+
 async function getProviderConfig() {
   const now = Date.now();
   if (_credCache && now - _credCacheAt < CACHE_TTL_MS) {
@@ -63,32 +83,13 @@ async function getProviderConfig() {
 
   const result = JSON.parse(JSON.stringify(config)); // deep clone
 
-  if (result.openai && result.openai.apiKeyEncrypted) {
-    try {
-      result.openai.apiKey = decrypt(result.openai.apiKeyEncrypted);
-    } catch {
-      result.openai.apiKey = null;
-    }
-  }
-  if (result.anthropic && result.anthropic.apiKeyEncrypted) {
-    try {
-      result.anthropic.apiKey = decrypt(result.anthropic.apiKeyEncrypted);
-    } catch {
-      result.anthropic.apiKey = null;
-    }
-  }
-  if (result.gemini && result.gemini.apiKeyEncrypted) {
-    try {
-      result.gemini.apiKey = decrypt(result.gemini.apiKeyEncrypted);
-    } catch {
-      result.gemini.apiKey = null;
-    }
-  }
+  // Desencriptar API keys de cada provider
+  _decryptProviderKey(result.openai);
+  _decryptProviderKey(result.anthropic);
+  _decryptProviderKey(result.gemini);
 
-  // Si Gemini no tiene key en DB pero hay GEMINI_API_KEY en env, la inyectamos.
-  // Esto permite configurar via UI sin tocar el servidor, y también funciona
-  // con la var de entorno como alternativa sin UI.
-  if ((!result.gemini || !result.gemini.apiKey) && process.env.GEMINI_API_KEY) {
+  // Gemini env fallback: solo si NO hay key en DB y el env tiene una key con formato válido
+  if ((!result.gemini || !result.gemini.apiKey) && _isValidGeminiEnvKey()) {
     result.gemini = {
       enabled:     true,
       model:       'gemini-2.0-flash',
@@ -125,7 +126,7 @@ async function chatCompletion({
 
   // Bootstrap: sin config en DB, intentar con GEMINI_API_KEY del env.
   if (!config) {
-    if (process.env.GEMINI_API_KEY) {
+    if (_isValidGeminiEnvKey()) {
       const bootstrapCfg = {
         defaultProvider: 'gemini',
         gemini: { enabled: true, apiKey: process.env.GEMINI_API_KEY, model: 'gemini-2.0-flash', maxTokens: 4096, temperature: 0.3 },
@@ -139,27 +140,24 @@ async function chatCompletion({
 }
 
 async function _runWithConfig(config, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider }) {
+  // Construir orden de providers SIN hardcodear Gemini al final.
+  // Solo se intentan los providers que el admin configuró.
   const providerOrder = forcedProvider
     ? [forcedProvider]
-    : [config.defaultProvider, config.fallbackProvider, 'gemini'].filter(Boolean);
+    : [config.defaultProvider, config.fallbackProvider].filter(Boolean);
+
+  // Deduplicar
+  const seen = new Set();
+  const uniqueOrder = providerOrder.filter((p) => {
+    if (seen.has(p) || !VALID_PROVIDERS.has(p)) return false;
+    seen.add(p);
+    return true;
+  });
 
   let lastError;
 
-  console.log('[AI] providerOrder:', providerOrder, '| keys in config:', Object.keys(config));
-
-  const seen = new Set();
-  for (const providerName of providerOrder) {
-    if (seen.has(providerName)) continue;
-    seen.add(providerName);
-
-    let pCfg = config[providerName];
-    console.log(`[AI] trying ${providerName}: enabled=${pCfg?.enabled}, hasKey=${!!pCfg?.apiKey}`);
-
-    // Gemini env-fallback de último recurso: si no está en DB pero sí en env, usarlo.
-    if (!pCfg && providerName === 'gemini' && process.env.GEMINI_API_KEY) {
-      pCfg = { enabled: true, apiKey: process.env.GEMINI_API_KEY, model: 'gemini-2.0-flash', maxTokens: 4096, temperature: 0.3 };
-    }
-
+  for (const providerName of uniqueOrder) {
+    const pCfg = config[providerName];
     if (!pCfg || !pCfg.enabled || !pCfg.apiKey) continue;
 
     const startedAt = Date.now();
@@ -183,7 +181,7 @@ async function _runWithConfig(config, { messages, tools, stream, userId, agenteI
       const latencyMs = Date.now() - startedAt;
       lastError = err;
 
-      console.error(`[AI] Provider ${providerName} failed:`, err.message, err.stack?.split('\n')[1]?.trim());
+      console.error(`[AI] Provider ${providerName} failed:`, err.message);
 
       await AIProvider.findOneAndUpdate(
         { name: providerName },
@@ -221,7 +219,7 @@ async function _callGemini(cfg, { messages, tools }) {
 
   const client = new GoogleGenAI(cfg.apiKey);
   const model  = client.getGenerativeModel({
-    model:             cfg.model || 'gemini-2.0-flash',
+    model:             cfg.model || DEFAULT_MODEL.gemini,
     generationConfig:  { maxOutputTokens: cfg.maxTokens || 4096, temperature: cfg.temperature ?? 0.3 },
   });
 
@@ -256,7 +254,7 @@ async function _callGemini(cfg, { messages, tools }) {
   const result   = await chat.sendMessage(prompt);
   const response = result.response;
 
-  return _normalizeGemini(response, cfg.model || 'gemini-2.0-flash');
+  return _normalizeGemini(response, cfg.model || DEFAULT_MODEL.gemini);
 }
 
 function _normalizeGemini(response, model) {
@@ -303,7 +301,7 @@ async function _callOpenAI(cfg, { messages, tools, stream }) {
 
   const client = new OpenAI({ apiKey: cfg.apiKey });
   const params = {
-    model: cfg.model || 'gpt-4o',
+    model: cfg.model || DEFAULT_MODEL.openai,
     messages,
     temperature: cfg.temperature ?? 0.3,
     max_tokens: cfg.maxTokens || 4096,
@@ -339,7 +337,7 @@ async function _callAnthropic(cfg, { messages, tools, stream }) {
   const userMsgs  = messages.filter((m) => m.role !== 'system');
 
   const params = {
-    model: cfg.model || 'claude-3-5-sonnet-20241022',
+    model: cfg.model || DEFAULT_MODEL.anthropic,
     max_tokens: cfg.maxTokens || 4096,
     messages: userMsgs,
     temperature: cfg.temperature ?? 0.3,
@@ -415,9 +413,10 @@ function _estimateCost(provider, model, tokens) {
   const pricing = {
     'gpt-4o':                     { input: 2.5,  output: 10 },
     'gpt-4o-mini':                { input: 0.15, output: 0.6 },
-    'claude-3-5-sonnet-20241022': { input: 3,    output: 15 },
+    'claude-sonnet-4-20250514':   { input: 3,    output: 15 },
+    'claude-4-opus-20250514':     { input: 15,   output: 75 },
+    'claude-3-7-sonnet-20250219': { input: 3,    output: 15 },
     'claude-3-5-haiku-20241022':  { input: 0.8,  output: 4 },
-    'claude-3-haiku-20240307':    { input: 0.25, output: 1.25 },
     'gemini-2.0-flash':           { input: 0,    output: 0 },  // free tier
     'gemini-2.0-flash-lite':      { input: 0,    output: 0 },  // free tier
     'gemini-1.5-flash-latest':    { input: 0,    output: 0 },  // free tier

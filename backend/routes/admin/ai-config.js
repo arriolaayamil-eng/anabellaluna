@@ -28,9 +28,11 @@ router.get('/providers', async (req, res) => {
     const statsMap = {};
     providerStats.forEach((p) => { statsMap[p.name] = p; });
 
+    const geminiEnvValid = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith('AIza') && process.env.GEMINI_API_KEY.length > 20;
+
     const safeConfig = {
       defaultProvider:  config.defaultProvider  || 'openai',
-      fallbackProvider: config.fallbackProvider || 'anthropic',
+      fallbackProvider: config.fallbackProvider || '',
       openai: {
         enabled:         !!(config.openai && config.openai.enabled),
         hasKey:          !!(config.openai && config.openai.apiKeyEncrypted),
@@ -42,15 +44,15 @@ router.get('/providers', async (req, res) => {
       anthropic: {
         enabled:         !!(config.anthropic && config.anthropic.enabled),
         hasKey:          !!(config.anthropic && config.anthropic.apiKeyEncrypted),
-        model:           (config.anthropic && config.anthropic.model)       || 'claude-3-5-sonnet-20241022',
+        model:           (config.anthropic && config.anthropic.model)       || 'claude-sonnet-4-20250514',
         maxTokens:       (config.anthropic && config.anthropic.maxTokens)   || 4096,
         temperature:     (config.anthropic && config.anthropic.temperature) ?? 0.3,
         stats:           statsMap['anthropic'] || null,
       },
       gemini: {
-        enabled:         config.gemini ? config.gemini.enabled !== false : true,
-        hasKey:          !!(config.gemini && config.gemini.apiKeyEncrypted),
-        keySource:       (config.gemini && config.gemini.apiKeyEncrypted) ? 'db' : (process.env.GEMINI_API_KEY ? 'env' : 'none'),
+        enabled:         config.gemini ? config.gemini.enabled !== false : !!geminiEnvValid,
+        hasKey:          !!(config.gemini && config.gemini.apiKeyEncrypted) || !!geminiEnvValid,
+        keySource:       (config.gemini && config.gemini.apiKeyEncrypted) ? 'db' : (geminiEnvValid ? 'env' : 'none'),
         model:           (config.gemini && config.gemini.model)       || 'gemini-2.0-flash',
         maxTokens:       (config.gemini && config.gemini.maxTokens)   || 4096,
         temperature:     (config.gemini && config.gemini.temperature) ?? 0.3,
@@ -73,47 +75,33 @@ router.put('/providers', async (req, res) => {
     const existing = await GlobalConfig.getValue('ai_provider_config', {});
     const update = { ...existing };
 
-    if (defaultProvider)  update.defaultProvider  = defaultProvider;
-    if (fallbackProvider) update.fallbackProvider = fallbackProvider;
+    // SIEMPRE guardar defaultProvider y fallbackProvider del request
+    update.defaultProvider  = defaultProvider  || existing.defaultProvider  || 'openai';
+    update.fallbackProvider = fallbackProvider || existing.fallbackProvider || '';
 
-    if (openai) {
-      update.openai = {
-        ...(existing.openai || {}),
-        enabled:     openai.enabled  !== undefined ? openai.enabled  : (existing.openai?.enabled || false),
-        model:       openai.model       || existing.openai?.model       || 'gpt-4o',
-        maxTokens:   openai.maxTokens   || existing.openai?.maxTokens   || 4096,
-        temperature: openai.temperature ?? existing.openai?.temperature ?? 0.3,
+    // Helper para actualizar un provider
+    const updateProvider = (name, incoming, defaults) => {
+      if (!incoming) return;
+      const prev = existing[name] || {};
+      update[name] = {
+        ...prev,
+        enabled:     incoming.enabled     !== undefined ? incoming.enabled     : (prev.enabled || false),
+        model:       incoming.model       || prev.model       || defaults.model,
+        maxTokens:   incoming.maxTokens   || prev.maxTokens   || 4096,
+        temperature: incoming.temperature ?? prev.temperature ?? 0.3,
       };
-      if (openai.apiKey && openai.apiKey.trim()) {
-        update.openai.apiKeyEncrypted = encrypt(openai.apiKey.trim());
+      // Solo sobreescribir key si se envió una nueva
+      if (incoming.apiKey && incoming.apiKey.trim()) {
+        update[name].apiKeyEncrypted = encrypt(incoming.apiKey.trim());
+      } else if (prev.apiKeyEncrypted) {
+        // Conservar key existente
+        update[name].apiKeyEncrypted = prev.apiKeyEncrypted;
       }
-    }
+    };
 
-    if (anthropic) {
-      update.anthropic = {
-        ...(existing.anthropic || {}),
-        enabled:     anthropic.enabled     !== undefined ? anthropic.enabled     : (existing.anthropic?.enabled || false),
-        model:       anthropic.model       || existing.anthropic?.model       || 'claude-3-5-sonnet-20241022',
-        maxTokens:   anthropic.maxTokens   || existing.anthropic?.maxTokens   || 4096,
-        temperature: anthropic.temperature ?? existing.anthropic?.temperature ?? 0.3,
-      };
-      if (anthropic.apiKey && anthropic.apiKey.trim()) {
-        update.anthropic.apiKeyEncrypted = encrypt(anthropic.apiKey.trim());
-      }
-    }
-
-    if (gemini) {
-      update.gemini = {
-        ...(existing.gemini || {}),
-        enabled:     gemini.enabled     !== undefined ? gemini.enabled     : (existing.gemini?.enabled !== false),
-        model:       gemini.model       || existing.gemini?.model       || 'gemini-2.0-flash',
-        maxTokens:   gemini.maxTokens   || existing.gemini?.maxTokens   || 4096,
-        temperature: gemini.temperature ?? existing.gemini?.temperature ?? 0.3,
-      };
-      if (gemini.apiKey && gemini.apiKey.trim()) {
-        update.gemini.apiKeyEncrypted = encrypt(gemini.apiKey.trim());
-      }
-    }
+    updateProvider('openai',    openai,    { model: 'gpt-4o' });
+    updateProvider('anthropic', anthropic, { model: 'claude-3-5-sonnet-20241022' });
+    updateProvider('gemini',    gemini,    { model: 'gemini-2.0-flash' });
 
     await GlobalConfig.setValue('ai_provider_config', update, 'AI provider config', userId);
     invalidateCache();

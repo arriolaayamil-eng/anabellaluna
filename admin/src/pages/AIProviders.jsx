@@ -4,7 +4,7 @@ import aiService from '../services/aiService';
 import { toast } from 'react-toastify';
 
 const MODELS_OPENAI    = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'];
-const MODELS_ANTHROPIC = ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-haiku-20240307'];
+const MODELS_ANTHROPIC = ['claude-sonnet-4-20250514', 'claude-4-opus-20250514', 'claude-3-7-sonnet-20250219', 'claude-3-5-haiku-20241022'];
 const MODELS_GEMINI    = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash-preview-05-20', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
 
 const AIProviders = () => {
@@ -35,11 +35,11 @@ const AIProviders = () => {
         openai_maxTokens: cfg.openai?.maxTokens || 4096,
         openai_apiKey:    '',
         anthropic_enabled:   cfg.anthropic?.enabled  || false,
-        anthropic_model:     cfg.anthropic?.model    || 'claude-3-5-sonnet-20241022',
+        anthropic_model:     cfg.anthropic?.model    || 'claude-sonnet-4-20250514',
         anthropic_maxTokens: cfg.anthropic?.maxTokens || 4096,
         anthropic_apiKey:    '',
         gemini_enabled:   cfg.gemini?.enabled  !== false,
-        gemini_model:     cfg.gemini?.model    || 'gemini-1.5-flash',
+        gemini_model:     cfg.gemini?.model    || 'gemini-2.0-flash',
         gemini_maxTokens: cfg.gemini?.maxTokens || 4096,
         gemini_apiKey:    '',
       });
@@ -228,7 +228,7 @@ const AIProviders = () => {
           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#dcfce7', color: '#16a34a' }}>FREE TIER</span>
         </div>
         <div style={{ fontSize: 12, color: isDark ? '#64748b' : '#94a3b8', marginBottom: 12 }}>
-          Gemini 1.5 Flash es <b>gratuito</b> (15 req/min · 1M tokens/día). Ideal para empezar sin costo.
+          Gemini 2.0 Flash es <b>gratuito</b> (15 req/min · 1M tokens/día). Ideal para empezar sin costo.
           Obtené tu API key en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: '#1a73e8' }}>aistudio.google.com/apikey</a>
         </div>
 
@@ -271,6 +271,7 @@ const AIProviders = () => {
         </select>
         <label style={labelStyle}>Provider fallback (si el primero falla)</label>
         <select style={inputStyle} value={form.fallbackProvider} onChange={(e) => setForm((f) => ({ ...f, fallbackProvider: e.target.value }))}>
+          <option value="">— Ninguno —</option>
           <option value="gemini">Gemini (gratuito)</option>
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>
