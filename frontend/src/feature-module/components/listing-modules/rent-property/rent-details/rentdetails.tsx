@@ -10,6 +10,7 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 import RentRightForm from "./rentRightForm";
 import publicService, { type PropertyDetail } from "../../../../../services/publicService";
 import { buildHeroBackground, getAccentColor, heroTextColorClass, heroMutedColor, resolveMediaUrl } from "../../common/funnelUtils";
+import { VideoOverlay, VideoSection } from "../../common/VideoOverlay";
 
 // ─── Tracking helper (preserved) ─────────────────────────────────────────────
 const trackEvent = (name: string, payload: Record<string, unknown> = {}) => {
@@ -46,6 +47,7 @@ const RentDetails = () => {
   const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [videoOverlayOpen, setVideoOverlayOpen] = useState(true);
 
   // Classic-carousel hero state
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
@@ -173,24 +175,6 @@ const RentDetails = () => {
   const floorPlanUrls = (property?.floorPlanUrls || []).filter(Boolean).map(resolveMediaUrl);
   const videoUrls = (property?.videoUrls || []).filter(Boolean);
 
-  const toEmbedUrl = (url: string) => {
-    const raw = String(url || "").trim();
-    if (!raw) return "";
-    if (raw.includes("youtube.com/embed/")) return raw;
-    if (raw.includes("youtu.be/")) {
-      const id = raw.split("youtu.be/")[1]?.split(/[?&]/)[0];
-      return id ? `https://www.youtube.com/embed/${id}` : raw;
-    }
-    if (raw.includes("youtube.com/watch")) {
-      const q = raw.split("?")[1] || "";
-      const id = new URLSearchParams(q).get("v");
-      return id ? `https://www.youtube.com/embed/${id}` : raw;
-    }
-    const vm = raw.match(/vimeo\.com\/(\d+)/);
-    if (vm?.[1]) return `https://player.vimeo.com/video/${vm[1]}`;
-    return raw;
-  };
-
   const scrollToForm = useCallback(() => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     trackEvent("hero_cta_click", { propertyId: property?.id, slug });
@@ -294,6 +278,15 @@ const RentDetails = () => {
 
   return (
     <>
+      {/* ── VIDEO OVERLAY (auto-shows when property has video) ────────────── */}
+      {videoUrls.length > 0 && videoOverlayOpen && (
+        <VideoOverlay
+          videoUrl={videoUrls[0]}
+          autoShow
+          onClose={() => setVideoOverlayOpen(false)}
+        />
+      )}
+
       {/* ── STICKY CONVERSION BAR ──────────────────────────────────────────── */}
       <div
         style={{
@@ -598,27 +591,8 @@ const RentDetails = () => {
                 </div>
               )}
 
-              {videoUrls.length > 0 && (
-                <div className="mb-5">
-                  <SectionHeader title="Video tour" accent={accentColor} />
-                  <div className="d-flex flex-column gap-3">
-                    {videoUrls.map((url, i) => {
-                      const embed = toEmbedUrl(url);
-                      return embed ? (
-                        <div key={i} className="ratio ratio-16x9 rounded-3 overflow-hidden" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }}>
-                          <iframe
-                            src={embed}
-                            title={`Video ${i + 1}`}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                            style={{ border: 0 }}
-                          />
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* ── BLOCK: VIDEO TOUR ───────────────────────────────────────── */}
+              <VideoSection videoUrls={videoUrls} accentColor={accentColor} SectionHeader={SectionHeader} />
 
               {property.location?.lat && property.location?.lng && (
                 <div className="mb-5">
