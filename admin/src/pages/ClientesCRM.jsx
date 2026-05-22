@@ -7,8 +7,41 @@ import { crmService } from '../services/crmService';
 
 import Chart from 'react-apexcharts';
 
+const createEmptyInteractionForm = () => ({
+  tipo: 'nota',
+  descripcion: '',
+  medioContacto: '',
+  fechaContacto: '',
+  visitaFecha: '',
+  nivelInteres: '',
+  opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' },
+  preferencias: { tipo: '', detalle: '' },
+  propiedadId: '',
+  propiedadNombre: '',
+  agenteId: '',
+});
+
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch (_) {
+    return {};
+  }
+};
+
 const ClientesCRM = () => {
   const { currentMode, currentColor } = useStateContext();
+  const currentUser = useMemo(() => getStoredUser(), []);
+  const inmobiliariaResponsable = useMemo(() => {
+    const id = currentUser?.sub || currentUser?._id || currentUser?.id || '';
+    if (String(currentUser?.role || '') !== 'admin' || !id) return null;
+    return {
+      _id: String(id),
+      nombre: currentUser?.empresa || currentUser?.nombre || currentUser?.username || 'Inmobiliaria',
+      cargo: 'Inmobiliaria',
+      tipo: 'inmobiliaria',
+    };
+  }, [currentUser]);
 
   const formatUltimaInteraccion = (value) => {
     if (!value) return { short: '-/-', full: '-' };
@@ -53,7 +86,7 @@ const ClientesCRM = () => {
   const [clientMetrics, setClientMetrics] = useState(null);
   const [agentesMap, setAgentesMap] = useState({});
   const [clientInteractions, setClientInteractions] = useState([]);
-  const [interactionForm, setInteractionForm] = useState({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' });
+  const [interactionForm, setInteractionForm] = useState(createEmptyInteractionForm);
   const [interactionSubmitting, setInteractionSubmitting] = useState(false);
 
   // Recontacto panel state
@@ -100,6 +133,11 @@ const ClientesCRM = () => {
   const [clientesEjemplo, setClientesEjemplo] = useState([]);
   const [clientesLoading, setClientesLoading] = useState(false);
   const [clientesError, setClientesError] = useState('');
+  const responsableOptions = useMemo(() => {
+    const agentes = (Array.isArray(agentesOptions) ? agentesOptions : []).filter((item) => item?.tipo === 'agente');
+    if (!inmobiliariaResponsable) return agentes;
+    return [inmobiliariaResponsable, ...agentes.filter((item) => String(item._id) !== String(inmobiliariaResponsable._id))];
+  }, [agentesOptions, inmobiliariaResponsable]);
 
   const normalizeCliente = useCallback((item) => {
     const md = (item && item.metadata) ? item.metadata : {};
@@ -248,6 +286,12 @@ const ClientesCRM = () => {
     crmService.stats.getDashboard().then(setDashStats).catch(() => {});
   }, [reloadClientes]);
 
+  useEffect(() => {
+    crmService.agentes.forAssignment().then((data) => {
+      setAgentesOptions(Array.isArray(data) ? data : []);
+    }).catch(() => setAgentesOptions([]));
+  }, []);
+
   // Auto-open client detail when navigating via ?id=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -300,7 +344,7 @@ const ClientesCRM = () => {
     }
   }, [vistaActual, clienteSeleccionado?.id]);
 
-  const resetInteractionForm = () => { setInteractionForm({ tipo: 'nota', descripcion: '', medioContacto: '', fechaContacto: '', visitaFecha: '', nivelInteres: '', opcionPago: { tipo: '', detalle: '', montoOfrecido: 0, moneda: 'USD' }, preferencias: { tipo: '', detalle: '' }, propiedadId: '', propiedadNombre: '' }); setInteractionPropSearch(''); };
+  const resetInteractionForm = () => { setInteractionForm(createEmptyInteractionForm()); setInteractionPropSearch(''); };
 
   const handleRecontacto = async (e) => {
     e.preventDefault();
@@ -332,24 +376,43 @@ const ClientesCRM = () => {
     e.preventDefault();
     const isVisita = ['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo);
     const descRequired = !isVisita;
+    const effectiveAgenteId = String(clienteSeleccionado?.agenteId || interactionForm.agenteId || '').trim();
     if (!clienteSeleccionado?.id || !interactionForm.tipo) return;
     if (descRequired && !interactionForm.descripcion.trim()) return;
     if (isVisita && !interactionForm.visitaFecha) return;
+    if (!effectiveAgenteId) {
+      toast.error('Asigná un responsable al cliente antes de registrar la interacción.');
+      return;
+    }
     setInteractionSubmitting(true);
     try {
-      const payload = { ...interactionForm };
+      const payload = { ...interactionForm, agenteId: effectiveAgenteId };
       if (!payload.propiedadId) delete payload.propiedadId;
       delete payload.propiedadNombre;
       if (!payload.fechaContacto) delete payload.fechaContacto;
       if (!payload.visitaFecha) delete payload.visitaFecha;
       const created = await crmService.clientInteractions.create(clienteSeleccionado.id, payload);
       setClientInteractions(prev => [created, ...prev]);
+      if (!clienteSeleccionado?.agenteId && effectiveAgenteId) {
+        const assignee = responsableOptions.find((item) => String(item._id) === effectiveAgenteId);
+        setClienteSeleccionado(prev => (prev ? {
+          ...prev,
+          agenteId: effectiveAgenteId,
+          agente: assignee?.nombre || prev.agente || '',
+        } : prev));
+        setClientesEjemplo(prev => prev.map((cliente) => (
+          String(cliente.id) === String(clienteSeleccionado.id)
+            ? { ...cliente, agenteId: effectiveAgenteId, agente: assignee?.nombre || cliente.agente || '' }
+            : cliente
+        )));
+      }
       resetInteractionForm();
       crmService.clientInteractions.lifebar(clienteSeleccionado.id).then(lb => {
         setLifebars(prev => ({ ...prev, [clienteSeleccionado.id]: lb }));
       }).catch(() => {});
     } catch (err) {
       console.error('Error al crear interacción:', err);
+      toast.error(err?.message || 'No se pudo crear la interacción.');
     } finally { setInteractionSubmitting(false); }
   };
 
@@ -400,14 +463,15 @@ const ClientesCRM = () => {
   const openCreateModal = () => {
     setEditingClienteId(null);
     const emptyForm = createEmptyClienteForm();
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.agenteId) {
-        emptyForm.agenteId = user.agenteId;
-        emptyForm.agenteNombre = user.nombre || user.username || '';
-        emptyForm.agente = user.nombre || user.username || '';
-      }
-    } catch (_) {}
+    if (inmobiliariaResponsable) {
+      emptyForm.agenteId = inmobiliariaResponsable._id;
+      emptyForm.agenteNombre = inmobiliariaResponsable.nombre;
+      emptyForm.agente = inmobiliariaResponsable.nombre;
+    } else if (currentUser?.agenteId) {
+      emptyForm.agenteId = currentUser.agenteId;
+      emptyForm.agenteNombre = currentUser.nombre || currentUser.username || '';
+      emptyForm.agente = currentUser.nombre || currentUser.username || '';
+    }
     setNuevoCliente(emptyForm);
     setShowModal(true);
   };
@@ -415,7 +479,13 @@ const ClientesCRM = () => {
   const handleEditCliente = (cliente) => {
     const id = cliente?._id || cliente?.id;
     setEditingClienteId(id || null);
-    setNuevoCliente(formFromCliente(cliente));
+    const form = formFromCliente(cliente);
+    if (!form.agenteId && inmobiliariaResponsable) {
+      form.agenteId = inmobiliariaResponsable._id;
+      form.agenteNombre = inmobiliariaResponsable.nombre;
+      form.agente = inmobiliariaResponsable.nombre;
+    }
+    setNuevoCliente(form);
     setShowModal(true);
   };
 
@@ -550,11 +620,12 @@ const ClientesCRM = () => {
 
   const handleAgenteChange = (e) => {
     const id = e.target.value;
-    const found = agentesOptions.find((a) => a._id === id);
+    const found = responsableOptions.find((a) => String(a._id) === String(id));
     setNuevoCliente(prev => ({
       ...prev,
       agenteId: id,
       agenteNombre: found ? found.nombre : '',
+      agente: found ? found.nombre : prev.agente,
     }));
   };
 
@@ -973,7 +1044,7 @@ const ClientesCRM = () => {
                 const agente = agentesMap[cliente.agenteId];
                 const assignedBy = cliente.assignedBy || {};
                 const displayAvatar = agente?.avatar || assignedBy.avatar || '';
-                const displayName = agente?.nombre || assignedBy.nombre || cliente.agente || '?';
+                const displayName = agente?.nombre || cliente.agente || assignedBy.nombre || '?';
                 const isAdmin = assignedBy.role === 'admin' && !agente;
                 return (
                   <div key={cliente.id}
@@ -1017,7 +1088,12 @@ const ClientesCRM = () => {
                       <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1"><FaPhone className="text-[10px]" />{cliente.telefono || '-'}</span>
                         <span className="flex items-center gap-1"><FaEnvelope className="text-[10px]" /><span className="truncate max-w-[140px]">{cliente.email || '-'}</span></span>
-                        {agente && <span className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400"><FaUser className="text-[10px]" />{agente.nombre || cliente.agente}</span>}
+                        {(agente || cliente.agente) && (
+                          <span className={`flex items-center gap-1 ${agente ? 'text-indigo-500 dark:text-indigo-400' : 'text-amber-600 dark:text-amber-300'}`}>
+                            {agente ? <FaUser className="text-[10px]" /> : <FaStar className="text-[10px]" />}
+                            {agente?.nombre || cliente.agente}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1318,6 +1394,28 @@ const ClientesCRM = () => {
                 </h3>
                 <form onSubmit={handleSubmitInteraction} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {!clienteSeleccionado?.agenteId && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-medium mb-1 dark:text-gray-300">
+                          Responsable de la interacción <span className="text-red-400">*</span>
+                        </label>
+                        <select
+                          value={interactionForm.agenteId}
+                          onChange={(e) => setInteractionForm((p) => ({ ...p, agenteId: e.target.value }))}
+                          className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark ? 'bg-gray-800 border-gray-600 text-gray-100' : 'border-gray-300'}`}
+                        >
+                          <option value="">Seleccionar responsable...</option>
+                          {agentesOptions.map((a) => (
+                            <option key={a._id} value={a._id}>
+                              {a.nombre}{a.cargo ? ` — ${a.cargo}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
+                          Este cliente no tiene responsable asignado. El valor que elijas se guardará también en la ficha del cliente.
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-medium mb-1 dark:text-gray-300">Tipo</label>
                       <select value={interactionForm.tipo} onChange={(e) => setInteractionForm(p => ({ ...p, tipo: e.target.value }))}
@@ -1437,7 +1535,7 @@ const ClientesCRM = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><FaClock className="text-[10px]" /> Una vez guardada, esta interacción no se puede editar ni eliminar</p>
-                    <button type="submit" disabled={interactionSubmitting || (!['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.descripcion.trim()) || (['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.visitaFecha)}
+                    <button type="submit" disabled={interactionSubmitting || (!['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.descripcion.trim()) || (['visita_agendada', 'visita_realizada'].includes(interactionForm.tipo) && !interactionForm.visitaFecha) || (!clienteSeleccionado?.agenteId && !interactionForm.agenteId)}
                       className="px-5 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
                       <FaSave /> {interactionSubmitting ? 'Guardando...' : 'Guardar'}
                     </button>
@@ -1555,13 +1653,13 @@ const ClientesCRM = () => {
                     <p className="font-semibold dark:text-gray-200">{clienteSeleccionado.origen}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Agente Asignado</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Responsable</p>
                     <div className="flex items-center gap-2 mt-1">
                       {(() => {
                         const ab = clienteSeleccionado.assignedBy || {};
                         const ag = agentesMap[clienteSeleccionado.agenteId];
                         const avt = ag?.avatar || ab.avatar || '';
-                        const nm = ag?.nombre || ab.nombre || clienteSeleccionado.agente || 'Sin asignar';
+                        const nm = ag?.nombre || clienteSeleccionado.agente || ab.nombre || 'Sin asignar';
                         const adm = ab.role === 'admin' && !ag;
                         return (
                           <>
@@ -1573,7 +1671,7 @@ const ClientesCRM = () => {
                               </div>
                             )}
                             <span className="font-semibold dark:text-gray-200">{nm}</span>
-                            {adm && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-semibold">Admin</span>}
+                            {adm && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-semibold">Inmobiliaria</span>}
                           </>
                         );
                       })()}
@@ -1858,7 +1956,7 @@ const ClientesCRM = () => {
 
                   <div>
                     <label className="block text-sm font-medium mb-2 dark:text-gray-200">
-                      Agente Asignado
+                      Responsable
                     </label>
                     <select
                       name="agente"
@@ -1866,8 +1964,7 @@ const ClientesCRM = () => {
                       onChange={handleAgenteChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     >
-                      <option value="">Sin asignar</option>
-                      {agentesOptions.map((a) => (
+                      {responsableOptions.map((a) => (
                         <option key={a._id} value={a._id}>{a.nombre}{a.cargo ? ` — ${a.cargo}` : ''}</option>
                       ))}
                     </select>

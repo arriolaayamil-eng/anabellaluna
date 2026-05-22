@@ -7,9 +7,24 @@ const Agente = require('../models/Agente');
 const Activity = require('../models/Activity');
 const Cita = require('../models/Cita');
 const Propiedad = require('../models/Propiedad');
+const User = require('../models/User');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
+
+async function resolveAssignableName(assigneeId) {
+  if (!assigneeId) return '';
+
+  const agente = await Agente.findById(assigneeId).select('nombre').lean();
+  if (agente?.nombre) return agente.nombre;
+
+  const admin = await User.findById(assigneeId).select('nombre username role empresa').lean();
+  if (!admin) return '';
+  if (String(admin.role || '') === 'admin') {
+    return admin.empresa || admin.nombre || admin.username || 'Inmobiliaria';
+  }
+  return admin.nombre || admin.username || '';
+}
 
 // ── STATIC ROUTES (must come before /:clienteId) ──
 
@@ -817,12 +832,25 @@ router.post('/:clienteId', authenticateToken, requireCRMUser, async (req, res) =
     }
 
     const body = { ...(req.body || {}) };
+    const incomingAgenteId = String(body.agenteId || '').trim();
+    const defaultResponsableId = !scopeId && req.user?.role === 'admin'
+      ? String(req.user.sub || req.user._id || req.user.id || '').trim()
+      : '';
     body.clienteId = clienteId;
-    body.agenteId = scopeId || body.agenteId || String(cliente.agenteId || '');
+    body.agenteId = String(scopeId || cliente.agenteId || incomingAgenteId || defaultResponsableId || '').trim();
+
+    if (!scopeId && !cliente.agenteId && body.agenteId) {
+      const agenteNombre = await resolveAssignableName(body.agenteId);
+      const clienteUpdate = { agenteId: body.agenteId };
+      if (agenteNombre) clienteUpdate['metadata.agente'] = agenteNombre;
+      clienteUpdate['metadata.agenteId'] = body.agenteId;
+      clienteUpdate['metadata.responsableTipo'] = body.agenteId === defaultResponsableId ? 'inmobiliaria' : 'agente';
+      await Cliente.findByIdAndUpdate(clienteId, { $set: clienteUpdate }).catch(() => {});
+    }
 
     // Ensure agenteId is never empty string (required by model)
     if (!body.agenteId) {
-      return res.status(400).json({ error: 'El cliente debe tener un agente asignado para crear interacciones' });
+      return res.status(400).json({ error: 'El cliente debe tener un responsable asignado para crear interacciones' });
     }
 
     const created = await ClientInteraction.create(body);

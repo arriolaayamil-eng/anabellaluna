@@ -14,12 +14,72 @@ async function getAssignerProfile(req) {
   const userId = req.user.sub || req.user._id || req.user.id;
   const role = req.user.role || '';
   // Try User first (admins), then Agente
-  const user = await User.findById(userId).select('nombre username avatar role').lean();
+  const user = await User.findById(userId).select('nombre username avatar role empresa').lean();
   if (user) {
-    return { userId: String(userId), nombre: user.nombre || user.username || '', avatar: user.avatar || '', role: user.role || role };
+    return {
+      userId: String(userId),
+      nombre: user.nombre || user.username || '',
+      avatar: user.avatar || '',
+      role: user.role || role,
+      empresa: user.empresa || '',
+    };
   }
   const agente = await Agente.findById(req.user.agenteId).select('nombre avatar').lean();
-  return { userId: String(userId), nombre: agente?.nombre || req.user.username || '', avatar: agente?.avatar || '', role };
+  return {
+    userId: String(userId),
+    nombre: agente?.nombre || req.user.username || '',
+    avatar: agente?.avatar || '',
+    role,
+    empresa: '',
+  };
+}
+
+async function resolveResponsableProfile(responsableId, fallback = null) {
+  const id = String(responsableId || '').trim();
+  if (!id) return fallback;
+
+  const agente = await Agente.findById(id).select('nombre avatar').lean();
+  if (agente) {
+    return {
+      id,
+      nombre: agente.nombre || '',
+      avatar: agente.avatar || '',
+      role: 'agent',
+      tipo: 'agente',
+    };
+  }
+
+  const user = await User.findById(id).select('nombre username avatar role empresa').lean();
+  if (user) {
+    const isAdmin = String(user.role || '') === 'admin';
+    return {
+      id,
+      nombre: isAdmin
+        ? (user.empresa || user.nombre || user.username || 'Inmobiliaria')
+        : (user.nombre || user.username || ''),
+      avatar: user.avatar || '',
+      role: user.role || '',
+      tipo: isAdmin ? 'inmobiliaria' : 'agente',
+    };
+  }
+
+  return fallback;
+}
+
+function applyResponsableToBody(body, responsable) {
+  if (!body || !responsable?.id) return;
+
+  body.agenteId = String(responsable.id);
+  const metadata = body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)
+    ? body.metadata
+    : {};
+
+  body.metadata = {
+    ...metadata,
+    agente: responsable.nombre || metadata.agente || '',
+    agenteId: String(responsable.id),
+    responsableTipo: responsable.tipo || metadata.responsableTipo || 'agente',
+  };
 }
 
 // Helper: notify agent when a client is assigned to them
@@ -72,17 +132,35 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
   try {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
-    if (scopeId) body.agenteId = scopeId;
+    const assignerProfile = await getAssignerProfile(req);
 
-    // Attach assigner profile when admin assigns a client
-    if (req.user.role === 'admin' && body.agenteId) {
-      body.assignedBy = await getAssignerProfile(req);
+    if (scopeId) {
+      const responsable = await resolveResponsableProfile(scopeId, {
+        id: scopeId,
+        nombre: assignerProfile.nombre || req.user.username || '',
+        avatar: assignerProfile.avatar || '',
+        role: 'agent',
+        tipo: 'agente',
+      });
+      applyResponsableToBody(body, responsable);
+    } else if (req.user.role === 'admin') {
+      const requestedResponsableId = String(body.agenteId || '').trim();
+      const defaultResponsableId = String(assignerProfile.userId || req.user.sub || req.user._id || req.user.id || '').trim();
+      const responsable = await resolveResponsableProfile(requestedResponsableId || defaultResponsableId, {
+        id: defaultResponsableId,
+        nombre: assignerProfile.empresa || assignerProfile.nombre || 'Inmobiliaria',
+        avatar: assignerProfile.avatar || '',
+        role: 'admin',
+        tipo: 'inmobiliaria',
+      });
+      applyResponsableToBody(body, responsable);
+      body.assignedBy = assignerProfile;
     }
 
     const created = await Cliente.create(body);
     
     // Trigger welcome automation for new client
-    if (created.agenteId) {
+    if (created.agenteId && created.metadata?.responsableTipo === 'agente') {
       triggerWelcomeAutomation(created, created.agenteId).catch(console.error);
     }
 
@@ -95,7 +173,7 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
     }).catch(() => {});
 
     // Notify assigned agent (if admin assigned to someone else)
-    if (created.agenteId && req.user.role === 'admin') {
+    if (created.agenteId && req.user.role === 'admin' && created.metadata?.responsableTipo === 'agente') {
       const assignerId = String(req.user.sub || req.user._id || '');
       // Only notify if assigned to a different user
       if (String(created.agenteId) !== assignerId) {
@@ -114,23 +192,49 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
     const filter = { _id: req.params.id };
     if (scopeId) filter.agenteId = scopeId;
     const body = { ...(req.body || {}) };
-    if (scopeId) body.agenteId = scopeId;
-
-    // Check if agent is being changed (for notification)
-    const previousClient = req.user.role === 'admin' && body.agenteId
-      ? await Cliente.findById(req.params.id).select('agenteId nombre').lean()
+    const previousClient = req.user.role === 'admin'
+      ? await Cliente.findById(req.params.id).select('agenteId nombre metadata').lean()
       : null;
 
-    // Attach assigner profile when admin reassigns
-    if (req.user.role === 'admin' && body.agenteId) {
-      body.assignedBy = await getAssignerProfile(req);
+    if (scopeId) {
+      const assignerProfile = await getAssignerProfile(req);
+      const responsable = await resolveResponsableProfile(scopeId, {
+        id: scopeId,
+        nombre: assignerProfile.nombre || req.user.username || '',
+        avatar: assignerProfile.avatar || '',
+        role: 'agent',
+        tipo: 'agente',
+      });
+      applyResponsableToBody(body, responsable);
+    } else if (req.user.role === 'admin') {
+      const assignerProfile = await getAssignerProfile(req);
+      const requestedResponsableId = String(body.agenteId || '').trim();
+      const previousResponsableId = String(previousClient?.agenteId || '').trim();
+      const defaultResponsableId = String(assignerProfile.userId || req.user.sub || req.user._id || req.user.id || '').trim();
+      const responsable = await resolveResponsableProfile(
+        requestedResponsableId || previousResponsableId || defaultResponsableId,
+        {
+          id: defaultResponsableId,
+          nombre: assignerProfile.empresa || assignerProfile.nombre || 'Inmobiliaria',
+          avatar: assignerProfile.avatar || '',
+          role: 'admin',
+          tipo: 'inmobiliaria',
+        },
+      );
+      applyResponsableToBody(body, responsable);
+      body.assignedBy = assignerProfile;
     }
 
     const updated = await Cliente.findOneAndUpdate(filter, body, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: 'Not found' });
 
     // Notify new agent if agenteId changed
-    if (previousClient && body.agenteId && String(body.agenteId) !== String(previousClient.agenteId || '')) {
+    if (
+      previousClient
+      && body.agenteId
+      && body.metadata?.responsableTipo === 'agente'
+      && String(body.agenteId) !== String(previousClient.agenteId || '')
+    ) {
       const assignerId = String(req.user.sub || req.user._id || '');
       if (String(body.agenteId) !== assignerId) {
         const assigner = updated.assignedBy?.nombre || req.user.username || 'Administrador';
