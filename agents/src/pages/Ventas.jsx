@@ -7,6 +7,38 @@ import { FaDollarSign, FaFileContract, FaChartLine, FaPlus, FaPercentage, FaHand
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
 
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch (_) {
+    return {};
+  }
+};
+
+const createVentaForm = () => {
+  const user = getStoredUser();
+  return {
+    propiedad: '',
+    cliente: '',
+    monto: '',
+    moneda: 'USD',
+    agente: '',
+    fechaCierre: '',
+    comision: '3.5',
+    inmobiliariaNombre: user?.empresa || 'Inmobiliaria',
+    comisionInmobiliariaPorcentaje: '3.5',
+    comparteConInmobiliaria: false,
+    inmobiliariaColega: '',
+    colega: '',
+    comisionColegaPorcentaje: '',
+    propiedadColegaNombre: '',
+    propiedadColegaPrecio: '',
+    propiedadColegaDireccion: '',
+    formaPago: 'Contado',
+    observaciones: '',
+  };
+};
+
 const Ventas = () => {
   const { currentMode } = useStateContext();
 
@@ -22,17 +54,7 @@ const Ventas = () => {
   const [showModalTasaCierre, setShowModalTasaCierre] = useState(false);
 
   // Estado para nueva venta
-  const [nuevaVenta, setNuevaVenta] = useState({
-    propiedad: '',
-    cliente: '',
-    monto: '',
-    moneda: 'USD',
-    agente: '',
-    fechaCierre: '',
-    comision: '3.5',
-    formaPago: 'Contado',
-    observaciones: '',
-  });
+  const [nuevaVenta, setNuevaVenta] = useState(createVentaForm);
 
   // Estado para nuevo alquiler
   const [nuevoAlquiler, setNuevoAlquiler] = useState({
@@ -215,8 +237,17 @@ const Ventas = () => {
 
   // Funciones de manejo para Venta
   const handleVentaChange = (e) => {
-    const { name, value } = e.target;
-    setNuevaVenta((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setNuevaVenta((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleOpenVentaModal = () => {
+    setNuevaVenta((prev) => ({
+      ...createVentaForm(),
+      ...prev,
+      inmobiliariaNombre: prev.inmobiliariaNombre || createVentaForm().inmobiliariaNombre,
+    }));
+    setShowModalVenta(true);
   };
 
   const handleVentaSubmit = (e) => {
@@ -225,17 +256,7 @@ const Ventas = () => {
     crmService.rewards.checkMilestones('operation').catch(() => {});
     toast.success('¡Venta registrada exitosamente!');
     setShowModalVenta(false);
-    setNuevaVenta({
-      propiedad: '',
-      cliente: '',
-      monto: '',
-      moneda: 'USD',
-      agente: '',
-      fechaCierre: '',
-      comision: '3.5',
-      formaPago: 'Contado',
-      observaciones: '',
-    });
+    setNuevaVenta(createVentaForm());
   };
 
   // Funciones de manejo para Alquiler
@@ -295,7 +316,7 @@ const Ventas = () => {
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           type="button"
-          onClick={() => setShowModalVenta(true)}
+          onClick={handleOpenVentaModal}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-medium bg-emerald-500 hover:bg-emerald-600 transition-all shadow-sm hover:shadow-md"
         >
           <FaPlus /> Nueva Venta
@@ -677,6 +698,51 @@ const Ventas = () => {
                       <label htmlFor="field-134" className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión (%)</label>
                       <input id="field-134" type="number" name="comision" value={nuevaVenta.comision} onChange={handleVentaChange} step="0.1" placeholder="3.5" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
                     </div>
+                    <div>
+                      <label htmlFor="field-venta-inmobiliaria" className="block text-sm font-medium mb-2 dark:text-gray-200">Inmobiliaria</label>
+                      <input id="field-venta-inmobiliaria" type="text" name="inmobiliariaNombre" value={nuevaVenta.inmobiliariaNombre} onChange={handleVentaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div>
+                      <label htmlFor="field-venta-comision-inmobiliaria" className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión inmobiliaria (%)</label>
+                      <input id="field-venta-comision-inmobiliaria" type="number" name="comisionInmobiliariaPorcentaje" value={nuevaVenta.comisionInmobiliariaPorcentaje} onChange={handleVentaChange} step="0.1" placeholder="3.5" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="inline-flex items-center gap-2 text-sm font-medium dark:text-gray-200">
+                        <input type="checkbox" name="comparteConInmobiliaria" checked={nuevaVenta.comparteConInmobiliaria} onChange={handleVentaChange} className="rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                        La venta se cierra con inmobiliaria colega
+                      </label>
+                    </div>
+                    {nuevaVenta.comparteConInmobiliaria && (
+                      <>
+                        <div>
+                          <label htmlFor="field-venta-inmobiliaria-colega" className="block text-sm font-medium mb-2 dark:text-gray-200">Inmobiliaria colega</label>
+                          <input id="field-venta-inmobiliaria-colega" type="text" name="inmobiliariaColega" value={nuevaVenta.inmobiliariaColega} onChange={handleVentaChange} placeholder="Nombre de la inmobiliaria" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label htmlFor="field-venta-colega" className="block text-sm font-medium mb-2 dark:text-gray-200">Colega</label>
+                          <input id="field-venta-colega" type="text" name="colega" value={nuevaVenta.colega} onChange={handleVentaChange} placeholder="Nombre del colega" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label htmlFor="field-venta-comision-colega" className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión colega (%)</label>
+                          <input id="field-venta-comision-colega" type="number" name="comisionColegaPorcentaje" value={nuevaVenta.comisionColegaPorcentaje} onChange={handleVentaChange} step="0.1" placeholder="0" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div className="md:col-span-2 pt-2">
+                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Propiedad ajena</p>
+                        </div>
+                        <div>
+                          <label htmlFor="field-venta-propiedad-colega" className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre de la propiedad</label>
+                          <input id="field-venta-propiedad-colega" type="text" name="propiedadColegaNombre" value={nuevaVenta.propiedadColegaNombre} onChange={handleVentaChange} placeholder="Nombre o referencia" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div>
+                          <label htmlFor="field-venta-precio-colega" className="block text-sm font-medium mb-2 dark:text-gray-200">Precio</label>
+                          <input id="field-venta-precio-colega" type="number" name="propiedadColegaPrecio" value={nuevaVenta.propiedadColegaPrecio} onChange={handleVentaChange} step="0.01" placeholder="0" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label htmlFor="field-venta-direccion-colega" className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
+                          <input id="field-venta-direccion-colega" type="text" name="propiedadColegaDireccion" value={nuevaVenta.propiedadColegaDireccion} onChange={handleVentaChange} placeholder="Dirección de la propiedad" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                        </div>
+                      </>
+                    )}
                     <div>
                       <label htmlFor="field-135" className="block text-sm font-medium mb-2 dark:text-gray-200">Forma de Pago</label>
                       <select id="field-135" name="formaPago" value={nuevaVenta.formaPago} onChange={handleVentaChange} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">

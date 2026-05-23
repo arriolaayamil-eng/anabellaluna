@@ -394,7 +394,12 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
     ]);
 
     const closedStatuses = ['Cerrada', 'Completada'];
-    const COMMISSION_RATE = 0.035;
+    const getAgentCommission = (op) => {
+      if (!op || !op.agenteId) return 0;
+      const pct = Number(op.comisionPorcentaje || 0);
+      if (!Number.isFinite(pct) || pct <= 0) return 0;
+      return (Number(op.monto || 0) * pct) / 100;
+    };
 
     // ── Operations for grid (enriched) ──
     const gridOps = await Promise.all(allOps.slice(0, 200).map(async (op) => {
@@ -413,7 +418,7 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
         const a = allAgentes.find(ag => String(ag._id) === String(op.agenteId));
         if (a) agenteNombre = a.nombre || '';
       }
-      const comision = (op.monto || 0) * COMMISSION_RATE;
+      const comision = getAgentCommission(op);
       return {
         id: op._id,
         tipo: op.tipo || 'Venta',
@@ -439,7 +444,7 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
     const totalVentasMes = ventasCerradasMes.reduce((s, o) => s + (o.monto || 0), 0);
     const operacionesActivas = allOps.filter(o => !closedStatuses.includes(o.estado)).length;
     const enReserva = allOps.filter(o => o.estado === 'Reservada').length;
-    const totalComisionesMes = closedThisMonth.reduce((s, o) => s + (o.monto || 0) * COMMISSION_RATE, 0);
+    const totalComisionesMes = closedThisMonth.reduce((s, o) => s + getAgentCommission(o), 0);
     const totalClosed = allOps.filter(o => closedStatuses.includes(o.estado)).length;
     const tasaCierre = allOps.length > 0 ? Math.round((totalClosed / allOps.length) * 100) : 0;
 
@@ -451,7 +456,7 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
       return `${pct >= 0 ? '+' : ''}${pct}%`;
     }
     const ventasTrend = pctChange(totalVentasMes, ventasLastMonth);
-    const comisionesLastMonth = closedLastMonth.reduce((s, o) => s + (o.monto || 0) * COMMISSION_RATE, 0);
+    const comisionesLastMonth = closedLastMonth.reduce((s, o) => s + getAgentCommission(o), 0);
     const comisionesTrend = pctChange(totalComisionesMes, comisionesLastMonth);
     const closedLastMonthCount = closedLastMonth.length;
     const closedThisMonthCount = closedThisMonth.length;
@@ -480,7 +485,7 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
     const totalComisionesTrend = allOps.filter(o => {
       const d = new Date(o.createdAt);
       return d >= monthsAgo(5) && closedStatuses.includes(o.estado);
-    }).reduce((s, o) => s + (o.monto || 0) * COMMISSION_RATE, 0);
+    }).reduce((s, o) => s + getAgentCommission(o), 0);
 
     // ── Estados distribution ──
     const cerradas = allOps.filter(o => closedStatuses.includes(o.estado)).length;
@@ -505,7 +510,7 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
         const agId = String(ag._id);
         const agOps = allOps.filter(o => String(o.agenteId) === agId);
         const agClosed = agOps.filter(o => closedStatuses.includes(o.estado));
-        const agComision = agClosed.reduce((s, o) => s + (o.monto || 0) * COMMISSION_RATE, 0);
+        const agComision = agClosed.reduce((s, o) => s + getAgentCommission(o), 0);
         agentComisiones.push({
           nombre: ag.nombre || 'Sin nombre',
           comision: Math.round(agComision),

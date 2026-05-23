@@ -3,12 +3,29 @@ const Operacion = require('../models/Operacion');
 const Propiedad = require('../models/Propiedad');
 const Cliente = require('../models/Cliente');
 const Agente = require('../models/Agente');
+const User = require('../models/User');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 
 const router = express.Router();
 
 // Helper: enrich metadata with real names from DB
-async function enrichMetadata(body) {
+async function getDefaultInmobiliaria(req) {
+  const adminId = req.user?.role === 'admin'
+    ? (req.user.sub || req.user._id || req.user.id)
+    : '';
+
+  const admin = adminId
+    ? await User.findById(adminId).select('nombre username empresa').lean()
+    : await User.findOne({ role: 'admin' }).select('nombre username empresa').sort({ createdAt: 1 }).lean();
+
+  if (!admin) return { id: '', nombre: 'Inmobiliaria' };
+  return {
+    id: String(admin._id),
+    nombre: admin.empresa || admin.nombre || admin.username || 'Inmobiliaria',
+  };
+}
+
+async function enrichMetadata(body, req) {
   const meta = { ...(body.metadata || {}) };
   if (body.propiedadId && !meta.propiedad) {
     const p = await Propiedad.findById(body.propiedadId).select('title address metadata').lean();
@@ -25,6 +42,23 @@ async function enrichMetadata(body) {
   if (body.agenteId && !meta.agente) {
     const a = await Agente.findById(body.agenteId).select('nombre').lean();
     if (a) meta.agente = a.nombre || '';
+  }
+  if (body.tipo === 'Venta') {
+    const inmobiliaria = await getDefaultInmobiliaria(req);
+    if (!meta.inmobiliariaId) meta.inmobiliariaId = inmobiliaria.id;
+    if (!meta.inmobiliaria) meta.inmobiliaria = inmobiliaria.nombre;
+    meta.comisionInmobiliariaPorcentaje = Number(meta.comisionInmobiliariaPorcentaje || 0);
+    meta.comisionColegaPorcentaje = Number(meta.comisionColegaPorcentaje || 0);
+    meta.comparteConInmobiliaria = Boolean(meta.comparteConInmobiliaria);
+    meta.propiedadColegaPrecio = Number(meta.propiedadColegaPrecio || 0);
+    if (!meta.comparteConInmobiliaria) {
+      meta.inmobiliariaColega = '';
+      meta.colega = '';
+      meta.comisionColegaPorcentaje = 0;
+      meta.propiedadColegaNombre = '';
+      meta.propiedadColegaPrecio = 0;
+      meta.propiedadColegaDireccion = '';
+    }
   }
   return meta;
 }
@@ -55,7 +89,7 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
     if (scopeId) body.agenteId = scopeId;
-    body.metadata = await enrichMetadata(body);
+    body.metadata = await enrichMetadata(body, req);
     const created = await Operacion.create(body);
     res.status(201).json(created);
   } catch (err) { res.status(400).json({ error: err.message }); }
@@ -68,7 +102,7 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
     if (scopeId) filter.agenteId = scopeId;
     const body = { ...(req.body || {}) };
     if (scopeId) body.agenteId = scopeId;
-    body.metadata = await enrichMetadata(body);
+    body.metadata = await enrichMetadata(body, req);
     const updated = await Operacion.findOneAndUpdate(filter, body, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: 'Not found' });
     res.json(updated);
