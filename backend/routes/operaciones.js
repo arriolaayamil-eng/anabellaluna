@@ -50,8 +50,22 @@ async function enrichMetadata(body, req) {
     meta.comisionInmobiliariaPorcentaje = Number(meta.comisionInmobiliariaPorcentaje || 0);
     meta.comisionColegaPorcentaje = Number(meta.comisionColegaPorcentaje || 0);
     meta.comparteConInmobiliaria = Boolean(meta.comparteConInmobiliaria);
+    if (meta.comparteConInmobiliaria && !meta.aporteInmobiliariaColega) {
+      meta.aporteInmobiliariaColega = 'comprador';
+    }
+    const colegaAportaPropiedad = meta.comparteConInmobiliaria && meta.aporteInmobiliariaColega === 'propiedad';
+    meta.origenPropiedad = colegaAportaPropiedad ? 'externa' : 'interna';
     meta.propiedadColegaPrecio = Number(meta.propiedadColegaPrecio || 0);
+    if (colegaAportaPropiedad) {
+      body.propiedadId = '';
+      meta.propiedad = meta.propiedadColegaNombre || meta.propiedadColegaDireccion || 'Propiedad externa';
+    } else {
+      meta.propiedadColegaNombre = '';
+      meta.propiedadColegaPrecio = 0;
+      meta.propiedadColegaDireccion = '';
+    }
     if (!meta.comparteConInmobiliaria) {
+      meta.aporteInmobiliariaColega = '';
       meta.inmobiliariaColega = '';
       meta.colega = '';
       meta.comisionColegaPorcentaje = 0;

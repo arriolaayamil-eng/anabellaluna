@@ -7,6 +7,8 @@ import { crmService } from '../services/crmService';
 import Chart from 'react-apexcharts';
 
 const SIN_AGENTE_INTERMEDIARIO = '__sin_agente_intermediario__';
+const APORTE_COLEGA_COMPRADOR = 'comprador';
+const APORTE_COLEGA_PROPIEDAD = 'propiedad';
 
 const isSinAgenteIntermediario = (value) => value === SIN_AGENTE_INTERMEDIARIO;
 
@@ -22,6 +24,7 @@ const VENTA_EMPTY = {
   inmobiliariaNombre: '',
   comisionInmobiliariaPorcentaje: '3.5',
   comparteConInmobiliaria: false,
+  aporteInmobiliariaColega: APORTE_COLEGA_COMPRADOR,
   inmobiliariaColega: '',
   colega: '',
   comisionColegaPorcentaje: '',
@@ -81,6 +84,8 @@ const Ventas = () => {
   const [nuevaVenta, setNuevaVenta] = useState(ventaEmptyWithDefaults);
   const [nuevoAlquiler, setNuevoAlquiler] = useState(ALQUILER_EMPTY);
   const [submitting, setSubmitting] = useState(false);
+  const ventaUsaPropiedadExterna = nuevaVenta.comparteConInmobiliaria
+    && nuevaVenta.aporteInmobiliariaColega === APORTE_COLEGA_PROPIEDAD;
   
   // Listas de la BD para los dropdowns
   const [propiedadesList, setPropiedadesList] = useState([]);
@@ -253,11 +258,13 @@ const Ventas = () => {
 
   const handleVentaSubmit = async (e) => {
     e.preventDefault();
+    const usaPropiedadExterna = nuevaVenta.comparteConInmobiliaria
+      && nuevaVenta.aporteInmobiliariaColega === APORTE_COLEGA_PROPIEDAD;
     setSubmitting(true);
     try {
       const payload = {
         tipo: 'Venta',
-        propiedadId: nuevaVenta.propiedadId,
+        propiedadId: usaPropiedadExterna ? '' : nuevaVenta.propiedadId,
         clienteId: nuevaVenta.clienteId,
         agenteId: nuevaVenta.agenteId === SIN_AGENTE_INTERMEDIARIO ? '' : nuevaVenta.agenteId,
         monto: Number(nuevaVenta.monto),
@@ -272,12 +279,15 @@ const Ventas = () => {
           inmobiliaria: nuevaVenta.inmobiliariaNombre,
           comisionInmobiliariaPorcentaje: Number(nuevaVenta.comisionInmobiliariaPorcentaje || 0),
           comparteConInmobiliaria: Boolean(nuevaVenta.comparteConInmobiliaria),
+          aporteInmobiliariaColega: nuevaVenta.comparteConInmobiliaria ? nuevaVenta.aporteInmobiliariaColega : '',
+          origenPropiedad: usaPropiedadExterna ? 'externa' : 'interna',
+          propiedad: usaPropiedadExterna ? nuevaVenta.propiedadColegaNombre : '',
           inmobiliariaColega: nuevaVenta.comparteConInmobiliaria ? nuevaVenta.inmobiliariaColega : '',
           colega: nuevaVenta.comparteConInmobiliaria ? nuevaVenta.colega : '',
           comisionColegaPorcentaje: nuevaVenta.comparteConInmobiliaria ? Number(nuevaVenta.comisionColegaPorcentaje || 0) : 0,
-          propiedadColegaNombre: nuevaVenta.comparteConInmobiliaria ? nuevaVenta.propiedadColegaNombre : '',
-          propiedadColegaPrecio: nuevaVenta.comparteConInmobiliaria ? Number(nuevaVenta.propiedadColegaPrecio || 0) : 0,
-          propiedadColegaDireccion: nuevaVenta.comparteConInmobiliaria ? nuevaVenta.propiedadColegaDireccion : '',
+          propiedadColegaNombre: usaPropiedadExterna ? nuevaVenta.propiedadColegaNombre : '',
+          propiedadColegaPrecio: usaPropiedadExterna ? Number(nuevaVenta.propiedadColegaPrecio || 0) : 0,
+          propiedadColegaDireccion: usaPropiedadExterna ? nuevaVenta.propiedadColegaDireccion : '',
         },
       };
       await crmService.operaciones.create(payload);
@@ -649,17 +659,26 @@ const Ventas = () => {
                   <FaHome className="text-green-500" /> Información de la Operación
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {!ventaUsaPropiedadExterna ? (
+                    <div>
+                      <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad nuestra *</label>
+                      <select name="propiedadId" value={nuevaVenta.propiedadId} onChange={handleVentaChange} required={!ventaUsaPropiedadExterna} className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Seleccionar propiedad</option>
+                        {propiedadesList.map(p => (
+                          <option key={p._id} value={p._id}>{p.title || p.address || p._id}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-900/20">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-100">Propiedad externa</p>
+                      <p className="text-sm text-amber-700 dark:text-amber-200">No se exige propiedad interna porque la parte vendedora la aporta la inmobiliaria colega.</p>
+                    </div>
+                  )}
                   <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Propiedad *</label>
-                    <select name="propiedadId" value={nuevaVenta.propiedadId} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
-                      <option value="">Seleccionar propiedad</option>
-                      {propiedadesList.map(p => (
-                        <option key={p._id} value={p._id}>{p.title || p.address || p._id}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">Cliente *</label>
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+                      {ventaUsaPropiedadExterna ? 'Cliente comprador *' : nuevaVenta.comparteConInmobiliaria ? 'Cliente vendedor *' : 'Cliente *'}
+                    </label>
                     <select name="clienteId" value={nuevaVenta.clienteId} onChange={handleVentaChange} required className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100">
                       <option value="">Seleccionar cliente</option>
                       {clientesList.map(c => (
@@ -714,6 +733,19 @@ const Ventas = () => {
                   </div>
                   {nuevaVenta.comparteConInmobiliaria && (
                     <>
+                      <div className="md:col-span-2 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                        <p className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-200">¿Qué aporta la inmobiliaria colega?</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <label className="flex gap-3 rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700 dark:text-gray-200">
+                            <input type="radio" name="aporteInmobiliariaColega" value={APORTE_COLEGA_COMPRADOR} checked={nuevaVenta.aporteInmobiliariaColega === APORTE_COLEGA_COMPRADOR} onChange={handleVentaChange} className="mt-1 text-green-600 focus:ring-green-500" />
+                            <span><strong>Trae comprador</strong><br />Nosotros aportamos la propiedad del vendedor.</span>
+                          </label>
+                          <label className="flex gap-3 rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700 dark:text-gray-200">
+                            <input type="radio" name="aporteInmobiliariaColega" value={APORTE_COLEGA_PROPIEDAD} checked={nuevaVenta.aporteInmobiliariaColega === APORTE_COLEGA_PROPIEDAD} onChange={handleVentaChange} className="mt-1 text-green-600 focus:ring-green-500" />
+                            <span><strong>Trae propiedad/vendedor</strong><br />Nosotros aportamos el comprador y cargamos propiedad ajena.</span>
+                          </label>
+                        </div>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium mb-2 dark:text-gray-200">Inmobiliaria colega</label>
                         <input type="text" name="inmobiliariaColega" value={nuevaVenta.inmobiliariaColega} onChange={handleVentaChange} placeholder="Nombre de la inmobiliaria" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
@@ -726,21 +758,25 @@ const Ventas = () => {
                         <label className="block text-sm font-medium mb-2 dark:text-gray-200">Comisión colega (%)</label>
                         <input type="number" name="comisionColegaPorcentaje" value={nuevaVenta.comisionColegaPorcentaje} onChange={handleVentaChange} step="0.1" placeholder="0" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
                       </div>
-                      <div className="md:col-span-2 pt-2">
-                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Propiedad ajena</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre de la propiedad</label>
-                        <input type="text" name="propiedadColegaNombre" value={nuevaVenta.propiedadColegaNombre} onChange={handleVentaChange} placeholder="Nombre o referencia" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">Precio</label>
-                        <input type="number" name="propiedadColegaPrecio" value={nuevaVenta.propiedadColegaPrecio} onChange={handleVentaChange} step="0.01" placeholder="0" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
-                        <input type="text" name="propiedadColegaDireccion" value={nuevaVenta.propiedadColegaDireccion} onChange={handleVentaChange} placeholder="Dirección de la propiedad" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
-                      </div>
+                      {ventaUsaPropiedadExterna && (
+                        <>
+                          <div className="md:col-span-2 pt-2">
+                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Propiedad ajena</p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Nombre de la propiedad *</label>
+                            <input type="text" name="propiedadColegaNombre" value={nuevaVenta.propiedadColegaNombre} onChange={handleVentaChange} required={ventaUsaPropiedadExterna} placeholder="Nombre o referencia" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Precio</label>
+                            <input type="number" name="propiedadColegaPrecio" value={nuevaVenta.propiedadColegaPrecio} onChange={handleVentaChange} step="0.01" placeholder="0" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium mb-2 dark:text-gray-200">Dirección</label>
+                            <input type="text" name="propiedadColegaDireccion" value={nuevaVenta.propiedadColegaDireccion} onChange={handleVentaChange} placeholder="Dirección de la propiedad" className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-100" />
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                   <div>

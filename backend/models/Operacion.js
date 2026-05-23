@@ -26,6 +26,8 @@ const OperacionSchema = new mongoose.Schema({
     colega: { type: String, default: '' },
     comisionColegaPorcentaje: { type: Number, default: 0 },
     comparteConInmobiliaria: { type: Boolean, default: false },
+    aporteInmobiliariaColega: { type: String, default: '' },
+    origenPropiedad: { type: String, default: 'interna' },
     propiedadColegaNombre: { type: String, default: '' },
     propiedadColegaPrecio: { type: Number, default: 0 },
     propiedadColegaDireccion: { type: String, default: '' },

@@ -406,6 +406,9 @@ router.get('/operaciones', authenticateToken, requireCRMUser, async (req, res) =
       let propNombre = op.metadata?.propiedad || '';
       let clienteNombre = op.metadata?.cliente || '';
       let agenteNombre = op.metadata?.agente || '';
+      if (!propNombre && op.metadata?.origenPropiedad === 'externa') {
+        propNombre = op.metadata?.propiedadColegaNombre || op.metadata?.propiedadColegaDireccion || 'Propiedad externa';
+      }
       if (!propNombre && op.propiedadId) {
         const p = await Propiedad.findById(op.propiedadId).select('title').lean();
         if (p) propNombre = p.title || '';
