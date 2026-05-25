@@ -22,6 +22,12 @@ const { registerCitaTools } = require('./tools/citas');
 const { registerOperacionTools } = require('./tools/operaciones');
 const { registerTareaTools } = require('./tools/tareas');
 const { registerMetricasTools } = require('./tools/metricas');
+const { registerDocumentoTools } = require('./tools/documentos');
+const { registerAutomationTools } = require('./tools/automations');
+const { registerContratoTools } = require('./tools/contratos');
+const { registerReporteTools } = require('./tools/reportes');
+const { registerMensajeTools } = require('./tools/mensajes');
+const { registerAdminTools } = require('./tools/admin');
 
 async function main() {
   // Connect to MongoDB
@@ -42,6 +48,12 @@ async function main() {
   registerOperacionTools(server);
   registerTareaTools(server);
   registerMetricasTools(server);
+  registerDocumentoTools(server);
+  registerAutomationTools(server);
+  registerContratoTools(server);
+  registerReporteTools(server);
+  registerMensajeTools(server);
+  registerAdminTools(server);
 
   // Start with stdio transport
   const transport = new StdioServerTransport();
