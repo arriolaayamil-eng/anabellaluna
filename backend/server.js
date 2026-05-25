@@ -115,6 +115,7 @@ const pushRoutes = require('./routes/push');
 const clientInteractionsRoutes = require('./routes/clientInteractions');
 const mercadoLibreRoutes = require('./routes/mercadolibre');
 const marketingAIRoutes = require('./routes/marketing-ai/index');
+const aiChatRoutes = require('./routes/ai-chat');
 const adminAIConfigRoutes = require('./routes/admin/ai-config');
 
 const { buildPropertyOGRouter } = require('./openGraph');
@@ -322,6 +323,7 @@ app.use('/api/push', pushRoutes);
 
 // Marketing AI routes
 app.use('/marketing-ai', marketingAIRoutes);
+app.use('/ai', aiChatRoutes);
 
 // Generic CRM routes (links) - MUST come after specific routes
 

@@ -12,11 +12,12 @@ const AIMessageSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ['user', 'assistant', 'tool', 'system'],
+    enum: ['user', 'assistant', 'tool', 'tool_result', 'system'],
     required: true,
   },
-  content: { type: String, required: true, default: '' },
+  content: { type: String, default: '' },
 
+  // Legacy single tool call (old orchestrator)
   toolCall: {
     toolName:    String,
     toolInput:   mongoose.Schema.Types.Mixed,
@@ -27,6 +28,10 @@ const AIMessageSchema = new mongoose.Schema({
       enum: ['pending', 'approved', 'rejected', 'executed', 'failed'],
     },
   },
+
+  // MCP-based: multiple tool calls per message (Anthropic content blocks)
+  toolCalls:   { type: mongoose.Schema.Types.Mixed },
+  toolResults: { type: mongoose.Schema.Types.Mixed },
 
   provider:   String,
   model:      String,

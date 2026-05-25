@@ -1,0 +1,21 @@
+{
+  "name": "anabella-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Anabella Luna CRM/ERP - Full system access for AI agents",
+  "main": "src/index.js",
+  "bin": {
+    "anabella-mcp": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "mongoose": "^7.6.3",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "anabella-crm": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": ".",
+      "env": {
+        "MONGODB_URI": "mongodb://localhost:27017/anabella"
+      }
+    }
+  }
+}
