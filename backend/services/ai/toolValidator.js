@@ -56,6 +56,56 @@ const VALIDATORS = {
   },
 
   get_crm_summary: (_input) => null,
+
+  // ── CRM tools ──────────────────────────────────────────────────────────────
+  search_clientes:      (i) => (i.limit && (i.limit < 1 || i.limit > 50)) ? 'limit 1-50' : null,
+  get_cliente_detail:   (i) => !i.clienteId ? 'clienteId requerido' : null,
+  create_cliente:       (i) => !i.nombre || !String(i.nombre).trim() ? 'nombre requerido' : null,
+  update_cliente:       (i) => {
+    if (!i.clienteId) return 'clienteId requerido';
+    if (!i.updates || typeof i.updates !== 'object') return 'updates requerido';
+    return null;
+  },
+
+  search_propiedades:   (i) => {
+    if (i.limit && (i.limit < 1 || i.limit > 50)) return 'limit 1-50';
+    if (i.minPrice && i.maxPrice && i.minPrice > i.maxPrice) return 'minPrice > maxPrice';
+    return null;
+  },
+  get_propiedad_detail: (i) => !i.propiedadId ? 'propiedadId requerido' : null,
+  update_propiedad:     (i) => {
+    if (!i.propiedadId) return 'propiedadId requerido';
+    if (!i.updates || typeof i.updates !== 'object') return 'updates requerido';
+    return null;
+  },
+
+  list_citas:   (i) => (i.limit && (i.limit < 1 || i.limit > 50)) ? 'limit 1-50' : null,
+  create_cita:  (i) => {
+    if (!i.fecha) return 'fecha requerida';
+    if (Number.isNaN(new Date(i.fecha).getTime())) return 'fecha inválida';
+    return null;
+  },
+  update_cita:  (i) => {
+    if (!i.citaId) return 'citaId requerido';
+    if (!i.updates || typeof i.updates !== 'object') return 'updates requerido';
+    return null;
+  },
+  cancel_cita:  (i) => !i.citaId ? 'citaId requerido' : null,
+
+  list_operaciones: (i) => (i.limit && (i.limit < 1 || i.limit > 50)) ? 'limit 1-50' : null,
+
+  list_tareas:         (i) => (i.limit && (i.limit < 1 || i.limit > 50)) ? 'limit 1-50' : null,
+  create_tarea:        (i) => !i.title || !String(i.title).trim() ? 'title requerido' : null,
+  update_tarea_status: (i) => {
+    if (!i.tareaId) return 'tareaId requerido';
+    if (!i.status)  return 'status requerido';
+    return null;
+  },
+
+  log_activity:       (_i) => null,
+  list_notifications: (i)  => (i.limit && (i.limit < 1 || i.limit > 50)) ? 'limit 1-50' : null,
+  get_dashboard_metrics: (_i) => null,
+  list_agentes:       (i)  => (i.limit && (i.limit < 1 || i.limit > 50)) ? 'limit 1-50' : null,
 };
 
 /**

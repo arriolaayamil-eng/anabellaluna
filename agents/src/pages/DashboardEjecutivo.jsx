@@ -56,8 +56,8 @@ const DashboardEjecutivo = () => {
     },
     {
       title: 'Interacciones totales',
-      value: dashStats?.interactions?.total ?? 0,
-      desc: `${dashStats?.interactions?.monthly ?? 0} este mes`,
+      value: dashStats?.interactionMetrics?.total ?? dashStats?.interactions?.total ?? 0,
+      desc: `${dashStats?.interactionMetrics?.thisMes ?? dashStats?.interactions?.monthly ?? 0} este mes`,
       icon: <FaDollarSign />,
       color: 'from-emerald-500 to-emerald-600',
       trend: '+0%',

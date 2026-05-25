@@ -27,40 +27,70 @@ function getRecommendationService() {
   return require('./recommendationService');
 }
 
+function getCRMOperations() {
+  return require('./integrations/crmOperations');
+}
+
 // ── Dispatch map ──────────────────────────────────────────────────────────────
 
 async function dispatch(toolName, toolInput, execution) {
   const meta = getMetaAds();
   const crm  = getCRMService();
   const recs = getRecommendationService();
+  const ops  = getCRMOperations();
 
   const ctx = {
     agenteId:       execution.agenteId || '',
+    userId:         execution.userId,
+    isAdmin:        !!execution.isAdmin,
     inmobiliariaId: '',
     generatedBy:    execution.userId,
   };
 
   switch (toolName) {
-    case 'get_campaigns':
-      return meta.getCampaigns(toolInput);
+    // ── Marketing / Meta ─────────────────────────────────────────────────────
+    case 'get_campaigns':           return meta.getCampaigns(toolInput);
+    case 'get_campaign_metrics':    return meta.getCampaignMetrics(toolInput);
+    case 'update_campaign_budget':  return meta.updateCampaignBudget(toolInput);
+    case 'pause_campaign':          return meta.pauseCampaign(toolInput);
+    case 'resume_campaign':         return meta.resumeCampaign(toolInput);
+    case 'generate_recommendation': return recs.createRecommendation({ ...toolInput, ...ctx });
 
-    case 'get_campaign_metrics':
-      return meta.getCampaignMetrics(toolInput);
+    // ── CRM Context ──────────────────────────────────────────────────────────
+    case 'get_crm_summary':         return crm.getSummary(toolInput);
 
-    case 'update_campaign_budget':
-      return meta.updateCampaignBudget(toolInput);
+    // ── CRM — Clientes ───────────────────────────────────────────────────────
+    case 'search_clientes':         return ops.searchClientes(toolInput, ctx);
+    case 'get_cliente_detail':      return ops.getClienteDetail(toolInput, ctx);
+    case 'create_cliente':          return ops.createCliente(toolInput, ctx);
+    case 'update_cliente':          return ops.updateCliente(toolInput, ctx);
 
-    case 'pause_campaign':
-      return meta.pauseCampaign(toolInput);
+    // ── CRM — Propiedades ────────────────────────────────────────────────────
+    case 'search_propiedades':      return ops.searchPropiedades(toolInput, ctx);
+    case 'get_propiedad_detail':    return ops.getPropiedadDetail(toolInput, ctx);
+    case 'update_propiedad':        return ops.updatePropiedad(toolInput, ctx);
 
-    case 'resume_campaign':
-      return meta.resumeCampaign(toolInput);
+    // ── CRM — Agenda ─────────────────────────────────────────────────────────
+    case 'list_citas':              return ops.listCitas(toolInput, ctx);
+    case 'create_cita':             return ops.createCita(toolInput, ctx);
+    case 'update_cita':             return ops.updateCita(toolInput, ctx);
+    case 'cancel_cita':             return ops.cancelCita(toolInput, ctx);
 
-    case 'generate_recommendation':
-      return recs.createRecommendation({ ...toolInput, ...ctx });
+    // ── CRM — Operaciones ────────────────────────────────────────────────────
+    case 'list_operaciones':        return ops.listOperaciones(toolInput, ctx);
 
-    case 'get_crm_summary':
-      return crm.getSummary(toolInput);
+    // ── CRM — Tareas ─────────────────────────────────────────────────────────
+    case 'list_tareas':             return ops.listTareas(toolInput, ctx);
+    case 'create_tarea':            return ops.createTarea(toolInput, ctx);
+    case 'update_tarea_status':     return ops.updateTareaStatus(toolInput, ctx);
+
+    // ── CRM — Actividades / Notifs ───────────────────────────────────────────
+    case 'log_activity':            return ops.logActivity(toolInput, ctx);
+    case 'list_notifications':      return ops.listNotifications(toolInput, ctx);
+
+    // ── Métricas / Agentes ───────────────────────────────────────────────────
+    case 'get_dashboard_metrics':   return ops.getDashboardMetrics(toolInput, ctx);
+    case 'list_agentes':            return ops.listAgentes(toolInput, ctx);
 
     default:
       throw new Error(`No executor found for tool: ${toolName}`);
@@ -90,6 +120,22 @@ async function captureRollbackData(toolName, toolInput) {
     }
   }
 
+  // CRM cita rollback: capture current state before modification
+  if (toolName === 'update_cita' || toolName === 'cancel_cita') {
+    try {
+      const Cita = require('../../models/Cita');
+      const id = toolInput.citaId;
+      const current = await Cita.findById(id).lean();
+      if (current) return { type: 'cita', citaId: id, previousState: current };
+    } catch { /* noop */ }
+    return null;
+  }
+
+  // create_cita rollback: after creation we store the ID so we can delete it
+  if (toolName === 'create_cita') {
+    return { type: 'cita_create' };
+  }
+
   return null;
 }
 
@@ -111,6 +157,18 @@ async function performRollback(toolName, rollbackData) {
 
   if (toolName === 'resume_campaign' && rollbackData.previousStatus === 'PAUSED') {
     await meta.pauseCampaign({ campaignId: rollbackData.campaignId, reason: 'Rollback automático' });
+  }
+
+  // CRM cita rollback
+  if (rollbackData.type === 'cita' && rollbackData.previousState) {
+    const Cita = require('../../models/Cita');
+    const { _id, createdAt, updatedAt, __v, ...fields } = rollbackData.previousState;
+    await Cita.findByIdAndUpdate(rollbackData.citaId, { $set: fields });
+  }
+
+  if (rollbackData.type === 'cita_create' && rollbackData.createdId) {
+    const Cita = require('../../models/Cita');
+    await Cita.findByIdAndDelete(rollbackData.createdId);
   }
 }
 
@@ -144,6 +202,11 @@ async function executeApprovedTool(executionId, approvedBy) {
 
   try {
     const result = await dispatch(execution.toolName, execution.toolInput, execution);
+
+    // For create_cita rollback, store the created ID
+    if (rollbackData && rollbackData.type === 'cita_create' && result && result._id) {
+      rollbackData.createdId = String(result._id);
+    }
 
     await AIToolExecution.findByIdAndUpdate(executionId, {
       $set: {

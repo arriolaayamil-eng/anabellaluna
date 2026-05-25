@@ -130,6 +130,7 @@ async function processMessage({
         messageId:        savedAssistant._id,
         userId,
         agenteId,
+        isAdmin:          (permissions || []).includes('admin:all'),
         toolName,
         toolInput,
         requiresApproval: toolMeta.requiresApproval,

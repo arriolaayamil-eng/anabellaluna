@@ -51,6 +51,8 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
     const todayEnd = endOfDay(now);
     const weekStart = startOfWeek(now);
     const monthStart = startOfMonth(now);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
     // ── KPIs ──
     const allClientes = await Cliente.find(clienteFilter).lean();
@@ -69,6 +71,17 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
       ...propFilter,
       status: 'Disponible',
     });
+    const propiedadesNuevasMes = await Propiedad.countDocuments({
+      ...propFilter,
+      createdAt: { $gte: monthStart },
+    });
+    const propiedadesLastMonth = await Propiedad.countDocuments({
+      ...propFilter,
+      createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+    });
+    const propiedadesTrend = propiedadesLastMonth > 0
+      ? `${propiedadesNuevasMes >= propiedadesLastMonth ? '+' : ''}${Math.round(((propiedadesNuevasMes - propiedadesLastMonth) / propiedadesLastMonth) * 100)}%`
+      : '+0%';
 
     const tareasPendientes = await Tarea.countDocuments({
       ...tareaFilter,
@@ -76,6 +89,11 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
         { kanbanColumn: { $nin: ['done', 'Close'] } },
         { kanbanColumn: { $exists: false } },
       ],
+      completed: { $ne: true },
+    });
+    const tareasHoy = await Tarea.countDocuments({
+      ...tareaFilter,
+      dueDate: { $gte: todayStart, $lte: todayEnd },
       completed: { $ne: true },
     });
 
@@ -245,8 +263,6 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
     }).length;
 
     // ── KPI trends (compare with last month) ──
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     const clientesLastMonth = allClientes.filter(c => {
       const created = new Date(c.createdAt);
       return created >= lastMonthStart && created <= lastMonthEnd;
@@ -306,10 +322,17 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
       kpis: {
         leadsActivos,
         leadsActivosTrend: leadsTrend,
+        clientesActivos: leadsActivos,
+        clientesNuevosMes,
+        clientesTrend: leadsTrend,
         visitasHoy,
         visitasTrend,
         propiedadesAsignadas,
+        propiedadesActivas: propiedadesAsignadas,
+        propiedadesNuevasMes,
+        propiedadesTrend,
         tareasPendientes,
+        tareasHoy,
         tareasTrend,
       },
       leadsEstado: {
@@ -363,6 +386,11 @@ router.get('/dashboard', authenticateToken, requireCRMUser, async (req, res) => 
       interactionMetrics: {
         total: totalInteractions,
         thisMes: interactionsThisMonth,
+        clientesRequiringRecontact,
+      },
+      interactions: {
+        total: totalInteractions,
+        monthly: interactionsThisMonth,
         clientesRequiringRecontact,
       },
     });

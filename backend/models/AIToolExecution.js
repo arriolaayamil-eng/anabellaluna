@@ -13,6 +13,7 @@ const AIToolExecutionSchema = new mongoose.Schema({
   },
   userId:   { type: String, required: true, index: true },
   agenteId: { type: String, default: '' },
+  isAdmin:  { type: Boolean, default: false },
 
   toolName:  { type: String, required: true, index: true },
   toolInput: { type: mongoose.Schema.Types.Mixed, required: true },

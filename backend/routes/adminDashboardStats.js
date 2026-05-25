@@ -26,7 +26,27 @@ function monthsAgo(n) {
   return d;
 }
 const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const COMMISSION_RATE = 0.06; // 6% default
+const DEFAULT_COMMISSION_RATE = 0.035;
+
+function numberOrZero(value) {
+  const num = Number(value || 0);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function getAgencyCommission(op) {
+  const monto = numberOrZero(op?.monto);
+  const explicit = numberOrZero(op?.comisionMonto);
+  if (explicit > 0) return explicit;
+  const pct = numberOrZero(op?.metadata?.comisionInmobiliariaPorcentaje || op?.comisionPorcentaje);
+  return pct > 0 ? (monto * pct) / 100 : 0;
+}
+
+function getAgentCommission(op) {
+  if (!op?.agenteId) return 0;
+  const monto = numberOrZero(op?.monto);
+  const pct = numberOrZero(op?.comisionPorcentaje);
+  return pct > 0 ? (monto * pct) / 100 : 0;
+}
 
 // ============ GET /admin/stats/dashboard ============
 router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, res) => {
@@ -70,13 +90,16 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
     const ingresosVentas = ventasClosed.reduce((s, o) => s + (o.monto || 0), 0);
     const ingresosAlquileres = alquileresClosed.reduce((s, o) => s + (o.monto || 0), 0);
     const ingresosTotales = ingresosVentas + ingresosAlquileres;
-    const comisionesTotales = ingresosTotales * COMMISSION_RATE;
+    const closedOpsYear = [...ventasClosed, ...alquileresClosed];
+    const comisionesTotales = closedOpsYear.reduce((s, o) => s + getAgencyCommission(o), 0);
+    const effectiveCommissionRate = ingresosTotales > 0 ? comisionesTotales / ingresosTotales : DEFAULT_COMMISSION_RATE;
     const totalOpsCount = ventasClosed.length + alquileresClosed.length;
     const ticketPromedio = totalOpsCount > 0 ? Math.round(ingresosTotales / totalOpsCount) : 0;
 
     // Previous month for comparison
     const opsLastMonthClosed = opsLastMonth.filter(o => closedStatuses.includes(o.estado));
     const ingresosLastMonth = opsLastMonthClosed.reduce((s, o) => s + (o.monto || 0), 0);
+    const comisionesLastMonth = opsLastMonthClosed.reduce((s, o) => s + getAgencyCommission(o), 0);
     const ticketLastMonth = opsLastMonthClosed.length > 0 ? Math.round(ingresosLastMonth / opsLastMonthClosed.length) : 0;
 
     // Conversion rate: leads → closed
@@ -124,7 +147,7 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
       });
       const mVentas = mOps.filter(o => o.tipo === 'Venta').reduce((s, o) => s + (o.monto || 0), 0);
       const mAlquileres = mOps.filter(o => o.tipo === 'Alquiler').reduce((s, o) => s + (o.monto || 0), 0);
-      const mComisiones = (mVentas + mAlquileres) * COMMISSION_RATE;
+      const mComisiones = mOps.reduce((s, o) => s + getAgencyCommission(o), 0);
       revenueMonthly.push({
         mes: MONTH_LABELS[mStart.getMonth()],
         ventas: Math.round(mVentas),
@@ -184,7 +207,7 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
       const agVentas = agOpsClosed.filter(o => o.tipo === 'Venta');
       const agAlquileres = agOpsClosed.filter(o => o.tipo === 'Alquiler');
       const agIngresos = agOpsClosed.reduce((s, o) => s + (o.monto || 0), 0);
-      const agComision = agIngresos * COMMISSION_RATE;
+      const agComision = agOpsClosed.reduce((s, o) => s + getAgentCommission(o), 0);
       const agClientes = allClientes.filter(c => String(c.agenteId) === agenteId);
       const agLeads = agClientes.length;
       const agCerrados = agClientes.filter(c => (c.metadata?.estado) === 'Cerrado').length;
@@ -280,7 +303,7 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
         agente: agenteNombre || 'Sistema',
         tiempo,
         monto: act.metadata?.monto ? `$${Number(act.metadata.monto).toLocaleString()}` : null,
-        comision: act.metadata?.monto ? `$${Math.round(Number(act.metadata.monto) * COMMISSION_RATE).toLocaleString()}` : null,
+        comision: act.metadata?.monto ? `$${Math.round(Number(act.metadata.monto) * effectiveCommissionRate).toLocaleString()}` : null,
       });
     }
 
@@ -344,13 +367,13 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
     const roi = costoMarketing > 0 ? Math.round(((ingresoMarketing - costoMarketing) / costoMarketing) * 100) : 0;
     const roas = costoMarketing > 0 ? parseFloat((ingresoMarketing / costoMarketing).toFixed(2)) : 0;
     const cac = totalLeads > 0 && costoMarketing > 0 ? Math.round(costoMarketing / Math.max(totalCerrados, 1)) : 0;
-    const ltv = totalCerrados > 0 ? Math.round(ingresosTotales / totalCerrados * COMMISSION_RATE) : 0;
+    const ltv = totalCerrados > 0 ? Math.round(comisionesTotales / totalCerrados) : 0;
 
     // Previous month ROI for trend
     const costoMarketingLastMonth = opsLastMonth.reduce((s, o) => s + (o.metadata?.costoAdquisicion || 0), 0);
     const ingresoMarketingLastMonth = opsLastMonth.reduce((s, o) => s + (o.metadata?.ingresoMarketing || 0), 0);
-    const costoMktLM = costoMarketingLastMonth > 0 ? costoMarketingLastMonth : Math.round(ingresosLastMonth * COMMISSION_RATE * 0.1);
-    const ingMktLM = ingresoMarketingLastMonth > 0 ? ingresoMarketingLastMonth : ingresosLastMonth * COMMISSION_RATE;
+    const costoMktLM = costoMarketingLastMonth > 0 ? costoMarketingLastMonth : Math.round(comisionesLastMonth * 0.1);
+    const ingMktLM = ingresoMarketingLastMonth > 0 ? ingresoMarketingLastMonth : comisionesLastMonth;
     const roiLastMonth = costoMktLM > 0 ? Math.round(((ingMktLM - costoMktLM) / costoMktLM) * 100) : 0;
     const roasLastMonth = costoMktLM > 0 ? parseFloat((ingMktLM / costoMktLM).toFixed(2)) : 0;
 
@@ -365,14 +388,14 @@ router.get('/dashboard', authenticateToken, requireRole('admin'), async (req, re
       // ── Main KPIs ──
       kpis: {
         ingresosTotales: { value: formatMoney(ingresosTotales), raw: ingresosTotales, change: pctChange(ingresosTotales, ingresosLastMonth * 12), yearGoal, yearProgress: `${yearProgress}%` },
-        comisiones: { value: formatMoney(comisionesTotales), raw: comisionesTotales, change: pctChange(comisionesTotales, ingresosLastMonth * 12 * COMMISSION_RATE), rate: `${COMMISSION_RATE * 100}%` },
+        comisiones: { value: formatMoney(comisionesTotales), raw: comisionesTotales, change: pctChange(comisionesTotales, comisionesLastMonth * 12), rate: `${(effectiveCommissionRate * 100).toFixed(1)}%` },
         operaciones: { value: totalOpsCount, ventas: ventasClosed.length, alquileres: alquileresClosed.length, change: `+${opsThisMonth.filter(o => closedStatuses.includes(o.estado)).length}` },
         tasaConversion: { value: `${tasaConversion}%`, change: `${tasaConversion >= convLastMonth ? '+' : ''}${tasaConversion - convLastMonth}pp`, prev: `${convLastMonth}%` },
       },
       // ── Financial metrics ──
       financialMetrics: {
         ticketPromedio: { value: ticketPromedio, change: pctChange(ticketPromedio, ticketLastMonth) },
-        margenOperativo: { value: (COMMISSION_RATE * 100).toFixed(1), change: '+0pp' },
+        margenOperativo: { value: (effectiveCommissionRate * 100).toFixed(1), change: '+0pp' },
         diasPromVenta: { value: diasPromVenta, change: `${diasPromVenta}d` },
         costoPorLead: { value: totalLeads > 0 ? Math.round(comisionesTotales * 0.1 / totalLeads) : 0 },
         leadsTotales: totalLeads,

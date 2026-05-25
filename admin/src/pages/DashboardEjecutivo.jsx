@@ -68,7 +68,7 @@ const DashboardEjecutivo = () => {
   const kpis = [
     { title: 'Ingresos Totales', value: dk.ingresosTotales?.value || '$0', change: dk.ingresosTotales?.change || '+0%', trend: 'up', icon: FaDollarSign, color: '#10b981', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', subtitle: `Meta anual: ${fmtMoney(dk.ingresosTotales?.yearGoal)} (${dk.ingresosTotales?.yearProgress || '0%'})` },
     { title: 'Comisiones', value: dk.comisiones?.value || '$0', change: dk.comisiones?.change || '+0%', trend: 'up', icon: FaPercent, color: '#6366f1', bgColor: 'bg-indigo-50 dark:bg-indigo-900/20', subtitle: `${dk.comisiones?.rate || '6%'} promedio` },
-    { title: 'Operaciones', value: String(dk.operaciones?.value ?? 0), change: `+${dk.operaciones?.change || 0}`, trend: 'up', icon: FaChartLine, color: '#f59e0b', bgColor: 'bg-amber-50 dark:bg-amber-900/20', subtitle: `${dk.operaciones?.ventas ?? 0} ventas + ${dk.operaciones?.alquileres ?? 0} alquileres` },
+    { title: 'Operaciones', value: String(dk.operaciones?.value ?? 0), change: dk.operaciones?.change || '+0', trend: 'up', icon: FaChartLine, color: '#f59e0b', bgColor: 'bg-amber-50 dark:bg-amber-900/20', subtitle: `${dk.operaciones?.ventas ?? 0} ventas + ${dk.operaciones?.alquileres ?? 0} alquileres` },
     { title: 'Tasa Conversión', value: dk.tasaConversion?.value || '0%', change: dk.tasaConversion?.change || '+0pp', trend: 'up', icon: HiTrendingUp, color: '#8b5cf6', bgColor: 'bg-purple-50 dark:bg-purple-900/20', subtitle: `vs ${dk.tasaConversion?.prev || '0%'} mes anterior` },
   ];
 
