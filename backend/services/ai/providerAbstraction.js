@@ -19,14 +19,18 @@ const CACHE_TTL_MS = 60 * 1000;
 let _credCache    = null;
 let _credCacheAt  = 0;
 
-const VALID_PROVIDERS = new Set(['openai', 'anthropic', 'gemini']);
-const DEFAULT_MODEL   = { openai: 'gpt-4o', anthropic: 'claude-sonnet-4-20250514', gemini: 'gemini-2.0-flash' };
+const VALID_PROVIDERS = new Set(['openai', 'anthropic', 'gemini', 'openclaw']);
+const DEFAULT_MODEL   = { openai: 'gpt-4o', anthropic: 'claude-sonnet-4-20250514', gemini: 'gemini-2.0-flash', openclaw: 'openclaw' };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function _isValidGeminiEnvKey() {
   const k = process.env.GEMINI_API_KEY;
   return k && k.startsWith('AIza') && k.length > 20;
+}
+
+function _isValidOpenClawEnv() {
+  return !!(process.env.OPENCLAW_BASE_URL && process.env.OPENCLAW_BASE_URL.startsWith('http'));
 }
 
 // ── Encryption (idéntico a mercadoLibre.js) ───────────────────────────────────
@@ -100,6 +104,19 @@ async function getProviderConfig() {
     };
   }
 
+  // OpenClaw env fallback: si hay OPENCLAW_BASE_URL en env y no hay config en DB
+  if ((!result.openclaw || !result.openclaw.baseUrl) && _isValidOpenClawEnv()) {
+    result.openclaw = {
+      enabled:     true,
+      model:       'openclaw',
+      maxTokens:   4096,
+      temperature: 0.3,
+      ...(result.openclaw || {}),
+      baseUrl:     process.env.OPENCLAW_BASE_URL,
+      apiKey:      process.env.OPENCLAW_TOKEN || '',
+    };
+  }
+
   _credCache   = result;
   _credCacheAt = now;
   return result;
@@ -124,8 +141,15 @@ async function chatCompletion({
 }) {
   const config = await getProviderConfig();
 
-  // Bootstrap: sin config en DB, intentar con GEMINI_API_KEY del env.
+  // Bootstrap: sin config en DB, intentar con env vars.
   if (!config) {
+    if (_isValidOpenClawEnv()) {
+      const bootstrapCfg = {
+        defaultProvider: 'openclaw',
+        openclaw: { enabled: true, baseUrl: process.env.OPENCLAW_BASE_URL, apiKey: process.env.OPENCLAW_TOKEN || '', model: 'openclaw', maxTokens: 4096, temperature: 0.3 },
+      };
+      return _runWithConfig(bootstrapCfg, { messages, tools, stream, userId, agenteId, conversationId, maxTokens, forcedProvider });
+    }
     if (_isValidGeminiEnvKey()) {
       const bootstrapCfg = {
         defaultProvider: 'gemini',
@@ -158,7 +182,10 @@ async function _runWithConfig(config, { messages, tools, stream, userId, agenteI
 
   for (const providerName of uniqueOrder) {
     const pCfg = config[providerName];
-    if (!pCfg || !pCfg.enabled || !pCfg.apiKey) continue;
+    const needsKey = providerName !== 'openclaw';
+    if (!pCfg || !pCfg.enabled) continue;
+    if (needsKey && !pCfg.apiKey) continue;
+    if (providerName === 'openclaw' && !pCfg.baseUrl && !process.env.OPENCLAW_BASE_URL) continue;
 
     const startedAt = Date.now();
     try {
@@ -206,7 +233,46 @@ async function _callProvider(providerName, cfg, { messages, tools, stream }) {
   if (providerName === 'openai')    return _callOpenAI(cfg, { messages, tools, stream });
   if (providerName === 'anthropic') return _callAnthropic(cfg, { messages, tools, stream });
   if (providerName === 'gemini')    return _callGemini(cfg, { messages, tools, stream });
+  if (providerName === 'openclaw')  return _callOpenClaw(cfg, { messages, tools, stream });
   throw new Error(`Unknown provider: ${providerName}`);
+}
+
+async function _callOpenClaw(cfg, { messages, tools, stream }) {
+  const baseUrl = cfg.baseUrl || process.env.OPENCLAW_BASE_URL || 'http://localhost:18789';
+  const token   = cfg.apiKey  || process.env.OPENCLAW_TOKEN   || '';
+  const model   = cfg.model   || DEFAULT_MODEL.openclaw;
+
+  const headers = {
+    'Content-Type':  'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const body = JSON.stringify({
+    model,
+    messages,
+    temperature: cfg.temperature ?? 0.3,
+    max_tokens:  cfg.maxTokens  || 4096,
+    ...(tools && tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
+    ...(stream ? { stream: true } : {}),
+  });
+
+  const response = await fetch(`${baseUrl}/v1/chat/completions`, { method: 'POST', headers, body });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText);
+    throw new Error(`OpenClaw API error ${response.status}: ${text}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.choices || !data.choices[0]) {
+    throw new Error('OpenClaw returned an empty response');
+  }
+
+  return {
+    choices: data.choices,
+    usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+  };
 }
 
 async function _callGemini(cfg, { messages, tools }) {
@@ -422,6 +488,7 @@ function _estimateCost(provider, model, tokens) {
     'gemini-1.5-flash-latest':    { input: 0,    output: 0 },  // free tier
     'gemini-1.5-pro-latest':      { input: 1.25, output: 5 },
     'gemini-2.5-flash-preview-05-20': { input: 0, output: 0 }, // free tier
+    openclaw:                         { input: 0, output: 0 }, // local, no cost
   };
   const p = pricing[model] || { input: 5, output: 15 };
   const inp = ((tokens.prompt_tokens     || 0) / 1_000_000) * p.input;

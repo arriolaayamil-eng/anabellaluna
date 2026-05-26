@@ -42,6 +42,11 @@ const AIProviders = () => {
         gemini_model:     cfg.gemini?.model    || 'gemini-2.0-flash',
         gemini_maxTokens: cfg.gemini?.maxTokens || 4096,
         gemini_apiKey:    '',
+        openclaw_enabled:   cfg.openclaw?.enabled  || false,
+        openclaw_baseUrl:   cfg.openclaw?.baseUrl  || 'http://localhost:18789',
+        openclaw_model:     cfg.openclaw?.model    || 'openclaw',
+        openclaw_maxTokens: cfg.openclaw?.maxTokens || 4096,
+        openclaw_token:     '',
       });
       setMetaInfo(meta);
       setUsage(usageData);
@@ -72,6 +77,13 @@ const AIProviders = () => {
           maxTokens:  form.gemini_maxTokens,
           ...(form.gemini_apiKey ? { apiKey: form.gemini_apiKey } : {}),
         },
+        openclaw: {
+          enabled:  form.openclaw_enabled,
+          baseUrl:  form.openclaw_baseUrl,
+          model:    form.openclaw_model,
+          maxTokens: form.openclaw_maxTokens,
+          ...(form.openclaw_token ? { token: form.openclaw_token } : {}),
+        },
       };
       await aiService.updateProviders(payload);
       toast.success('Configuración AI guardada');
@@ -83,6 +95,7 @@ const AIProviders = () => {
         gemini_apiKey:    '',
         openai_apiKey:    '',
         anthropic_apiKey: '',
+        openclaw_token:   '',
       }));
     } catch (err) {
       toast.error(err.message);
@@ -260,11 +273,93 @@ const AIProviders = () => {
         <input type="number" style={inputStyle} value={form.gemini_maxTokens} onChange={(e) => setForm((f) => ({ ...f, gemini_maxTokens: parseInt(e.target.value, 10) }))} min={256} max={8192} />
       </div>
 
+      {/* OpenClaw */}
+      <div style={{ ...cardStyle, borderLeft: '3px solid #e11d48' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>🦞 OpenClaw</span>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fce7f3', color: '#9d174d' }}>LOCAL / SELF-HOSTED</span>
+        </div>
+        <div style={{ fontSize: 12, color: isDark ? '#64748b' : '#94a3b8', marginBottom: 12 }}>
+          Conectá tu instancia local de OpenClaw. Expone una API OpenAI-compatible en el puerto configurado (por defecto 18789).
+          Descargá OpenClaw en <a href="https://openclaw.ai" target="_blank" rel="noreferrer" style={{ color: '#e11d48' }}>openclaw.ai</a>
+        </div>
+
+        <div
+          style={toggleStyle(form.openclaw_enabled)}
+          onClick={() => setForm((f) => ({ ...f, openclaw_enabled: !f.openclaw_enabled }))}
+        >
+          {form.openclaw_enabled ? '✓ Habilitado' : '○ Deshabilitado'}
+        </div>
+
+        <label style={labelStyle}>URL Base del Gateway</label>
+        <input
+          type="text"
+          style={inputStyle}
+          placeholder="http://localhost:18789"
+          value={form.openclaw_baseUrl}
+          onChange={(e) => setForm((f) => ({ ...f, openclaw_baseUrl: e.target.value }))}
+        />
+        {config?.openclaw?.baseUrl && config.openclaw.baseUrl !== form.openclaw_baseUrl && (
+          <div style={{ fontSize: 11, marginBottom: 6, color: isDark ? '#64748b' : '#94a3b8' }}>
+            Guardado: {config.openclaw.baseUrl}
+          </div>
+        )}
+
+        <label style={labelStyle}>Token de Autenticación (opcional)</label>
+        {config?.openclaw?.tokenSource === 'env' && (
+          <div style={{ fontSize: 11, marginBottom: 6, padding: '4px 8px', borderRadius: 6, background: isDark ? 'rgba(234,179,8,0.1)' : '#fefce8', border: '1px solid #ca8a04', color: '#ca8a04' }}>
+            ⚠ Usando token de variable de entorno. Guardá uno aquí para tomar precedencia.
+          </div>
+        )}
+        {config?.openclaw?.tokenSource === 'db' && (
+          <div style={{ fontSize: 11, marginBottom: 6, padding: '4px 8px', borderRadius: 6, background: isDark ? 'rgba(34,197,94,0.1)' : '#f0fdf4', border: '1px solid #16a34a', color: '#16a34a' }}>
+            ✓ Token configurado desde el panel (DB).
+          </div>
+        )}
+        <input
+          type="password"
+          style={inputStyle}
+          placeholder={config?.openclaw?.hasToken ? '••••••••••••••••' : 'tu-token (dejar vacío si no usás auth)'}
+          value={form.openclaw_token}
+          onChange={(e) => setForm((f) => ({ ...f, openclaw_token: e.target.value }))}
+        />
+
+        <label style={labelStyle}>Nombre del Modelo</label>
+        <input
+          type="text"
+          style={inputStyle}
+          placeholder="openclaw"
+          value={form.openclaw_model}
+          onChange={(e) => setForm((f) => ({ ...f, openclaw_model: e.target.value }))}
+        />
+
+        <label style={labelStyle}>Max Tokens</label>
+        <input
+          type="number"
+          style={inputStyle}
+          value={form.openclaw_maxTokens}
+          onChange={(e) => setForm((f) => ({ ...f, openclaw_maxTokens: parseInt(e.target.value, 10) }))}
+          min={256}
+          max={32768}
+        />
+
+        {config?.openclaw?.stats && (
+          <div style={{ fontSize: 12, color: isDark ? '#64748b' : '#94a3b8', marginTop: 4 }}>
+            Estado: <span style={{ color: config.openclaw.stats.healthStatus === 'healthy' ? '#22c55e' : '#ef4444' }}>
+              {config.openclaw.stats.healthStatus}
+            </span>
+            {' '}· Requests: {config.openclaw.stats.totalRequests || 0}
+            {' '}· Errores: {config.openclaw.stats.totalErrors || 0}
+          </div>
+        )}
+      </div>
+
       {/* Provider defaults */}
       <div style={cardStyle}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚙️ Configuración general</div>
         <label style={labelStyle}>Provider por defecto</label>
         <select style={inputStyle} value={form.defaultProvider} onChange={(e) => setForm((f) => ({ ...f, defaultProvider: e.target.value }))}>
+          <option value="openclaw">OpenClaw (local)</option>
           <option value="gemini">Gemini (gratuito)</option>
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
@@ -272,6 +367,7 @@ const AIProviders = () => {
         <label style={labelStyle}>Provider fallback (si el primero falla)</label>
         <select style={inputStyle} value={form.fallbackProvider} onChange={(e) => setForm((f) => ({ ...f, fallbackProvider: e.target.value }))}>
           <option value="">— Ninguno —</option>
+          <option value="openclaw">OpenClaw (local)</option>
           <option value="gemini">Gemini (gratuito)</option>
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>
