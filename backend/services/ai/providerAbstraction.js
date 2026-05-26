@@ -78,7 +78,7 @@ async function getProviderConfig() {
     defaultProvider: 'openclaw',
     openclaw: {
       enabled:     true,
-      model:       dbClaw.model       || 'openclaw',
+      model:       process.env.OPENCLAW_MODEL || dbClaw.model || 'openrouter/openai/gpt-4o-mini',
       maxTokens:   dbClaw.maxTokens   || 4096,
       temperature: dbClaw.temperature ?? 0.3,
       baseUrl:     process.env.OPENCLAW_BASE_URL || dbClaw.baseUrl || 'http://127.0.0.1:18789',
