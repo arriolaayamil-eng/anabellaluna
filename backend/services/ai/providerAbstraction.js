@@ -392,6 +392,56 @@ async function _callOpenAI(cfg, { messages, tools, stream }) {
   return client.chat.completions.create(params);
 }
 
+// Convert OpenAI-format message array → Anthropic format.
+// OpenAI uses role:'tool' + tool_call_id for results, and puts tool_calls on assistant messages.
+// Anthropic uses role:'assistant' content:[{type:'tool_use',...}] and role:'user' content:[{type:'tool_result',...}].
+function _toAnthropicMessages(messages) {
+  const result = [];
+
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+
+    // Skip system — handled separately
+    if (m.role === 'system') continue;
+
+    // Assistant message with tool_calls → convert to Anthropic tool_use blocks
+    if (m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0) {
+      const content = [];
+      if (m.content) content.push({ type: 'text', text: m.content });
+      for (const tc of m.tool_calls) {
+        let input = {};
+        try { input = JSON.parse(tc.function.arguments || '{}'); } catch { input = {}; }
+        content.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
+      }
+      result.push({ role: 'assistant', content });
+      continue;
+    }
+
+    // role:'tool' messages → collect all consecutive ones into a single user tool_result block
+    if (m.role === 'tool') {
+      // Collect all consecutive tool messages
+      const toolResults = [];
+      let j = i;
+      while (j < messages.length && messages[j].role === 'tool') {
+        toolResults.push({
+          type:        'tool_result',
+          tool_use_id: messages[j].tool_call_id,
+          content:     messages[j].content || '',
+        });
+        j++;
+      }
+      result.push({ role: 'user', content: toolResults });
+      i = j - 1; // advance outer loop
+      continue;
+    }
+
+    // Normal user/assistant message
+    result.push({ role: m.role, content: m.content || '' });
+  }
+
+  return result;
+}
+
 async function _callAnthropic(cfg, { messages, tools, stream }) {
   let Anthropic;
   try {
@@ -406,13 +456,13 @@ async function _callAnthropic(cfg, { messages, tools, stream }) {
 
   const client = new Anthropic({ apiKey: cfg.apiKey });
 
-  const systemMsg = messages.find((m) => m.role === 'system');
-  const userMsgs  = messages.filter((m) => m.role !== 'system');
+  const systemMsg    = messages.find((m) => m.role === 'system');
+  const anthropicMsgs = _toAnthropicMessages(messages);
 
   const params = {
-    model: cfg.model || DEFAULT_MODEL.anthropic,
-    max_tokens: cfg.maxTokens || 4096,
-    messages: userMsgs,
+    model:       cfg.model || DEFAULT_MODEL.anthropic,
+    max_tokens:  cfg.maxTokens || 4096,
+    messages:    anthropicMsgs,
     temperature: cfg.temperature ?? 0.3,
   };
 
