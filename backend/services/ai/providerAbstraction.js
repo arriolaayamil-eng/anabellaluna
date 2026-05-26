@@ -104,8 +104,9 @@ async function getProviderConfig() {
     };
   }
 
-  // OpenClaw env fallback: si hay OPENCLAW_BASE_URL en env y no hay config en DB
-  if ((!result.openclaw || !result.openclaw.baseUrl) && _isValidOpenClawEnv()) {
+  // OpenClaw env: si hay OPENCLAW_BASE_URL en env, siempre inyectar y tomar precedencia
+  // como defaultProvider (el .env es la fuente de verdad para infraestructura local).
+  if (_isValidOpenClawEnv()) {
     result.openclaw = {
       enabled:     true,
       model:       'openclaw',
@@ -113,8 +114,14 @@ async function getProviderConfig() {
       temperature: 0.3,
       ...(result.openclaw || {}),
       baseUrl:     process.env.OPENCLAW_BASE_URL,
-      apiKey:      process.env.OPENCLAW_TOKEN || '',
+      apiKey:      process.env.OPENCLAW_TOKEN || (result.openclaw && result.openclaw.apiKey) || '',
     };
+    // Si el .env define OPENCLAW_BASE_URL, toma precedencia como provider activo
+    if (!result.defaultProvider || result.defaultProvider !== 'openclaw') {
+      result._prevDefaultProvider = result.defaultProvider; // conservar como fallback
+      result.defaultProvider  = 'openclaw';
+      result.fallbackProvider = result.fallbackProvider || result._prevDefaultProvider || '';
+    }
   }
 
   _credCache   = result;
