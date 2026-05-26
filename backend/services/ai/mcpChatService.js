@@ -1,22 +1,23 @@
 /**
- * MCP Chat Service — Replaces the old orchestrator.
+ * MCP Chat Service — Agentic chat con tool loop completo.
  *
- * Uses Anthropic API directly with tool_use.
- * Tools are provided by the MCP Server (spawned as child process).
- * Supports streaming and conversation history.
+ * USA providerAbstraction (OpenClaw / OpenAI / Anthropic / Gemini)
+ * en lugar de Anthropic hardcodeado.
+ * Tools provistos por el MCP Server (proceso hijo via stdio).
+ * Formato de tools: OpenAI-compatible (tool_calls / tool role).
  */
 
-const Anthropic = require('@anthropic-ai/sdk');
 const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
 const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
 const path = require('path');
 
-const AIConversation = require('../../models/AIConversation');
-const AIMessage      = require('../../models/AIMessage');
+const { chatCompletion } = require('./providerAbstraction');
+const AIConversation    = require('../../models/AIConversation');
+const AIMessage         = require('../../models/AIMessage');
 
 // ── Singleton MCP Client ──────────────────────────────────────────────────────
 
-let mcpClient = null;
+let mcpClient    = null;
 let mcpTransport = null;
 let availableTools = [];
 
@@ -27,19 +28,22 @@ async function ensureMCPConnection() {
 
   mcpTransport = new StdioClientTransport({
     command: 'node',
-    args: [MCP_SERVER_PATH],
-    env: { ...process.env },
+    args:    [MCP_SERVER_PATH],
+    env:     { ...process.env },
   });
 
   mcpClient = new Client({ name: 'anabella-backend', version: '1.0.0' });
   await mcpClient.connect(mcpTransport);
 
-  // Cache available tools
+  // Convertir tools MCP → formato OpenAI function-calling
   const toolsResponse = await mcpClient.listTools();
   availableTools = (toolsResponse.tools || []).map((t) => ({
-    name: t.name,
-    description: t.description || '',
-    input_schema: t.inputSchema || { type: 'object', properties: {} },
+    type: 'function',
+    function: {
+      name:        t.name,
+      description: t.description || '',
+      parameters:  t.inputSchema || { type: 'object', properties: {} },
+    },
   }));
 
   console.log(`[AI/MCP] Connected. ${availableTools.length} tools available.`);
@@ -49,25 +53,19 @@ async function ensureMCPConnection() {
 async function disconnectMCP() {
   if (mcpClient) {
     await mcpClient.close();
-    mcpClient = null;
+    mcpClient    = null;
     mcpTransport = null;
     availableTools = [];
   }
 }
 
-// ── Anthropic Client ──────────────────────────────────────────────────────────
-
-function getAnthropicClient() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-  return new Anthropic({ apiKey });
-}
-
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
 function buildSystemPrompt(context = {}) {
-  const tz = process.env.DEFAULT_TIMEZONE || 'America/Argentina/Buenos_Aires';
-  const today = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz });
+  const tz    = process.env.DEFAULT_TIMEZONE || 'America/Argentina/Buenos_Aires';
+  const today = new Date().toLocaleDateString('es-AR', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz,
+  });
 
   return `Sos el Copilot AI de Anabella Luna, asistente integral del CRM/ERP inmobiliario.
 Hoy es ${today}. Zona horaria: ${tz}.
@@ -120,145 +118,156 @@ ${context.agenteName ? `- Agente: ${context.agenteName}` : ''}`;
 
 const MAX_TOOL_ROUNDS = 10;
 
-async function chat({ conversationId, userMessage, userId, agenteId, agenteName }) {
-  // 1. Ensure MCP connection
+async function chat({ conversationId, userMessage, userId, agenteId, agenteName, permissions }) {
+  // 1. Conectar MCP server (tools del CRM/ERP)
   await ensureMCPConnection();
 
-  // 2. Load or create conversation
+  // 2. Cargar o crear conversación
   let conversation = await AIConversation.findById(conversationId);
   if (!conversation) {
     conversation = await AIConversation.create({
       userId,
-      agenteId: agenteId || '',
-      title: userMessage.slice(0, 60),
+      agenteId:    agenteId || '',
+      title:       userMessage.slice(0, 60),
       contextType: 'general',
     });
   }
 
-  // 3. Save user message
+  // 3. Guardar mensaje del usuario
   await AIMessage.create({
     conversationId: conversation._id,
-    role: 'user',
+    role:    'user',
     content: userMessage,
     userId,
   });
 
-  // 4. Load history
-  const history = await AIMessage.find({ conversationId: conversation._id })
+  // 4. Cargar historial (solo user/assistant, últimos 40 mensajes)
+  const history = await AIMessage.find({
+    conversationId: conversation._id,
+    role: { $in: ['user', 'assistant'] },
+  })
     .sort({ createdAt: 1 })
-    .limit(100)
+    .limit(40)
     .lean();
 
-  // Build messages for Anthropic
-  const messages = history.map((m) => {
-    if (m.role === 'user') return { role: 'user', content: m.content };
-    if (m.role === 'assistant') {
-      if (m.toolCalls && m.toolCalls.length > 0) {
-        return { role: 'assistant', content: m.toolCalls };
-      }
-      return { role: 'assistant', content: m.content || '' };
-    }
-    if (m.role === 'tool_result') {
-      return { role: 'user', content: m.toolResults || [] };
-    }
-    return { role: m.role === 'system' ? 'user' : m.role, content: m.content || '' };
-  }).filter((m) => m.content && (typeof m.content === 'string' ? m.content.trim() : true));
-
-  // 5. Anthropic API call with tool loop
-  const anthropic = getAnthropicClient();
+  // Construir mensajes en formato OpenAI
   const systemPrompt = buildSystemPrompt({ agenteId, agenteName });
+  let currentMessages = [
+    { role: 'system', content: systemPrompt },
+    ...history.map((m) => ({ role: m.role, content: m.content || '' })),
+  ];
 
-  let currentMessages = [...messages];
   let finalResponse = '';
   let rounds = 0;
+  let lastProvider = '';
+  let totalTokens = 0;
 
+  // 5. Loop LLM → tools (formato OpenAI)
   while (rounds < MAX_TOOL_ROUNDS) {
     rounds++;
 
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: systemPrompt,
+    const llmResult = await chatCompletion({
       messages: currentMessages,
-      tools: availableTools,
+      tools:    availableTools,
+      userId,
+      agenteId,
+      conversationId: conversation._id,
     });
 
-    // Check if we have tool_use blocks
-    const toolUseBlocks = response.content.filter((b) => b.type === 'tool_use');
-    const textBlocks = response.content.filter((b) => b.type === 'text');
+    lastProvider = llmResult.provider || '';
+    totalTokens += llmResult.usage?.total_tokens || 0;
 
-    if (toolUseBlocks.length === 0) {
-      // No tool calls — final response
-      finalResponse = textBlocks.map((b) => b.text).join('\n');
+    const choice      = llmResult.choices[0];
+    const assistantMsg = choice.message;
+    const finishReason = choice.finish_reason;
+
+    // Sin tool calls → respuesta final
+    if (finishReason !== 'tool_calls' || !assistantMsg.tool_calls?.length) {
+      finalResponse = assistantMsg.content || '';
       break;
     }
 
-    // Save assistant message with tool calls
+    // Guardar mensaje del assistant (con tool_calls)
     await AIMessage.create({
       conversationId: conversation._id,
-      role: 'assistant',
-      content: textBlocks.map((b) => b.text).join('\n'),
-      toolCalls: response.content,
+      role:      'assistant',
+      content:   assistantMsg.content || '',
+      toolCalls: assistantMsg.tool_calls,
+      provider:  lastProvider,
       userId,
     });
 
-    // Add assistant message to context
-    currentMessages.push({ role: 'assistant', content: response.content });
+    // Agregar assistant al contexto
+    currentMessages.push({
+      role:       'assistant',
+      content:    assistantMsg.content || null,
+      tool_calls: assistantMsg.tool_calls,
+    });
 
-    // Execute tool calls via MCP
-    const toolResults = [];
-    for (const toolUse of toolUseBlocks) {
+    // Ejecutar cada tool via MCP y construir tool result messages
+    for (const toolCall of assistantMsg.tool_calls) {
+      let toolResultContent;
       try {
+        const args = JSON.parse(toolCall.function.arguments || '{}');
         const result = await mcpClient.callTool({
-          name: toolUse.name,
-          arguments: toolUse.input || {},
+          name:      toolCall.function.name,
+          arguments: args,
         });
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: toolUse.id,
-          content: result.content || [{ type: 'text', text: 'OK' }],
-          is_error: result.isError || false,
-        });
+        // MCP devuelve { content: [{type:'text', text:'...'}] }
+        const text = Array.isArray(result.content)
+          ? result.content.map((c) => c.text || '').join('\n')
+          : JSON.stringify(result);
+        toolResultContent = result.isError ? `Error: ${text}` : text;
       } catch (err) {
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: toolUse.id,
-          content: [{ type: 'text', text: `Error: ${err.message}` }],
-          is_error: true,
-        });
+        toolResultContent = `Error ejecutando ${toolCall.function.name}: ${err.message}`;
       }
+
+      // Agregar tool result al contexto (formato OpenAI)
+      currentMessages.push({
+        role:         'tool',
+        tool_call_id: toolCall.id,
+        content:      toolResultContent,
+      });
     }
 
-    // Save tool results
+    // Guardar tool results en DB para historial
     await AIMessage.create({
       conversationId: conversation._id,
-      role: 'tool_result',
-      content: '',
-      toolResults,
+      role:        'tool_result',
+      content:     '',
+      toolResults: assistantMsg.tool_calls.map((tc, i) => ({
+        tool_call_id: tc.id,
+        name:         tc.function.name,
+        content:      currentMessages[currentMessages.length - assistantMsg.tool_calls.length + i]?.content || '',
+      })),
       userId,
     });
-
-    // Add tool results to messages
-    currentMessages.push({ role: 'user', content: toolResults });
   }
 
-  // 6. Save final assistant response
-  await AIMessage.create({
+  // 6. Guardar respuesta final del assistant
+  const savedAssistant = await AIMessage.create({
     conversationId: conversation._id,
-    role: 'assistant',
-    content: finalResponse,
+    role:       'assistant',
+    content:    finalResponse,
+    provider:   lastProvider,
+    tokensUsed: totalTokens,
     userId,
   });
 
-  // 7. Update conversation
+  // 7. Actualizar conversación
   await AIConversation.findByIdAndUpdate(conversation._id, {
-    $set: { lastMessageAt: new Date(), messageCount: (conversation.messageCount || 0) + 2 },
+    $set: { lastMessageAt: new Date() },
+    $inc: { messageCount: 2, totalTokensUsed: totalTokens },
   });
 
   return {
-    conversationId: conversation._id,
-    response: finalResponse,
-    toolRounds: rounds,
+    conversationId:     conversation._id,
+    assistantMessageId: savedAssistant._id,
+    content:            finalResponse,
+    response:           finalResponse,
+    provider:           lastProvider,
+    toolRounds:         rounds,
+    usage:              { total_tokens: totalTokens },
   };
 }
 

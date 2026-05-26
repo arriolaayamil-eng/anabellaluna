@@ -3,7 +3,7 @@ const router  = express.Router();
 
 const AIConversation = require('../../models/AIConversation');
 const AIMessage      = require('../../models/AIMessage');
-const { processMessage }     = require('../../services/ai/orchestrator');
+const { chat }               = require('../../services/ai/mcpChatService');
 const { agentScope, resolvePermissions } = require('../../middlewares/rbac');
 
 // GET /marketing-ai/conversations
@@ -99,22 +99,19 @@ router.post('/:id/messages', async (req, res) => {
       return res.status(400).json({ error: 'message is required' });
     }
 
-    const userId  = String(req.user.sub || req.user.id || req.user._id || '');
+    const userId      = String(req.user.sub || req.user.id || req.user._id || '');
     const permissions = resolvePermissions(req.user);
-    const io = req.app.get('io');
 
-    const result = await processMessage({
+    const result = await chat({
       conversationId: req.params.id,
       userMessage:    message.trim(),
       userId,
-      agenteId:    req.user.agenteId || '',
+      agenteId:    req.user.agenteId   || '',
+      agenteName:  req.user.username   || req.user.nombre || '',
       permissions,
-      io,
-      sessionId:   req.headers['x-session-id'] || '',
-      ipAddress:   req.ip || '',
     });
 
-    res.json(result);
+    res.json({ ...result, content: result.content || result.response || '' });
   } catch (err) {
     console.error('[AI] processMessage error:', err.message);
     res.status(500).json({ error: err.message });
