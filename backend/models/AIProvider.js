@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const AIProviderSchema = new mongoose.Schema({
   name: {
     type: String,
-    enum: ['openai', 'anthropic', 'google', 'gemini', 'openclaw'],
+    enum: ['openai', 'anthropic', 'google', 'gemini', 'openclaw', 'openrouter'],
     required: true,
     unique: true,
   },

@@ -24,10 +24,9 @@ const AIProviders = () => {
     ]).then(([cfg, meta, usageData]) => {
       setConfig(cfg);
       setForm({
-        openclaw_baseUrl:   cfg.openclaw?.baseUrl   || 'http://127.0.0.1:18789',
-        openclaw_model:     cfg.openclaw?.model     || 'openclaw',
-        openclaw_maxTokens: cfg.openclaw?.maxTokens || 4096,
-        openclaw_token:     '',
+        or_model:     cfg.openrouter?.model     || 'openai/gpt-4o-mini',
+        or_maxTokens: cfg.openrouter?.maxTokens || 4096,
+        or_apiKey:    '',
       });
       setMetaInfo(meta);
       setUsage(usageData);
@@ -38,20 +37,19 @@ const AIProviders = () => {
     setSaving(true);
     try {
       const payload = {
-        defaultProvider: 'openclaw',
-        openclaw: {
+        defaultProvider: 'openrouter',
+        openrouter: {
           enabled:   true,
-          baseUrl:   form.openclaw_baseUrl,
-          model:     form.openclaw_model,
-          maxTokens: form.openclaw_maxTokens,
-          ...(form.openclaw_token ? { token: form.openclaw_token } : {}),
+          model:     form.or_model,
+          maxTokens: form.or_maxTokens,
+          ...(form.or_apiKey ? { apiKey: form.or_apiKey } : {}),
         },
       };
       await aiService.updateProviders(payload);
-      toast.success('Configuración OpenClaw guardada');
+      toast.success('Configuración OpenRouter guardada');
       const fresh = await aiService.getProviders();
       setConfig(fresh);
-      setForm((f) => ({ ...f, openclaw_token: '' }));
+      setForm((f) => ({ ...f, or_apiKey: '' }));
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -118,77 +116,69 @@ const AIProviders = () => {
   return (
     <div style={pStyle}>
       <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4, color: isDark ? '#f1f5f9' : '#0f172a' }}>
-        Configuración OpenClaw
+        Configuración AI
       </div>
       <div style={{ fontSize: 13, color: isDark ? '#64748b' : '#94a3b8', marginBottom: 28 }}>
-        OpenClaw es el gateway AI local del sistema. Configurá la URL y el token de acceso.
+        OpenRouter es el proveedor AI del sistema. Ingresá tu API key para activar el Copilot.
       </div>
 
-      {/* OpenClaw */}
-      <div style={{ ...cardStyle, borderLeft: '3px solid #e11d48' }}>
+      {/* OpenRouter */}
+      <div style={{ ...cardStyle, borderLeft: '3px solid #7c3aed' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <span style={{ fontSize: 16, fontWeight: 700 }}>🦞 OpenClaw Gateway</span>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fce7f3', color: '#9d174d' }}>LOCAL / SELF-HOSTED</span>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>� OpenRouter</span>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: isDark ? 'rgba(124,58,237,0.15)' : '#ede9fe', color: '#7c3aed' }}>CLOUD API</span>
+          {config?.openrouter?.keySource === 'env' && (
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: isDark ? 'rgba(234,179,8,0.1)' : '#fefce8', border: '1px solid #ca8a04', color: '#ca8a04' }}>
+              ⚠ Key desde .env
+            </span>
+          )}
+          {config?.openrouter?.keySource === 'db' && (
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: isDark ? 'rgba(34,197,94,0.1)' : '#f0fdf4', border: '1px solid #16a34a', color: '#16a34a' }}>
+              ✓ Key configurada
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 12, color: isDark ? '#64748b' : '#94a3b8', marginBottom: 16 }}>
-          Descargá e instalá OpenClaw en <a href="https://openclaw.ai" target="_blank" rel="noreferrer" style={{ color: '#e11d48' }}>openclaw.ai</a>.
-          Expone una API OpenAI-compatible en el puerto configurado (por defecto 18789).
+          API compatible OpenAI. Registrarse gratis en{' '}
+          <a href="https://openrouter.ai" target="_blank" rel="noreferrer" style={{ color: '#7c3aed' }}>openrouter.ai</a>.
+          Modelo recomendado: <code style={{ background: isDark ? '#0f172a' : '#f1f5f9', padding: '1px 5px', borderRadius: 4 }}>openai/gpt-4o-mini</code>
         </div>
 
-        <label style={labelStyle}>URL Base del Gateway</label>
-        <input
-          type="text"
-          style={inputStyle}
-          placeholder="http://127.0.0.1:18789"
-          value={form.openclaw_baseUrl || ''}
-          onChange={(e) => setForm((f) => ({ ...f, openclaw_baseUrl: e.target.value }))}
-        />
-
-        <label style={labelStyle}>Token de Autenticación (opcional)</label>
-        {config?.openclaw?.tokenSource === 'env' && (
-          <div style={{ fontSize: 11, marginBottom: 6, padding: '4px 8px', borderRadius: 6, background: isDark ? 'rgba(234,179,8,0.1)' : '#fefce8', border: '1px solid #ca8a04', color: '#ca8a04' }}>
-            ⚠ Usando token de variable de entorno. Guardá uno aquí para tomar precedencia.
-          </div>
-        )}
-        {config?.openclaw?.tokenSource === 'db' && (
-          <div style={{ fontSize: 11, marginBottom: 6, padding: '4px 8px', borderRadius: 6, background: isDark ? 'rgba(34,197,94,0.1)' : '#f0fdf4', border: '1px solid #16a34a', color: '#16a34a' }}>
-            ✓ Token configurado en base de datos.
-          </div>
-        )}
+        <label style={labelStyle}>API Key</label>
         <input
           type="password"
           style={inputStyle}
-          placeholder={config?.openclaw?.hasToken ? '••••••••••••••••' : 'Dejar vacío si el gateway no usa autenticación'}
-          value={form.openclaw_token || ''}
-          onChange={(e) => setForm((f) => ({ ...f, openclaw_token: e.target.value }))}
+          placeholder={config?.openrouter?.hasKey ? '•••••••••••••••• (ya configurada)' : 'sk-or-v1-...'}
+          value={form.or_apiKey || ''}
+          onChange={(e) => setForm((f) => ({ ...f, or_apiKey: e.target.value }))}
         />
 
-        <label style={labelStyle}>Nombre del Modelo</label>
+        <label style={labelStyle}>Modelo</label>
         <input
           type="text"
           style={inputStyle}
-          placeholder="openclaw"
-          value={form.openclaw_model || ''}
-          onChange={(e) => setForm((f) => ({ ...f, openclaw_model: e.target.value }))}
+          placeholder="openai/gpt-4o-mini"
+          value={form.or_model || ''}
+          onChange={(e) => setForm((f) => ({ ...f, or_model: e.target.value }))}
         />
 
         <label style={labelStyle}>Max Tokens</label>
         <input
           type="number"
           style={inputStyle}
-          value={form.openclaw_maxTokens || 4096}
-          onChange={(e) => setForm((f) => ({ ...f, openclaw_maxTokens: parseInt(e.target.value, 10) }))}
+          value={form.or_maxTokens || 4096}
+          onChange={(e) => setForm((f) => ({ ...f, or_maxTokens: parseInt(e.target.value, 10) }))}
           min={256}
           max={32768}
         />
 
-        {config?.openclaw?.stats && (
+        {config?.openrouter?.stats && (
           <div style={{ fontSize: 12, color: isDark ? '#64748b' : '#94a3b8', marginTop: 4, padding: '8px 0' }}>
-            Estado: <span style={{ fontWeight: 700, color: config.openclaw.stats.healthStatus === 'healthy' ? '#22c55e' : '#ef4444' }}>
-              {config.openclaw.stats.healthStatus}
+            Estado: <span style={{ fontWeight: 700, color: config.openrouter.stats.healthStatus === 'healthy' ? '#22c55e' : '#ef4444' }}>
+              {config.openrouter.stats.healthStatus}
             </span>
-            {' '}· Requests: <b>{config.openclaw.stats.totalRequests || 0}</b>
-            {' '}· Errores: <b>{config.openclaw.stats.totalErrors || 0}</b>
+            {' '}· Requests: <b>{config.openrouter.stats.totalRequests || 0}</b>
+            {' '}· Errores: <b>{config.openrouter.stats.totalErrors || 0}</b>
           </div>
         )}
       </div>
@@ -196,9 +186,9 @@ const AIProviders = () => {
       <button
         onClick={handleSave}
         disabled={saving}
-        style={{ padding: '10px 28px', borderRadius: 9, border: 'none', background: '#e11d48', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, marginBottom: 28 }}
+        style={{ padding: '10px 28px', borderRadius: 9, border: 'none', background: '#7c3aed', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, marginBottom: 28 }}
       >
-        {saving ? 'Guardando...' : 'Guardar configuración OpenClaw'}
+        {saving ? 'Guardando...' : 'Guardar configuración OpenRouter'}
       </button>
 
       {/* Meta Ads */}

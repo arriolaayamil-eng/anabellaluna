@@ -1,8 +1,9 @@
 /**
- * Provider Abstraction — OpenClaw (único provider activo).
+ * Provider Abstraction — OpenRouter (único provider activo).
  *
- * Config almacenada en GlobalConfig key: 'ai_provider_config'
- * OpenClaw expone una API OpenAI-compatible en /v1/chat/completions.
+ * OpenRouter expone una API 100% compatible OpenAI en https://openrouter.ai/api/v1
+ * Config: env OPENROUTER_API_KEY (requerido) + OPENROUTER_MODEL (opcional).
+ * Override adicional desde GlobalConfig key: 'ai_provider_config'.
  */
 
 const crypto = require('crypto');
@@ -11,20 +12,14 @@ const AIProvider   = require('../../models/AIProvider');
 const AIUsageLog   = require('../../models/AIUsageLog');
 const { eventBus } = require('../../utils/eventBus');
 
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const DEFAULT_MODEL       = 'openai/gpt-4o-mini';
+
 const CACHE_TTL_MS = 60 * 1000;
-let _credCache    = null;
-let _credCacheAt  = 0;
+let _credCache   = null;
+let _credCacheAt = 0;
 
-const VALID_PROVIDERS = new Set(['openclaw']);
-const DEFAULT_MODEL   = { openclaw: 'openclaw' };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function _isValidOpenClawEnv() {
-  return !!(process.env.OPENCLAW_BASE_URL && process.env.OPENCLAW_BASE_URL.startsWith('http'));
-}
-
-// ── Encryption (idéntico a mercadoLibre.js) ───────────────────────────────────
+// ── Encryption ────────────────────────────────────────────────────────────────
 
 function _getEncKey() {
   const key = process.env.AI_ENCRYPTION_KEY;
@@ -56,33 +51,29 @@ function decrypt(text) {
   return dec;
 }
 
-// ── Config desde GlobalConfig ─────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────────────────
 
 async function getProviderConfig() {
   const now = Date.now();
-  if (_credCache && now - _credCacheAt < CACHE_TTL_MS) {
-    return _credCache;
-  }
+  if (_credCache && now - _credCacheAt < CACHE_TTL_MS) return _credCache;
 
   const config = await GlobalConfig.getValue('ai_provider_config', null);
+  const dbOR   = config && config.openrouter ? config.openrouter : {};
 
-  // Construir config de OpenClaw: DB + env vars (env siempre toma precedencia en baseUrl)
-  const dbClaw = config && config.openclaw ? config.openclaw : {};
-  let apiKey = '';
-  if (dbClaw.apiKeyEncrypted) {
-    try { apiKey = decrypt(dbClaw.apiKeyEncrypted); } catch { apiKey = ''; }
+  // API key: env > DB (encrypted)
+  let apiKey = process.env.OPENROUTER_API_KEY || '';
+  if (!apiKey && dbOR.apiKeyEncrypted) {
+    try { apiKey = decrypt(dbOR.apiKeyEncrypted); } catch { apiKey = ''; }
   }
-  if (!apiKey) apiKey = process.env.OPENCLAW_TOKEN || '';
 
   const result = {
-    defaultProvider: 'openclaw',
-    openclaw: {
+    defaultProvider: 'openrouter',
+    openrouter: {
       enabled:     true,
-      model:       process.env.OPENCLAW_MODEL || dbClaw.model || 'openrouter/openai/gpt-4o-mini',
-      maxTokens:   dbClaw.maxTokens   || 4096,
-      temperature: dbClaw.temperature ?? 0.3,
-      baseUrl:     process.env.OPENCLAW_BASE_URL || dbClaw.baseUrl || 'http://127.0.0.1:18789',
       apiKey,
+      model:       process.env.OPENROUTER_MODEL || dbOR.model || DEFAULT_MODEL,
+      maxTokens:   dbOR.maxTokens   || 4096,
+      temperature: dbOR.temperature ?? 0.3,
     },
   };
 
@@ -96,7 +87,7 @@ function invalidateCache() {
   _credCacheAt = 0;
 }
 
-// ── Chat Completion ────────────────────────────────────────────────────────────
+// ── Chat Completion ───────────────────────────────────────────────────────────
 
 async function chatCompletion({
   messages,
@@ -108,52 +99,57 @@ async function chatCompletion({
   maxTokens,
 }) {
   const config = await getProviderConfig();
-  const cfg    = { ...config.openclaw, maxTokens: maxTokens || config.openclaw.maxTokens };
+  const cfg    = { ...config.openrouter, maxTokens: maxTokens || config.openrouter.maxTokens };
+
+  if (!cfg.apiKey) {
+    throw new Error('OPENROUTER_API_KEY no configurada. Agregala al .env del servidor.');
+  }
 
   const startedAt = Date.now();
   try {
-    const result    = await _callOpenClaw(cfg, { messages, tools, stream });
+    const result    = await _callOpenRouter(cfg, { messages, tools, stream });
     const latencyMs = Date.now() - startedAt;
 
-    _logUsage({ provider: 'openclaw', model: cfg.model, userId, agenteId,
+    _logUsage({ provider: 'openrouter', model: cfg.model, userId, agenteId,
       conversationId, tokens: result.usage, latencyMs, success: true }).catch(() => {});
 
     await AIProvider.findOneAndUpdate(
-      { name: 'openclaw' },
+      { name: 'openrouter' },
       { $set: { consecutiveErrors: 0, lastHealthCheck: new Date(), healthStatus: 'healthy', isEnabled: true },
         $inc: { totalRequests: 1, totalTokensUsed: result.usage?.total_tokens || 0 } },
       { upsert: true }
     );
 
-    return { ...result, provider: 'openclaw' };
+    return { ...result, provider: 'openrouter' };
 
   } catch (err) {
     const latencyMs = Date.now() - startedAt;
-    console.error('[AI] OpenClaw failed:', err.message);
+    console.error('[AI] OpenRouter failed:', err.message);
 
     await AIProvider.findOneAndUpdate(
-      { name: 'openclaw' },
+      { name: 'openrouter' },
       { $inc: { consecutiveErrors: 1, totalErrors: 1 },
         $set: { lastHealthCheck: new Date(), healthStatus: 'degraded', lastError: err.message } },
       { upsert: true }
     );
 
-    _logUsage({ provider: 'openclaw', model: cfg.model, userId, agenteId,
+    _logUsage({ provider: 'openrouter', model: cfg.model, userId, agenteId,
       conversationId, tokens: null, latencyMs, success: false, errorCode: err.message }).catch(() => {});
 
-    eventBus.emit('ai.provider.failed', { provider: 'openclaw', error: err.message, userId });
+    eventBus.emit('ai.provider.failed', { provider: 'openrouter', error: err.message, userId });
     throw err;
   }
 }
 
-async function _callOpenClaw(cfg, { messages, tools, stream }) {
-  const baseUrl = cfg.baseUrl || process.env.OPENCLAW_BASE_URL || 'http://localhost:18789';
-  const token   = cfg.apiKey  || process.env.OPENCLAW_TOKEN   || '';
-  const model   = cfg.model   || DEFAULT_MODEL.openclaw;
+async function _callOpenRouter(cfg, { messages, tools, stream }) {
+  const apiKey = cfg.apiKey;
+  const model  = cfg.model || DEFAULT_MODEL;
 
   const headers = {
     'Content-Type':  'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Authorization': `Bearer ${apiKey}`,
+    'HTTP-Referer':  process.env.SITE_ORIGIN || 'https://anabellaluna.com.ar',
+    'X-Title':       'Anabella Luna CRM',
   };
 
   const body = JSON.stringify({
@@ -165,22 +161,24 @@ async function _callOpenClaw(cfg, { messages, tools, stream }) {
     ...(stream ? { stream: true } : {}),
   });
 
-  const response = await fetch(`${baseUrl}/v1/chat/completions`, { method: 'POST', headers, body });
+  const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    method: 'POST', headers, body,
+  });
 
   if (!response.ok) {
     const text = await response.text().catch(() => response.statusText);
-    throw new Error(`OpenClaw API error ${response.status}: ${text}`);
+    throw new Error(`OpenRouter API error ${response.status}: ${text}`);
   }
 
   const data = await response.json();
 
   if (!data.choices || !data.choices[0]) {
-    throw new Error('OpenClaw returned an empty response');
+    throw new Error(`OpenRouter returned empty response: ${JSON.stringify(data)}`);
   }
 
   return {
     choices: data.choices,
-    usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    usage:   data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
   };
 }
 
@@ -193,7 +191,7 @@ async function _logUsage({ provider, model, userId, agenteId, conversationId, to
       promptTokens:     tokens?.prompt_tokens     || 0,
       completionTokens: tokens?.completion_tokens || 0,
       totalTokens:      tokens?.total_tokens      || 0,
-      costUSD: _estimateCost(provider, model, tokens),
+      costUSD: _estimateCost(model, tokens),
       latencyMs, success, errorCode,
     });
   } catch (err) {
@@ -201,8 +199,13 @@ async function _logUsage({ provider, model, userId, agenteId, conversationId, to
   }
 }
 
-function _estimateCost() {
-  return 0; // OpenClaw es local, sin costo
+function _estimateCost(model, tokens) {
+  if (!tokens) return 0;
+  // gpt-4o-mini via OpenRouter: ~$0.00015/1K input + $0.0006/1K output
+  if (model && model.includes('gpt-4o-mini')) {
+    return ((tokens.prompt_tokens || 0) * 0.00015 + (tokens.completion_tokens || 0) * 0.0006) / 1000;
+  }
+  return 0;
 }
 
 module.exports = { chatCompletion, getProviderConfig, invalidateCache, encrypt, decrypt };

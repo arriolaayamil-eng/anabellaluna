@@ -1,10 +1,15 @@
 /**
  * MCP Chat Service — Agentic chat con tool loop completo.
  *
- * USA providerAbstraction (OpenClaw / OpenAI / Anthropic / Gemini)
- * en lugar de Anthropic hardcodeado.
+ * USA providerAbstraction (OpenRouter) como LLM.
  * Tools provistos por el MCP Server (proceso hijo via stdio).
  * Formato de tools: OpenAI-compatible (tool_calls / tool role).
+ *
+ * Estrategia de historial:
+ *   - Se guardan TODOS los mensajes en MongoDB (persistencia total).
+ *   - Para el contexto del LLM: últimos 5 mensajes + resumen comprimido (summary)
+ *     de los anteriores (hasta 20 turnos anteriores al resumen).
+ *   - Así el contexto nunca explota pero el AI recuerda conversaciones largas.
  */
 
 const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
@@ -114,9 +119,88 @@ ${context.agenteId ? `- Agente actual ID: ${context.agenteId} (usá este ID para
 ${context.agenteName ? `- Agente: ${context.agenteName}` : ''}`;
 }
 
-// ── Main Chat Function ────────────────────────────────────────────────────────
+// ── History helpers ───────────────────────────────────────────────────────────
 
+const RECENT_MSGS   = 5;   // mensajes recientes que se pasan íntegros al LLM
+const SUMMARY_MSGS  = 20;  // mensajes anteriores que se comprimen en el summary
 const MAX_TOOL_ROUNDS = 10;
+
+/**
+ * Construye el array de mensajes para el LLM:
+ *   [system] + (summary si existe) + últimos RECENT_MSGS user/assistant
+ */
+async function _buildContextMessages(conversation, systemPrompt) {
+  const allHistory = await AIMessage.find({
+    conversationId: conversation._id,
+    role: { $in: ['user', 'assistant'] },
+  })
+    .sort({ createdAt: 1 })
+    .lean();
+
+  const recentMsgs = allHistory.slice(-RECENT_MSGS);
+  const messages   = [{ role: 'system', content: systemPrompt }];
+
+  if (conversation.summary) {
+    messages.push({
+      role:    'system',
+      content: `Resumen de la conversación anterior:\n${conversation.summary}`,
+    });
+  }
+
+  for (const m of recentMsgs) {
+    messages.push({ role: m.role, content: m.content || '' });
+  }
+
+  return { messages, totalCount: allHistory.length };
+}
+
+/**
+ * Si la conversación tiene más de RECENT_MSGS + SUMMARY_MSGS mensajes sin resumir,
+ * genera un nuevo resumen con el LLM y lo guarda en la conversación.
+ */
+async function _maybeSummarize(conversation, userId, agenteId) {
+  const count = await AIMessage.countDocuments({
+    conversationId: conversation._id,
+    role: { $in: ['user', 'assistant'] },
+  });
+
+  // Resumir si hay más de RECENT_MSGS + SUMMARY_MSGS mensajes
+  if (count <= RECENT_MSGS + SUMMARY_MSGS) return;
+
+  // Obtener los mensajes que van a ser "comprimidos" (todos menos los últimos RECENT_MSGS)
+  const toSummarize = await AIMessage.find({
+    conversationId: conversation._id,
+    role: { $in: ['user', 'assistant'] },
+  })
+    .sort({ createdAt: 1 })
+    .limit(count - RECENT_MSGS)
+    .lean();
+
+  const convoText = toSummarize
+    .map((m) => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`)
+    .join('\n');
+
+  try {
+    const summaryResult = await chatCompletion({
+      messages: [
+        { role: 'system', content: 'Sos un asistente que resume conversaciones en español. Sé conciso y preserva los datos clave (nombres, IDs, decisiones tomadas, propiedades mencionadas).' },
+        { role: 'user',   content: `Resumí esta conversación en máximo 300 palabras:\n\n${convoText}` },
+      ],
+      userId,
+      agenteId,
+      conversationId: conversation._id,
+    });
+
+    const summary = summaryResult.choices[0]?.message?.content || '';
+    if (summary) {
+      await AIConversation.findByIdAndUpdate(conversation._id, { $set: { summary } });
+    }
+  } catch {
+    // Si falla el resumen no bloqueamos el chat
+  }
+}
+
+// ── Main Chat Function ────────────────────────────────────────────────────────
 
 async function chat({ conversationId, userMessage, userId, agenteId, agenteName, permissions }) {
   // 1. Conectar MCP server (tools del CRM/ERP)
@@ -133,7 +217,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     });
   }
 
-  // 3. Guardar mensaje del usuario
+  // 3. Guardar mensaje del usuario en DB (persistencia)
   await AIMessage.create({
     conversationId: conversation._id,
     role:    'user',
@@ -141,26 +225,14 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     userId,
   });
 
-  // 4. Cargar historial (solo user/assistant, últimos 40 mensajes)
-  const history = await AIMessage.find({
-    conversationId: conversation._id,
-    role: { $in: ['user', 'assistant'] },
-  })
-    .sort({ createdAt: 1 })
-    .limit(40)
-    .lean();
-
-  // Construir mensajes en formato OpenAI
+  // 4. Construir contexto: system + summary (si existe) + últimos 5 mensajes
   const systemPrompt = buildSystemPrompt({ agenteId, agenteName });
-  let currentMessages = [
-    { role: 'system', content: systemPrompt },
-    ...history.map((m) => ({ role: m.role, content: m.content || '' })),
-  ];
+  const { messages: currentMessages } = await _buildContextMessages(conversation, systemPrompt);
 
   let finalResponse = '';
-  let rounds = 0;
-  let lastProvider = '';
-  let totalTokens = 0;
+  let rounds        = 0;
+  let lastProvider  = '';
+  let totalTokens   = 0;
 
   // 5. Loop LLM → tools (formato OpenAI)
   while (rounds < MAX_TOOL_ROUNDS) {
@@ -174,20 +246,28 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
       conversationId: conversation._id,
     });
 
-    lastProvider = llmResult.provider || '';
-    totalTokens += llmResult.usage?.total_tokens || 0;
+    lastProvider  = llmResult.provider || '';
+    totalTokens  += llmResult.usage?.total_tokens || 0;
 
-    const choice      = llmResult.choices[0];
+    const choice       = llmResult.choices[0];
     const assistantMsg = choice.message;
     const finishReason = choice.finish_reason;
 
     // Sin tool calls → respuesta final
-    if (finishReason !== 'tool_calls' || !assistantMsg.tool_calls?.length) {
+    if (!assistantMsg.tool_calls || !assistantMsg.tool_calls.length ||
+        finishReason === 'stop' || finishReason === 'length') {
       finalResponse = assistantMsg.content || '';
       break;
     }
 
-    // Guardar mensaje del assistant (con tool_calls)
+    // Agregar assistant (con tool_calls) al contexto en memoria
+    currentMessages.push({
+      role:       'assistant',
+      content:    assistantMsg.content || null,
+      tool_calls: assistantMsg.tool_calls,
+    });
+
+    // Guardar en DB el mensaje del assistant con tool_calls
     await AIMessage.create({
       conversationId: conversation._id,
       role:      'assistant',
@@ -197,23 +277,15 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
       userId,
     });
 
-    // Agregar assistant al contexto
-    currentMessages.push({
-      role:       'assistant',
-      content:    assistantMsg.content || null,
-      tool_calls: assistantMsg.tool_calls,
-    });
-
-    // Ejecutar cada tool via MCP y construir tool result messages
+    // Ejecutar cada tool via MCP
     for (const toolCall of assistantMsg.tool_calls) {
       let toolResultContent;
       try {
-        const args = JSON.parse(toolCall.function.arguments || '{}');
+        const args   = JSON.parse(toolCall.function.arguments || '{}');
         const result = await mcpClient.callTool({
           name:      toolCall.function.name,
           arguments: args,
         });
-        // MCP devuelve { content: [{type:'text', text:'...'}] }
         const text = Array.isArray(result.content)
           ? result.content.map((c) => c.text || '').join('\n')
           : JSON.stringify(result);
@@ -230,18 +302,25 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
       });
     }
 
-    // Guardar tool results en DB para historial
+    // Guardar tool results en DB
     await AIMessage.create({
       conversationId: conversation._id,
       role:        'tool_result',
       content:     '',
-      toolResults: assistantMsg.tool_calls.map((tc, i) => ({
+      toolResults: assistantMsg.tool_calls.map((tc) => ({
         tool_call_id: tc.id,
         name:         tc.function.name,
-        content:      currentMessages[currentMessages.length - assistantMsg.tool_calls.length + i]?.content || '',
+        content:      currentMessages.find(
+          (m) => m.role === 'tool' && m.tool_call_id === tc.id
+        )?.content || '',
       })),
       userId,
     });
+
+    // Si el LLM terminó con tool_calls pero no hay más rondas, forzar respuesta final
+    if (rounds >= MAX_TOOL_ROUNDS) {
+      finalResponse = 'Alcancé el límite de operaciones. Por favor, reformulá tu consulta.';
+    }
   }
 
   // 6. Guardar respuesta final del assistant
@@ -259,6 +338,9 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     $set: { lastMessageAt: new Date() },
     $inc: { messageCount: 2, totalTokensUsed: totalTokens },
   });
+
+  // 8. Auto-summarize si la conversación creció mucho (no bloqueante)
+  _maybeSummarize(conversation, userId, agenteId).catch(() => {});
 
   return {
     conversationId:     conversation._id,

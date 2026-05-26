@@ -10,18 +10,31 @@ const { agentScope, resolvePermissions } = require('../../middlewares/rbac');
 router.get('/', async (req, res) => {
   try {
     const scopeId = agentScope(req);
+    const userId  = String(req.user.sub || req.user.id || req.user._id || '');
     const filter  = { status: { $ne: 'deleted' } };
 
     if (scopeId) {
       filter.agenteId = scopeId;
     } else {
-      filter.userId = String(req.user.sub || req.user.id || req.user._id || '');
+      filter.userId = userId;
     }
 
-    const conversations = await AIConversation.find(filter)
+    let conversations = await AIConversation.find(filter)
       .sort({ lastMessageAt: -1 })
       .limit(50)
       .lean();
+
+    // Auto-crear conversación inicial si no existe ninguna para este agente/usuario
+    if (conversations.length === 0) {
+      const created = await AIConversation.create({
+        userId,
+        agenteId:    scopeId || req.user.agenteId || '',
+        title:       'Copilot AI',
+        contextType: 'general',
+        status:      'active',
+      });
+      conversations = [created.toObject()];
+    }
 
     res.json(conversations);
   } catch (err) {

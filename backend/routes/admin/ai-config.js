@@ -28,45 +28,17 @@ router.get('/providers', async (req, res) => {
     const statsMap = {};
     providerStats.forEach((p) => { statsMap[p.name] = p; });
 
-    const geminiEnvValid = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith('AIza') && process.env.GEMINI_API_KEY.length > 20;
+    const orEnvValid = !!(process.env.OPENROUTER_API_KEY);
 
     const safeConfig = {
-      defaultProvider:  config.defaultProvider  || 'openai',
-      fallbackProvider: config.fallbackProvider || '',
-      openai: {
-        enabled:         !!(config.openai && config.openai.enabled),
-        hasKey:          !!(config.openai && config.openai.apiKeyEncrypted),
-        model:           (config.openai && config.openai.model)       || 'gpt-4o',
-        maxTokens:       (config.openai && config.openai.maxTokens)   || 4096,
-        temperature:     (config.openai && config.openai.temperature) ?? 0.3,
-        stats:           statsMap['openai'] || null,
-      },
-      anthropic: {
-        enabled:         !!(config.anthropic && config.anthropic.enabled),
-        hasKey:          !!(config.anthropic && config.anthropic.apiKeyEncrypted),
-        model:           (config.anthropic && config.anthropic.model)       || 'claude-sonnet-4-20250514',
-        maxTokens:       (config.anthropic && config.anthropic.maxTokens)   || 4096,
-        temperature:     (config.anthropic && config.anthropic.temperature) ?? 0.3,
-        stats:           statsMap['anthropic'] || null,
-      },
-      gemini: {
-        enabled:         config.gemini ? config.gemini.enabled !== false : !!geminiEnvValid,
-        hasKey:          !!(config.gemini && config.gemini.apiKeyEncrypted) || !!geminiEnvValid,
-        keySource:       (config.gemini && config.gemini.apiKeyEncrypted) ? 'db' : (geminiEnvValid ? 'env' : 'none'),
-        model:           (config.gemini && config.gemini.model)       || 'gemini-2.0-flash',
-        maxTokens:       (config.gemini && config.gemini.maxTokens)   || 4096,
-        temperature:     (config.gemini && config.gemini.temperature) ?? 0.3,
-        stats:           statsMap['gemini'] || null,
-      },
-      openclaw: {
-        enabled:         !!(config.openclaw && config.openclaw.enabled),
-        baseUrl:         (config.openclaw && config.openclaw.baseUrl) || process.env.OPENCLAW_BASE_URL || '',
-        hasToken:        !!(config.openclaw && config.openclaw.apiKeyEncrypted) || !!(process.env.OPENCLAW_TOKEN),
-        tokenSource:     (config.openclaw && config.openclaw.apiKeyEncrypted) ? 'db' : (process.env.OPENCLAW_TOKEN ? 'env' : 'none'),
-        model:           (config.openclaw && config.openclaw.model)       || 'openclaw',
-        maxTokens:       (config.openclaw && config.openclaw.maxTokens)   || 4096,
-        temperature:     (config.openclaw && config.openclaw.temperature) ?? 0.3,
-        stats:           statsMap['openclaw'] || null,
+      defaultProvider: 'openrouter',
+      openrouter: {
+        enabled:   true,
+        hasKey:    !!(config.openrouter && config.openrouter.apiKeyEncrypted) || orEnvValid,
+        keySource: (config.openrouter && config.openrouter.apiKeyEncrypted) ? 'db' : (orEnvValid ? 'env' : 'none'),
+        model:     (config.openrouter && config.openrouter.model)     || process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
+        maxTokens: (config.openrouter && config.openrouter.maxTokens) || 4096,
+        stats:     statsMap['openrouter'] || null,
       },
     };
 
@@ -79,62 +51,31 @@ router.get('/providers', async (req, res) => {
 // PUT /admin/config/ai/providers
 router.put('/providers', async (req, res) => {
   try {
-    const { defaultProvider, fallbackProvider, openai, anthropic, gemini, openclaw } = req.body;
+    const { openrouter } = req.body;
     const userId = String(req.user.sub || req.user.id || req.user._id || '');
 
     const existing = await GlobalConfig.getValue('ai_provider_config', {});
-    const update = { ...existing };
+    const update   = { ...existing, defaultProvider: 'openrouter' };
 
-    // SIEMPRE guardar defaultProvider y fallbackProvider del request
-    update.defaultProvider  = defaultProvider  || existing.defaultProvider  || 'openai';
-    update.fallbackProvider = fallbackProvider || existing.fallbackProvider || '';
-
-    // Helper para actualizar un provider
-    const updateProvider = (name, incoming, defaults) => {
-      if (!incoming) return;
-      const prev = existing[name] || {};
-      update[name] = {
+    if (openrouter) {
+      const prev = existing.openrouter || {};
+      update.openrouter = {
         ...prev,
-        enabled:     incoming.enabled     !== undefined ? incoming.enabled     : (prev.enabled || false),
-        model:       incoming.model       || prev.model       || defaults.model,
-        maxTokens:   incoming.maxTokens   || prev.maxTokens   || 4096,
-        temperature: incoming.temperature ?? prev.temperature ?? 0.3,
+        enabled:   true,
+        model:     openrouter.model     || prev.model     || 'openai/gpt-4o-mini',
+        maxTokens: openrouter.maxTokens || prev.maxTokens || 4096,
       };
-      // Solo sobreescribir key si se envió una nueva
-      if (incoming.apiKey && incoming.apiKey.trim()) {
-        update[name].apiKeyEncrypted = encrypt(incoming.apiKey.trim());
+      if (openrouter.apiKey && openrouter.apiKey.trim()) {
+        update.openrouter.apiKeyEncrypted = encrypt(openrouter.apiKey.trim());
       } else if (prev.apiKeyEncrypted) {
-        // Conservar key existente
-        update[name].apiKeyEncrypted = prev.apiKeyEncrypted;
-      }
-    };
-
-    updateProvider('openai',    openai,    { model: 'gpt-4o' });
-    updateProvider('anthropic', anthropic, { model: 'claude-3-5-sonnet-20241022' });
-    updateProvider('gemini',    gemini,    { model: 'gemini-2.0-flash' });
-
-    // OpenClaw: baseUrl stored in plain (not sensitive), token optionally encrypted
-    if (openclaw) {
-      const prev = existing.openclaw || {};
-      update.openclaw = {
-        ...prev,
-        enabled:     openclaw.enabled !== undefined ? openclaw.enabled : (prev.enabled || false),
-        model:       openclaw.model       || prev.model       || 'openclaw',
-        maxTokens:   openclaw.maxTokens   || prev.maxTokens   || 4096,
-        temperature: openclaw.temperature ?? prev.temperature ?? 0.3,
-        baseUrl:     openclaw.baseUrl     || prev.baseUrl     || '',
-      };
-      if (openclaw.token && openclaw.token.trim()) {
-        update.openclaw.apiKeyEncrypted = encrypt(openclaw.token.trim());
-      } else if (prev.apiKeyEncrypted) {
-        update.openclaw.apiKeyEncrypted = prev.apiKeyEncrypted;
+        update.openrouter.apiKeyEncrypted = prev.apiKeyEncrypted;
       }
     }
 
     await GlobalConfig.setValue('ai_provider_config', update, 'AI provider config', userId);
     invalidateCache();
 
-    res.json({ success: true, message: 'AI provider config updated' });
+    res.json({ success: true, message: 'OpenRouter config updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
