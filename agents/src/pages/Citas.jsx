@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { toast } from 'react-toastify';
 import Chart from 'react-apexcharts';
-import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaChartLine, FaArrowUp, FaPercentage, FaCalendarAlt, FaTasks, FaExclamationCircle } from 'react-icons/fa';
+import { FaCalendarPlus, FaSync, FaClock, FaUsers, FaPhoneAlt, FaBell, FaCheckCircle, FaTimes, FaSave, FaChartLine, FaArrowUp, FaPercentage, FaCalendarAlt, FaTasks } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
 import { crmService } from '../services/crmService';
@@ -370,8 +370,8 @@ const Citas = () => {
         )}
       </div>
 
-      {/* KPIs de Citas + Tareas - Clickeables */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6">
+      {/* KPIs de Citas - Clickeables */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {kpisCitas.map((kpi, i) => {
           const colorMap = {
             'from-blue-500 to-blue-600': '#3b82f6',
@@ -396,34 +396,6 @@ const Citas = () => {
                 else if (i === 2) setShowModalTasaAsistencia(true);
                 else if (i === 3) setShowModalPendientes(true);
               }}
-              className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
-              style={{ borderLeft: `4px solid ${accentColor}` }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center`}>
-                  <span className="text-lg" style={{ color: accentColor }}>{kpi.icon}</span>
-                </div>
-              </div>
-              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{kpi.value}</p>
-              <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{kpi.title}</p>
-              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.desc}</p>
-            </div>
-          );
-        })}
-        {/* Task KPIs */}
-        {taskStats && [
-          { title: 'Tareas Activas', value: (taskStats.total || 0) - (taskStats.byStatus?.completada || 0) - (taskStats.byStatus?.cancelada || 0), desc: 'En curso', icon: <FaTasks />, color: 'from-violet-500 to-violet-600' },
-          { title: 'Tareas Vencidas', value: taskStats.overdue || 0, desc: 'Requieren atención', icon: <FaExclamationCircle />, color: 'from-red-500 to-red-600' },
-          { title: 'Completadas (7d)', value: taskStats.completedLast7 || 0, desc: 'Última semana', icon: <FaCheckCircle />, color: 'from-emerald-500 to-emerald-600' },
-          { title: 'Total Tareas', value: taskStats.total || 0, desc: 'Todas las tareas', icon: <FaChartLine />, color: 'from-purple-500 to-purple-600' },
-        ].map((kpi, i) => {
-          const colorMap = { 'from-violet-500 to-violet-600': '#8b5cf6', 'from-red-500 to-red-600': '#ef4444', 'from-emerald-500 to-emerald-600': '#10b981', 'from-purple-500 to-purple-600': '#8b5cf6' };
-          const accentColor = colorMap[kpi.color] || '#6366f1';
-          const bgMap = { 'from-violet-500 to-violet-600': 'bg-purple-50 dark:bg-purple-900/20', 'from-red-500 to-red-600': 'bg-red-50 dark:bg-red-900/20', 'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-900/20', 'from-purple-500 to-purple-600': 'bg-purple-50 dark:bg-purple-900/20' };
-          const bgColor = bgMap[kpi.color] || 'bg-indigo-50 dark:bg-indigo-900/20';
-          return (
-            <div key={`task-${i}`}
-              onClick={() => setActiveSection('tareas')}
               className={`rounded-2xl p-6 border shadow-sm cursor-pointer transition-all ${isDark ? 'bg-secondary-dark-bg border-gray-700/50 hover:border-indigo-500/30' : 'bg-white border-gray-100 hover:shadow-lg'}`}
               style={{ borderLeft: `4px solid ${accentColor}` }}
             >
