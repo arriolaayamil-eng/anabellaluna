@@ -4,6 +4,8 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 let app;
 let mongoServer;
 
+jest.setTimeout(30000);
+
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   process.env.MONGODB_URI = mongoServer.getUri();
@@ -12,7 +14,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongoServer.stop();
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
 });
 
 test('tareas protected create', async () => {

@@ -5,7 +5,10 @@ const BASE = '/marketing-ai';
 export const aiService = {
   // ── Conversations ──────────────────────────────────────────────────────────
 
-  getConversations: () => api.get(`${BASE}/conversations`),
+  getConversations: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`${BASE}/conversations${qs ? `?${qs}` : ''}`);
+  },
 
   createConversation: (data = {}) =>
     api.post(`${BASE}/conversations`, data),

@@ -90,12 +90,15 @@ function checkIPRateLimit(ip) {
 }
 
 // Periodic cleanup of stale entries (every 5 min)
-setInterval(() => {
+const ipCleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of ipAttempts) {
     if (now - entry.start > IP_WINDOW_MS) ipAttempts.delete(ip);
   }
 }, 5 * 60 * 1000);
+if (typeof ipCleanupInterval.unref === 'function') {
+  ipCleanupInterval.unref();
+}
 
 // ─── GET /status ────────────────────────────────────────────────────────────────
 router.get('/status', authenticateToken, async (req, res) => {

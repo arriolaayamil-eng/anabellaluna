@@ -131,9 +131,10 @@ const MAX_TOOL_ROUNDS = 10;
  * Construye el array de mensajes para el LLM:
  *   [system] + (summary si existe) + últimos RECENT_MSGS user/assistant
  */
-async function _buildContextMessages(conversation, systemPrompt) {
+async function _buildContextMessages(conversation, systemPrompt, userId) {
   const allHistory = await AIMessage.find({
     conversationId: conversation._id,
+    userId,
     role: { $in: ['user', 'assistant'] },
   })
     .sort({ createdAt: 1 })
@@ -163,20 +164,26 @@ async function _buildContextMessages(conversation, systemPrompt) {
 async function _maybeSummarize(conversation, userId, agenteId) {
   const count = await AIMessage.countDocuments({
     conversationId: conversation._id,
+    userId,
     role: { $in: ['user', 'assistant'] },
   });
 
-  // Resumir si hay más de RECENT_MSGS + SUMMARY_MSGS mensajes
-  if (count <= RECENT_MSGS + SUMMARY_MSGS) return;
+  const alreadySummarized = Number(conversation.summaryMessageCount || 0);
+  const summarizableCount = Math.max(0, count - RECENT_MSGS - alreadySummarized);
+  if (summarizableCount <= 0) return;
 
-  // Obtener los mensajes que van a ser "comprimidos" (todos menos los últimos RECENT_MSGS)
+  // Comprimir como máximo los próximos 20 mensajes anteriores a los 5 recientes.
   const toSummarize = await AIMessage.find({
     conversationId: conversation._id,
+    userId,
     role: { $in: ['user', 'assistant'] },
   })
     .sort({ createdAt: 1 })
-    .limit(count - RECENT_MSGS)
+    .skip(alreadySummarized)
+    .limit(Math.min(SUMMARY_MSGS, summarizableCount))
     .lean();
+
+  if (!toSummarize.length) return;
 
   const convoText = toSummarize
     .map((m) => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`)
@@ -185,8 +192,8 @@ async function _maybeSummarize(conversation, userId, agenteId) {
   try {
     const summaryResult = await chatCompletion({
       messages: [
-        { role: 'system', content: 'Sos un asistente que resume conversaciones en español. Sé conciso y preserva los datos clave (nombres, IDs, decisiones tomadas, propiedades mencionadas).' },
-        { role: 'user',   content: `Resumí esta conversación en máximo 300 palabras:\n\n${convoText}` },
+        { role: 'system', content: 'Sos un asistente que mantiene un resumen incremental de conversaciones en español. Sé conciso y preservá datos clave: nombres, IDs, decisiones, propiedades, fechas y tareas pendientes.' },
+        { role: 'user',   content: `Resumen acumulado actual:\n${conversation.summary || '(vacío)'}\n\nNuevos mensajes a integrar (máximo 20):\n${convoText}\n\nDevolvé un único resumen actualizado en máximo 300 palabras.` },
       ],
       userId,
       agenteId,
@@ -195,7 +202,12 @@ async function _maybeSummarize(conversation, userId, agenteId) {
 
     const summary = summaryResult.choices[0]?.message?.content || '';
     if (summary) {
-      await AIConversation.findByIdAndUpdate(conversation._id, { $set: { summary } });
+      await AIConversation.findByIdAndUpdate(conversation._id, {
+        $set: {
+          summary,
+          summaryMessageCount: alreadySummarized + toSummarize.length,
+        },
+      });
     }
   } catch {
     // Si falla el resumen no bloqueamos el chat
@@ -209,7 +221,21 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
   await ensureMCPConnection();
 
   // 2. Cargar o crear conversación
-  let conversation = await AIConversation.findById(conversationId);
+  let conversation = null;
+  if (conversationId) {
+    conversation = await AIConversation.findOne({
+      _id: conversationId,
+      userId,
+      status: { $ne: 'deleted' },
+    });
+  }
+
+  if (conversationId && !conversation) {
+    const err = new Error('Conversation not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
   if (!conversation) {
     conversation = await AIConversation.create({
       userId,
@@ -225,11 +251,12 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     role:    'user',
     content: userMessage,
     userId,
+    agenteId: agenteId || '',
   });
 
   // 4. Construir contexto: system + summary (si existe) + últimos 5 mensajes
   const systemPrompt = buildSystemPrompt({ agenteId, agenteName });
-  const { messages: currentMessages } = await _buildContextMessages(conversation, systemPrompt);
+  const { messages: currentMessages } = await _buildContextMessages(conversation, systemPrompt, userId);
 
   let finalResponse = '';
   let rounds        = 0;
@@ -277,6 +304,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
       toolCalls: assistantMsg.tool_calls,
       provider:  lastProvider,
       userId,
+      agenteId: agenteId || '',
     });
 
     // Ejecutar cada tool via MCP
@@ -318,6 +346,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
         )?.content || '',
       })),
       userId,
+      agenteId: agenteId || '',
     });
 
     // Si el LLM terminó con tool_calls pero no hay más rondas, forzar respuesta final
@@ -334,6 +363,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     provider:   lastProvider,
     tokensUsed: totalTokens,
     userId,
+    agenteId: agenteId || '',
   });
 
   // 7. Actualizar conversación

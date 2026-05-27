@@ -18,6 +18,7 @@ const AIConversationSchema = new mongoose.Schema({
   provider: { type: String, default: 'openrouter' },
   model:    String,
   summary:  { type: String, default: '' },
+  summaryMessageCount: { type: Number, default: 0 },
 
   totalTokensUsed: { type: Number, default: 0 },
   totalCostUSD:    { type: Number, default: 0 },

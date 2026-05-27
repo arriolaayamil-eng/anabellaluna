@@ -12,10 +12,16 @@ export function useAIChat(conversationId) {
   convIdRef.current = conversationId;
 
   useEffect(() => {
-    if (!conversationId) return;
+    let active = true;
+    if (!conversationId) {
+      setMessages([]);
+      return () => { active = false; };
+    }
+    setError(null);
     aiService.getMessages(conversationId)
-      .then((msgs) => setMessages(msgs || []))
-      .catch((err) => setError(err.message));
+      .then((msgs) => { if (active) setMessages(msgs || []); })
+      .catch((err) => { if (active) setError(err.message); });
+    return () => { active = false; };
   }, [conversationId]);
 
   useEffect(() => {

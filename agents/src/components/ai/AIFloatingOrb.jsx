@@ -236,12 +236,18 @@ const AIFloatingOrb = () => {
   const [isOpen,         setIsOpen]         = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [loadingConv,    setLoadingConv]    = useState(false);
+  const contextKey = 'agent_assistant';
 
   const ensureConversation = useCallback(async () => {
     if (conversationId) return conversationId;
     setLoadingConv(true);
     try {
-      const conv = await aiService.createConversation({ context: 'agent_assistant' });
+      const existing = await aiService.getConversations({ context: contextKey });
+      const conv = existing?.[0] || await aiService.createConversation({
+        context: contextKey,
+        title: 'Asistente AI',
+        contextType: 'general',
+      });
       const id   = conv._id || conv.id;
       setConversationId(id);
       return id;
@@ -251,7 +257,7 @@ const AIFloatingOrb = () => {
     } finally {
       setLoadingConv(false);
     }
-  }, [conversationId]);
+  }, [conversationId, contextKey]);
 
   const handleToggle = async () => {
     if (!isOpen) await ensureConversation();
