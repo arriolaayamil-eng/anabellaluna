@@ -383,7 +383,7 @@ const TOOLS = {
       type: 'function',
       function: {
         name: 'create_cita',
-        description: 'Agenda una nueva cita (visita, llamada, reunión). Si el agente tiene Google Calendar conectado, se sincroniza automáticamente.',
+        description: 'Agenda una nueva cita (visita, llamada, reunión). Usar inmediatamente cuando el usuario pide agendar/crear una cita y dio fecha/hora suficiente; no requiere segunda confirmación. Si el agente tiene Google Calendar conectado, se sincroniza automáticamente.',
         parameters: {
           type: 'object',
           properties: {

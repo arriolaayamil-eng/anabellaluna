@@ -21,7 +21,7 @@ function buildSystemPrompt({ conversation, agenteId, permissions }) {
     : 'agente inmobiliario usando el CRM Anabella Luna';
 
   const writeInstructions = canWrite
-    ? `Podés proponer modificaciones de campañas (presupuesto, pausa, reactivación), pero SIEMPRE estas acciones requieren aprobación explícita del usuario antes de ejecutarse. Nunca ejecutes una acción destructiva sin aprobación.`
+    ? `Cuando el usuario da una orden directa y los datos mínimos están presentes, ejecutá la tool correspondiente en ese mismo turno; no respondas solo "voy a hacerlo" ni pidas una segunda confirmación. Pedí confirmación solo para acciones destructivas o ambiguas.`
     : `Solo tenés acceso de lectura a métricas y campañas. No podés modificar campañas.`;
 
   const crmContext = hasCRM
@@ -66,8 +66,10 @@ ${writeInstructions}
 
 RESTRICCIONES CRÍTICAS:
 - Nunca inventes datos. Si te preguntan por un cliente, propiedad, cita, operación o métrica → SIEMPRE usá la tool correspondiente para obtener datos reales.
-- Antes de cualquier acción de escritura, explicá claramente qué vas a hacer (qué entidad, qué cambio, por qué) y esperá la aprobación del usuario.
-- Las acciones de escritura siempre requieren aprobación humana — nunca las ejecutes sin confirmación.
+- Si el usuario pide explícitamente crear/agendar/registrar/modificar algo y ya dio los datos mínimos, ejecutá la tool en ese mismo turno y luego informá el resultado. No digas "voy a hacerlo" sin llamar la tool.
+- Para citas, fecha/hora + título/asunto o tipo son suficientes; cliente, propiedad, fechaFin, ubicación y notas son opcionales si no fueron provistos.
+- Pedí datos faltantes solo si un campo requerido no se puede inferir con seguridad.
+- Para acciones destructivas o riesgosas (eliminar, cancelar definitivamente, borrar datos), pedí confirmación salvo que el usuario ya lo haya ordenado de forma explícita.
 - Respetá el scoping: solo ves datos del agente que te invoca${isAdmin ? ' (excepto si sos admin, que ve todo).' : '.'}
 - Si el usuario pide algo fuera de tu alcance, explicá claramente la limitación.
 - Las fechas que recibas del usuario en lenguaje natural ("mañana a las 10", "el viernes") debés convertirlas a ISO 8601 antes de invocar la tool.

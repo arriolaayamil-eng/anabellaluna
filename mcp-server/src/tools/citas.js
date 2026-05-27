@@ -135,7 +135,7 @@ function registerCitaTools(server) {
 
   server.tool(
     'create_cita',
-    'Agenda una nueva cita (visita, llamada, reunión, firma). Si el agente tiene Google Calendar conectado, se sincroniza automáticamente.',
+    'Agenda una nueva cita (visita, llamada, reunión, firma). Usar inmediatamente cuando el usuario pide agendar/crear una cita y dio fecha/hora suficiente; no requiere segunda confirmación. Si el agente tiene Google Calendar conectado, se sincroniza automáticamente.',
     {
       fecha: z.string().describe('Fecha/hora inicio (ISO 8601) — REQUERIDO'),
       fechaFin: z.string().optional().describe('Fecha/hora fin (ISO 8601)'),
