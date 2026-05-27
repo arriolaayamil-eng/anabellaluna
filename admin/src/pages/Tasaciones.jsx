@@ -38,7 +38,7 @@ const QUALITY_OPTS = ['', 'economica', 'estandar', 'buena', 'muy_buena', 'premiu
 const CONSERVATION_OPTS = ['', 'malo', 'regular', 'bueno', 'muy_bueno', 'excelente'];
 const LIGHT_OPTS = ['', 'escasa', 'regular', 'buena', 'muy_buena', 'excelente'];
 const NOISE_OPTS = ['', 'bajo', 'medio', 'alto'];
-const TIPO_INM = ['', 'Departamento', 'Casa', 'PH', 'Local', 'Oficina', 'Terreno', 'Galpón', 'Cochera', 'Fondo de comercio', 'Otro'];
+const TIPO_INM = ['', 'Departamento', 'Casa', 'Duplex', 'PH', 'Local', 'Oficina', 'Terreno', 'Lote', 'Galpón', 'Cochera', 'Fondo de comercio', 'Otro'];
 const METODO_OPTS = [
   { id: 'comparativa_mercado', label: 'Comparativa de mercado' },
   { id: 'costo_reposicion', label: 'Costo de reposición depreciado' },

@@ -2684,10 +2684,12 @@ const Propiedades = () => {
                           >
                             <option value="Departamento">Departamento</option>
                             <option value="Casa">Casa</option>
+                            <option value="Duplex">Duplex</option>
                             <option value="PH">PH</option>
                             <option value="Oficina">Oficina</option>
                             <option value="Local">Local Comercial</option>
                             <option value="Terreno">Terreno</option>
+                            <option value="Lote">Lote</option>
                             <option value="Cochera">Cochera</option>
                           </select>
                         </div>
