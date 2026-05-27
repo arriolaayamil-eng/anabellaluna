@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import StickyBox from "react-sticky-box";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import publicService from "../../../../../services/publicService";
 
 export interface PropertyFilters {
   search?: string;
@@ -26,6 +27,23 @@ const FilterSidebar = ({ onFilterChange }: FilterSidebarProps) => {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [type, setType] = useState("");
+  const [availableTypes, setAvailableTypes] = useState<{ name: string; count: number }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    publicService.getPropertyStats()
+      .then((res) => {
+        if (cancelled) return;
+        const types = (res.types || [])
+          .filter((t) => t && t.name && String(t.name).trim() !== "")
+          .sort((a, b) => String(a.name).localeCompare(String(b.name), 'es'));
+        setAvailableTypes(types);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableTypes([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const applyFilters = useCallback(() => {
     if (!onFilterChange) return;
@@ -132,13 +150,19 @@ const FilterSidebar = ({ onFilterChange }: FilterSidebarProps) => {
                 </div>
                 <div className="mb-2">
                   <label className="form-label mb-1">Tipo de propiedad</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Ej: Casa, Departamento, Oficina..."
+                  <select
+                    className="form-select"
                     value={type}
                     onChange={(e) => setType(e.target.value)}
-                  />
+                    disabled={availableTypes.length === 0}
+                  >
+                    <option value="">Todos los tipos</option>
+                    {availableTypes.map((t) => (
+                      <option key={t.name} value={t.name}>
+                        {t.name} ({t.count})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="mb-2">
                   <label className="form-label mb-1">Dormitorios mínimos</label>
