@@ -12,8 +12,12 @@ function registerAdminTools(server) {
   const AuditLog = () => getModel('AuditLog');
   const BookingRequest = () => getModel('BookingRequest');
   const ContactMessage = () => getModel('ContactMessage');
+  const Cliente = () => getModel('Cliente');
+  const Activity = () => getModel('Activity');
   const Inmobiliaria = () => getModel('Inmobiliaria');
   const BlogPost = () => getModel('BlogPost');
+
+  const safeLimit = (limit, fallback = 20) => Math.min(Math.max(Number(limit) || fallback, 1), 50);
 
   // ── Agentes Management ──────────────────────────────────────────────────────
 
@@ -67,7 +71,7 @@ function registerAdminTools(server) {
       const filter = agenteId ? { agenteId } : {};
       const items = await Reward().find(filter)
         .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
     }
@@ -96,7 +100,7 @@ function registerAdminTools(server) {
       }
       const items = await AuditLog().find(filter)
         .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
     }
@@ -108,7 +112,7 @@ function registerAdminTools(server) {
     'list_booking_requests',
     'Lista solicitudes de reserva del sitio público.',
     {
-      status: z.string().optional().describe('pending | confirmed | rejected | cancelled'),
+      status: z.string().optional().describe('pending | approved | rejected | cancelled'),
       agenteId: z.string().optional(),
       limit: z.number().optional(),
     },
@@ -118,9 +122,22 @@ function registerAdminTools(server) {
       if (agenteId) filter.agenteId = agenteId;
       const items = await BookingRequest().find(filter)
         .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'get_booking_request_detail',
+    'Detalle completo de una solicitud de reserva del sitio público.',
+    {
+      bookingId: z.string().describe('ID de la solicitud de reserva'),
+    },
+    async ({ bookingId }) => {
+      const booking = await BookingRequest().findById(bookingId).lean();
+      if (!booking) return { content: [{ type: 'text', text: 'Reserva no encontrada' }], isError: true };
+      return { content: [{ type: 'text', text: JSON.stringify(booking, null, 2) }] };
     }
   );
 
@@ -129,7 +146,7 @@ function registerAdminTools(server) {
     'Actualiza el estado de una solicitud de reserva.',
     {
       bookingId: z.string().describe('ID de la reserva'),
-      status: z.string().describe('confirmed | rejected | cancelled'),
+      status: z.string().describe('approved | rejected | cancelled'),
       notes: z.string().optional(),
     },
     async ({ bookingId, status, notes }) => {
@@ -147,17 +164,82 @@ function registerAdminTools(server) {
     'list_contact_messages',
     'Lista mensajes de contacto recibidos del sitio público.',
     {
-      read: z.boolean().optional(),
+      query: z.string().optional().describe('Buscar por nombre, email, teléfono, asunto o mensaje'),
       limit: z.number().optional(),
     },
-    async ({ read, limit }) => {
+    async ({ query, limit }) => {
       const filter = {};
-      if (read !== undefined) filter.read = read;
+      if (query && query.trim()) {
+        const rx = new RegExp(query.trim(), 'i');
+        filter.$or = [{ nombre: rx }, { email: rx }, { telefono: rx }, { asunto: rx }, { mensaje: rx }];
+      }
       const items = await ContactMessage().find(filter)
         .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'get_contact_message_detail',
+    'Detalle de una consulta/mensaje recibido desde el sitio público.',
+    {
+      contactMessageId: z.string().describe('ID del mensaje de contacto'),
+    },
+    async ({ contactMessageId }) => {
+      const msg = await ContactMessage().findById(contactMessageId).lean();
+      if (!msg) return { content: [{ type: 'text', text: 'Mensaje de contacto no encontrado' }], isError: true };
+      return { content: [{ type: 'text', text: JSON.stringify(msg, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'convert_contact_to_cliente',
+    'Convierte una consulta del sitio público en cliente CRM y registra actividad de origen.',
+    {
+      contactMessageId: z.string().describe('ID del mensaje de contacto'),
+      agenteId: z.string().optional().describe('Asignar el nuevo cliente a un agente'),
+      notasExtra: z.string().optional(),
+    },
+    async ({ contactMessageId, agenteId, notasExtra }) => {
+      const msg = await ContactMessage().findById(contactMessageId).lean();
+      if (!msg) return { content: [{ type: 'text', text: 'Mensaje de contacto no encontrado' }], isError: true };
+
+      const existing = await Cliente().findOne({
+        $or: [
+          ...(msg.email ? [{ email: msg.email }] : []),
+          ...(msg.telefono ? [{ telefono: msg.telefono }] : []),
+        ],
+      }).lean();
+      if (existing) {
+        await Activity().create({
+          agenteId: agenteId || existing.agenteId || '',
+          clientId: String(existing._id),
+          type: 'web_contact',
+          notes: `${msg.asunto || 'Consulta web'}: ${msg.mensaje}${notasExtra ? `\n${notasExtra}` : ''}`,
+          metadata: { contactMessageId: String(msg._id), convertedToExisting: true },
+        });
+        return { content: [{ type: 'text', text: JSON.stringify({ cliente: existing, reusedExisting: true }, null, 2) }] };
+      }
+
+      const cliente = await Cliente().create({
+        nombre: msg.nombre,
+        email: msg.email || '',
+        telefono: msg.telefono || '',
+        agenteId: agenteId || '',
+        notas: `${msg.asunto || 'Consulta web'}: ${msg.mensaje}${notasExtra ? `\n${notasExtra}` : ''}`,
+        metadata: { source: 'contact_message', contactMessageId: String(msg._id) },
+      });
+      await Activity().create({
+        agenteId: agenteId || '',
+        clientId: String(cliente._id),
+        type: 'web_contact',
+        notes: `${msg.asunto || 'Consulta web'}: ${msg.mensaje}`,
+        metadata: { contactMessageId: String(msg._id), convertedToCliente: true },
+      });
+
+      return { content: [{ type: 'text', text: JSON.stringify({ cliente: cliente.toObject(), reusedExisting: false }, null, 2) }] };
     }
   );
 
@@ -190,7 +272,7 @@ function registerAdminTools(server) {
       const items = await BlogPost().find(filter)
         .select('title slug status author createdAt publishedAt')
         .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
     }

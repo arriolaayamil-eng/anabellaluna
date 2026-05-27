@@ -7,6 +7,11 @@ const { getModel } = require('../db');
 
 function registerTareaTools(server) {
   const Tarea = () => getModel('Tarea');
+  const Cliente = () => getModel('Cliente');
+  const Propiedad = () => getModel('Propiedad');
+
+  const safeLimit = (limit, fallback = 20) => Math.min(Math.max(Number(limit) || fallback, 1), 50);
+  const openStatuses = ['pendiente', 'en_progreso', 'en_revision', 'Open', 'InProgress', 'Testing'];
 
   server.tool(
     'list_tareas',
@@ -29,9 +34,80 @@ function registerTareaTools(server) {
 
       const items = await Tarea().find(filter)
         .sort({ dueDate: 1, createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
+        .maxTimeMS(5000)
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_tareas_vencidas',
+    'Lista tareas abiertas con fecha límite vencida.',
+    {
+      agenteId: z.string().optional().describe('ID del agente'),
+      assigneeId: z.string().optional().describe('ID del asignado'),
+      limit: z.number().optional(),
+    },
+    async ({ agenteId, assigneeId, limit }) => {
+      const filter = {
+        status: { $in: openStatuses },
+        dueDate: { $lt: new Date() },
+      };
+      if (agenteId) filter.$or = [{ assigneeId: agenteId }, { agenteId }, { creatorId: agenteId }];
+      if (assigneeId) filter.assigneeId = assigneeId;
+      const items = await Tarea().find(filter)
+        .sort({ dueDate: 1 })
+        .limit(safeLimit(limit))
+        .maxTimeMS(5000)
+        .lean();
+      return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'get_task_load_summary',
+    'Resume carga de tareas abiertas por agente/asignado, incluyendo vencidas y urgentes.',
+    {
+      agenteId: z.string().optional().describe('Filtrar por agente/asignado'),
+    },
+    async ({ agenteId }) => {
+      const match = { status: { $in: openStatuses } };
+      if (agenteId) match.$or = [{ assigneeId: agenteId }, { agenteId }, { creatorId: agenteId }];
+      const now = new Date();
+      const summary = await Tarea().aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: '$assigneeId',
+            totalAbiertas: { $sum: 1 },
+            vencidas: { $sum: { $cond: [{ $lt: ['$dueDate', now] }, 1, 0] } },
+            urgentes: { $sum: { $cond: [{ $in: ['$priority', ['urgente', 'alta', 'Alta']] }, 1, 0] } },
+            proximoVencimiento: { $min: '$dueDate' },
+          },
+        },
+        { $sort: { vencidas: -1, urgentes: -1, totalAbiertas: -1 } },
+      ]);
+      return { content: [{ type: 'text', text: JSON.stringify({ count: summary.length, summary }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_tareas_por_cliente',
+    'Lista tareas asociadas a un cliente.',
+    {
+      clienteId: z.string().describe('ID del cliente'),
+      includeCompleted: z.boolean().optional(),
+      limit: z.number().optional(),
+    },
+    async ({ clienteId, includeCompleted, limit }) => {
+      const filter = { clienteId };
+      if (!includeCompleted) filter.status = { $in: openStatuses };
+      const [cliente, items] = await Promise.all([
+        Cliente().findById(clienteId).select('nombre email telefono agenteId').lean(),
+        Tarea().find(filter).sort({ dueDate: 1, createdAt: -1 }).limit(safeLimit(limit)).lean(),
+      ]);
+      return { content: [{ type: 'text', text: JSON.stringify({ cliente, count: items.length, items }, null, 2) }] };
     }
   );
 
@@ -81,6 +157,54 @@ function registerTareaTools(server) {
       const updated = await Tarea().findByIdAndUpdate(tareaId, { $set: set }, { new: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Tarea no encontrada' }], isError: true };
       return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'reschedule_tarea',
+    'Reprograma la fecha límite de una tarea.',
+    {
+      tareaId: z.string().describe('ID de la tarea'),
+      dueDate: z.string().describe('Nueva fecha límite ISO 8601'),
+    },
+    async ({ tareaId, dueDate }) => {
+      if (!tareaId || !dueDate) return { content: [{ type: 'text', text: 'tareaId y dueDate requeridos' }], isError: true };
+      const d = new Date(dueDate);
+      if (Number.isNaN(d.getTime())) return { content: [{ type: 'text', text: 'dueDate inválida' }], isError: true };
+      const updated = await Tarea().findByIdAndUpdate(tareaId, { $set: { dueDate: d } }, { new: true }).lean();
+      if (!updated) return { content: [{ type: 'text', text: 'Tarea no encontrada' }], isError: true };
+      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'assign_tarea',
+    'Asigna o delega una tarea a otro usuario/agente.',
+    {
+      tareaId: z.string().describe('ID de la tarea'),
+      assigneeId: z.string().describe('Nuevo asignado'),
+      assigneeName: z.string().optional(),
+      reason: z.string().optional(),
+      fromUserId: z.string().optional(),
+      fromUserName: z.string().optional(),
+    },
+    async ({ tareaId, assigneeId, assigneeName, reason, fromUserId, fromUserName }) => {
+      const delegation = fromUserId ? {
+        fromUserId,
+        fromUserName: fromUserName || '',
+        toUserId: assigneeId,
+        toUserName: assigneeName || '',
+        reason: reason || '',
+        delegatedAt: new Date(),
+      } : null;
+      const update = {
+        $set: { assigneeId, ...(assigneeName ? { assigneeName } : {}) },
+        ...(delegation ? { $push: { delegations: delegation } } : {}),
+      };
+      const updated = await Tarea().findByIdAndUpdate(tareaId, update, { new: true }).lean();
+      if (!updated) return { content: [{ type: 'text', text: 'Tarea no encontrada' }], isError: true };
+      const propiedad = updated.propiedadId ? await Propiedad().findById(updated.propiedadId).select('title address').lean() : null;
+      return { content: [{ type: 'text', text: JSON.stringify({ tarea: updated, propiedad }, null, 2) }] };
     }
   );
 }

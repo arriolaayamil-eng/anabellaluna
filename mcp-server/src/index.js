@@ -13,7 +13,6 @@
 
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-const { db } = require('./db');
 
 // Tool registrations
 const { registerClienteTools } = require('./tools/clientes');
@@ -28,6 +27,7 @@ const { registerContratoTools } = require('./tools/contratos');
 const { registerReporteTools } = require('./tools/reportes');
 const { registerMensajeTools } = require('./tools/mensajes');
 const { registerAdminTools } = require('./tools/admin');
+const { registerPrediccionTools } = require('./tools/predicciones');
 
 async function main() {
   // Connect to MongoDB
@@ -54,6 +54,7 @@ async function main() {
   registerReporteTools(server);
   registerMensajeTools(server);
   registerAdminTools(server);
+  registerPrediccionTools(server);
 
   // Start with stdio transport
   const transport = new StdioServerTransport();

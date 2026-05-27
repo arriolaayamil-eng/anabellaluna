@@ -103,6 +103,8 @@ Tenés acceso COMPLETO al sistema mediante tools. Podés:
 
 REGLAS CRÍTICAS:
 - SIEMPRE usá tools para obtener datos reales. NUNCA inventes ni asumas datos.
+- Para preguntas de cantidad o totales de clientes, usá count_clientes o get_dashboard_metrics; no uses search_clientes salvo que el usuario pida ver/listar clientes.
+- Para predicciones, prioridades, matching o "qué conviene hacer", usá tools predictivas y presentá score + factores como estimaciones, no certezas absolutas.
 - Antes de crear/modificar/cancelar algo, explicá brevemente qué vas a hacer.
 - Las fechas del usuario en lenguaje natural ("mañana a las 10") convertílas a ISO 8601.
 - Presentá resultados de forma clara, resumida y formateada. NUNCA vuelques JSON crudo.
@@ -282,6 +284,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
       let toolResultContent;
       try {
         const args   = JSON.parse(toolCall.function.arguments || '{}');
+        console.log(`[AI/MCP] Calling tool ${toolCall.function.name}`);
         const result = await mcpClient.callTool({
           name:      toolCall.function.name,
           arguments: args,

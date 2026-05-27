@@ -12,6 +12,32 @@ function registerClienteTools(server) {
   const Cita = () => getModel('Cita');
   const Propiedad = () => getModel('Propiedad');
 
+  const safeLimit = (limit, fallback = 20) => Math.min(Math.max(Number(limit) || fallback, 1), 50);
+
+  server.tool(
+    'count_clientes',
+    'Cuenta clientes del CRM de forma eficiente. Usar para preguntas como "cuántos clientes hay" o "cantidad de clientes actuales".',
+    {
+      agenteId: z.string().optional().describe('Filtrar por agente'),
+      createdFrom: z.string().optional().describe('Fecha ISO opcional: contar clientes creados desde esta fecha'),
+      createdTo: z.string().optional().describe('Fecha ISO opcional: contar clientes creados hasta esta fecha'),
+      fidelizado: z.boolean().optional().describe('Filtrar por clientes fidelizados'),
+    },
+    async ({ agenteId, createdFrom, createdTo, fidelizado }) => {
+      const filter = {};
+      if (agenteId) filter.agenteId = agenteId;
+      if (fidelizado !== undefined) filter.fidelizado = fidelizado;
+      if (createdFrom || createdTo) {
+        filter.createdAt = {};
+        if (createdFrom) filter.createdAt.$gte = new Date(createdFrom);
+        if (createdTo) filter.createdAt.$lte = new Date(createdTo);
+      }
+
+      const total = await Cliente().countDocuments(filter).maxTimeMS(5000);
+      return { content: [{ type: 'text', text: JSON.stringify({ total, filter }, null, 2) }] };
+    }
+  );
+
   server.tool(
     'search_clientes',
     'Busca clientes por nombre, email, teléfono o dirección. Devuelve hasta 50 resultados.',
@@ -28,10 +54,126 @@ function registerClienteTools(server) {
         filter.$or = [{ nombre: rx }, { email: rx }, { telefono: rx }, { direccion: rx }];
       }
       const items = await Cliente().find(filter)
+        .select('nombre email telefono direccion agenteId fidelizado createdAt updatedAt')
         .sort({ updatedAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 20, 1), 50))
+        .limit(safeLimit(limit))
+        .maxTimeMS(5000)
         .lean();
       return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_clientes_recientes',
+    'Lista los clientes creados o actualizados recientemente. Útil para "últimos clientes cargados".',
+    {
+      agenteId: z.string().optional().describe('Filtrar por agente'),
+      mode: z.string().optional().describe('created | updated (default updated)'),
+      limit: z.number().optional().describe('Máximo resultados (1-50)'),
+    },
+    async ({ agenteId, mode, limit }) => {
+      const filter = agenteId ? { agenteId } : {};
+      const sortField = mode === 'created' ? 'createdAt' : 'updatedAt';
+      const items = await Cliente().find(filter)
+        .select('nombre email telefono direccion agenteId fidelizado createdAt updatedAt')
+        .sort({ [sortField]: -1 })
+        .limit(safeLimit(limit))
+        .maxTimeMS(5000)
+        .lean();
+      return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_clientes_sin_seguimiento',
+    'Lista clientes sin actividad registrada en los últimos N días, priorizando los más abandonados.',
+    {
+      agenteId: z.string().optional().describe('Filtrar por agente'),
+      days: z.number().optional().describe('Días sin seguimiento (default 14)'),
+      limit: z.number().optional().describe('Máximo resultados (1-50)'),
+    },
+    async ({ agenteId, days, limit }) => {
+      const cutoff = new Date(Date.now() - (Number(days) || 14) * 86400000);
+      const clientFilter = agenteId ? { agenteId } : {};
+      const clients = await Cliente().find(clientFilter)
+        .select('nombre email telefono agenteId createdAt updatedAt')
+        .sort({ updatedAt: 1 })
+        .limit(500)
+        .lean();
+
+      const ids = clients.map((c) => String(c._id));
+      const recentActivities = await Activity().find({
+        clientId: { $in: ids },
+        createdAt: { $gte: cutoff },
+      }).select('clientId createdAt').lean();
+      const withRecent = new Set(recentActivities.map((a) => String(a.clientId)));
+
+      const lastActivityAgg = await Activity().aggregate([
+        { $match: { clientId: { $in: ids } } },
+        { $group: { _id: '$clientId', lastActivityAt: { $max: '$createdAt' }, activityCount: { $sum: 1 } } },
+      ]);
+      const lastByClient = new Map(lastActivityAgg.map((a) => [String(a._id), a]));
+
+      const items = clients
+        .filter((c) => !withRecent.has(String(c._id)))
+        .map((c) => {
+          const last = lastByClient.get(String(c._id));
+          return {
+            ...c,
+            lastActivityAt: last?.lastActivityAt || null,
+            activityCount: last?.activityCount || 0,
+            daysWithoutFollowup: Math.floor((Date.now() - new Date(last?.lastActivityAt || c.updatedAt || c.createdAt).getTime()) / 86400000),
+          };
+        })
+        .sort((a, b) => b.daysWithoutFollowup - a.daysWithoutFollowup)
+        .slice(0, safeLimit(limit));
+
+      return { content: [{ type: 'text', text: JSON.stringify({ count: items.length, cutoff: cutoff.toISOString(), items }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'detect_clientes_duplicados',
+    'Detecta posibles clientes duplicados por email o teléfono.',
+    {
+      agenteId: z.string().optional().describe('Filtrar por agente'),
+      limit: z.number().optional().describe('Máximo grupos duplicados (1-50)'),
+    },
+    async ({ agenteId, limit }) => {
+      const match = agenteId ? { agenteId } : {};
+      const duplicateGroups = await Cliente().aggregate([
+        { $match: match },
+        {
+          $project: {
+            nombre: 1,
+            email: { $toLower: { $ifNull: ['$email', ''] } },
+            telefono: { $ifNull: ['$telefono', ''] },
+            agenteId: 1,
+            createdAt: 1,
+          },
+        },
+        {
+          $facet: {
+            byEmail: [
+              { $match: { email: { $nin: ['', null] } } },
+              { $group: { _id: '$email', count: { $sum: 1 }, clientes: { $push: '$$ROOT' } } },
+              { $match: { count: { $gt: 1 } } },
+            ],
+            byTelefono: [
+              { $match: { telefono: { $nin: ['', null] } } },
+              { $group: { _id: '$telefono', count: { $sum: 1 }, clientes: { $push: '$$ROOT' } } },
+              { $match: { count: { $gt: 1 } } },
+            ],
+          },
+        },
+      ]);
+
+      const groups = [
+        ...(duplicateGroups[0]?.byEmail || []).map((g) => ({ type: 'email', value: g._id, count: g.count, clientes: g.clientes })),
+        ...(duplicateGroups[0]?.byTelefono || []).map((g) => ({ type: 'telefono', value: g._id, count: g.count, clientes: g.clientes })),
+      ].slice(0, safeLimit(limit));
+
+      return { content: [{ type: 'text', text: JSON.stringify({ count: groups.length, groups }, null, 2) }] };
     }
   );
 
@@ -53,6 +195,36 @@ function registerClienteTools(server) {
       ]);
 
       return { content: [{ type: 'text', text: JSON.stringify({ cliente: cli, propiedades, operaciones, citas, actividades }, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'get_cliente_timeline',
+    'Línea de tiempo consolidada de un cliente: actividades, citas y operaciones ordenadas por fecha.',
+    {
+      clienteId: z.string().describe('MongoDB ObjectId del cliente'),
+      limit: z.number().optional().describe('Máximo eventos (1-50)'),
+    },
+    async ({ clienteId, limit }) => {
+      const cli = await Cliente().findById(clienteId).select('nombre email telefono agenteId').lean();
+      if (!cli) return { content: [{ type: 'text', text: 'Cliente no encontrado' }], isError: true };
+
+      const max = safeLimit(limit);
+      const [actividades, citas, operaciones] = await Promise.all([
+        Activity().find({ clientId: String(clienteId) }).sort({ createdAt: -1 }).limit(max).lean(),
+        Cita().find({ clienteId: String(clienteId) }).sort({ fecha: -1 }).limit(max).lean(),
+        Operacion().find({ clienteId: String(clienteId) }).sort({ createdAt: -1 }).limit(max).lean(),
+      ]);
+
+      const events = [
+        ...actividades.map((a) => ({ type: 'activity', date: a.createdAt, title: a.type || 'Actividad', data: a })),
+        ...citas.map((c) => ({ type: 'cita', date: c.fecha || c.createdAt, title: c.titulo || c.tipo || 'Cita', data: c })),
+        ...operaciones.map((o) => ({ type: 'operacion', date: o.createdAt, title: `${o.tipo || 'Operación'} ${o.estado || ''}`.trim(), data: o })),
+      ]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, max);
+
+      return { content: [{ type: 'text', text: JSON.stringify({ cliente: cli, count: events.length, events }, null, 2) }] };
     }
   );
 
@@ -95,6 +267,20 @@ function registerClienteTools(server) {
       if (direccion !== undefined) set.direccion = direccion;
       if (notas !== undefined) set.notas = notas;
       const updated = await Cliente().findByIdAndUpdate(clienteId, { $set: set }, { new: true }).lean();
+      if (!updated) return { content: [{ type: 'text', text: 'Cliente no encontrado' }], isError: true };
+      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_cliente_fidelizado',
+    'Marca o desmarca un cliente como fidelizado.',
+    {
+      clienteId: z.string().describe('ID del cliente'),
+      fidelizado: z.boolean().describe('Estado de fidelización'),
+    },
+    async ({ clienteId, fidelizado }) => {
+      const updated = await Cliente().findByIdAndUpdate(clienteId, { $set: { fidelizado } }, { new: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Cliente no encontrado' }], isError: true };
       return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
     }
