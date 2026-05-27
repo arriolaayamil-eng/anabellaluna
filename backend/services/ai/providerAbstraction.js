@@ -97,6 +97,7 @@ async function chatCompletion({
   agenteId,
   conversationId,
   maxTokens,
+  toolChoice,
 }) {
   const config = await getProviderConfig();
   const cfg    = { ...config.openrouter, maxTokens: maxTokens || config.openrouter.maxTokens };
@@ -107,7 +108,7 @@ async function chatCompletion({
 
   const startedAt = Date.now();
   try {
-    const result    = await _callOpenRouter(cfg, { messages, tools, stream });
+    const result    = await _callOpenRouter(cfg, { messages, tools, stream, toolChoice });
     const latencyMs = Date.now() - startedAt;
 
     _logUsage({ provider: 'openrouter', model: cfg.model, userId, agenteId,
@@ -141,7 +142,7 @@ async function chatCompletion({
   }
 }
 
-async function _callOpenRouter(cfg, { messages, tools, stream }) {
+async function _callOpenRouter(cfg, { messages, tools, stream, toolChoice }) {
   const apiKey = cfg.apiKey;
   const model  = cfg.model || DEFAULT_MODEL;
 
@@ -157,7 +158,7 @@ async function _callOpenRouter(cfg, { messages, tools, stream }) {
     messages,
     temperature: cfg.temperature ?? 0.3,
     max_tokens:  cfg.maxTokens  || 4096,
-    ...(tools && tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
+    ...(tools && tools.length > 0 ? { tools, tool_choice: toolChoice || 'auto' } : {}),
     ...(stream ? { stream: true } : {}),
   });
 

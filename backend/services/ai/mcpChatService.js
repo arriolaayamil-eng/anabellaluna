@@ -130,6 +130,17 @@ const RECENT_MSGS   = 5;   // mensajes recientes que se pasan íntegros al LLM
 const SUMMARY_MSGS  = 20;  // mensajes anteriores que se comprimen en el summary
 const MAX_TOOL_ROUNDS = 10;
 
+function _looksLikeDeferredAction(text = '') {
+  const t = String(text || '').toLowerCase();
+  if (!t) return false;
+
+  const promisePattern = /\b(voy a|proceder[eé]|procedo|ahora voy|me encargo|lo har[eé]|realizar[eé]|crear[eé]|agendar[eé]|registrar[eé]|actualizar[eé]|modificar[eé])\b/;
+  const actionPattern = /\b(agendar|agenda|crear|registrar|programar|modificar|actualizar|cancelar|generar|enviar|guardar|cita|tarea|cliente|propiedad|operaci[oó]n|documento|reuni[oó]n)\b/;
+  const completedPattern = /\b(ha sido|fue|qued[oó]|listo|con [eé]xito|se cre[oó]|se agend[oó]|he agendado|he creado|ya est[aá])\b/;
+
+  return promisePattern.test(t) && actionPattern.test(t) && !completedPattern.test(t);
+}
+
 /**
  * Construye el array de mensajes para el LLM:
  *   [system] + (summary si existe) + últimos RECENT_MSGS user/assistant
@@ -265,6 +276,8 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
   let rounds        = 0;
   let lastProvider  = '';
   let totalTokens   = 0;
+  let forcedToolRetryUsed = false;
+  let forceNextToolCall = false;
 
   // 5. Loop LLM → tools (formato OpenAI)
   while (rounds < MAX_TOOL_ROUNDS) {
@@ -276,18 +289,33 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
       userId,
       agenteId,
       conversationId: conversation._id,
+      toolChoice: forceNextToolCall ? 'required' : 'auto',
     });
+
+    forceNextToolCall = false;
 
     lastProvider  = llmResult.provider || '';
     totalTokens  += llmResult.usage?.total_tokens || 0;
 
     const choice       = llmResult.choices[0];
     const assistantMsg = choice.message;
-    const finishReason = choice.finish_reason;
+    const hasToolCalls = Boolean(assistantMsg.tool_calls && assistantMsg.tool_calls.length);
 
     // Sin tool calls → respuesta final
-    if (!assistantMsg.tool_calls || !assistantMsg.tool_calls.length ||
-        finishReason === 'stop' || finishReason === 'length') {
+    if (!hasToolCalls) {
+      if (!forcedToolRetryUsed && _looksLikeDeferredAction(assistantMsg.content)) {
+        forcedToolRetryUsed = true;
+        forceNextToolCall = true;
+        currentMessages.push({
+          role: 'assistant',
+          content: assistantMsg.content || '',
+        });
+        currentMessages.push({
+          role: 'system',
+          content: 'La respuesta anterior prometio ejecutar una accion pero no llamo ninguna tool. Si los datos minimos estan presentes, llama ahora la tool apropiada. No respondas texto final antes de ejecutar la tool.',
+        });
+        continue;
+      }
       finalResponse = assistantMsg.content || '';
       break;
     }
