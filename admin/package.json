@@ -33,8 +33,11 @@
     "socket.io-client": "^4.8.3"
   },
   "scripts": {
+    "prestart": "node ../scripts/write-app-version.js",
     "start": "craco start",
+    "prebuild": "node ../scripts/write-app-version.js",
     "build": "craco build",
+    "prebuild:analyze": "node ../scripts/write-app-version.js",
     "build:analyze": "craco build && npx webpack-bundle-analyzer build/bundle-stats.json",
     "test": "craco test",
     "eject": "react-scripts eject",

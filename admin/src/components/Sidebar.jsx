@@ -4,6 +4,7 @@ import { MdSpaceDashboard, MdOutlineCancel, MdOutlineIntegrationInstructions } f
 import { FaUsers, FaRegCalendarAlt, FaDollarSign, FaChartBar, FaTrophy, FaBuilding, FaUserTie, FaComments, FaFileAlt, FaMagic, FaImage, FaBalanceScale, FaRobot, FaCog } from 'react-icons/fa';
 
 import { useStateContext } from '../contexts/ContextProvider';
+import { APP_COMMIT_COUNT, APP_VERSION } from '../config/appVersion';
 
 const menuItems = [
   { name: 'Dashboard', path: '/', icon: <MdSpaceDashboard /> },
@@ -25,7 +26,7 @@ const menuItems = [
 ];
 
 const Sidebar = () => {
-  const { currentColor, currentMode, activeMenu, setActiveMenu, screenSize } = useStateContext();
+  const { currentColor, activeMenu, setActiveMenu, screenSize } = useStateContext();
   const [isHovered, setIsHovered] = useState(false);
 
   const handleCloseSideBar = () => {
@@ -136,8 +137,13 @@ const Sidebar = () => {
         </nav>
 
         {/* Footer */}
-        <div className={`p-4 border-t border-gray-700 transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
-          <p className="text-xs text-gray-500 text-center whitespace-nowrap">ERP v1.0</p>
+        <div className="p-3 border-t border-gray-700 transition-all duration-300">
+          <p
+            className={`text-xs text-gray-500 text-center whitespace-nowrap transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-100 scale-90'}`}
+            title={`Version generada con ${APP_COMMIT_COUNT} commits`}
+          >
+            {isExpanded ? `ERP ${APP_VERSION}` : APP_VERSION}
+          </p>
         </div>
       </div>
 

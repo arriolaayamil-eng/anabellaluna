@@ -30,6 +30,14 @@ Innovación: Siempre busca soluciones modernas y mejores prácticas. No te quede
 
 ## Checklist obligatorio antes de commit/push
 
+### 0. Versionado visible en Admin y CRM
+
+- Cada cambio debe quedar visible en el sidebar de Admin y CRM con la version generada por Git.
+- Cambios menores: mantener `app-version.json` con `"major": 1`; la version se muestra como `v1.<numero total de commits>`.
+- Cambios mayores: subir `app-version.json` a `"major": 2`, luego `3`, y asi sucesivamente.
+- `npm start` y `npm run build` en `admin/` o `agents/` regeneran automaticamente `admin/src/config/appVersion.js` y `agents/src/config/appVersion.js`.
+- Si se necesita regenerar manualmente antes de commitear, ejecutar `node scripts/write-app-version.js` desde la raiz del repo.
+
 ### 1. ESLint — Errores comunes a evitar
 
 - **`quote-props`**: No usar comillas en propiedades de objetos a menos que sea estrictamente necesario (ej: `baños: value` en vez de `'baños': value`).
@@ -57,10 +65,10 @@ Antes de cada `git commit` y `git push`, ejecutar **siempre** los builds locales
 
 ```bash
 # En agents/
-npx craco build
+npm run build
 
 # En admin/
-npx craco build
+npm run build
 ```
 
 Ambos builds deben mostrar **"Compiled successfully."** con **cero errores** antes de proceder al push.
