@@ -134,6 +134,11 @@ router.get('/:id/messages', async (req, res) => {
     const messages = await AIMessage.find({
       conversationId: req.params.id,
       userId: currentUserId(req),
+      $or: [
+        { role: 'user' },
+        { role: 'tool', content: { $ne: '' } },
+        { role: 'assistant', content: { $ne: '' } },
+      ],
     })
       .sort({ createdAt: 1 })
       .limit(200)
@@ -150,7 +155,7 @@ router.post('/:id/messages', async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
       return res.status(404).json({ error: 'Conversation not found' });
     }
-    const { message } = req.body;
+    const { message, clientMessageId } = req.body;
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'message is required' });
     }
@@ -165,6 +170,7 @@ router.post('/:id/messages', async (req, res) => {
       agenteId:    req.user.agenteId   || '',
       agenteName:  req.user.username   || req.user.nombre || '',
       permissions,
+      clientMessageId,
     });
 
     res.json({ ...result, content: result.content || result.response || '' });

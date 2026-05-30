@@ -13,6 +13,13 @@ function registerClienteTools(server) {
   const Propiedad = () => getModel('Propiedad');
 
   const safeLimit = (limit, fallback = 20) => Math.min(Math.max(Number(limit) || fallback, 1), 50);
+  const persistedResult = async (model, id, label) => {
+    const persisted = await model.findById(id).lean();
+    if (!persisted) {
+      return { content: [{ type: 'text', text: `No se pudo confirmar la persistencia de ${label}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify({ persisted: true, item: persisted }, null, 2) }] };
+  };
 
   server.tool(
     'count_clientes',
@@ -244,7 +251,7 @@ function registerClienteTools(server) {
       const doc = { nombre: nombre.trim(), email: email || '', telefono: telefono || '', direccion: direccion || '', notas: notas || '' };
       if (agenteId) doc.agenteId = agenteId;
       const created = await Cliente().create(doc);
-      return { content: [{ type: 'text', text: JSON.stringify(created.toObject(), null, 2) }] };
+      return persistedResult(Cliente(), created._id, 'cliente');
     }
   );
 
@@ -266,9 +273,9 @@ function registerClienteTools(server) {
       if (telefono !== undefined) set.telefono = telefono;
       if (direccion !== undefined) set.direccion = direccion;
       if (notas !== undefined) set.notas = notas;
-      const updated = await Cliente().findByIdAndUpdate(clienteId, { $set: set }, { new: true }).lean();
+      const updated = await Cliente().findByIdAndUpdate(clienteId, { $set: set }, { new: true, runValidators: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Cliente no encontrado' }], isError: true };
-      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+      return persistedResult(Cliente(), updated._id, 'cliente');
     }
   );
 
@@ -280,9 +287,9 @@ function registerClienteTools(server) {
       fidelizado: z.boolean().describe('Estado de fidelización'),
     },
     async ({ clienteId, fidelizado }) => {
-      const updated = await Cliente().findByIdAndUpdate(clienteId, { $set: { fidelizado } }, { new: true }).lean();
+      const updated = await Cliente().findByIdAndUpdate(clienteId, { $set: { fidelizado } }, { new: true, runValidators: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Cliente no encontrado' }], isError: true };
-      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+      return persistedResult(Cliente(), updated._id, 'cliente');
     }
   );
 }

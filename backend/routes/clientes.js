@@ -6,6 +6,13 @@ const Agente = require('../models/Agente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const { triggerWelcomeAutomation } = require('../services/automationScheduler');
 const { sendNotification, sendToRole } = require('../services/pushService');
+const {
+  attachRequestId,
+  confirmMissing,
+  confirmPersisted,
+  traceMutation,
+  traceMutationError,
+} = require('../utils/persistenceTrace');
 
 const router = express.Router();
 
@@ -129,10 +136,16 @@ router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
 });
 
 router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
     const assignerProfile = await getAssignerProfile(req);
+    traceMutation(req, 'cliente.create.start', {
+      nombre: body.nombre || '',
+      email: body.email || '',
+      requestedAgenteId: body.agenteId || '',
+    });
 
     if (scopeId) {
       const responsable = await resolveResponsableProfile(scopeId, {
@@ -158,14 +171,21 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
     }
 
     const created = await Cliente.create(body);
-    
+    const persisted = await confirmPersisted(Cliente, created._id, 'cliente');
+    traceMutation(req, 'cliente.create.persisted', {
+      clienteId: persisted._id,
+      agenteId: persisted.agenteId || '',
+    });
+
     // Trigger welcome automation for new client
-    if (created.agenteId && created.metadata?.responsableTipo === 'agente') {
-      triggerWelcomeAutomation(created, created.agenteId).catch(console.error);
+    if (persisted.agenteId && persisted.metadata?.responsableTipo === 'agente') {
+      triggerWelcomeAutomation(persisted, persisted.agenteId).catch((err) => {
+        traceMutationError(req, 'cliente.automation.failed', err, { clienteId: persisted._id });
+      });
     }
 
     // Push notification to admin
-    const clientName = created.nombre || 'Nuevo cliente';
+    const clientName = persisted.nombre || 'Nuevo cliente';
     sendToRole('admin', {
       title: 'Nuevo lead',
       body: `Se registró ${clientName}`,
@@ -173,25 +193,35 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
     }).catch(() => {});
 
     // Notify assigned agent (if admin assigned to someone else)
-    if (created.agenteId && req.user.role === 'admin' && created.metadata?.responsableTipo === 'agente') {
+    if (persisted.agenteId && req.user.role === 'admin' && persisted.metadata?.responsableTipo === 'agente') {
       const assignerId = String(req.user.sub || req.user._id || '');
       // Only notify if assigned to a different user
-      if (String(created.agenteId) !== assignerId) {
-        const assigner = created.assignedBy?.nombre || req.user.username || 'Administrador';
-        notifyClientAssignment(created.agenteId, clientName, created._id, assigner).catch(console.error);
+      if (String(persisted.agenteId) !== assignerId) {
+        const assigner = persisted.assignedBy?.nombre || req.user.username || 'Administrador';
+        notifyClientAssignment(persisted.agenteId, clientName, persisted._id, assigner).catch((err) => {
+          traceMutationError(req, 'cliente.assignmentNotification.failed', err, { clienteId: persisted._id });
+        });
       }
     }
-    
-    res.status(201).json(created);
-  } catch (err) { res.status(400).json({ error: err.message }); }
+
+    res.status(201).json(persisted);
+  } catch (err) {
+    traceMutationError(req, 'cliente.create.failed', err);
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agenteId = scopeId;
     const body = { ...(req.body || {}) };
+    traceMutation(req, 'cliente.update.start', {
+      clienteId: req.params.id,
+      fields: Object.keys(body),
+    });
     const previousClient = req.user.role === 'admin'
       ? await Cliente.findById(req.params.id).select('agenteId nombre metadata').lean()
       : null;
@@ -225,8 +255,18 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
       body.assignedBy = assignerProfile;
     }
 
-    const updated = await Cliente.findOneAndUpdate(filter, body, { new: true, runValidators: true });
+    const updated = await Cliente.findOneAndUpdate(filter, body, { new: true, runValidators: true }).lean();
     if (!updated) return res.status(404).json({ error: 'Not found' });
+    const persisted = await Cliente.findOne(filter).lean();
+    if (!persisted) {
+      const error = new Error('No se pudo confirmar la persistencia del cliente actualizado');
+      error.statusCode = 500;
+      throw error;
+    }
+    traceMutation(req, 'cliente.update.persisted', {
+      clienteId: persisted._id,
+      agenteId: persisted.agenteId || '',
+    });
 
     // Notify new agent if agenteId changed
     if (
@@ -237,25 +277,37 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
     ) {
       const assignerId = String(req.user.sub || req.user._id || '');
       if (String(body.agenteId) !== assignerId) {
-        const assigner = updated.assignedBy?.nombre || req.user.username || 'Administrador';
-        const clientName = updated.nombre || 'Cliente';
-        notifyClientAssignment(body.agenteId, clientName, updated._id, assigner).catch(console.error);
+        const assigner = persisted.assignedBy?.nombre || req.user.username || 'Administrador';
+        const clientName = persisted.nombre || 'Cliente';
+        notifyClientAssignment(body.agenteId, clientName, persisted._id, assigner).catch((err) => {
+          traceMutationError(req, 'cliente.assignmentNotification.failed', err, { clienteId: persisted._id });
+        });
       }
     }
 
-    res.json(updated);
-  } catch (err) { res.status(400).json({ error: err.message }); }
+    res.json(persisted);
+  } catch (err) {
+    traceMutationError(req, 'cliente.update.failed', err, { clienteId: req.params.id });
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agenteId = scopeId;
+    traceMutation(req, 'cliente.delete.start', { clienteId: req.params.id });
     const deleted = await Cliente.findOneAndDelete(filter);
     if (!deleted) return res.status(404).json({ error: 'Not found' });
+    await confirmMissing(Cliente, deleted._id, 'cliente');
+    traceMutation(req, 'cliente.delete.persisted', { clienteId: deleted._id });
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    traceMutationError(req, 'cliente.delete.failed', err, { clienteId: req.params.id });
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

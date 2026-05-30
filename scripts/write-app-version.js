@@ -4,10 +4,19 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const versionConfigPath = path.join(repoRoot, 'app-version.json');
-const targetFiles = [
-  path.join(repoRoot, 'admin', 'src', 'config', 'appVersion.js'),
-  path.join(repoRoot, 'agents', 'src', 'config', 'appVersion.js'),
-];
+const allTargetFiles = {
+  admin: path.join(repoRoot, 'admin', 'src', 'config', 'appVersion.js'),
+  agents: path.join(repoRoot, 'agents', 'src', 'config', 'appVersion.js'),
+};
+
+const getTargetFiles = () => {
+  const cwd = path.resolve(process.cwd());
+
+  if (cwd === path.join(repoRoot, 'admin')) return [allTargetFiles.admin];
+  if (cwd === path.join(repoRoot, 'agents')) return [allTargetFiles.agents];
+
+  return Object.values(allTargetFiles);
+};
 
 const readGit = (args, fallback) => {
   try {
@@ -82,7 +91,7 @@ export const APP_COMMIT_COUNT = ${commitCount};
 export default APP_VERSION;
 `;
 
-targetFiles.forEach((targetFile) => {
+getTargetFiles().forEach((targetFile) => {
   fs.mkdirSync(path.dirname(targetFile), { recursive: true });
   writeFileIfChanged(targetFile, fileContent);
 });

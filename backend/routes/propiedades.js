@@ -6,6 +6,13 @@ const Cliente = require('../models/Cliente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const { sendNotification, sendToRole } = require('../services/pushService');
 const { syncPropertyToML } = require('../services/mercadoLibre');
+const {
+  attachRequestId,
+  confirmMissing,
+  confirmPersisted,
+  traceMutation,
+  traceMutationError,
+} = require('../utils/persistenceTrace');
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico', 'heic']);
 const isImageDoc = (doc) => {
@@ -82,32 +89,65 @@ router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
 });
 
 router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
+    traceMutation(req, 'propiedad.create.start', {
+      title: body.title || '',
+      ownerId: body.ownerId || '',
+      requestedAgentId: body.agentId || '',
+    });
     if (body.featured === undefined && body.metadata && body.metadata.featured !== undefined) {
       body.featured = !!body.metadata.featured;
     }
     if (scopeId) body.agentId = scopeId;
     const created = await Propiedad.create(body);
-    res.status(201).json(created);
-  } catch (err) { res.status(400).json({ error: err.message }); }
+    const persisted = await confirmPersisted(Propiedad, created._id, 'propiedad');
+    traceMutation(req, 'propiedad.create.persisted', {
+      propiedadId: persisted._id,
+      agentId: persisted.agentId || '',
+      slug: persisted.slug || '',
+    });
+    res.status(201).json(persisted);
+  } catch (err) {
+    traceMutationError(req, 'propiedad.create.failed', err);
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agentId = scopeId;
     const body = { ...(req.body || {}) };
+    traceMutation(req, 'propiedad.update.start', {
+      propiedadId: req.params.id,
+      fields: Object.keys(body),
+    });
     if (body.featured === undefined && body.metadata && body.metadata.featured !== undefined) {
       body.featured = !!body.metadata.featured;
     }
     if (scopeId) body.agentId = scopeId;
-    const updated = await Propiedad.findOneAndUpdate(filter, body, { new: true, runValidators: true });
+    const updated = await Propiedad.findOneAndUpdate(filter, body, { new: true, runValidators: true }).lean();
     if (!updated) return res.status(404).json({ error: 'Not found' });
-    res.json(updated);
-  } catch (err) { res.status(400).json({ error: err.message }); }
+    const persisted = await Propiedad.findOne(filter).lean();
+    if (!persisted) {
+      const error = new Error('No se pudo confirmar la persistencia de la propiedad actualizada');
+      error.statusCode = 500;
+      throw error;
+    }
+    traceMutation(req, 'propiedad.update.persisted', {
+      propiedadId: persisted._id,
+      agentId: persisted.agentId || '',
+    });
+    res.json(persisted);
+  } catch (err) {
+    traceMutationError(req, 'propiedad.update.failed', err, { propiedadId: req.params.id });
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 // Toggle published status
@@ -158,10 +198,12 @@ router.patch('/:id/publish', authenticateToken, requireCRMUser, async (req, res)
 });
 
 router.patch('/:id/visita', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agentId = scopeId;
+    traceMutation(req, 'propiedad.visita.start', { propiedadId: req.params.id });
 
     const updated = await Propiedad.findOneAndUpdate(
       filter,
@@ -170,10 +212,20 @@ router.patch('/:id/visita', authenticateToken, requireCRMUser, async (req, res) 
     );
 
     if (!updated) return res.status(404).json({ error: 'Not found' });
+    const persisted = await Propiedad.findOne(filter).lean();
+    if (!persisted) {
+      const error = new Error('No se pudo confirmar el registro de visita');
+      error.statusCode = 500;
+      throw error;
+    }
+    traceMutation(req, 'propiedad.visita.persisted', {
+      propiedadId: persisted._id,
+      visitas: Number(persisted.metadata?.visitas || 0),
+    });
 
     let ownerData = null;
-    if (updated.ownerId) {
-      const owner = await Cliente.findById(updated.ownerId).select('nombre email telefono metadata').lean();
+    if (persisted.ownerId) {
+      const owner = await Cliente.findById(persisted.ownerId).select('nombre email telefono metadata').lean();
       if (owner) {
         ownerData = {
           _id: owner._id,
@@ -185,8 +237,11 @@ router.patch('/:id/visita', authenticateToken, requireCRMUser, async (req, res) 
       }
     }
 
-    res.json({ ...updated.toObject(), ownerData });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    res.json({ ...persisted, ownerData });
+  } catch (err) {
+    traceMutationError(req, 'propiedad.visita.failed', err, { propiedadId: req.params.id });
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
 });
 
 // Generate a private share token
@@ -218,14 +273,21 @@ router.delete('/:id/private-link', authenticateToken, requireCRMUser, async (req
 });
 
 router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agentId = scopeId;
+    traceMutation(req, 'propiedad.delete.start', { propiedadId: req.params.id });
     const deleted = await Propiedad.findOneAndDelete(filter);
     if (!deleted) return res.status(404).json({ error: 'Not found' });
+    await confirmMissing(Propiedad, deleted._id, 'propiedad');
+    traceMutation(req, 'propiedad.delete.persisted', { propiedadId: deleted._id });
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    traceMutationError(req, 'propiedad.delete.failed', err, { propiedadId: req.params.id });
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

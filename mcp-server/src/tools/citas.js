@@ -11,6 +11,13 @@ function registerCitaTools(server) {
   const Propiedad = () => getModel('Propiedad');
 
   const safeLimit = (limit, fallback = 20) => Math.min(Math.max(Number(limit) || fallback, 1), 50);
+  const persistedResult = async (model, id, label) => {
+    const persisted = await model.findById(id).lean();
+    if (!persisted) {
+      return { content: [{ type: 'text', text: `No se pudo confirmar la persistencia de ${label}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify({ persisted: true, item: persisted }, null, 2) }] };
+  };
 
   server.tool(
     'list_citas',
@@ -135,7 +142,7 @@ function registerCitaTools(server) {
 
   server.tool(
     'create_cita',
-    'Agenda una nueva cita (visita, llamada, reunión, firma). Usar inmediatamente cuando el usuario pide agendar/crear una cita y dio fecha/hora suficiente; no requiere segunda confirmación. Si el agente tiene Google Calendar conectado, se sincroniza automáticamente.',
+    'Agenda una nueva cita (visita, llamada, reunión, firma). Usar inmediatamente cuando el usuario pide agendar/crear una cita y dio fecha/hora suficiente; no requiere segunda confirmación.',
     {
       fecha: z.string().describe('Fecha/hora inicio (ISO 8601) — REQUERIDO'),
       fechaFin: z.string().optional().describe('Fecha/hora fin (ISO 8601)'),
@@ -154,19 +161,20 @@ function registerCitaTools(server) {
 
       const doc = {
         fecha: d,
+        fechaFin: fechaFin ? new Date(fechaFin) : new Date(d.getTime() + 60 * 60 * 1000),
         titulo: titulo || 'Cita',
         tipo: tipo || 'Visita',
         ubicacion: ubicacion || '',
         notas: notas || '',
         estado: 'Programada',
       };
-      if (fechaFin) doc.fechaFin = new Date(fechaFin);
+      if (Number.isNaN(doc.fechaFin.getTime())) return { content: [{ type: 'text', text: 'fechaFin inválida' }], isError: true };
       if (clienteId) doc.clienteId = clienteId;
       if (propiedadId) doc.propiedadId = propiedadId;
       if (agenteId) doc.agenteId = agenteId;
 
       const created = await Cita().create(doc);
-      return { content: [{ type: 'text', text: JSON.stringify(created.toObject(), null, 2) }] };
+      return persistedResult(Cita(), created._id, 'cita');
     }
   );
 
@@ -198,9 +206,9 @@ function registerCitaTools(server) {
       if (clienteId !== undefined) set.clienteId = clienteId;
       if (propiedadId !== undefined) set.propiedadId = propiedadId;
 
-      const updated = await Cita().findByIdAndUpdate(citaId, { $set: set }, { new: true }).lean();
+      const updated = await Cita().findByIdAndUpdate(citaId, { $set: set }, { new: true, runValidators: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Cita no encontrada' }], isError: true };
-      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+      return persistedResult(Cita(), updated._id, 'cita');
     }
   );
 
@@ -220,7 +228,7 @@ function registerCitaTools(server) {
         'metadata.resultado': resultado,
         'metadata.resultadoAt': new Date(),
       };
-      const updated = await Cita().findByIdAndUpdate(citaId, { $set: set }, { new: true }).lean();
+      const updated = await Cita().findByIdAndUpdate(citaId, { $set: set }, { new: true, runValidators: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Cita no encontrada' }], isError: true };
 
       const [cliente, propiedad] = await Promise.all([
@@ -228,7 +236,7 @@ function registerCitaTools(server) {
         updated.propiedadId ? Propiedad().findById(updated.propiedadId).select('title address price moneda').lean() : null,
       ]);
 
-      return { content: [{ type: 'text', text: JSON.stringify({ cita: updated, cliente, propiedad }, null, 2) }] };
+      return { content: [{ type: 'text', text: JSON.stringify({ persisted: true, cita: updated, cliente, propiedad }, null, 2) }] };
     }
   );
 
@@ -244,10 +252,10 @@ function registerCitaTools(server) {
       const updated = await Cita().findByIdAndUpdate(
         citaId,
         { $set: { estado: 'Cancelada', notas: reason || 'Cancelada' } },
-        { new: true }
+        { new: true, runValidators: true }
       ).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Cita no encontrada' }], isError: true };
-      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+      return persistedResult(Cita(), updated._id, 'cita');
     }
   );
 }

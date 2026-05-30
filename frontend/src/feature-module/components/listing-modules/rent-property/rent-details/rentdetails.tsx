@@ -11,6 +11,13 @@ import RentRightForm from "./rentRightForm";
 import publicService, { type PropertyDetail } from "../../../../../services/publicService";
 import { buildHeroBackground, getAccentColor, heroTextColorClass, heroMutedColor, resolveMediaUrl } from "../../common/funnelUtils";
 import { VideoOverlay, VideoSection } from "../../common/VideoOverlay";
+import {
+  scrollToElementForBrowser,
+  useIosSafariClass,
+  useIosSafariDetection,
+  useIosWebKitViewportHeight,
+  withWebkitBackdropFilter,
+} from "../../common/iosSafari";
 
 // ─── Tracking helper (preserved) ─────────────────────────────────────────────
 const trackEvent = (name: string, payload: Record<string, unknown> = {}) => {
@@ -41,6 +48,9 @@ const RentDetails = () => {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const privateToken = searchParams.get("token") || undefined;
+  const { isIosSafari: isIosSafariBrowser, isIosWebKit: isIosWebKitBrowser } = useIosSafariDetection();
+  const iosViewportHeight = useIosWebKitViewportHeight(isIosWebKitBrowser);
+  useIosSafariClass(isIosSafariBrowser);
 
   const [mainSlider, setMainSlider] = useState<SliderType | undefined>(undefined);
   const [thumbSlider, setThumbSlider] = useState<SliderType | undefined>(undefined);
@@ -133,7 +143,7 @@ const RentDetails = () => {
     };
     run();
     return () => { isMounted = false; };
-  }, [slug]);
+  }, [slug, privateToken]);
 
   const galleryImages = (
     property?.galleryUrls?.length ? property.galleryUrls : property?.media?.coverUrl ? [property.media.coverUrl] : []
@@ -174,11 +184,12 @@ const RentDetails = () => {
   const amenities = (property?.amenities || []).filter(Boolean);
   const floorPlanUrls = (property?.floorPlanUrls || []).filter(Boolean).map(resolveMediaUrl);
   const videoUrls = (property?.videoUrls || []).filter(Boolean);
+  const lightboxSlides = [...galleryImages, ...floorPlanUrls].map((src) => ({ src }));
 
   const scrollToForm = useCallback(() => {
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToElementForBrowser(formRef.current, isIosWebKitBrowser);
     trackEvent("hero_cta_click", { propertyId: property?.id, slug });
-  }, [property?.id, slug]);
+  }, [isIosWebKitBrowser, property?.id, slug]);
 
   const openWhatsApp = useCallback((source: string) => {
     const num = whatsappNumber.replace(/\D/g, "");
@@ -193,31 +204,49 @@ const RentDetails = () => {
   const mutedColor = heroMutedColor(fs);
   const imageStyle = fs?.heroImageStyle ?? "float-right";
   const isClassicCarousel = imageStyle === "classic-carousel";
+  const canUseClassicCarousel = isClassicCarousel && galleryImages.length > 0;
 
   const heroStyle = useMemo((): React.CSSProperties => {
     const bg = buildHeroBackground(fs);
     return {
       ...bg,
-      minHeight: "90vh",
+      minHeight: isIosWebKitBrowser && iosViewportHeight ? Math.max(Math.round(iosViewportHeight * 0.9), 420) : "90vh",
       display: "flex",
       alignItems: "center",
       position: "relative",
       paddingTop: 100,
       paddingBottom: imageStyle === "hidden" ? 80 : 140,
     };
-  }, [fs, imageStyle]);
+  }, [fs, imageStyle, iosViewportHeight, isIosWebKitBrowser]);
+
+  const classicHeroStyle = useMemo((): React.CSSProperties => ({
+    position: "relative",
+    width: "100%",
+    height: isIosWebKitBrowser && iosViewportHeight ? iosViewportHeight : "100vh",
+    minHeight: isIosWebKitBrowser ? undefined : 520,
+    maxHeight: 780,
+    overflow: "hidden",
+    background: "#0f172a",
+    touchAction: "pan-y",
+  }), [iosViewportHeight, isIosWebKitBrowser]);
 
   const coverImage = galleryImages[0] || "";
-  const showHeroImage = !isClassicCarousel && imageStyle !== "hidden" && !!coverImage;
+  const showHeroImage = !canUseClassicCarousel && imageStyle !== "hidden" && !!coverImage;
 
   // Autoplay for classic-carousel (3 s per slide)
   useEffect(() => {
-    if (!isClassicCarousel || galleryImages.length <= 1) return;
+    if (!canUseClassicCarousel || galleryImages.length <= 1) return;
     const timer = setInterval(() => {
       setHeroSlideIndex((prev) => (prev + 1) % galleryImages.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, [isClassicCarousel, galleryImages.length]);
+  }, [canUseClassicCarousel, galleryImages.length]);
+
+  useEffect(() => {
+    if (galleryImages.length > 0 && heroSlideIndex >= galleryImages.length) {
+      setHeroSlideIndex(0);
+    }
+  }, [galleryImages.length, heroSlideIndex]);
 
   const specs: Array<{ icon: string; label: string; value: string | number }> = [];
   if (property?.features?.beds) specs.push({ icon: "king_bed", label: "Dormitorios", value: property.features.beds });
@@ -282,7 +311,7 @@ const RentDetails = () => {
       {videoUrls.length > 0 && videoOverlayOpen && (
         <VideoOverlay
           videoUrl={videoUrls[0]}
-          autoShow
+          autoShow={!isIosWebKitBrowser}
           onClose={() => setVideoOverlayOpen(false)}
         />
       )}
@@ -291,7 +320,7 @@ const RentDetails = () => {
       <div
         style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 1050,
-          background: "rgba(10,20,40,0.97)", backdropFilter: "blur(12px)",
+          background: "rgba(10,20,40,0.97)", ...withWebkitBackdropFilter("12px"),
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           padding: "10px 24px",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
@@ -327,9 +356,9 @@ const RentDetails = () => {
       </div>
 
       {/* ── HERO SECTION ──────────────────────────────────────────────────── */}
-      {isClassicCarousel ? (
+      {canUseClassicCarousel ? (
         /* ─── CLASSIC CAROUSEL HERO ────────────────────────────────────────── */
-        <section style={{ position: "relative", width: "100%", height: "100vh", maxHeight: 780, overflow: "hidden", background: "#0f172a" }}>
+        <section style={classicHeroStyle}>
           {galleryImages.map((src, i) => (
             <div key={i} style={{ position: "absolute", inset: 0, opacity: heroSlideIndex === i ? 1 : 0, transition: "opacity 0.8s ease", cursor: "zoom-in" }}
               onClick={() => { setLightboxIndex(i); trackEvent("gallery_open", { propertyId: property.id, source: "hero_carousel" }); }}>
@@ -340,10 +369,10 @@ const RentDetails = () => {
           {galleryImages.length > 1 && (
             <>
               <button onClick={(e) => { e.stopPropagation(); setHeroSlideIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }}
-                style={{ position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
+                style={{ position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", ...withWebkitBackdropFilter("8px"), color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
                 aria-label="Anterior">&#8249;</button>
               <button onClick={(e) => { e.stopPropagation(); setHeroSlideIndex((prev) => (prev + 1) % galleryImages.length); }}
-                style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
+                style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", ...withWebkitBackdropFilter("8px"), color: "#fff", border: "none", borderRadius: "50%", width: 48, height: 48, fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}
                 aria-label="Siguiente">&#8250;</button>
             </>
           )}
@@ -356,7 +385,7 @@ const RentDetails = () => {
               ))}
             </div>
           )}
-          <div style={{ position: "absolute", top: 80, right: 20, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: 20, padding: "5px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, zIndex: 10 }}>
+          <div style={{ position: "absolute", top: 80, right: 20, background: "rgba(0,0,0,0.55)", ...withWebkitBackdropFilter("8px"), color: "#fff", borderRadius: 20, padding: "5px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6, zIndex: 10 }}>
             <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>
             {heroSlideIndex + 1} / {galleryImages.length}
           </div>
@@ -425,13 +454,13 @@ const RentDetails = () => {
                       onClick={() => galleryImages.length > 0 && setLightboxIndex(0)}>
                       <img src={coverImage} alt={property.title} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" }} />
                       {galleryImages.length > 1 && (
-                        <div style={{ position: "absolute", bottom: 16, right: 16, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: 50, padding: "6px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ position: "absolute", bottom: 16, right: 16, background: "rgba(0,0,0,0.65)", ...withWebkitBackdropFilter("8px"), color: "#fff", borderRadius: 50, padding: "6px 14px", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                           <i className="material-icons-outlined" style={{ fontSize: 16 }}>photo_library</i>{galleryImages.length} fotos
                         </div>
                       )}
                     </div>
                     {specs.length > 0 && (
-                      <div style={{ position: "absolute", bottom: -60, left: 20, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderRadius: 16, padding: "12px 20px", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", display: "flex", gap: 20 }}>
+                      <div style={{ position: "absolute", bottom: -60, left: 20, background: "rgba(255,255,255,0.95)", ...withWebkitBackdropFilter("12px"), borderRadius: 16, padding: "12px 20px", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", display: "flex", gap: 20 }}>
                         {specs.slice(0, 3).map((s) => (
                           <div key={s.label} className="text-center">
                             <div className="fw-bold" style={{ fontSize: "1.1rem", color: accentColor }}>{s.value}</div>
@@ -449,14 +478,14 @@ const RentDetails = () => {
       )}
 
       {/* ── CONTENT AREA ─────────────────────────────────────────────────────── */}
-      <div style={{ background: "#fff", borderRadius: "36px 36px 0 0", marginTop: -36, paddingTop: isClassicCarousel ? 60 : showHeroImage ? 120 : 60, position: "relative", zIndex: 2, boxShadow: "0 -4px 40px rgba(0,0,0,0.08)" }}>
+      <div style={{ background: "#fff", borderRadius: "36px 36px 0 0", marginTop: -36, paddingTop: canUseClassicCarousel ? 60 : showHeroImage ? 120 : 60, position: "relative", zIndex: 2, boxShadow: "0 -4px 40px rgba(0,0,0,0.08)" }}>
         <div className="container pb-5">
           <div className="row gx-4 gx-xl-5">
 
             <div className="col-xl-8">
 
               {/* ── BLOCK: TITLE + PRICE for classic-carousel (moved from hero) ── */}
-              {isClassicCarousel && (
+              {canUseClassicCarousel && (
                 <div className="mb-5">
                   <div className="d-flex flex-wrap gap-2 mb-3">
                     <span className="badge fw-semibold px-3 py-2" style={{ background: accentColor, fontSize: "0.78rem" }}>En Alquiler</span>
@@ -506,7 +535,7 @@ const RentDetails = () => {
                 </div>
               )}
 
-              {!isClassicCarousel && galleryImages.length > 0 && (
+              {!canUseClassicCarousel && galleryImages.length > 0 && (
                 <div className="mb-5">
                   <SectionHeader title="Galería de imágenes" accent={accentColor} />
                   <div className="rounded-3 overflow-hidden" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.1)", cursor: "zoom-in" }}
@@ -771,17 +800,19 @@ const RentDetails = () => {
         </div>
       </div>
 
-      <Lightbox
-        open={lightboxIndex != null}
-        close={() => setLightboxIndex(null)}
-        index={lightboxIndex ?? 0}
-        slides={[...galleryImages, ...floorPlanUrls].map((src) => ({ src }))}
-        plugins={[Thumbnails]}
-        thumbnails={{ border: 2, borderRadius: 4, padding: 2, gap: 8, showToggle: false }}
-        animation={{ fade: 300, swipe: 300 }}
-      />
+      {lightboxSlides.length > 0 && (
+        <Lightbox
+          open={lightboxIndex != null}
+          close={() => setLightboxIndex(null)}
+          index={lightboxIndex ?? 0}
+          slides={lightboxSlides}
+          plugins={[Thumbnails]}
+          thumbnails={{ border: 2, borderRadius: 4, padding: 2, gap: 8, showToggle: false }}
+          animation={{ fade: 300, swipe: 300 }}
+        />
+      )}
 
-      <div className="d-xl-none" style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.97)", backdropFilter: "blur(8px)", borderTop: "1px solid rgba(0,0,0,0.1)", padding: "10px 16px", paddingBottom: "max(10px, env(safe-area-inset-bottom))", zIndex: 9999, display: "flex", gap: 10 }}>
+      <div className="d-xl-none" style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.97)", ...withWebkitBackdropFilter("8px"), borderTop: "1px solid rgba(0,0,0,0.1)", padding: "10px 16px", paddingBottom: isIosWebKitBrowser ? "calc(10px + env(safe-area-inset-bottom))" : "max(10px, env(safe-area-inset-bottom))", zIndex: 9999, display: "flex", gap: 10 }}>
         <button className="btn btn-lg fw-semibold d-flex align-items-center justify-content-center gap-2"
           style={{ flex: 1, background: accentColor, color: "#fff", border: "none", borderRadius: 10 }}
           onClick={() => { scrollToForm(); trackEvent("mobile_cta_click", { propertyId: property.id }); }}>

@@ -46,7 +46,7 @@ function contextTagFrom(value) {
 // POST /ai/chat — main endpoint
 router.post('/chat', async (req, res) => {
   try {
-    const { message, conversationId } = req.body;
+    const { message, conversationId, clientMessageId } = req.body;
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'message is required' });
     }
@@ -63,6 +63,8 @@ router.post('/chat', async (req, res) => {
       userId,
       agenteId,
       agenteName: req.user.username || '',
+      permissions: req.permissions,
+      clientMessageId,
     });
 
     res.json(result);
@@ -123,6 +125,11 @@ router.get('/conversations/:id/messages', async (req, res) => {
     const messages = await AIMessage.find({
       conversationId: req.params.id,
       userId: currentUserId(req),
+      $or: [
+        { role: 'user' },
+        { role: 'tool', content: { $ne: '' } },
+        { role: 'assistant', content: { $ne: '' } },
+      ],
     })
       .sort({ createdAt: 1 })
       .limit(200)

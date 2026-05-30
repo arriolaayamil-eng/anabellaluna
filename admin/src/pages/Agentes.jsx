@@ -110,10 +110,15 @@ const Agentes = () => {
         emails: a.metricas?.emails || 0,
         rating: parseFloat(a.metricas?.rating) || 4.5,
         satisfaccionCliente: a.metricas?.satisfaccion || 85,
-        // Campos calculados/simulados que se pueden mejorar con datos reales
-        ventas: a.metricas?.ventas || Math.floor(a.metricas?.actividades / 10) || 0,
-        comisiones: a.metricas?.comisiones || (a.metricas?.propiedades * 2500) || 0,
-        metaMensual: a.metadata?.metaMensual || 5,
+        // Métricas reales de ventas/comisiones (desde Operaciones)
+        ventas: a.metricas?.ventas || 0,
+        alquileres: a.metricas?.alquileres || 0,
+        comisiones: a.metricas?.comisiones || 0,
+        valorCartera: a.metricas?.valorCartera || 0,
+        tasaConversion: a.metricas?.tasaConversion || 0,
+        diasPromCierre: a.metricas?.diasPromCierre || 0,
+        ventasMensual: Array.isArray(a.metricas?.ventasMensual) ? a.metricas.ventasMensual : [0, 0, 0, 0, 0, 0],
+        metaMensual: a.metricas?.metaMensual || a.metadata?.metaMensual || 0,
         citas: a.metricas?.actividades || 0,
         propiedadesVendidas: a.metricas?.propiedadesVendidas || 0,
         color: a.color || '#4ECDC4',
@@ -163,9 +168,13 @@ const Agentes = () => {
         actividades: data.metricas?.actividades || 0,
         rating: parseFloat(data.metricas?.rating) || 4.5,
         satisfaccionCliente: data.metricas?.satisfaccion || 85,
-        ventas: data.metricas?.ventas || Math.floor(data.metricas?.actividades / 10) || 0,
-        comisiones: data.metricas?.comisiones || (data.metricas?.propiedades * 2500) || 0,
-        metaMensual: data.metadata?.metaMensual || 5,
+        ventas: data.metricas?.ventas || 0,
+        alquileres: data.metricas?.alquileres || 0,
+        comisiones: data.metricas?.comisiones || 0,
+        valorCartera: data.metricas?.valorCartera || 0,
+        tasaConversion: data.metricas?.tasaConversion || 0,
+        diasPromCierre: data.metricas?.diasPromCierre || 0,
+        metaMensual: data.metricas?.metaMensual || data.metadata?.metaMensual || 0,
         citas: data.metricas?.actividades || 0,
         propiedadesVendidas: data.metricas?.propiedadesVendidas || 0,
         color: data.color || '#4ECDC4',
@@ -200,6 +209,15 @@ const Agentes = () => {
   ];
 
   // ApexCharts configurations
+  const last6Months = (() => {
+    const arr = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      arr.push(d.toLocaleDateString('es-AR', { month: 'short' }));
+    }
+    return arr;
+  })();
   const rendimientoAreaOptions = {
     chart: { type: 'area', height: 300, background: 'transparent', toolbar: { show: false }, zoom: { enabled: false } },
     colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'],
@@ -207,7 +225,7 @@ const Agentes = () => {
     stroke: { curve: 'smooth', width: 2.5 },
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
     xaxis: {
-      categories: ['May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
+      categories: last6Months,
       labels: { style: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280', fontSize: '10px' } },
       axisBorder: { show: false }, axisTicks: { show: false },
     },
@@ -216,13 +234,10 @@ const Agentes = () => {
     legend: { show: true, position: 'top', horizontalAlign: 'right', fontSize: '11px', labels: { colors: currentMode === 'Dark' ? '#9CA3AF' : '#6B7280' } },
     tooltip: { theme: currentMode === 'Dark' ? 'dark' : 'light' },
   };
-  const rendimientoAreaSeries = [
-    { name: 'Ana', data: [6, 7, 5, 9, 8, 8] },
-    { name: 'Carlos', data: [3, 4, 6, 5, 7, 5] },
-    { name: 'Laura', data: [9, 10, 8, 12, 11, 12] },
-    { name: 'Marcos', data: [2, 3, 4, 3, 5, 4] },
-    { name: 'Sofía', data: [5, 6, 7, 8, 6, 7] },
-  ];
+  const rendimientoAreaSeries = agentes.slice(0, 5).map((a) => ({
+    name: a.nombre.split(' ')[0],
+    data: Array.isArray(a.ventasMensual) && a.ventasMensual.length === 6 ? a.ventasMensual : [0, 0, 0, 0, 0, 0],
+  }));
 
   const comisionesBarOptions = {
     chart: { type: 'bar', height: 260, background: 'transparent', toolbar: { show: false } },
@@ -1080,7 +1095,7 @@ const Agentes = () => {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                     <div 
                       className="h-3 rounded-full bg-gradient-to-r from-green-400 to-green-600"
-                      style={{ width: `${(agenteSeleccionado.ventas / agenteSeleccionado.metaMensual) * 100}%` }}
+                      style={{ width: `${agenteSeleccionado.metaMensual > 0 ? Math.min(100, (agenteSeleccionado.ventas / agenteSeleccionado.metaMensual) * 100) : 0}%` }}
                     />
                   </div>
                 </div>

@@ -3,6 +3,13 @@ const Cita = require('../models/Cita');
 const Agente = require('../models/Agente');
 const { authenticateToken, agentScopeId, requireCRMUser } = require('../auth');
 const googleCalendar = require('../services/googleCalendar');
+const {
+  attachRequestId,
+  confirmMissing,
+  confirmPersisted,
+  traceMutation,
+  traceMutationError,
+} = require('../utils/persistenceTrace');
 
 const router = express.Router();
 
@@ -46,13 +53,25 @@ router.get('/:id', authenticateToken, requireCRMUser, async (req, res) => {
 });
 
 router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const body = { ...(req.body || {}) };
+    traceMutation(req, 'cita.create.start', {
+      titulo: body.titulo || '',
+      fecha: body.fecha || '',
+      clienteId: body.clienteId || '',
+      propiedadId: body.propiedadId || '',
+      requestedAgenteId: body.agenteId || '',
+    });
     if (scopeId) body.agenteId = scopeId;
 
     const created = await Cita.create(body);
-    let cita = created.toObject ? created.toObject() : created;
+    let cita = await confirmPersisted(Cita, created._id, 'cita');
+    traceMutation(req, 'cita.create.persisted', {
+      citaId: cita._id,
+      agenteId: cita.agenteId || '',
+    });
 
     const agentId = String(cita.agenteId || body.agenteId || '');
     if (googleCalendar.isConfigured()) {
@@ -82,21 +101,34 @@ router.post('/', authenticateToken, requireCRMUser, async (req, res) => {
             { $set: { fechaFin: end, metadata: meta } },
             { new: true }
           ).lean();
+          traceMutation(req, 'cita.googleCalendar.synced', {
+            citaId: cita._id,
+            eventId: meta.googleCalendar.eventId,
+          });
         } catch (e) {
+          traceMutationError(req, 'cita.googleCalendar.failed', e, { citaId: cita._id });
         }
       }
     }
 
     res.status(201).json(cita);
-  } catch (err) { res.status(400).json({ error: err.message }); }
+  } catch (err) {
+    traceMutationError(req, 'cita.create.failed', err);
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agenteId = scopeId;
     const body = { ...(req.body || {}) };
+    traceMutation(req, 'cita.update.start', {
+      citaId: req.params.id,
+      fields: Object.keys(body),
+    });
     if (scopeId) body.agenteId = scopeId;
 
     const existing = await Cita.findOne(filter).lean();
@@ -105,7 +137,16 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
     const updated = await Cita.findOneAndUpdate(filter, body, { new: true, runValidators: true }).lean();
     if (!updated) return res.status(404).json({ error: 'Not found' });
 
-    let cita = updated;
+    let cita = await Cita.findOne(filter).lean();
+    if (!cita) {
+      const error = new Error('No se pudo confirmar la persistencia de la cita actualizada');
+      error.statusCode = 500;
+      throw error;
+    }
+    traceMutation(req, 'cita.update.persisted', {
+      citaId: cita._id,
+      agenteId: cita.agenteId || '',
+    });
     const agentId = String(updated.agenteId || '');
     const existingMeta = existing && existing.metadata ? existing.metadata : {};
     const gcMeta = existingMeta.googleCalendar || {};
@@ -152,20 +193,30 @@ router.put('/:id', authenticateToken, requireCRMUser, async (req, res) => {
             { $set: { fechaFin: end, metadata: meta } },
             { new: true }
           ).lean();
+          traceMutation(req, 'cita.googleCalendar.synced', {
+            citaId: cita._id,
+            eventId: meta.googleCalendar.eventId,
+          });
         } catch (e) {
+          traceMutationError(req, 'cita.googleCalendar.failed', e, { citaId: cita._id });
         }
       }
     }
 
     res.json(cita);
-  } catch (err) { res.status(400).json({ error: err.message }); }
+  } catch (err) {
+    traceMutationError(req, 'cita.update.failed', err, { citaId: req.params.id });
+    res.status(err.statusCode || 400).json({ error: err.message });
+  }
 });
 
 router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
+  attachRequestId(req, res);
   try {
     const scopeId = agentScopeId(req);
     const filter = { _id: req.params.id };
     if (scopeId) filter.agenteId = scopeId;
+    traceMutation(req, 'cita.delete.start', { citaId: req.params.id });
 
     const existing = await Cita.findOne(filter).lean();
     if (!existing) return res.status(404).json({ error: 'Not found' });
@@ -177,6 +228,8 @@ router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
 
     const deleted = await Cita.findOneAndDelete(filter);
     if (!deleted) return res.status(404).json({ error: 'Not found' });
+    await confirmMissing(Cita, deleted._id, 'cita');
+    traceMutation(req, 'cita.delete.persisted', { citaId: deleted._id });
 
     if (eventId && googleCalendar.isConfigured()) {
       const creds = await getAgentCalendarCredentials(agentId);
@@ -187,13 +240,18 @@ router.delete('/:id', authenticateToken, requireCRMUser, async (req, res) => {
             calendarId: creds.calendarId,
             eventId,
           });
+          traceMutation(req, 'cita.googleCalendar.deleted', { citaId: deleted._id, eventId });
         } catch (e) {
+          traceMutationError(req, 'cita.googleCalendarDelete.failed', e, { citaId: deleted._id, eventId });
         }
       }
     }
 
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    traceMutationError(req, 'cita.delete.failed', err, { citaId: req.params.id });
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

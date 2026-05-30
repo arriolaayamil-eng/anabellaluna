@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import AIMessageBubble from './AIMessageBubble';
 import AIToolApproval  from './AIToolApproval';
 import { useAIChat }   from '../../hooks/useAIChat';
@@ -61,28 +61,84 @@ const OrbButton = ({ onClick, isOpen, pulse }) => (
 
 const FloatingChat = ({ conversationId, onClose, isDark }) => {
   const {
-    messages, loading, error, pendingTool,
+    messages, loading, hydrating, error, pendingTool,
     sendMessage, approveTool, rejectTool,
   } = useAIChat(conversationId);
 
   const [input,     setInput]     = useState('');
   const [approving, setApproving] = useState(false);
-  const bottomRef  = useRef(null);
+  const [viewportReady, setViewportReady] = useState(false);
+  const messagesRef = useRef(null);
   const inputRef   = useRef(null);
+  const nearBottomRef = useRef(true);
+  const draftKey = `ai-orb:${conversationId}:draft`;
+  const scrollKey = `ai-orb:${conversationId}:scroll`;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    try {
+      setInput(localStorage.getItem(draftKey) || '');
+    } catch {
+      setInput('');
+    }
+  }, [draftKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(draftKey, input);
+    } catch {
+      // ignore
+    }
+  }, [draftKey, input]);
+
+  useLayoutEffect(() => {
+    setViewportReady(false);
+  }, [conversationId]);
+
+  useLayoutEffect(() => {
+    const el = messagesRef.current;
+    if (!el || hydrating) return;
+    const saved = Number(localStorage.getItem(scrollKey));
+    el.scrollTop = Number.isFinite(saved) && saved > 0 ? Math.min(saved, el.scrollHeight) : el.scrollHeight;
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setViewportReady(true);
+  }, [hydrating, messages.length, scrollKey]);
+
+  useLayoutEffect(() => {
+    const el = messagesRef.current;
+    if (!el || !viewportReady || hydrating) return;
+    if (nearBottomRef.current || loading) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    }
+  }, [messages.length, loading, viewportReady, hydrating]);
+
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 110)}px`;
+  }, [input]);
 
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
+
+  const handleMessagesScroll = () => {
+    const el = messagesRef.current;
+    if (!el) return;
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+    try {
+      localStorage.setItem(scrollKey, String(el.scrollTop));
+    } catch {
+      // ignore
+    }
+  };
 
   const handleSend = useCallback(async (e) => {
     e && e.preventDefault();
     if (!input.trim() || loading) return;
     const text = input.trim();
     setInput('');
+    nearBottomRef.current = true;
     await sendMessage(text);
     inputRef.current?.focus();
   }, [input, loading, sendMessage]);
@@ -147,7 +203,7 @@ const FloatingChat = ({ conversationId, onClose, isDark }) => {
               Asistente AI
             </div>
             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1 }}>
-              {loading ? '⏳ Pensando...' : '● Online'}
+              {loading ? 'Escribiendo...' : 'Online'}
             </div>
           </div>
           <button
@@ -166,7 +222,7 @@ const FloatingChat = ({ conversationId, onClose, isDark }) => {
               justifyContent: 'center',
               flexShrink: 0,
             }}
-          >✕</button>
+          >×</button>
         </div>
 
         {/* Messages */}
@@ -177,8 +233,31 @@ const FloatingChat = ({ conversationId, onClose, isDark }) => {
           display:       'flex',
           flexDirection: 'column',
           gap:           2,
-        }}>
-          {messages.length === 0 && !loading && (
+          opacity:        viewportReady || hydrating ? 1 : 0,
+          transition:     'opacity 0.12s ease',
+        }}
+        ref={messagesRef}
+        onScroll={handleMessagesScroll}
+        >
+          {hydrating && messages.length === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[0, 1, 2].map((item) => (
+                <div
+                  key={item}
+                  style={{
+                    width: item === 1 ? '58%' : '76%',
+                    height: item === 1 ? 30 : 42,
+                    borderRadius: 16,
+                    background: isDark ? '#1f2937' : '#e5e7eb',
+                    opacity: 0.72,
+                    alignSelf: item === 1 ? 'flex-end' : 'flex-start',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {messages.length === 0 && !loading && !hydrating && (
             <div style={{
               flex:           1,
               display:        'flex',
@@ -256,8 +335,6 @@ const FloatingChat = ({ conversationId, onClose, isDark }) => {
               {error}
             </div>
           )}
-
-          <div ref={bottomRef} />
         </div>
 
         {/* Input */}
@@ -275,14 +352,14 @@ const FloatingChat = ({ conversationId, onClose, isDark }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribí tu consulta... (Enter para enviar)"
+            placeholder="Mensaje"
             disabled={loading}
             rows={1}
             style={{
               flex:         1,
               background:   isDark ? '#0f172a' : '#fff',
               border:       `1px solid ${isDark ? 'rgba(155,109,255,0.2)' : '#e2e8f0'}`,
-              borderRadius: 10,
+              borderRadius: 18,
               padding:      '9px 12px',
               fontSize:     13,
               color:        textCol,
@@ -313,7 +390,7 @@ const FloatingChat = ({ conversationId, onClose, isDark }) => {
               transition:   'background 0.2s',
             }}
           >
-            {loading ? '⏳' : '↑'}
+            {loading ? '...' : '↑'}
           </button>
         </div>
       </div>

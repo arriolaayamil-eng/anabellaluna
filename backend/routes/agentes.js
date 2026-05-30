@@ -10,6 +10,8 @@ const User = require('../models/User');
 
 const AgentMetrics = require('../models/AgentMetrics');
 
+const Operacion = require('../models/Operacion');
+
 const { authenticateToken, requireRole, agentScopeId, requireCRMUser } = require('../auth');
 
 
@@ -295,7 +297,39 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
 
       // Count properties assigned to this agent
 
-      const propiedadesCount = await Propiedad.countDocuments({ agenteId }).catch(() => 0);
+      const propiedadesCount = await Propiedad.countDocuments({ agentId: String(agenteId) }).catch(() => 0);
+
+      // Real sales, commission & portfolio metrics from Operacion + Propiedad
+      const propiedadesAsignadas = await Propiedad.find({ agentId: String(agenteId) }).select('price status').lean().catch(() => []);
+      const valorCartera = Math.round(propiedadesAsignadas.reduce((s, p) => s + Number(p.price || 0), 0));
+      const propiedadesVendidas = propiedadesAsignadas.filter((p) => p.status === 'Vendida').length;
+      const ops = await Operacion.find({ agenteId: String(agenteId) }).lean().catch(() => []);
+      const opsClosed = ops.filter((o) => ['Cerrada', 'Completada'].includes(o.estado));
+      const ventas = opsClosed.filter((o) => o.tipo === 'Venta').length;
+      const alquileres = opsClosed.filter((o) => o.tipo === 'Alquiler').length;
+      const comisiones = Math.round(opsClosed.reduce((s, o) => {
+        const monto = Number(o.monto || 0);
+        const pct = Number(o.comisionPorcentaje || 0);
+        const explicit = Number(o.comisionMonto || 0);
+        return s + (explicit > 0 ? explicit : (pct > 0 ? (monto * pct) / 100 : 0));
+      }, 0));
+      const clientesCerrados = await Cliente.countDocuments({ agenteId, 'metadata.estado': 'Cerrado' }).catch(() => 0);
+      const tasaConversion = clientesCount > 0 ? Math.round((clientesCerrados / clientesCount) * 100) : 0;
+      const diasPromCierre = opsClosed.length > 0
+        ? Math.round(opsClosed.reduce((s, o) => {
+            const c = new Date(o.createdAt);
+            const u = o.fechaCierre ? new Date(o.fechaCierre) : (o.updatedAt ? new Date(o.updatedAt) : new Date());
+            return s + Math.max(0, (u - c) / 86400000);
+          }, 0) / opsClosed.length)
+        : 0;
+      const ventasMensual = [];
+      for (let i = 5; i >= 0; i -= 1) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const ms = new Date(d.getFullYear(), d.getMonth(), 1);
+        const me = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+        ventasMensual.push(opsClosed.filter((o) => o.tipo === 'Venta' && new Date(o.createdAt) >= ms && new Date(o.createdAt) <= me).length);
+      }
 
       
 
@@ -329,9 +363,9 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
 
       const actividadesPorTipo = await Activity.aggregate([
 
-        { $match: { agenteId: new mongoose.Types.ObjectId(agenteId) } },
+        { $match: { agenteId: String(agenteId) } },
 
-        { $group: { _id: '$tipo', count: { $sum: 1 } } }
+        { $group: { _id: '$type', count: { $sum: 1 } } }
 
       ]).catch(() => []);
 
@@ -339,11 +373,12 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
 
       // Calculate engagement metrics
 
-      const visitas = actividadesPorTipo.find(a => a._id === 'visita')?.count || 0;
+      const sumTypes = (...keys) => actividadesPorTipo.filter(a => keys.includes(a._id)).reduce((s, a) => s + a.count, 0);
+      const visitas = sumTypes('visita', 'visit', 'visit_scheduled', 'visit_done');
 
-      const llamadas = actividadesPorTipo.find(a => a._id === 'llamada')?.count || 0;
+      const llamadas = sumTypes('llamada', 'call', 'phone');
 
-      const emails = actividadesPorTipo.find(a => a._id === 'email')?.count || 0;
+      const emails = sumTypes('email', 'enquiry', 'mail');
 
       // ClientInteraction metrics
       const ClientInteraction = require('../models/ClientInteraction');
@@ -351,7 +386,7 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
       const interactionsMes = await ClientInteraction.countDocuments({ agenteId: String(agenteId), createdAt: { $gte: inicioMes } }).catch(() => 0);
       const interactionsByType = await ClientInteraction.aggregate([
         { $match: { agenteId: String(agenteId) } },
-        { $group: { _id: '$tipo', count: { $sum: 1 } } },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
       ]).catch(() => []);
       const interactionTypes = {};
       interactionsByType.forEach(r => { interactionTypes[r._id] = r.count; });
@@ -401,6 +436,15 @@ router.get('/metrics/all', authenticateToken, requireRole('admin'), async (req, 
           totalInteractions,
           interactionsMes,
           interactionTypes,
+          ventas,
+          alquileres,
+          comisiones,
+          valorCartera,
+          propiedadesVendidas,
+          tasaConversion,
+          diasPromCierre,
+          ventasMensual,
+          metaMensual: Number(agente.metadata?.metaMensual || 0),
 
         },
 
@@ -460,9 +504,43 @@ router.get('/metrics/:id', authenticateToken, requireCRMUser, async (req, res) =
 
     // Get detailed metrics
 
-    const clientes = await Cliente.find({ agenteId }).select('nombre email estado createdAt').lean().catch(() => []);
+    const clientes = await Cliente.find({ agenteId }).select('nombre email estado metadata createdAt').lean().catch(() => []);
 
-    const propiedades = await Propiedad.find({ agenteId }).select('titulo tipo operacion precio estado').lean().catch(() => []);
+    const propiedades = await Propiedad.find({ agentId: String(agenteId) }).select('title tipo operacion price status').lean().catch(() => []);
+
+    // Real sales & commission metrics from Operacion
+    const ops = await Operacion.find({ agenteId: String(agenteId) }).lean().catch(() => []);
+    const opsClosed = ops.filter((o) => ['Cerrada', 'Completada'].includes(o.estado));
+    const ventas = opsClosed.filter((o) => o.tipo === 'Venta').length;
+    const alquileres = opsClosed.filter((o) => o.tipo === 'Alquiler').length;
+    const comisiones = Math.round(opsClosed.reduce((s, o) => {
+      const monto = Number(o.monto || 0);
+      const pct = Number(o.comisionPorcentaje || 0);
+      const explicit = Number(o.comisionMonto || 0);
+      return s + (explicit > 0 ? explicit : (pct > 0 ? (monto * pct) / 100 : 0));
+    }, 0));
+    const valorCartera = Math.round(propiedades.reduce((s, p) => s + Number(p.price || 0), 0));
+    const propiedadesVendidas = propiedades.filter((p) => p.status === 'Vendida').length;
+    const clientesCerrados = clientes.filter((c) => (c.metadata?.estado) === 'Cerrado').length;
+    const tasaConversion = clientes.length > 0 ? Math.round((clientesCerrados / clientes.length) * 100) : 0;
+    const diasPromCierre = opsClosed.length > 0
+      ? Math.round(opsClosed.reduce((s, o) => {
+          const c = new Date(o.createdAt);
+          const u = o.fechaCierre ? new Date(o.fechaCierre) : (o.updatedAt ? new Date(o.updatedAt) : new Date());
+          return s + Math.max(0, (u - c) / 86400000);
+        }, 0) / opsClosed.length)
+      : 0;
+    const ventasMensual = [];
+    for (let i = 5; i >= 0; i -= 1) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const ms = new Date(d.getFullYear(), d.getMonth(), 1);
+      const me = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      ventasMensual.push({
+        mes: ms.toLocaleDateString('es-AR', { month: 'short' }),
+        ventas: opsClosed.filter((o) => o.tipo === 'Venta' && new Date(o.createdAt) >= ms && new Date(o.createdAt) <= me).length,
+      });
+    }
 
     const actividades = await Activity.find({ agenteId }).sort({ createdAt: -1 }).limit(50).lean().catch(() => []);
 
@@ -486,7 +564,7 @@ router.get('/metrics/:id', authenticateToken, requireCRMUser, async (req, res) =
 
       const count = await Activity.countDocuments({
 
-        agenteId: new mongoose.Types.ObjectId(agenteId),
+        agenteId: String(agenteId),
 
         createdAt: { $gte: inicioMes, $lte: finMes }
 
@@ -510,9 +588,9 @@ router.get('/metrics/:id', authenticateToken, requireCRMUser, async (req, res) =
 
     const actividadesPorTipo = await Activity.aggregate([
 
-      { $match: { agenteId: new mongoose.Types.ObjectId(agenteId) } },
+      { $match: { agenteId: String(agenteId) } },
 
-      { $group: { _id: '$tipo', count: { $sum: 1 } } }
+      { $group: { _id: '$type', count: { $sum: 1 } } }
 
     ]).catch(() => []);
 
@@ -553,6 +631,14 @@ router.get('/metrics/:id', authenticateToken, requireCRMUser, async (req, res) =
         rating,
 
         satisfaccion,
+        ventas,
+        alquileres,
+        comisiones,
+        valorCartera,
+        propiedadesVendidas,
+        tasaConversion,
+        diasPromCierre,
+        metaMensual: Number(agente.metadata?.metaMensual || 0),
 
       },
 
@@ -567,6 +653,8 @@ router.get('/metrics/:id', authenticateToken, requireCRMUser, async (req, res) =
         actividadMensual,
 
         actividadesPorTipo,
+
+        ventasMensual,
 
       }
 

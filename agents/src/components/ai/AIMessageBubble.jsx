@@ -7,41 +7,46 @@ function formatTime(dateStr) {
 
 const AIMessageBubble = ({ message, isDark }) => {
   const isUser = message.role === 'user';
+  const failed = Boolean(message.metadata?.failed);
+  const pending = Boolean(message.metadata?.pending);
+
+  if (!message.content && message.role !== 'tool') return null;
 
   const bubbleBase = {
-    maxWidth:     '82%',
-    padding:      '9px 13px',
-    borderRadius: 12,
-    fontSize:     13,
-    lineHeight:   1.6,
-    wordBreak:    'break-word',
+    maxWidth: '78%',
+    padding: '9px 12px',
+    borderRadius: 18,
+    fontSize: 13,
+    lineHeight: 1.5,
+    wordBreak: 'break-word',
+    boxShadow: isDark ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)',
   };
 
   const userBubble = {
     ...bubbleBase,
-    background:              '#6b3de8',
-    color:                   '#fff',
-    alignSelf:               'flex-end',
-    borderBottomRightRadius: 4,
+    background: failed ? '#ef4444' : '#2563eb',
+    color: '#fff',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 6,
+    opacity: pending ? 0.72 : 1,
   };
 
   const assistantBubble = {
     ...bubbleBase,
-    background:             isDark ? '#1e2a3a' : '#f1f5f9',
-    color:                   isDark ? '#e2e8f0' : '#1e293b',
-    alignSelf:               'flex-start',
-    borderBottomLeftRadius:  4,
-    border:                  isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #e2e8f0',
+    background: isDark ? '#1f2937' : '#fff',
+    color: isDark ? '#e2e8f0' : '#1e293b',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 6,
+    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb',
   };
 
   const toolBubble = {
     ...bubbleBase,
-    background: isDark ? '#1a2e1a' : '#f0fdf4',
-    color:      isDark ? '#86efac' : '#166534',
-    alignSelf:  'flex-start',
-    border:     `1px solid ${isDark ? '#166534' : '#bbf7d0'}`,
-    fontFamily: 'monospace',
-    fontSize:   12,
+    background: isDark ? '#17251a' : '#f0fdf4',
+    color: isDark ? '#86efac' : '#166534',
+    alignSelf: 'flex-start',
+    border: `1px solid ${isDark ? '#166534' : '#bbf7d0'}`,
+    fontSize: 12,
   };
 
   const style = isUser ? userBubble : (message.role === 'tool' ? toolBubble : assistantBubble);
@@ -51,16 +56,15 @@ const AIMessageBubble = ({ message, isDark }) => {
       <div style={style}>
         {message.role === 'tool' && (
           <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 3 }}>
-            🔧 {message.toolCall?.toolName || 'tool'}
+            {message.toolCall?.toolName || 'tool'}
           </div>
         )}
         <span style={{ whiteSpace: 'pre-wrap' }}>{message.content}</span>
       </div>
       <div style={{ fontSize: 10, color: isDark ? '#64748b' : '#94a3b8', marginTop: 2, paddingLeft: isUser ? 0 : 4 }}>
         {formatTime(message.createdAt)}
-        {message.provider && !isUser && (
-          <span style={{ marginLeft: 5, opacity: 0.7 }}>· {message.provider}</span>
-        )}
+        {pending && <span style={{ marginLeft: 5 }}>enviando</span>}
+        {failed && <span style={{ marginLeft: 5 }}>no enviado</span>}
       </div>
     </div>
   );

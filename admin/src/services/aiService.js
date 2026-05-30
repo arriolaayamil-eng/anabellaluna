@@ -20,8 +20,8 @@ export const aiService = {
   getMessages: (conversationId) =>
     api.get(`${BASE}/conversations/${conversationId}/messages`),
 
-  sendMessage: (conversationId, message) =>
-    api.post(`${BASE}/conversations/${conversationId}/messages`, { message }),
+  sendMessage: (conversationId, message, clientMessageId) =>
+    api.post(`${BASE}/conversations/${conversationId}/messages`, { message, clientMessageId }),
 
   // ── Campaigns ─────────────────────────────────────────────────────────────
 

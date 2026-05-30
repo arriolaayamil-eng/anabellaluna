@@ -13,6 +13,13 @@ function registerPropiedadTools(server) {
   const Activity = () => getModel('Activity');
 
   const safeLimit = (limit, fallback = 20) => Math.min(Math.max(Number(limit) || fallback, 1), 50);
+  const persistedResult = async (model, id, label) => {
+    const persisted = await model.findById(id).lean();
+    if (!persisted) {
+      return { content: [{ type: 'text', text: `No se pudo confirmar la persistencia de ${label}` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify({ persisted: true, item: persisted }, null, 2) }] };
+  };
 
   server.tool(
     'count_propiedades',
@@ -220,6 +227,47 @@ function registerPropiedadTools(server) {
   );
 
   server.tool(
+    'create_propiedad',
+    'Crea una propiedad nueva en el CRM. Usar cuando el usuario pide cargar/crear una propiedad y dio al menos un título o dirección. El título es requerido.',
+    {
+      title: z.string().describe('Título de la propiedad, requerido'),
+      description: z.string().optional().describe('Descripción comercial'),
+      address: z.string().optional().describe('Dirección'),
+      price: z.number().optional().describe('Precio'),
+      moneda: z.string().optional().describe('ARS o USD'),
+      status: z.string().optional().describe('Disponible | Reservada | Vendida | Alquilada'),
+      published: z.boolean().optional(),
+      featured: z.boolean().optional(),
+      ownerId: z.string().optional().describe('ID del cliente propietario'),
+      agentId: z.string().optional().describe('ID del agente responsable'),
+      metadata: z.object({}).passthrough().optional().describe('Datos adicionales'),
+    },
+    async ({ title, description, address, price, moneda, status, published, featured, ownerId, agentId, metadata }) => {
+      if (!title || !String(title).trim()) {
+        return { content: [{ type: 'text', text: 'title es requerido' }], isError: true };
+      }
+
+      const doc = {
+        title: String(title).trim(),
+        description: description || '',
+        address: address || '',
+        price: Number(price || 0),
+        moneda: moneda || 'ARS',
+        metadata: metadata || {},
+      };
+
+      if (status) doc.status = status;
+      if (published !== undefined) doc.published = !!published;
+      if (featured !== undefined) doc.featured = !!featured;
+      if (ownerId) doc.ownerId = String(ownerId);
+      if (agentId) doc.agentId = String(agentId);
+
+      const created = await Propiedad().create(doc);
+      return persistedResult(Propiedad(), created._id, 'propiedad');
+    }
+  );
+
+  server.tool(
     'update_propiedad',
     'Actualiza campos de una propiedad (título, descripción, precio, estado, publicación, destacada).',
     {
@@ -244,9 +292,9 @@ function registerPropiedadTools(server) {
       if (published !== undefined) set.published = published;
       if (featured !== undefined) set.featured = featured;
 
-      const updated = await Propiedad().findByIdAndUpdate(propiedadId, { $set: set }, { new: true }).lean();
+      const updated = await Propiedad().findByIdAndUpdate(propiedadId, { $set: set }, { new: true, runValidators: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Propiedad no encontrada' }], isError: true };
-      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+      return persistedResult(Propiedad(), updated._id, 'propiedad');
     }
   );
 
@@ -258,9 +306,9 @@ function registerPropiedadTools(server) {
       published: z.boolean().describe('true para publicar, false para despublicar'),
     },
     async ({ propiedadId, published }) => {
-      const updated = await Propiedad().findByIdAndUpdate(propiedadId, { $set: { published } }, { new: true }).lean();
+      const updated = await Propiedad().findByIdAndUpdate(propiedadId, { $set: { published } }, { new: true, runValidators: true }).lean();
       if (!updated) return { content: [{ type: 'text', text: 'Propiedad no encontrada' }], isError: true };
-      return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+      return persistedResult(Propiedad(), updated._id, 'propiedad');
     }
   );
 }

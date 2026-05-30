@@ -21,6 +21,10 @@ function enc(s: string) {
   return encodeURIComponent(s);
 }
 
+function cssUrl(src: string): string {
+  return `url(${JSON.stringify(src)})`;
+}
+
 function patternSvgString(type: FunnelPatternType, color: string, size: number, opacity: number): string {
   const c = color || '#ffffff';
   const s = size || 20;
@@ -44,7 +48,7 @@ function patternSvgString(type: FunnelPatternType, color: string, size: number, 
 
 export function getPatternCssBackground(cfg: FunnelPatternConfig, baseColor: string): string {
   const svg = patternSvgString(cfg.type, cfg.patternColor, cfg.size, cfg.opacity);
-  const dataUrl = `url("data:image/svg+xml,${enc(svg)}")`;
+  const dataUrl = cssUrl(`data:image/svg+xml,${enc(svg)}`);
   return `${baseColor || '#0f172a'} ${dataUrl} repeat`;
 }
 
@@ -75,7 +79,7 @@ export function buildHeroBackground(fs: FunnelSettings | undefined | null): Hero
       const overlay = `rgba(10,20,40,${overlayAlpha})`;
       if (!img) return { background: DEFAULT_FUNNEL_SETTINGS.heroBackgroundGradient! };
       return {
-        background: `linear-gradient(${overlay},${overlay}),url('${img}')`,
+        background: `linear-gradient(${overlay},${overlay}),${cssUrl(img)}`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -96,7 +100,7 @@ export function buildHeroBackground(fs: FunnelSettings | undefined | null): Hero
       if (!raw) return { background: DEFAULT_FUNNEL_SETTINGS.heroBackgroundGradient! };
       const base = settings.heroBackgroundColor || '#0f172a';
       return {
-        background: `${base} url("data:image/svg+xml,${enc(raw)}") repeat`,
+        background: `${base} ${cssUrl(`data:image/svg+xml,${enc(raw)}`)} repeat`,
         backgroundRepeat: 'repeat',
       };
     }
@@ -107,7 +111,7 @@ export function buildHeroBackground(fs: FunnelSettings | undefined | null): Hero
       const base = settings.heroBackgroundGradient || DEFAULT_FUNNEL_SETTINGS.heroBackgroundGradient!;
       if (!svgUrl) return { background: base };
       return {
-        background: `url('${svgUrl}') center/cover no-repeat, ${base}`,
+        background: `${cssUrl(svgUrl)} center/cover no-repeat, ${base}`,
       };
     }
 

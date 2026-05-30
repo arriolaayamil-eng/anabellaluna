@@ -77,9 +77,9 @@ Hoy es ${today}. Zona horaria: ${tz}.
 
 Tenés acceso COMPLETO al sistema mediante tools. Podés:
 
-📋 CRM (Agentes):
+CRM:
 - Buscar, crear y modificar clientes
-- Buscar, consultar y modificar propiedades
+- Buscar, consultar, crear y modificar propiedades
 - Agendar, modificar y cancelar citas (agenda/calendario)
 - Crear y gestionar tareas
 - Listar y gestionar operaciones (ventas, alquileres, reservas)
@@ -107,13 +107,19 @@ REGLAS CRÍTICAS:
 - Para predicciones, prioridades, matching o "qué conviene hacer", usá tools predictivas y presentá score + factores como estimaciones, no certezas absolutas.
 - Si el usuario da una orden directa para crear/agendar/registrar/modificar algo y ya están los datos mínimos, EJECUTÁ la tool en ese mismo turno. No respondas solo "voy a hacerlo" ni pidas una segunda confirmación.
 - Pedí datos faltantes solo cuando no puedas inferir un campo requerido con seguridad. Para citas, fecha/hora + título/asunto o tipo son suficientes; cliente, propiedad, fechaFin, ubicación y notas son opcionales si el usuario no los dio.
+- Para propiedades, title/título es requerido. Si el usuario da una dirección pero no un título, usá un título corto y natural derivado de la dirección.
 - Para acciones destructivas o riesgosas (eliminar, cancelar definitivamente, borrar datos), confirmá antes salvo que el usuario ya lo haya ordenado de forma explícita.
 - Cuando ejecutes una acción, primero usá la tool y después informá el resultado. No prometas una acción sin haber recibido resultado de la tool.
+- Solo digas que algo quedó guardado cuando la tool devolvió un resultado persistido o un objeto con _id.
+- Si una tool devuelve error, no maquilles el resultado: contá qué faltó y qué necesitás para resolverlo.
 - Las fechas del usuario en lenguaje natural ("mañana a las 10") convertílas a ISO 8601.
-- Presentá resultados de forma clara, resumida y formateada. NUNCA vuelques JSON crudo.
+- Presentá resultados de forma clara y resumida. NUNCA vuelques JSON crudo.
 - Para montos incluí siempre la moneda (ARS/USD).
 - Para fechas usá formato natural argentino (ej: "martes 28/05 a las 14:30").
 - Respondé siempre en español rioplatense, claro y profesional.
+- Conversá como una persona inteligente dentro de una app de mensajería moderna: directo, cálido, sin relleno.
+- No uses asteriscos, títulos artificiales, markdown pesado ni listas largas salvo que el usuario lo pida o realmente ayude.
+- Si la respuesta puede ser corta, que sea corta. Si hay contexto complejo, explicá lo necesario sin sonar robótico.
 - Si hay un error en una tool, informá al usuario de forma amigable.
 - Podés hacer múltiples consultas en secuencia para obtener información completa.
 
@@ -139,6 +145,52 @@ function _looksLikeDeferredAction(text = '') {
   const completedPattern = /\b(ha sido|fue|qued[oó]|listo|con [eé]xito|se cre[oó]|se agend[oó]|he agendado|he creado|ya est[aá])\b/;
 
   return promisePattern.test(t) && actionPattern.test(t) && !completedPattern.test(t);
+}
+
+function _isAdmin(permissions) {
+  return Array.isArray(permissions) && (
+    permissions.includes('admin:all') ||
+    permissions.includes('*') ||
+    permissions.includes('admin')
+  );
+}
+
+function _scopeToolArguments(toolName, args, { agenteId, permissions }) {
+  const scopedArgs = { ...(args || {}) };
+  if (!agenteId || _isAdmin(permissions)) return scopedArgs;
+
+  const agenteScopedTools = new Set([
+    'count_clientes',
+    'search_clientes',
+    'list_clientes_recientes',
+    'list_clientes_sin_seguimiento',
+    'detect_clientes_duplicados',
+    'create_cliente',
+    'list_citas',
+    'get_agenda_summary',
+    'list_citas_vencidas_sin_resultado',
+    'detect_agenda_conflicts',
+    'create_cita',
+  ]);
+
+  const agentScopedTools = new Set([
+    'count_propiedades',
+    'search_propiedades',
+    'list_propiedades_por_estado',
+    'list_propiedades_incompletas',
+    'list_propiedades_estancadas',
+    'create_propiedad',
+  ]);
+
+  if (agenteScopedTools.has(toolName) && !scopedArgs.agenteId) {
+    scopedArgs.agenteId = agenteId;
+  }
+
+  if (agentScopedTools.has(toolName) && !scopedArgs.agentId) {
+    scopedArgs.agentId = agenteId;
+  }
+
+  return scopedArgs;
 }
 
 /**
@@ -230,7 +282,7 @@ async function _maybeSummarize(conversation, userId, agenteId) {
 
 // ── Main Chat Function ────────────────────────────────────────────────────────
 
-async function chat({ conversationId, userMessage, userId, agenteId, agenteName, permissions }) {
+async function chat({ conversationId, userMessage, userId, agenteId, agenteName, permissions, clientMessageId }) {
   // 1. Conectar MCP server (tools del CRM/ERP)
   await ensureMCPConnection();
 
@@ -259,13 +311,51 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     });
   }
 
+  const normalizedClientMessageId = String(clientMessageId || '').trim().slice(0, 120);
+  if (normalizedClientMessageId) {
+    const existingUserMessage = await AIMessage.findOne({
+      conversationId: conversation._id,
+      userId,
+      role: 'user',
+      'metadata.clientMessageId': normalizedClientMessageId,
+    }).lean();
+
+    if (existingUserMessage) {
+      const existingAssistant = await AIMessage.findOne({
+        conversationId: conversation._id,
+        userId,
+        role: 'assistant',
+        content: { $ne: '' },
+        createdAt: { $gte: existingUserMessage.createdAt },
+      }).sort({ createdAt: 1 }).lean();
+
+      if (existingAssistant) {
+        return {
+          conversationId: conversation._id,
+          userMessageId: existingUserMessage._id,
+          assistantMessageId: existingAssistant._id,
+          content: existingAssistant.content || '',
+          response: existingAssistant.content || '',
+          provider: existingAssistant.provider || '',
+          duplicate: true,
+          usage: { total_tokens: existingAssistant.tokensUsed || 0 },
+        };
+      }
+
+      const duplicateError = new Error('Ese mensaje ya fue recibido y todavía se está procesando.');
+      duplicateError.statusCode = 409;
+      throw duplicateError;
+    }
+  }
+
   // 3. Guardar mensaje del usuario en DB (persistencia)
-  await AIMessage.create({
+  const savedUserMessage = await AIMessage.create({
     conversationId: conversation._id,
     role:    'user',
     content: userMessage,
     userId,
     agenteId: agenteId || '',
+    metadata: normalizedClientMessageId ? { clientMessageId: normalizedClientMessageId } : {},
   });
 
   // 4. Construir contexto: system + summary (si existe) + últimos 5 mensajes
@@ -278,6 +368,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
   let totalTokens   = 0;
   let forcedToolRetryUsed = false;
   let forceNextToolCall = false;
+  const executedTools = [];
 
   // 5. Loop LLM → tools (formato OpenAI)
   while (rounds < MAX_TOOL_ROUNDS) {
@@ -342,7 +433,8 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     for (const toolCall of assistantMsg.tool_calls) {
       let toolResultContent;
       try {
-        const args   = JSON.parse(toolCall.function.arguments || '{}');
+        const parsedArgs = JSON.parse(toolCall.function.arguments || '{}');
+        const args = _scopeToolArguments(toolCall.function.name, parsedArgs, { agenteId, permissions });
         console.log(`[AI/MCP] Calling tool ${toolCall.function.name}`);
         const result = await mcpClient.callTool({
           name:      toolCall.function.name,
@@ -352,8 +444,19 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
           ? result.content.map((c) => c.text || '').join('\n')
           : JSON.stringify(result);
         toolResultContent = result.isError ? `Error: ${text}` : text;
+        executedTools.push({
+          name: toolCall.function.name,
+          ok: !result.isError,
+          persisted: !result.isError && /"persisted"\s*:\s*true/.test(text),
+        });
       } catch (err) {
         toolResultContent = `Error ejecutando ${toolCall.function.name}: ${err.message}`;
+        executedTools.push({
+          name: toolCall.function.name,
+          ok: false,
+          persisted: false,
+          error: err.message,
+        });
       }
 
       // Agregar tool result al contexto (formato OpenAI)
@@ -386,6 +489,16 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
     }
   }
 
+  if (!String(finalResponse || '').trim()) {
+    if (executedTools.some((tool) => tool.persisted)) {
+      finalResponse = 'Listo, quedó guardado.';
+    } else if (executedTools.some((tool) => !tool.ok)) {
+      finalResponse = 'No pude completar la acción. Revisá los datos y probamos de nuevo.';
+    } else {
+      finalResponse = 'No pude generar una respuesta confiable. Probá reformularlo y lo intento otra vez.';
+    }
+  }
+
   // 6. Guardar respuesta final del assistant
   const savedAssistant = await AIMessage.create({
     conversationId: conversation._id,
@@ -408,6 +521,7 @@ async function chat({ conversationId, userMessage, userId, agenteId, agenteName,
 
   return {
     conversationId:     conversation._id,
+    userMessageId:      savedUserMessage._id,
     assistantMessageId: savedAssistant._id,
     content:            finalResponse,
     response:           finalResponse,

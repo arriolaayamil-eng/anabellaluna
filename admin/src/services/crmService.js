@@ -1,5 +1,22 @@
 import { api } from '../config/api';
 
+const requirePersisted = async (request, label) => {
+  const result = await request;
+  if (!result || !result._id) {
+    throw new Error(`${label} no fue confirmado por el servidor.`);
+  }
+  return result;
+};
+
+const requireVisitPersisted = async (request) => {
+  const result = await request;
+  const visitas = Number(result?.metadata?.visitas ?? result?.visitas);
+  if (!result || !result._id || Number.isNaN(visitas)) {
+    throw new Error('La visita no fue confirmada por el servidor.');
+  }
+  return result;
+};
+
 export const crmService = {
   // ============ LINKS (DOCUMENTOS <-> ENTIDADES CRM) ============
   links: {
@@ -13,11 +30,11 @@ export const crmService = {
   propiedades: {
     getAll: () => api.get('/crm/propiedades'),
     getById: (id) => api.get(`/crm/propiedades/${id}`),
-    create: (data) => api.post('/crm/propiedades', data),
-    update: (id, data) => api.put(`/crm/propiedades/${id}`, data),
+    create: (data) => requirePersisted(api.post('/crm/propiedades', data), 'La propiedad'),
+    update: (id, data) => requirePersisted(api.put(`/crm/propiedades/${id}`, data), 'La propiedad'),
     delete: (id) => api.delete(`/crm/propiedades/${id}`),
     togglePublish: (id, published) => api.patch(`/crm/propiedades/${id}/publish`, { published }),
-    incrementVisit: (id) => api.patch(`/crm/propiedades/${id}/visita`),
+    incrementVisit: (id) => requireVisitPersisted(api.patch(`/crm/propiedades/${id}/visita`)),
     generatePrivateLink: (id) => api.post(`/crm/propiedades/${id}/private-link`),
     revokePrivateLink: (id) => api.delete(`/crm/propiedades/${id}/private-link`),
   },
@@ -26,8 +43,8 @@ export const crmService = {
   clientes: {
     getAll: (q) => api.get(q ? `/crm/clientes?q=${encodeURIComponent(q)}` : '/crm/clientes'),
     getById: (id) => api.get(`/crm/clientes/${id}`),
-    create: (data) => api.post('/crm/clientes', data),
-    update: (id, data) => api.put(`/crm/clientes/${id}`, data),
+    create: (data) => requirePersisted(api.post('/crm/clientes', data), 'El cliente'),
+    update: (id, data) => requirePersisted(api.put(`/crm/clientes/${id}`, data), 'El cliente'),
     delete: (id) => api.delete(`/crm/clientes/${id}`),
   },
 
@@ -74,8 +91,8 @@ export const crmService = {
   citas: {
     getAll: () => api.get('/crm/citas'),
     getById: (id) => api.get(`/crm/citas/${id}`),
-    create: (data) => api.post('/crm/citas', data),
-    update: (id, data) => api.put(`/crm/citas/${id}`, data),
+    create: (data) => requirePersisted(api.post('/crm/citas', data), 'La cita'),
+    update: (id, data) => requirePersisted(api.put(`/crm/citas/${id}`, data), 'La cita'),
     delete: (id) => api.delete(`/crm/citas/${id}`),
   },
 

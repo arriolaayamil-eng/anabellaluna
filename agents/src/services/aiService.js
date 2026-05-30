@@ -9,8 +9,8 @@ export const aiService = {
   },
   createConversation: (data = {}) => api.post(`${BASE}/conversations`, data),
   getMessages: (conversationId) => api.get(`${BASE}/conversations/${conversationId}/messages`),
-  sendMessage: (conversationId, message) =>
-    api.post(`${BASE}/conversations/${conversationId}/messages`, { message }),
+  sendMessage: (conversationId, message, clientMessageId) =>
+    api.post(`${BASE}/conversations/${conversationId}/messages`, { message, clientMessageId }),
 
   getCampaigns: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
